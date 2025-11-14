@@ -1,0 +1,79 @@
+.el-message {
+    display: flex;
+    align-items: flex-start;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+    padding: 16px;
+    font-size: 14px;
+    color: #606266;
+    transition: all 0.3s ease;
+}
+
+.message-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 12px;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+/* 成功类型 - 深绿色 */
+.el-message.success .message-icon {
+    background: linear-gradient(135deg, #52c41a, #389e0d);
+}
+
+.el-message.success .message-icon::before {
+    content: "✓";
+    color: white;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+/* 警告类型 - 深橙色 */
+.el-message.warning .message-icon {
+    background: linear-gradient(135deg, #faad14, #d48806);
+}
+
+.el-message.warning .message-icon::before {
+    content: "!";
+    color: white;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+/* 错误类型 - 深红色 */
+.el-message.error .message-icon {
+    background: linear-gradient(135deg, #f5222d, #cf1322);
+}
+
+.el-message.error .message-icon::before {
+    content: "✕";
+    color: white;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+/* 信息类型 - 深蓝色 */
+.el-message.info .message-icon {
+    background: linear-gradient(135deg, #1890ff, #0050b3);
+}
+
+.el-message.info .message-icon::before {
+    content: "i";
+    color: white;
+    font-weight: bold;
+    font-size: 12px;
+    font-style: normal;
+}
+
+/* 消息内容 */
+.message-content {
+    flex: 1;
+    min-width: 0;
+    word-wrap: break-word;
+}

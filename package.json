@@ -1,0 +1,64 @@
+{
+  "name": "imchat",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc && vite build && electron-builder",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "axios": "^1.13.1",
+    "element-plus": "^2.11.5",
+    "json-bigint": "^1.0.0",
+    "pinia": "^3.0.3",
+    "qs": "^6.14.0",
+    "sql.js": "^1.13.0",
+    "uuid": "^13.0.0",
+    "vue": "^3.4.21",
+    "vue-router": "^4.6.3"
+  },
+  "devDependencies": {
+    "@types/json-bigint": "^1.0.4",
+    "@types/qs": "^6.14.0",
+    "@types/sql.js": "^1.4.9",
+    "@vitejs/plugin-vue": "^5.0.4",
+    "electron": "^30.0.1",
+    "electron-builder": "^24.13.3",
+    "electron-rebuild": "^3.2.9",
+    "sass-embedded": "^1.93.2",
+    "typescript": "^5.2.2",
+    "vite": "^5.1.6",
+    "vite-plugin-electron": "^0.28.6",
+    "vite-plugin-electron-renderer": "^0.14.5",
+    "vue-tsc": "^2.0.26"
+  },
+  "eslintConfig": {
+    "env": {
+      "node": true,
+      "es2022": true
+    },
+    "overrides": [
+      {
+        "files": [
+          "electron/**/*.ts",
+          "electron/**/*.js"
+        ],
+        "env": {
+          "node": true
+        }
+      },
+      {
+        "files": [
+          "src/**/*.ts",
+          "src/**/*.vue"
+        ],
+        "env": {
+          "browser": true
+        }
+      }
+    ]
+  },
+  "main": "dist-electron/main.js"
+}
