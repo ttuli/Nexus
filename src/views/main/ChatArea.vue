@@ -83,7 +83,6 @@ import { ElMessage } from 'element-plus'
 import { WebSocketCli } from '@/websocket'
 import { v4 as uuidv4 } from 'uuid'
 import { MsgType, MessageStatus, ChatMessage } from "@/models/message"
-import { getSessionMsg } from '@/apis/social'
 
 const chatStore = useChatStore()
 const relationStore = useRelationStore()
@@ -303,46 +302,8 @@ onBeforeUnmount(() => {
     messagesContainer.value?.removeEventListener('scroll', onMessagesScroll)
 })
 
-const normalizeHistoryPayload = (payload: any): any[] => {
-    const root = payload?.data ?? payload
-    const arr = root?.data ?? root
-    if (Array.isArray(arr)) return arr
-    if (!arr) return []
-    if (typeof arr === 'object') return Object.values(arr)
-    return []
-}
-
-const loadSessionMessages = async (sessionId: string) => {
-    if (!sessionId) return
-    try {
-        const existing = chatStore.chatMsgs.get(sessionId) || []
-        const lastSeq = existing.length ? existing[existing.length - 1].seqid : 0
-        const fromSeq = Math.max(0, lastSeq - 500)
-        const endSeq = Number.MAX_SAFE_INTEGER
-        const res = await getSessionMsg({ sessionId, fromSeq, endSeq })
-        const list = normalizeHistoryPayload(res)
-        for (const item of list) {
-            const ws = {
-                id: String(item.id ?? item.ID ?? ''),
-                session_id: String(item.session_id ?? item.SessionID ?? sessionId),
-                seq_id: Number(item.seq_id ?? item.SeqID ?? 0),
-                msgType: Number(item.type ?? item.Type ?? MsgType.Text),
-                timestamp: Number(item.timestamp ?? item.Timestamp ?? Date.now()),
-                content: String(item.content ?? item.Content ?? ''),
-                status: Number(item.status ?? item.Status ?? MessageStatus.Delivered),
-                sender_id: BigInt(item.sender_id ?? item.SenderID ?? 0),
-            }
-            console.log(ws)
-            chatStore.parseWsMessage(ws)
-        }
-    } catch (e) {
-        console.log(e)
-    }
-}
-
-watch(() => chatStore.selectedChat?.session_id || '', async (sid) => {
+watch(() => chatStore.selectedChat?.session_id || '', async () => {
     windowSize.value = WINDOW_SIZE_DEFAULT
-    await loadSessionMessages(sid)
     nextTick(() => {
         scrollToBottom()
     })

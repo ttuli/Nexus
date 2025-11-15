@@ -6,6 +6,8 @@ import { getUserInfo } from '@/apis/user'
 import { ElMessage } from 'element-plus'
 import JSONbig from 'json-bigint';
 import { getGroupList } from '@/apis/social'
+import { sqlJsDB } from '@/utils/sqljs'
+import { useUserStore } from '@/store/user'
 
 export const useRelationStore = defineStore('relationMap', {
   state: () => ({
@@ -147,6 +149,37 @@ export const useRelationStore = defineStore('relationMap', {
       groups.forEach(item => {
         this.groupMap.set(item.id, item)
       })
+    },
+    loadLocalCache() {
+      const owner = useUserStore().userId || undefined
+      const now = Date.now()
+      const users = sqlJsDB.getUsers(owner, now)
+      users.forEach((u: any) => {
+        const user = {
+          user_id: BigInt(u?.user_id ?? u?.id ?? 0),
+          user_name: String(u?.user_name ?? u?.name ?? ''),
+          gender: Number(u?.gender ?? 0),
+          avatar: String(u?.avatar ?? ''),
+          personal_signature: String(u?.personal_signature ?? u?.signature ?? ''),
+          phone: String(u?.phone ?? ''),
+          join_type: Number(u?.join_type ?? 1),
+        } as UserInfo
+        this.userMap.set(user.user_id, user)
+      })
+      const groups = sqlJsDB.getGroups(owner, now)
+      groups.forEach((g: any) => {
+        const group = {
+          id: BigInt(g?.id ?? g?.group_id ?? 0),
+          name: String(g?.name ?? g?.group_name ?? ''),
+          avatar: String(g?.avatar ?? ''),
+          owner_id: BigInt(g?.owner_id ?? 0),
+          created_at: Number(g?.created_at ?? 0),
+          updated_at: Number(g?.updated_at ?? 0),
+          member_ids: Array.isArray(g?.member_ids) ? g.member_ids.map((x: any) => BigInt(x)) : [],
+        } as GroupInfo
+        this.groupMap.set(group.id, group)
+      })
+      return { userCount: this.userMap.size, groupCount: this.groupMap.size }
     },
     GetMemberBySessionId(sessionId: string): bigint[] {
       let res : bigint[] = []

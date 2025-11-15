@@ -92,9 +92,13 @@ import { getUserInfo } from '@/apis/user';
 import { createWindow } from '@/utils/window';
 import { useChatStore } from '@/store/chat';
 import { sqlJsDB } from '@/utils/sqljs'
+import { useRelationStore } from '@/store/relationMap'
+ 
 
 const userStore = useUserStore()
 const chatStore = useChatStore()
+const relationStore = useRelationStore()
+ 
 
 // 响应式数据
 const activeTab = ref<'chat' | 'contacts' | 'settings'>('chat')
@@ -175,9 +179,16 @@ const clearVerifyUnread = () => {
 }
 
 
-onMounted(() => {
-  sqlJsDB.init()
-  initFunc()
+onMounted(async () => {
+  try {
+    await sqlJsDB.init()
+    relationStore.loadLocalCache()
+    await chatStore.loadAllCaches()
+    chatStore.initSelectedChatWatcher()
+  } catch (e) {
+    console.log(e)
+  }
+  await initFunc()
   WebSocketCli.connect()
 })
 const initFunc = async () => {

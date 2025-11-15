@@ -56,6 +56,23 @@ class SqlJsDB {
     list.forEach(r => stmt.run([r.ownerId, r.sessionId, JSON.stringify(r.data), r.updatedAt, r.expiresAt]))
     stmt.free()
   }
+  /**
+   * Get one session cache by owner and session id
+   */
+  getSession(ownerId: string, sessionId: string, now?: number) {
+    if (!this.db) return null
+    const n = now ?? Date.now()
+    const st = this.db.prepare(`SELECT data FROM session_cache WHERE owner_id = ? AND session_id = ? AND expires_at > ? LIMIT 1`)
+    const stepped = st.step([ownerId, sessionId, n])
+    const obj = stepped ? st.getAsObject() : null
+    st.free()
+    if (!obj) return null
+    try {
+      return JSON.parse(obj.data)
+    } catch {
+      return obj.data
+    }
+  }
   saveUsers(list: UserCache[]) {
     if (!this.db || list.length === 0) return
     const stmt = this.db.prepare(`INSERT OR REPLACE INTO user_cache(owner_id, user_id, data, updated_at, expires_at) VALUES(?,?,?,?,?)`)
@@ -95,6 +112,25 @@ class SqlJsDB {
     }
     return rows.map(r => { try { return JSON.parse(r.data) } catch { return r.data } })
   }
+  getSessionsWithMeta(ownerId?: string, now?: number) {
+    if (!this.db) return []
+    const n = now ?? Date.now()
+    const rows: any[] = []
+    if (ownerId) {
+      const st = this.db.prepare(`SELECT session_id, data FROM session_cache WHERE owner_id = ? AND expires_at > ? ORDER BY updated_at DESC`)
+      while (st.step([ownerId, n])) rows.push(st.getAsObject())
+      st.free()
+    } else {
+      const st = this.db.prepare(`SELECT session_id, data FROM session_cache WHERE expires_at > ? ORDER BY updated_at DESC`)
+      while (st.step([n])) rows.push(st.getAsObject())
+      st.free()
+    }
+    return rows.map(r => {
+      let data
+      try { data = JSON.parse(r.data) } catch { data = r.data }
+      return { sessionId: String(r.session_id || ''), data }
+    })
+  }
   getUsers(ownerId?: string, now?: number) {
     if (!this.db) return []
     const n = now ?? Date.now()
@@ -124,6 +160,12 @@ class SqlJsDB {
       st.free()
     }
     return rows.map(r => { try { return JSON.parse(r.data) } catch { return r.data } })
+  }
+  getAllCache(ownerId?: string, now?: number) {
+    const sessions = this.getSessions(ownerId, now)
+    const users = this.getUsers(ownerId, now)
+    const groups = this.getGroups(ownerId, now)
+    return { sessions, users, groups }
   }
 }
 
