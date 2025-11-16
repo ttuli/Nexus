@@ -114,9 +114,12 @@ const GROUP_GAP_MS = 5 * 60 * 1000
 const groupedItems = computed<RenderItem[]>(() => {
     const res: RenderItem[] = []
     const list = windowMessages.value
-    let prev = 0
-    for (const m of list) {
-        if (prev && m.timestamp - prev > GROUP_GAP_MS) {
+    if (list.length === 0) return res
+    res.push({ t: 'divider', ts: list[0].timestamp })
+    let prev = list[0].timestamp
+    for (let i = 0; i < list.length; i++) {
+        const m = list[i]
+        if (i > 0 && m.timestamp - prev > GROUP_GAP_MS) {
             res.push({ t: 'divider', ts: m.timestamp })
         }
         res.push({ t: 'msg', m })
@@ -155,6 +158,7 @@ const sendMessage = () => {
         return
     }
     messageInput.value = ''
+    console.log(relationStore.GetMemberBySessionId(chatStore.selectedChat.session_id))
     const msg = {
         id: uuidv4(),
         msgType: MsgType.Text,
@@ -241,9 +245,15 @@ const onMessagesScroll = () => {
     const el = messagesContainer.value
     if (!el) return
     if (el.scrollTop <= 0) {
+        const prevHeight = el.scrollHeight
         if (allMessages.value.length > windowSize.value) {
-            const prevHeight = el.scrollHeight
             windowSize.value = Math.min(windowSize.value + WINDOW_STEP, allMessages.value.length)
+            nextTick(() => {
+                const newHeight = el.scrollHeight
+                el.scrollTop = newHeight - prevHeight
+            })
+        } else if (chatStore.selectedChat?.session_id) {
+            chatStore.loadMoreHistory(chatStore.selectedChat.session_id)
             nextTick(() => {
                 const newHeight = el.scrollHeight
                 el.scrollTop = newHeight - prevHeight
@@ -397,6 +407,20 @@ watch(() => chatStore.selectedChat?.session_id || '', async () => {
     overflow-y: auto;
     padding: 20px;
     background: #f8f9fa;
+}
+.messages-container::-webkit-scrollbar {
+    width: 8px;
+}
+.messages-container::-webkit-scrollbar-track {
+    background: #eef2f6;
+    border-radius: 4px;
+}
+.messages-container::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #cfd6dd, #9aa5b1);
+    border-radius: 4px;
+}
+.messages-container::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #b8c2cc, #86919d);
 }
 .time-divider {
     text-align: center;

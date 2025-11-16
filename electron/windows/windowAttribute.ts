@@ -50,7 +50,7 @@ let configs: Map<string, WindowConfig> = new Map([
             key: 'register',
             url: '/register',
             modal: true,
-            parentId: 'main',
+            parentId: 'login',
             frame: false,
             resizable: false,
             width: 600,

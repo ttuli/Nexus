@@ -1,12 +1,15 @@
 import initSqlJs from 'sql.js'
 import wasmUrl from 'sql.js/dist/sql-wasm.wasm?url'
+import JSONB from 'json-bigint'
+import { MAX_PER_SESSION } from '@/store/chat'
 
-type SessionCache = { ownerId: string, sessionId: string, data: any, updatedAt: number, expiresAt: number }
-type UserCache = { ownerId: string, userId: string, data: any, updatedAt: number, expiresAt: number }
-type GroupCache = { ownerId: string, groupId: string, data: any, updatedAt: number, expiresAt: number }
+type SessionCache = { ownerId: string, data: any }
+type UserCache = { userId: string, data: any, updatedAt: number, expiresAt: number }
+type GroupCache = { groupId: string, data: any, updatedAt: number, expiresAt: number }
+type ChatCache = { sessionId: string, seq: number, data: any }  
 
 class SqlJsDB {
-  private db: any | null = null
+  private db: any | null = null 
   private file = 'imchat.sqlite'
   async init() {
     const SQL = await initSqlJs({ locateFile: () => wasmUrl })
@@ -17,29 +20,27 @@ class SqlJsDB {
     } else {
       this.db = new SQL.Database()
       this.db.run(`
-        CREATE TABLE IF NOT EXISTS session_cache (
-          owner_id TEXT NOT NULL,
+        CREATE TABLE IF NOT EXISTS chats (
           session_id TEXT NOT NULL,
+          seq INTEGER NOT NULL,
           data TEXT NOT NULL,
-          updated_at INTEGER NOT NULL,
-          expires_at INTEGER NOT NULL,
-          PRIMARY KEY(owner_id, session_id)
+          PRIMARY KEY(session_id, seq)
+        );
+        CREATE TABLE IF NOT EXISTS session_cache (
+          owner_id TEXT PRIMARY KEY,
+          data TEXT NOT NULL
         );
         CREATE TABLE IF NOT EXISTS user_cache (
-          owner_id TEXT NOT NULL,
-          user_id TEXT NOT NULL,
+          user_id TEXT PRIMARY KEY,
           data TEXT NOT NULL,
           updated_at INTEGER NOT NULL,
-          expires_at INTEGER NOT NULL,
-          PRIMARY KEY(owner_id, user_id)
+          expires_at INTEGER NOT NULL
         );
         CREATE TABLE IF NOT EXISTS group_cache (
-          owner_id TEXT NOT NULL,
-          group_id TEXT NOT NULL,
+          group_id TEXT PRIMARY KEY,
           data TEXT NOT NULL,
           updated_at INTEGER NOT NULL,
-          expires_at INTEGER NOT NULL,
-          PRIMARY KEY(owner_id, group_id)
+          expires_at INTEGER NOT NULL
         );
       `)
       await this.persist()
@@ -50,46 +51,72 @@ class SqlJsDB {
     const data = this.db.export()
     await window.ipcRenderer.invoke('fs:write-binary', { file: this.file, data })
   }
-  saveSessions(list: SessionCache[]) {
-    if (!this.db || list.length === 0) return
-    const stmt = this.db.prepare(`INSERT OR REPLACE INTO session_cache(owner_id, session_id, data, updated_at, expires_at) VALUES(?,?,?,?,?)`)
-    list.forEach(r => stmt.run([r.ownerId, r.sessionId, JSON.stringify(r.data), r.updatedAt, r.expiresAt]))
+  saveSessions(sc: SessionCache) {
+    if (!this.db) return
+    const stmt = this.db.prepare(`INSERT OR REPLACE INTO session_cache(owner_id, data) VALUES(?,?)`)
+    stmt.run([sc.ownerId, JSONB.stringify(sc.data)])
     stmt.free()
   }
-  /**
-   * Get one session cache by owner and session id
-   */
-  getSession(ownerId: string, sessionId: string, now?: number) {
-    if (!this.db) return null
-    const n = now ?? Date.now()
-    const st = this.db.prepare(`SELECT data FROM session_cache WHERE owner_id = ? AND session_id = ? AND expires_at > ? LIMIT 1`)
-    const stepped = st.step([ownerId, sessionId, n])
-    const obj = stepped ? st.getAsObject() : null
-    st.free()
-    if (!obj) return null
-    try {
-      return JSON.parse(obj.data)
-    } catch {
-      return obj.data
+  saveChats(chats: ChatCache[]) {
+    if (!this.db) return
+    const stmt = this.db.prepare(`INSERT OR REPLACE INTO chats(session_id, seq, data) VALUES(?,?,?)`)
+    chats.forEach(r => stmt.run([r.sessionId, r.seq, JSONB.stringify(r.data)]))
+    stmt.free()
+  }
+  getChats(sessionId: string, fromSeq?: number, endSeq?: number) {
+    if (!this.db) return []
+    let sql = `SELECT data FROM chats WHERE session_id = ?`
+    const params: any[] = [sessionId]
+    const noFrom = (fromSeq === undefined || fromSeq === null)
+    const noEnd = (endSeq === undefined || endSeq === null)
+    let defaultLatest = false
+    if (!noFrom && !noEnd) {
+      sql += ` AND seq BETWEEN ? AND ? ORDER BY seq ASC`
+      params.push(fromSeq, endSeq)
+    } else if (!noFrom && noEnd) {
+      sql += ` AND seq >= ? ORDER BY seq ASC`
+      params.push(fromSeq)
+    } else if (noFrom && !noEnd) {
+      sql += ` AND seq <= ? ORDER BY seq ASC`
+      params.push(endSeq)
+    } else {
+      sql += ` ORDER BY seq DESC LIMIT ?`
+      params.push(MAX_PER_SESSION)
+      defaultLatest = true
     }
+    const st = this.db.prepare(sql)
+    st.bind(params)
+    const rows: any[] = []
+    while (st.step()) rows.push(st.getAsObject())
+    st.free()
+    let messages = rows.map(r => { try { return JSONB.parse(r.data) } catch { return r.data } })
+    if (defaultLatest) messages = messages.reverse()
+    return [messages]
+  }
+
+  getSession(ownerId: string) {
+    if (!this.db) return []
+    const st = this.db.prepare(`SELECT data FROM session_cache WHERE owner_id = ?`)
+    st.bind([ownerId])
+    st.step()
+    const obj = st.getAsObject()
+    st.free()
+    return obj ? JSONB.parse(obj.data) : ""
   }
   saveUsers(list: UserCache[]) {
     if (!this.db || list.length === 0) return
-    const stmt = this.db.prepare(`INSERT OR REPLACE INTO user_cache(owner_id, user_id, data, updated_at, expires_at) VALUES(?,?,?,?,?)`)
-    list.forEach(r => stmt.run([r.ownerId, r.userId, JSON.stringify(r.data), r.updatedAt, r.expiresAt]))
+    const stmt = this.db.prepare(`INSERT OR REPLACE INTO user_cache(user_id, data, updated_at, expires_at) VALUES(?,?,?,?)`)
+    list.forEach(r => stmt.run([r.userId, JSONB.stringify(r.data), r.updatedAt, r.expiresAt]))
     stmt.free()
   }
   saveGroups(list: GroupCache[]) {
     if (!this.db || list.length === 0) return
-    const stmt = this.db.prepare(`INSERT OR REPLACE INTO group_cache(owner_id, group_id, data, updated_at, expires_at) VALUES(?,?,?,?,?)`)
-    list.forEach(r => stmt.run([r.ownerId, r.groupId, JSON.stringify(r.data), r.updatedAt, r.expiresAt]))
+    const stmt = this.db.prepare(`INSERT OR REPLACE INTO group_cache(group_id, data, updated_at, expires_at) VALUES(?,?,?,?)`)
+    list.forEach(r => stmt.run([r.groupId, JSONB.stringify(r.data), r.updatedAt, r.expiresAt]))
     stmt.free()
   }
   cleanupExpired(now: number) {
     if (!this.db) return
-    const s1 = this.db.prepare(`DELETE FROM session_cache WHERE expires_at <= ?`)
-    s1.run([now])
-    s1.free()
     const s2 = this.db.prepare(`DELETE FROM user_cache WHERE expires_at <= ?`)
     s2.run([now])
     s2.free()
@@ -97,77 +124,31 @@ class SqlJsDB {
     s3.run([now])
     s3.free()
   }
-  getSessions(ownerId?: string, now?: number) {
+  getUsers() {
     if (!this.db) return []
-    const n = now ?? Date.now()
     const rows: any[] = []
-    if (ownerId) {
-      const st = this.db.prepare(`SELECT data FROM session_cache WHERE owner_id = ? AND expires_at > ? ORDER BY updated_at DESC`)
-      while (st.step([ownerId, n])) rows.push(st.getAsObject())
-      st.free()
-    } else {
-      const st = this.db.prepare(`SELECT data FROM session_cache WHERE expires_at > ? ORDER BY updated_at DESC`)
-      while (st.step([n])) rows.push(st.getAsObject())
-      st.free()
-    }
-    return rows.map(r => { try { return JSON.parse(r.data) } catch { return r.data } })
+    const st = this.db.prepare(`SELECT data FROM user_cache WHERE expires_at > ? ORDER BY updated_at DESC`)
+    st.bind([Date.now()])
+    while (st.step()) rows.push(st.getAsObject())
+    st.free()
+    return rows.map(r => { try { return JSONB.parse(r.data) } catch { return r.data } })
   }
-  getSessionsWithMeta(ownerId?: string, now?: number) {
+  getGroups() {
     if (!this.db) return []
-    const n = now ?? Date.now()
     const rows: any[] = []
-    if (ownerId) {
-      const st = this.db.prepare(`SELECT session_id, data FROM session_cache WHERE owner_id = ? AND expires_at > ? ORDER BY updated_at DESC`)
-      while (st.step([ownerId, n])) rows.push(st.getAsObject())
-      st.free()
-    } else {
-      const st = this.db.prepare(`SELECT session_id, data FROM session_cache WHERE expires_at > ? ORDER BY updated_at DESC`)
-      while (st.step([n])) rows.push(st.getAsObject())
-      st.free()
-    }
-    return rows.map(r => {
-      let data
-      try { data = JSON.parse(r.data) } catch { data = r.data }
-      return { sessionId: String(r.session_id || ''), data }
-    })
+    const st = this.db.prepare(`SELECT data FROM group_cache WHERE expires_at > ? ORDER BY updated_at DESC`)
+    st.bind([Date.now()])
+    while (st.step()) rows.push(st.getAsObject())
+    st.free()
+    return rows.map(r => { try { return JSONB.parse(r.data) } catch { return r.data } })
   }
-  getUsers(ownerId?: string, now?: number) {
-    if (!this.db) return []
-    const n = now ?? Date.now()
-    const rows: any[] = []
-    if (ownerId) {
-      const st = this.db.prepare(`SELECT data FROM user_cache WHERE owner_id = ? AND expires_at > ? ORDER BY updated_at DESC`)
-      while (st.step([ownerId, n])) rows.push(st.getAsObject())
-      st.free()
-    } else {
-      const st = this.db.prepare(`SELECT data FROM user_cache WHERE expires_at > ? ORDER BY updated_at DESC`)
-      while (st.step([n])) rows.push(st.getAsObject())
-      st.free()
-    }
-    return rows.map(r => { try { return JSON.parse(r.data) } catch { return r.data } })
-  }
-  getGroups(ownerId?: string, now?: number) {
-    if (!this.db) return []
-    const n = now ?? Date.now()
-    const rows: any[] = []
-    if (ownerId) {
-      const st = this.db.prepare(`SELECT data FROM group_cache WHERE owner_id = ? AND expires_at > ? ORDER BY updated_at DESC`)
-      while (st.step([ownerId, n])) rows.push(st.getAsObject())
-      st.free()
-    } else {
-      const st = this.db.prepare(`SELECT data FROM group_cache WHERE expires_at > ? ORDER BY updated_at DESC`)
-      while (st.step([n])) rows.push(st.getAsObject())
-      st.free()
-    }
-    return rows.map(r => { try { return JSON.parse(r.data) } catch { return r.data } })
-  }
-  getAllCache(ownerId?: string, now?: number) {
-    const sessions = this.getSessions(ownerId, now)
-    const users = this.getUsers(ownerId, now)
-    const groups = this.getGroups(ownerId, now)
-    return { sessions, users, groups }
+  saveAllCache(sessions: SessionCache, users: UserCache[], groups: GroupCache[], chats: ChatCache[]) {
+    this.saveSessions(sessions)
+    this.saveUsers(users)
+    this.saveGroups(groups)
+    this.saveChats(chats)
   }
 }
 
 export const sqlJsDB = new SqlJsDB()
-export type { SessionCache, UserCache, GroupCache }
+export type { SessionCache, UserCache, GroupCache, ChatCache }

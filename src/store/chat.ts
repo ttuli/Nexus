@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { reactive, watch } from 'vue'
+import { reactive } from 'vue'
 import { ChatListInfo } from '@/models/chat'
 import { ChatMessage, MessageStatus, MsgType, WsMessage } from '@/models/message'
 import { getSessionId } from '@/utils/sessionId'
@@ -8,21 +8,39 @@ import { getSessionMsg } from '@/apis/social'
 import { sqlJsDB } from '@/utils/sqljs'
 import { useUserStore } from '@/store/user'
 
-const MAX_PER_SESSION = 1000
+export const MAX_SESSION_NUM = 30
+export const MAX_PER_SESSION = 1000
 const SEND_FAIL_MS = 10000
 
-function findInsertIndex(list: ChatMessage[], seqid: number): number {
-  let low = 0
-  let high = list.length
-  while (low < high) {
-    const mid = (low + high) >> 1
-    if (list[mid].seqid <= seqid) {
-      low = mid + 1
-    } else {
-      high = mid
+function findInsertIndex(list: ChatMessage[], seqid?: number, ts?: number): number {
+  if (typeof seqid === 'number' && !Number.isNaN(seqid)) {
+    let low = 0
+    let high = list.length
+    while (low < high) {
+      const mid = (low + high) >> 1
+      if ((list[mid].seqid as number) <= (seqid as number)) {
+        low = mid + 1
+      } else {
+        high = mid
+      }
     }
+    return low
   }
-  return low
+  if (typeof ts === 'number' && !Number.isNaN(ts)) {
+    let low = 0
+    let high = list.length
+    while (low < high) {
+      const mid = (low + high) >> 1
+      const mts = Number(list[mid].timestamp || 0)
+      if (mts <= ts) {
+        low = mid + 1
+      } else {
+        high = mid
+      }
+    }
+    return low
+  }
+  return list.length
 }
 
 export const useChatStore = defineStore('chat', {
@@ -36,49 +54,20 @@ export const useChatStore = defineStore('chat', {
   }),
   actions: {
     async loadAllCaches() {
-      const owner = useUserStore().userInfo.user_id?.toString() || undefined
-      const now = Date.now()
-      const rows = sqlJsDB.getSessionsWithMeta(owner, now)
-      rows.forEach((row: { sessionId: string, data: any[] }) => {
-        const sid = row.sessionId
-        if (!sid) return
-        if (!this.chatMsgs.has(sid)) this.chatMsgs.set(sid, [])
-        const parts = sid.split('_')
-        let type: 'friend' | 'group' = parts.length === 2 ? 'friend' : 'group'
-        let id: bigint
-        if (type === 'friend') {
-          const my = useUserStore().userInfo.user_id
-          const a = BigInt(parts[0])
-          const b = BigInt(parts[1])
-          id = a === my ? b : a
-        } else {
-          id = BigInt(sid)
-        }
-        if (!this.chats.some(c => c.session_id === sid)) {
-          this.addChat({
-            id,
-            session_id: sid,
-            unreadCount: 0,
-            lastMessage: '',
-            lastMessageTime: 0,
-            type
+      const rows = sqlJsDB.getSession(useUserStore().userInfo.user_id?.toString())
+      if (rows) {
+        rows.forEach((row: any) => {
+          this.chats.push({
+            id: BigInt(row.data.id),
+            session_id: row.data.session_id,
+            unreadCount: row.data.unreadCount,
+            lastMessage: row.data.lastMessage,
+            lastMessageTime: row.data.lastMessageTime,
+            type: row.data.type,
           })
-        }
-        const arr = Array.isArray(row.data) ? row.data : []
-        arr.forEach((item: any) => {
-          const ws: WsMessage = {
-            id: String(item.id ?? item.ID ?? ''),
-            session_id: String(item.session_id ?? item.SessionID ?? sid),
-            seq_id: Number(item.seq_id ?? item.SeqID ?? 0),
-            msgType: Number(item.type ?? item.Type ?? MsgType.Text) as MsgType,
-            timestamp: Number(item.timestamp ?? item.Timestamp ?? Date.now()),
-            content: String(item.content ?? item.Content ?? ''),
-            status: Number(item.status ?? item.Status ?? MessageStatus.Delivered) as MessageStatus,
-            sender_id: BigInt(item.sender_id ?? item.SenderID ?? 0),
-          }
-          this.parseWsMessage(ws)
         })
-      })
+
+      }
     },
     initSendingScheduler() {
       if (this.sendingSchedulerId !== null) return
@@ -111,6 +100,7 @@ export const useChatStore = defineStore('chat', {
         })
       }
       this.selectedChat = this.chats.find((c) => c.id === chatId) || null
+      this.GetChatMessageBySelected()
     },
     addChat(chat: ChatListInfo) {
       this.chats.unshift(chat)
@@ -179,18 +169,72 @@ export const useChatStore = defineStore('chat', {
           c.lastMessageTime = msg.timestamp || 0
           if (c.session_id !== this.selectedChat?.session_id) {
             c.unreadCount++
+            if (!document.hasFocus()) {
+              try {
+                const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+                const osc = ctx.createOscillator()
+                const gain = ctx.createGain()
+                osc.type = 'sine'
+                osc.frequency.value = 880
+                osc.connect(gain)
+                gain.connect(ctx.destination)
+                gain.gain.setValueAtTime(0.0001, ctx.currentTime)
+                gain.gain.exponentialRampToValueAtTime(0.1, ctx.currentTime + 0.02)
+                osc.start()
+                setTimeout(() => {
+                  try {
+                    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.18)
+                    osc.stop()
+                  } finally {
+                    ctx.close()
+                  }
+                }, 200)
+              } catch {}
+            }
+            const idx = this.chats.findIndex((x) => x.session_id === msg.session_id)
+            if (idx > 0) {
+              const [chat] = this.chats.splice(idx, 1)
+              this.chats.unshift(chat)
+            }
           }
         }
       })
+      try {
+        const sid = msg.session_id as string
+        const list = this.chatMsgs.get(sid) || []
+        const saved = list.find(m => m.id === (msg.id || ''))
+        if (saved) {
+          sqlJsDB.saveChats([{ sessionId: sid, seq: saved.seqid, data: { ...saved } }])
+        }
+      } catch { }
+      this.ensureGlobalMessageLimit()
     },
-    /**
-     * 自动监听选中会话变化：
-     * 1) 从本地缓存加载（如无则插入空记录）；
-     * 2) 再从服务器拉取历史并写入消息列表。
-     */
-    initSelectedChatWatcher() {
-      if (this._selectedWatcherInited) return
-      this._selectedWatcherInited = true
+    async loadMoreHistory(sessionId: string) {
+      if (!sessionId) return
+      const existing = this.chatMsgs.get(sessionId) || []
+      const earliest = existing.length ? existing[0].seqid : 0
+      if (earliest === 1) return
+      const endSeq = earliest > 1 ? earliest - 1 : 0
+      if (endSeq <= 0) return
+      const fromSeq = Math.max(1, endSeq - 500)
+      const local = sqlJsDB.getChats(sessionId, fromSeq, endSeq)
+      const localList = Array.isArray(local) ? local[local.length - 1] || [] : []
+      if (Array.isArray(localList) && localList.length > 0) {
+        for (const m of localList) {
+          const ws: WsMessage = {
+            id: String(m.id || ''),
+            session_id: String(m.sessionId || sessionId),
+            seq_id: Number(m.seqid || 0),
+            msgType: Number(m.msgType || MsgType.Text) as MsgType,
+            timestamp: Number(m.timestamp || Date.now()),
+            content: String(m.content || ''),
+            status: Number(m.status || MessageStatus.Delivered) as MessageStatus,
+            sender_id: BigInt(m.sender_id || 0),
+          }
+          this.parseWsMessage(ws)
+        }
+        return
+      }
       const normalizeHistoryPayload = (payload: any): any[] => {
         const root = payload?.data ?? payload
         const arr = root?.data ?? root
@@ -199,46 +243,74 @@ export const useChatStore = defineStore('chat', {
         if (typeof arr === 'object') return Object.values(arr)
         return []
       }
-      watch(() => this.selectedChat?.session_id || '', async (sid) => {
-        if (!sid) return
-        if (!this.chatMsgs.has(sid)) this.chatMsgs.set(sid, [])
-        const owner = useUserStore().userInfo.user_id.toString()
-        const now = Date.now()
-        // 从本地加载；如无则插入空记录
-        try {
-          const local = sqlJsDB.getSession(owner, sid, now)
-          if (Array.isArray(local) && local.length > 0) {
-            for (const item of local) {
-              const ws: WsMessage = {
-                id: String(item.id ?? item.ID ?? ''),
-                session_id: String(item.session_id ?? item.SessionID ?? sid),
-                seq_id: Number(item.seq_id ?? item.SeqID ?? 0),
-                msgType: Number(item.type ?? item.Type ?? MsgType.Text) as MsgType,
-                timestamp: Number(item.timestamp ?? item.Timestamp ?? Date.now()),
-                content: String(item.content ?? item.Content ?? ''),
-                status: Number(item.status ?? item.Status ?? MessageStatus.Delivered) as MessageStatus,
-                sender_id: BigInt(item.sender_id ?? item.SenderID ?? 0),
-              }
-              this.parseWsMessage(ws)
-            }
-          } else {
-            sqlJsDB.saveSessions([{ ownerId: owner, sessionId: sid, data: [], updatedAt: now, expiresAt: now + 30 * 24 * 60 * 60 * 1000 }])
+      try {
+        const res = await getSessionMsg({ sessionId, fromSeq, endSeq })
+        const list = normalizeHistoryPayload(res)
+        for (const item of list) {
+          const ws: WsMessage = {
+            id: String(item.id ?? item.ID ?? ''),
+            session_id: String(item.session_id ?? item.SessionID ?? sessionId),
+            seq_id: Number(item.seq_id ?? item.SeqID ?? 0),
+            msgType: Number(item.type ?? item.Type ?? MsgType.Text) as MsgType,
+            timestamp: Number(item.timestamp ?? item.Timestamp ?? Date.now()),
+            content: String(item.content ?? item.Content ?? ''),
+            status: Number(item.status ?? item.Status ?? MessageStatus.Delivered) as MessageStatus,
+            sender_id: BigInt(item.sender_id ?? item.SenderID ?? 0),
           }
-        } catch (e) {
-          console.log(e)
+          this.parseWsMessage(ws)
         }
-        // 服务器历史拉取
-        try {
-          const existing = this.chatMsgs.get(sid) || []
+      } catch (e) {
+        console.log(e)
+      }
+    },
+    async GetChatMessageBySelected() {
+      console.log('GetChatMessageBySelected')
+      const normalizeHistoryPayload = (payload: any): any[] => {
+        const root = payload?.data ?? payload
+        const arr = root?.data ?? root
+        if (Array.isArray(arr)) return arr
+        if (!arr) return []
+        if (typeof arr === 'object') return Object.values(arr)
+        return []
+      }
+      const chat = this.selectedChat
+      if (!chat)
+        return
+      try {
+        const local = sqlJsDB.getChats(chat.session_id || '')
+        if (Array.isArray(local) && local.length > 0) {
+          const s = this.chatMsgs.get(chat.session_id || '') || []
+          const m = local[local.length - 1]
+          if (!m || m.length===0 ) return
+          m[m.length-1].forEach((item:any) => {
+            if (!item) return
+
+            const msg = {
+              id: item.id || '',
+              content: item.content || '',
+              msgType: item.msgType || MsgType.Text,
+              seqid: item.seqid || 0,
+              timestamp: item.timestamp || Date.now(),
+              sender_id: BigInt(item.sender_id || 0),
+              status: item.status || MessageStatus.Delivered,
+              sessionId: item.sessionId || '',
+            }
+            const insertIdx = findInsertIndex(s, Number(item.seqid), Number(item.timestamp))
+            s.splice(insertIdx, 0, msg)
+
+          })
+          this.chatMsgs.set(chat.session_id || '', s)
+        } else {
+          const existing = this.chatMsgs.get(chat.session_id || '') || []
           const lastSeq = existing.length ? existing[existing.length - 1].seqid : 0
           const fromSeq = Math.max(0, lastSeq - 500)
           const endSeq = Number.MAX_SAFE_INTEGER
-          const res = await getSessionMsg({ sessionId: sid, fromSeq, endSeq })
+          const res = await getSessionMsg({ sessionId: chat.session_id || '', fromSeq, endSeq })
           const list = normalizeHistoryPayload(res)
           for (const item of list) {
             const ws: WsMessage = {
               id: String(item.id ?? item.ID ?? ''),
-              session_id: String(item.session_id ?? item.SessionID ?? sid),
+              session_id: String((item.session_id ?? item.SessionID ?? chat.session_id) || ''),
               seq_id: Number(item.seq_id ?? item.SeqID ?? 0),
               msgType: Number(item.type ?? item.Type ?? MsgType.Text) as MsgType,
               timestamp: Number(item.timestamp ?? item.Timestamp ?? Date.now()),
@@ -248,10 +320,38 @@ export const useChatStore = defineStore('chat', {
             }
             this.parseWsMessage(ws)
           }
-        } catch (e) {
-          console.log(e)
         }
-      }, { immediate: true })
+      } catch (e) {
+        console.log(e)
+      }
+    },
+    ensureGlobalMessageLimit() {
+      let total = 0
+      const entries: { sid: string, idx: number, ts: number }[] = []
+      this.chatMsgs.forEach((list, sid) => {
+        total += list.length
+        for (let i = 0; i < list.length; i++) {
+          const m = list[i]
+          entries.push({ sid, idx: i, ts: Number(m.timestamp || 0) })
+        }
+      })
+      if (total <= MAX_PER_SESSION) return
+      const overflow = total - MAX_PER_SESSION
+      entries.sort((a, b) => a.ts - b.ts)
+      const toRemove = entries.slice(0, overflow)
+      const groups = new Map<string, number[]>()
+      toRemove.forEach((e) => {
+        const arr = groups.get(e.sid) || []
+        arr.push(e.idx)
+        groups.set(e.sid, arr)
+      })
+      groups.forEach((idxs, sid) => {
+        const list = this.chatMsgs.get(sid) || []
+        idxs.sort((a, b) => b - a)
+        idxs.forEach((i) => {
+          if (i >= 0 && i < list.length) list.splice(i, 1)
+        })
+      })
     }
   }
 })

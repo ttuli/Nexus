@@ -132,7 +132,6 @@ const handlePhoneEnter = (): void => {
 
 // 登录处理
 const handleLogin = async () => {
-
     if (!form.value.phone || !form.value.password) {
         ElMessage.error("请输入手机号和密码")
         return

@@ -34,7 +34,7 @@ let timer: number
 
 const clickChat = (c:ChatListInfo) => {
   c.unreadCount = 0
-  chatStore.selectedChat = c
+  chatStore.setActiveChat(c.id,c.type)
 }
 
 const formatTime = (dateLike: Date | number) => {

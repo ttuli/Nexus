@@ -181,14 +181,13 @@ const clearVerifyUnread = () => {
 
 onMounted(async () => {
   try {
+    await initFunc()
     await sqlJsDB.init()
     relationStore.loadLocalCache()
     await chatStore.loadAllCaches()
-    chatStore.initSelectedChatWatcher()
   } catch (e) {
     console.log(e)
   }
-  await initFunc()
   WebSocketCli.connect()
 })
 const initFunc = async () => {

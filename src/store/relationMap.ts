@@ -7,7 +7,6 @@ import { ElMessage } from 'element-plus'
 import JSONbig from 'json-bigint';
 import { getGroupList } from '@/apis/social'
 import { sqlJsDB } from '@/utils/sqljs'
-import { useUserStore } from '@/store/user'
 
 export const useRelationStore = defineStore('relationMap', {
   state: () => ({
@@ -151,9 +150,7 @@ export const useRelationStore = defineStore('relationMap', {
       })
     },
     loadLocalCache() {
-      const owner = useUserStore().userId || undefined
-      const now = Date.now()
-      const users = sqlJsDB.getUsers(owner, now)
+      const users = sqlJsDB.getUsers()
       users.forEach((u: any) => {
         const user = {
           user_id: BigInt(u?.user_id ?? u?.id ?? 0),
@@ -166,7 +163,7 @@ export const useRelationStore = defineStore('relationMap', {
         } as UserInfo
         this.userMap.set(user.user_id, user)
       })
-      const groups = sqlJsDB.getGroups(owner, now)
+      const groups = sqlJsDB.getGroups()
       groups.forEach((g: any) => {
         const group = {
           id: BigInt(g?.id ?? g?.group_id ?? 0),

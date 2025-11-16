@@ -6,6 +6,7 @@ import { useApplyStore } from './store/apply'
 import { UserInfo } from '@/models/user'
 import { useContactStore } from '@/store/contact'
 import { WebSocketCli } from '@/websocket'
+import { useChatStore } from '@/store/chat'
 import { sqlJsDB } from '@/utils/sqljs'
 const userStore = useUserStore()
 const relationStore = useRelationStore()
@@ -19,7 +20,7 @@ onMounted(() => {
         if (data.user)
             userStore.setUserInfo(data.user)
         if (data.userMap)
-            relationStore.Fdeserialize(data.userMap)        
+            relationStore.Fdeserialize(data.userMap)
         if (data.groupMap)
             relationStore.Gdeserialize(data.groupMap)
         if (data.applyMap) {
@@ -31,7 +32,7 @@ onMounted(() => {
                 contactStore.Fdeserialize(data.contact.friend)
             if (data.contact.group)
                 contactStore.Groups = data.contact.group
-        }   
+        }
     })
     window.ipcRenderer.on('update-userinfo', (e, { user, token }) => {
         userStore.setUserInfo(user)
@@ -42,6 +43,8 @@ onMounted(() => {
     })
     window.ipcRenderer.on('update-user-map', (e, user: UserInfo) => {
         relationStore.userMap.set(user.user_id, user)
+        const now = Date.now()
+        sqlJsDB.saveUsers([{ userId: user.user_id.toString(), data: { ...user }, updatedAt: now, expiresAt: now + 7 * 24 * 60 * 60 * 1000 }])
     })
     window.ipcRenderer.on('new-apply-info', (e, { type, applyInfo }) => {
         if (type === 'friend') {
@@ -52,8 +55,17 @@ onMounted(() => {
     })
     window.ipcRenderer.on('update-group-map', (e, group: any) => {
         relationStore.groupMap.set(group.id, group)
+        const now = Date.now()
+        sqlJsDB.saveGroups([{ groupId: group.id.toString(), data: { ...group }, updatedAt: now, expiresAt: now + 7 * 24 * 60 * 60 * 1000 }])
     })
     window.ipcRenderer.once('app-quit', async () => {
+        const chatStore = useChatStore()
+        const ownerId = String(useUserStore().userId || '')
+        const sessionCache = {
+          ownerId,
+          data: chatStore.chats.map((chat) => ({ sessionId: chat.session_id, data: { ...chat } })),
+        }
+        sqlJsDB.saveSessions(sessionCache)
         await sqlJsDB.persist()
         WebSocketCli.close()
         window.close()

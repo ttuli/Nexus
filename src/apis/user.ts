@@ -1,7 +1,7 @@
 import instance from '@/utils/request'
 import { LoginRequest,LoginResponse,RegisterRequest,UpdateUserInfoRequest } from '@/models/user'
 import qs from 'qs'
-import { ParseUserInfo,StoreUserInfo } from '@/utils/StoreUserInfo'
+import { ParseUserInfo,StoreUserInfo } from '@/utils/store'
 
 const userServer = import.meta.env.VITE_USER_SERVER
 

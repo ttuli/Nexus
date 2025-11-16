@@ -45,3 +45,11 @@ export async function getSessionMsg(params:SessionMsgReq) {
     }
   )
 }
+
+export async function getOfflineMsg(params:SessionMsgReq) {
+  return await instance.get(socialServer+'/social/getOfflineMessage',
+    {
+      params:params
+    }
+  )
+}

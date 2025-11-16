@@ -44,5 +44,9 @@ app.whenReady().then(() => {
 })
 
 app.on('window-all-closed', (e: Event) => {
-  e.preventDefault()
+  if (!windowManager.isRequireQuit()) {
+    e.preventDefault()
+  } else {
+    app.quit()
+  }
 })

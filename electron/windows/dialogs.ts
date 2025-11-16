@@ -10,14 +10,18 @@ const __dirname = path.dirname(__filename);
 class WindowManager {
   private windows: Map<string, ManagedWindow> = new Map();
   private tray: Tray | null = null;
+  private requireQuit: boolean = false;
 
   constructor() {
     this.setupIpcHandlers();
   }
 
+  public isRequireQuit(): boolean {
+    return this.requireQuit
+  }
+
   private createTray() {
     this.tray = new Tray(nativeImage.createFromPath(path.join(__dirname, "../src/assets/icon.png")));
-
     const contextMenu = Menu.buildFromTemplate([
       {
         label: "显示主窗口",
@@ -165,8 +169,6 @@ class WindowManager {
       this.windows.delete(key);
     });
 
-    // 加载URL
-
     const baseUrl = process.env['VITE_DEV_SERVER_URL'] ? process.env['VITE_DEV_SERVER_URL'] :
       path.join(__dirname, '../index.html')
     if (process.env['VITE_DEV_SERVER_URL']) {
@@ -176,37 +178,20 @@ class WindowManager {
     }
   }
 
-  /**
-   * 获取窗口
-   */
   public getWindow(key: string): BrowserWindow | null {
     return this.windows.get(key)?.window || null;
   }
 
   public closeAllWindows(): void {
     this.windows.forEach((managed) => {
-      if (!managed.window.isDestroyed() && managed.key === 'home') {
+      if (!managed.window.isDestroyed()) {
         managed.window.webContents.send('app-quit')
       }
     });
+    this.requireQuit = true
     this.windows.clear();
-    app.quit()
+    this.tray?.destroy();
   }
-
-  /**
-   * 获取窗口列表
-   */
-  public getWindowList(): string[] {
-    return Array.from(this.windows.keys());
-  }
-
-  /**
-   * 检查窗口是否存在
-   */
-  public hasWindow(key: string): boolean {
-    return this.windows.has(key);
-  }
-
   /**
    * 向窗口发送消息
    */
@@ -217,9 +202,6 @@ class WindowManager {
     }
   }
 
-  /**
-   * 向所有窗口发送消息
-   */
   public broadcastMessage(channel: string, data?: any): void {
     this.windows.forEach((managed) => {
       if (!managed.window.isDestroyed()) {
@@ -227,29 +209,7 @@ class WindowManager {
       }
     });
   }
-  /**
-   * 获取窗口数据
-   */
-  public getWindowData(key: string): Record<string, any> | undefined {
-    return this.windows.get(key)?.data;
-  }
 
-  /**
-   * 聚焦窗口
-   */
-  public focusWindow(key: string): void {
-    const window = this.getWindow(key);
-    if (window && !window.isDestroyed()) {
-      if (window.isMinimized()) {
-        window.restore();
-      }
-      window.focus();
-    }
-  }
-
-  /**
-   * 显示窗口
-   */
   public showWindow(key: string): void {
     const window = this.getWindow(key);
     if (window && !window.isDestroyed()) {
