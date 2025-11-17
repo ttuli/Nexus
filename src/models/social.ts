@@ -22,6 +22,14 @@ interface SessionMsgReq {
     endSeq:number
 }
 
+interface GetOfflineReq {
+    limit: number;
+}
+
+interface AckOfflineMsgReq {
+    msgIds: string[];
+}
+
 enum ApplyStatus {
     Pending = 1,
     Accepted = 2,
@@ -79,7 +87,9 @@ export type {
     FriendInfo,
     JoinGroupReq,
     GroupApplyInfo,
-    SessionMsgReq
+    SessionMsgReq,
+    GetOfflineReq,
+    AckOfflineMsgReq
 }
 export {
     ApplyStatus

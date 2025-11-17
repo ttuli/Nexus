@@ -101,6 +101,7 @@ import { ref } from 'vue'
 import TitleBar from '@/components/TitleBar.vue'
 import { login } from '@/apis/user'
 import { ElMessage } from 'element-plus'
+import { saveRefreshToken } from '@/utils/keytar'
 
 interface LoginForm {
     phone: string
@@ -145,11 +146,15 @@ const handleLogin = async () => {
     isLoading.value = true
     // if ()
     try {
-        const data = await login(form.value)
+        const res = await login(form.value)
+        if (form.value.rememberPassword) {
+            await saveRefreshToken(res.data.refreshToken)
+        }
         window.ipcRenderer.send('window:new-window', {
             key: 'home',
             data: {
-                token: data.data.token
+                token: res.data.token,
+                refreshToken:res.data.refreshToken
             }
         })
         window.close()

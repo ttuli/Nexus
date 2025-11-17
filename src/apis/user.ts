@@ -61,3 +61,7 @@ export async function updateUserInfo(data: UpdateUserInfoRequest) {
   let res = await instance.put(userServer+'/user/updateInfo', data)
   return res;
 }
+
+export async function refreshToken() {
+  return instance.get(userServer+'/user/refresh')
+}

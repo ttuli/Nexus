@@ -1,5 +1,5 @@
 import instance from '@/utils/request'
-import { NewApplyRequestF,HandleApplyRequestF,CreateGroupReq,GetGroupReq,JoinGroupReq,HandleApplyRequestG,SessionMsgReq } from '@/models/social'
+import { NewApplyRequestF,HandleApplyRequestF,CreateGroupReq,GetGroupReq,JoinGroupReq,HandleApplyRequestG,SessionMsgReq, GetOfflineReq, AckOfflineMsgReq } from '@/models/social'
 const socialServer = import.meta.env.VITE_SOCIAL_SERVER
 
 export async function getContactList() {
@@ -46,10 +46,14 @@ export async function getSessionMsg(params:SessionMsgReq) {
   )
 }
 
-export async function getOfflineMsg(params:SessionMsgReq) {
+export async function getOfflineMsg(params:GetOfflineReq) {
   return await instance.get(socialServer+'/social/getOfflineMessage',
     {
       params:params
     }
   )
+}
+
+export async function ackOfflineMsg(data: AckOfflineMsgReq) {
+  return await instance.put(socialServer+'/social/ackOfflineMessage',data)
 }

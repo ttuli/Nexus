@@ -190,16 +190,7 @@ const resendMsg = (msg: ChatMessage) => {
     }
     msg.status = MessageStatus.Sending
     msg.timestamp = new Date().getTime()
-    chatStore.parseWsMessage({
-        id:msg.id,
-        session_id:msg.sessionId,
-        seq_id:msg.seqid,
-        timestamp:msg.timestamp,
-        content:msg.content,
-        status:msg.status,
-        sender_id:msg.sender_id,
-        receivers: relationStore.GetMemberBySessionId(msg.sessionId),
-    })
+    chatStore.parseWsMessage(msg)
     WebSocketCli.SendMessage(msg)
     nextTick(() => {
         scrollToBottom()
@@ -409,7 +400,7 @@ watch(() => chatStore.selectedChat?.session_id || '', async () => {
     background: #f8f9fa;
 }
 .messages-container::-webkit-scrollbar {
-    width: 8px;
+    width: 6px;
 }
 .messages-container::-webkit-scrollbar-track {
     background: #eef2f6;
@@ -661,6 +652,9 @@ watch(() => chatStore.selectedChat?.session_id || '', async () => {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
     border-radius: 10px;
     overflow: hidden;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
     z-index: 10;
 }
 
@@ -678,7 +672,24 @@ watch(() => chatStore.selectedChat?.session_id || '', async () => {
     gap: 6px;
     padding: 10px;
     box-sizing: border-box;
-    overflow: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: 200px;
+    max-width: 100%;
+}
+.emoji-grid::-webkit-scrollbar {
+    width: 4px;
+}
+.emoji-grid::-webkit-scrollbar-track {
+    background: #eef2f6;
+    border-radius: 4px;
+}
+.emoji-grid::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #cfd6dd, #9aa5b1);
+    border-radius: 4px;
+}
+.emoji-grid::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #b8c2cc, #86919d);
 }
 
 .emoji-item {

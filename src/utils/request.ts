@@ -2,6 +2,21 @@ import axios from 'axios'
 import { useUserStore } from '@/store/user'
 import { ElMessage } from 'element-plus'
 import JSONbig from 'json-bigint';
+import { jwtDecode } from 'jwt-decode';
+import { refreshToken } from '@/apis/user';
+import { getRefreshToken } from './keytar';
+
+const isTokenExpired = (token: string) => {
+  if (token === '') return false
+  try {
+    const decoded = jwtDecode(token);
+    
+    return decoded.exp? decoded.exp <= Date.now(): true;
+  } catch (error) {
+    console.error('Token解析失败:', error);
+    return true; // 解析失败视为过期
+  }
+};
 
 const instance = axios.create({
   timeout: 10000,
@@ -24,7 +39,13 @@ const instance = axios.create({
 })
 
 instance.interceptors.request.use(
-  (config) => {
+  async (config) => {
+    if (isTokenExpired(useUserStore().getToken())) {
+      let rtoken = await getRefreshToken()
+      useUserStore().setToken(rtoken || '')
+      let res = await refreshToken()
+      useUserStore().setToken(res.data.token)
+    }
     config.headers['Authorization'] = 'Bearer ' + useUserStore().getToken()
     return config
   },

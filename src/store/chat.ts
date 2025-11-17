@@ -115,6 +115,22 @@ export const useChatStore = defineStore('chat', {
       }
       let s = this.chatMsgs.get(msg.session_id as string)
       if (!s) return
+      if (!this.chats.some((c) => c.session_id === (msg.session_id as string))) {
+        const sid = String(msg.session_id || '')
+        let type: 'friend' | 'group'
+        let cid: bigint
+        if (sid.indexOf('_') !== -1) {
+          const a = BigInt(sid.split('_')[0])
+          const b = BigInt(sid.split('_')[1])
+          const me = useUserStore().userInfo.user_id
+          cid = a === me ? b : a
+          type = 'friend'
+        } else {
+          cid = BigInt(sid)
+          type = 'group'
+        }
+        this.addChat({ id: cid, session_id: sid, unreadCount: 0, lastMessage: '', lastMessageTime: 0, type })
+      }
       if (msg.status === MessageStatus.Sending) {
         this.initSendingScheduler()
         const sessionId = msg.session_id as string
@@ -189,7 +205,7 @@ export const useChatStore = defineStore('chat', {
                     ctx.close()
                   }
                 }, 200)
-              } catch {}
+              } catch { }
             }
             const idx = this.chats.findIndex((x) => x.session_id === msg.session_id)
             if (idx > 0) {
@@ -281,10 +297,29 @@ export const useChatStore = defineStore('chat', {
         if (Array.isArray(local) && local.length > 0) {
           const s = this.chatMsgs.get(chat.session_id || '') || []
           const m = local[local.length - 1]
-          if (!m || m.length===0 ) return
-          m[m.length-1].forEach((item:any) => {
-            if (!item) return
+          if (!m || m.length === 0) return
+          console.log(m)
+          if (Array.isArray(m[m.length - 1])) {
+            m[m.length - 1].forEach((item: any) => {
+              if (!item) return
 
+              const msg = {
+                id: item.id || '',
+                content: item.content || '',
+                msgType: item.msgType || MsgType.Text,
+                seqid: item.seqid || 0,
+                timestamp: item.timestamp || Date.now(),
+                sender_id: BigInt(item.sender_id || 0),
+                status: item.status || MessageStatus.Delivered,
+                sessionId: item.sessionId || '',
+              }
+              if (s.some((m) => m.id === msg.id)) return
+              const insertIdx = findInsertIndex(s, Number(item.seqid), Number(item.timestamp))
+              s.splice(insertIdx, 0, msg)
+            })
+          } else {
+            if (s.some((m) => m.id === msg.id)) return
+            const item = m[m.length - 1]
             const msg = {
               id: item.id || '',
               content: item.content || '',
@@ -297,8 +332,7 @@ export const useChatStore = defineStore('chat', {
             }
             const insertIdx = findInsertIndex(s, Number(item.seqid), Number(item.timestamp))
             s.splice(insertIdx, 0, msg)
-
-          })
+          }
           this.chatMsgs.set(chat.session_id || '', s)
         } else {
           const existing = this.chatMsgs.get(chat.session_id || '') || []

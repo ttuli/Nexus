@@ -93,12 +93,13 @@ import { createWindow } from '@/utils/window';
 import { useChatStore } from '@/store/chat';
 import { sqlJsDB } from '@/utils/sqljs'
 import { useRelationStore } from '@/store/relationMap'
- 
+import { ackOfflineMsg, getOfflineMsg } from '@/apis/social';
+
 
 const userStore = useUserStore()
 const chatStore = useChatStore()
 const relationStore = useRelationStore()
- 
+
 
 // 响应式数据
 const activeTab = ref<'chat' | 'contacts' | 'settings'>('chat')
@@ -178,13 +179,9 @@ const clearVerifyUnread = () => {
   verifyUnreadCount.value = 0
 }
 
-
 onMounted(async () => {
   try {
     await initFunc()
-    await sqlJsDB.init()
-    relationStore.loadLocalCache()
-    await chatStore.loadAllCaches()
   } catch (e) {
     console.log(e)
   }
@@ -205,6 +202,28 @@ const initFunc = async () => {
         join_type: res.data[0].join_type,
       })
     }
+    await sqlJsDB.init()
+    relationStore.loadLocalCache()
+    await chatStore.loadAllCaches()
+    res = await getOfflineMsg({ limit: 0 })
+    console.log(res)
+    res = res.data
+    if (Array.isArray(res.data)) {
+      res.data.forEach((item) => {
+        chatStore.parseWsMessage({
+          id: item.id,
+          timestamp: item.timestamp,
+          content: item.content,
+          session_id: item.session_id,
+          status: item.status,
+          msgType: item.type,
+          sender_id: BigInt(item.sender_id),
+          seq_id: item.seq_id,
+        })
+      })
+    }
+    if (res.data.length > 0)
+      await ackOfflineMsg({ msgIds: res.data.map((item: any) => item.session_id + ':' + item.seq_id) })
   } catch (error) {
     console.log(error)
   }

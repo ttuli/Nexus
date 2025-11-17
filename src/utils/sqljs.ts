@@ -2,6 +2,7 @@ import initSqlJs from 'sql.js'
 import wasmUrl from 'sql.js/dist/sql-wasm.wasm?url'
 import JSONB from 'json-bigint'
 import { MAX_PER_SESSION } from '@/store/chat'
+import { useUserStore } from '@/store/user'
 
 type SessionCache = { ownerId: string, data: any }
 type UserCache = { userId: string, data: any, updatedAt: number, expiresAt: number }
@@ -12,6 +13,7 @@ class SqlJsDB {
   private db: any | null = null 
   private file = 'imchat.sqlite'
   async init() {
+    this.file = useUserStore().userId + "_" + this.file
     const SQL = await initSqlJs({ locateFile: () => wasmUrl })
     const buf = await window.ipcRenderer.invoke('fs:read-binary', { file: this.file })
     if (buf) {
@@ -101,7 +103,7 @@ class SqlJsDB {
     st.step()
     const obj = st.getAsObject()
     st.free()
-    return obj ? JSONB.parse(obj.data) : ""
+    return obj.data ? JSONB.parse(obj.data) : ""
   }
   saveUsers(list: UserCache[]) {
     if (!this.db || list.length === 0) return

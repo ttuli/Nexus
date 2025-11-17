@@ -41,7 +41,7 @@ export const useRelationStore = defineStore('relationMap', {
           owner_id: BigInt(0),
           updated_at: 0,
           created_at: 0,
-          member_ids: [],
+          members: [],
         })
         if (!this.gettingQueue.has(id)) {
           this.gettingQueue.add(id)
@@ -60,7 +60,13 @@ export const useRelationStore = defineStore('relationMap', {
                   owner_id: BigInt(item.owner_id),
                   updated_at: item.updated_at,
                   created_at: item.created_at,
-                  member_ids: item.member_ids.map(BigInt),
+                  members: item.members.map((m:any) => ({
+                    group_id: BigInt(item.group_id),
+                    user_id: BigInt(m.user_id),
+                    role: m.role,
+                    nickname: m.nickname,
+                    joined_at: m.joined_at,
+                  })),
                 })
               })
             } else if (res) {
@@ -71,7 +77,13 @@ export const useRelationStore = defineStore('relationMap', {
                 owner_id: BigInt(res.data.owner_id),
                 updated_at: res.data.updated_at,
                 created_at: res.data.created_at,
-                member_ids: res.data.member_ids.map(BigInt),
+                members: res.data.members.map((m:any) => ({
+                  group_id: BigInt(m.group_id),
+                  user_id: BigInt(m.user_id),
+                  role: m.role,
+                  nickname: m.nickname,
+                  joined_at: m.joined_at,
+                })),
               })
             }
             this.gettingQueue.delete(id)
@@ -172,7 +184,13 @@ export const useRelationStore = defineStore('relationMap', {
           owner_id: BigInt(g?.owner_id ?? 0),
           created_at: Number(g?.created_at ?? 0),
           updated_at: Number(g?.updated_at ?? 0),
-          member_ids: Array.isArray(g?.member_ids) ? g.member_ids.map((x: any) => BigInt(x)) : [],
+          members: Array.isArray(g?.members) ? g.members.map((x: any) => ({
+            group_id: BigInt(x.group_id ?? 0),
+            user_id: BigInt(x.user_id ?? 0),
+            role: Number(x.role ?? 0),
+            nickname: String(x.nickname ?? ''),
+            joined_at: Number(x.joined_at ?? 0),
+          })) : [],
         } as GroupInfo
         this.groupMap.set(group.id, group)
       })
@@ -181,7 +199,7 @@ export const useRelationStore = defineStore('relationMap', {
     GetMemberBySessionId(sessionId: string): bigint[] {
       let res : bigint[] = []
       if (sessionId.indexOf('_') === -1) {
-        return this.groupMap.get(BigInt(sessionId))?.member_ids || []
+        return this.groupMap.get(BigInt(sessionId))?.members.map(x => x.user_id) || []
       } else {
         res.push(BigInt(sessionId.split('_')[0]))
         res.push(BigInt(sessionId.split('_')[1]))

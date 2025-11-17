@@ -5,7 +5,15 @@ interface GroupInfo {
     owner_id: bigint;
     created_at: number;
     updated_at: number;
-    member_ids: bigint[];
+    members: GroupMember[];
+}
+
+interface GroupMember {
+    group_id: bigint;
+    user_id: bigint;
+    role: number;
+    nickname: string;
+    joined_at: number;
 }
 
 export type {

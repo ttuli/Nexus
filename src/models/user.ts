@@ -14,7 +14,8 @@ interface LoginRequest {
 }
 
 interface LoginResponse {
-  token: string
+  token: string;
+  refreshToken: string;
 }
 
 interface RegisterRequest {

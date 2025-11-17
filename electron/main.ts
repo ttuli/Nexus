@@ -4,6 +4,7 @@ import { createRequire } from 'node:module'
 import path from 'node:path'
 import './fs'
 import { windowManager } from './windows/dialogs'
+import { registerKeytarHandlers } from './keytar'
 
 const require = createRequire(import.meta.url)
 export const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -36,6 +37,7 @@ function createWindow(): void {
 app.setName('IMChat')
 
 app.whenReady().then(() => {
+  registerKeytarHandlers()
   createWindow()
 
   ipcMain.on('quit', () => {
