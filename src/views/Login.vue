@@ -61,13 +61,8 @@
                     </div>
                 </div>
 
-                <!-- 记住密码和自动登录 -->
+                <!-- 自动登录 -->
                 <div class="checkbox-group">
-                    <label class="checkbox-item">
-                        <input v-model="form.rememberPassword" type="checkbox" />
-                        <span class="checkbox-custom"></span>
-                        <span class="checkbox-label">记住密码</span>
-                    </label>
                     <label class="checkbox-item">
                         <input v-model="form.autoLogin" type="checkbox" />
                         <span class="checkbox-custom"></span>
@@ -97,23 +92,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onBeforeMount, ref } from 'vue'
 import TitleBar from '@/components/TitleBar.vue'
-import { login } from '@/apis/user'
+import { login, refreshToken } from '@/apis/user'
 import { ElMessage } from 'element-plus'
-import { saveRefreshToken } from '@/utils/keytar'
+import { getKey, getRefreshToken, KEY_AUTO_LOGIN, saveRefreshToken, setKey } from '@/utils/keytar'
+import { onMounted } from 'vue'
 
 interface LoginForm {
     phone: string
     password: string
-    rememberPassword: boolean
     autoLogin: boolean
 }
 
 const form = ref<LoginForm>({
     phone: '',
     password: '',
-    rememberPassword: false,
     autoLogin: false,
 })
 
@@ -146,15 +140,15 @@ const handleLogin = async () => {
     isLoading.value = true
     // if ()
     try {
-        const res = await login(form.value)
-        if (form.value.rememberPassword) {
+        const res = await login({ phone: form.value.phone, password: form.value.password })
+        if (form.value.autoLogin) {
             await saveRefreshToken(res.data.refreshToken)
         }
         window.ipcRenderer.send('window:new-window', {
             key: 'home',
             data: {
                 token: res.data.token,
-                refreshToken:res.data.refreshToken
+                refreshToken: res.data.refreshToken
             }
         })
         window.close()
@@ -177,7 +171,36 @@ const goToRegister = (): void => {
         key: 'register'
     })
 }
-
+//
+onMounted(async () => {
+    const rToken = await getRefreshToken()
+    if (rToken) {
+        try {
+            isLoading.value = true
+            let res = await refreshToken()
+            window.ipcRenderer.send('window:new-window', {
+                key: 'home',
+                data: {
+                    token: res.data.token,
+                    refreshToken: rToken
+                }
+            })
+            window.close()
+        } catch (error) {
+            ElMessage.error('自动登录失败')
+            form.value.password=''
+        } finally {
+            isLoading.value = false
+        }
+    } else {
+        ElMessage.error('自动登录失败')
+    }
+    // const refreshToken = await getRefreshToken()
+    // if (refreshToken) {
+    //     form.value.autoLogin = true
+    //     form.value.rememberPassword = true
+    // }
+})
 </script>
 
 <style scoped lang="scss">

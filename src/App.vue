@@ -17,9 +17,9 @@ onMounted(() => {
     window.ipcRenderer.once('init-data', (e, data) => {
         if (data.token)
             userStore.setToken(data.token)
-        if (data.refreshToken) {
+        // if (data.refreshToken) {
             
-        }
+        // }
         if (data.user)
             userStore.setUserInfo(data.user)
         if (data.userMap)

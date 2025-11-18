@@ -38,4 +38,27 @@ export function registerKeytarHandlers() {
       return { success: false, error: (error as Error).message }
     }
   })
+
+  ipcMain.handle('keytar:setKey', async (_event, payload: { key: string, value: string }) => {
+    try {
+      const { key, value } = payload || { key: '', value: '' }
+      if (!key) return { success: false, error: 'Invalid key' }
+      await keytar.setPassword(SERVICE, key, value ?? '')
+      return { success: true }
+    } catch (error) {
+      console.error('Failed to set key:', error)
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  ipcMain.handle('keytar:getKey', async (_event, key: string) => {
+    try {
+      if (!key) return { success: false, error: 'Invalid key' }
+      const value = await keytar.getPassword(SERVICE, key)
+      return { success: true, value }
+    } catch (error) {
+      console.error('Failed to get key:', error)
+      return { success: false, error: (error as Error).message }
+    }
+  })
 }
