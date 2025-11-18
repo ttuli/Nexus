@@ -10,8 +10,7 @@ const isTokenExpired = (token: string) => {
   if (token === '') return false
   try {
     const decoded = jwtDecode(token);
-    
-    return decoded.exp? decoded.exp <= Date.now(): true;
+    return decoded.exp? decoded.exp * 1000 <= Date.now(): true;
   } catch (error) {
     console.error('Token解析失败:', error);
     return true; // 解析失败视为过期
@@ -46,6 +45,7 @@ instance.interceptors.request.use(
       let res = await refreshToken()
       useUserStore().setToken(res.data.token)
     }
+    console.log(useUserStore().getToken())
     config.headers['Authorization'] = 'Bearer ' + useUserStore().getToken()
     return config
   },

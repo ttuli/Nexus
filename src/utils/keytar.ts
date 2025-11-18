@@ -7,7 +7,7 @@
  */
 export async function saveRefreshToken(token: string): Promise<boolean> {
   try {
-    const result = await window.ipcRenderer.invoke('keytar:saveRefreshToken', token)
+    const result = await window.ipcRenderer.invoke('safeStorage:saveRefreshToken', token)
     if (!result.success) {
       console.error('Failed to save refresh token:', result.error)
       return false
@@ -25,7 +25,7 @@ export async function saveRefreshToken(token: string): Promise<boolean> {
  */
 export async function getRefreshToken(): Promise<string | null> {
   try {
-    const result = await window.ipcRenderer.invoke('keytar:getRefreshToken')
+    const result = await window.ipcRenderer.invoke('safeStorage:getRefreshToken')
     if (!result.success) {
       console.error('Failed to get refresh token:', result.error)
       return null
@@ -43,7 +43,7 @@ export async function getRefreshToken(): Promise<string | null> {
  */
 export async function deleteRefreshToken(): Promise<boolean> {
   try {
-    const result = await window.ipcRenderer.invoke('keytar:deleteRefreshToken')
+    const result = await window.ipcRenderer.invoke('safeStorage:deleteRefreshToken')
     if (!result.success) {
       console.error('Failed to delete refresh token:', result.error)
       return false
@@ -59,7 +59,7 @@ export const KEY_AUTO_LOGIN = 'auto_login'
 
 export async function setKey(key: string, value: string): Promise<boolean> {
   try {
-    const result = await window.ipcRenderer.invoke('keytar:setKey', { key, value })
+    const result = await window.ipcRenderer.invoke('safeStorage:setKey', { key, value })
     if (!result.success) {
       console.error('Failed to set key:', result.error)
       return false
@@ -73,7 +73,7 @@ export async function setKey(key: string, value: string): Promise<boolean> {
 
 export async function getKey(key: string): Promise<string | null> {
   try {
-    const result = await window.ipcRenderer.invoke('keytar:getKey', key)
+    const result = await window.ipcRenderer.invoke('safeStorage:getKey', key)
     if (!result.success) {
       console.error('Failed to get key:', result.error)
       return null

@@ -32,12 +32,10 @@ function createWindow(): void {
     key: 'login',
   });
 }
-
 // 设置全局应用名，影响窗口默认标题、任务栏和托盘等展示
 app.setName('IMChat')
-
 app.whenReady().then(() => {
-  registerKeytarHandlers()
+registerKeytarHandlers()
   createWindow()
 
   ipcMain.on('quit', () => {

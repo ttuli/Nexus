@@ -19,9 +19,9 @@
             </div>
 
             <!-- 登录表单 -->
-            <form @submit.prevent="handleLogin" class="login-form">
+            <form @submit.prevent="handleSubmit" class="login-form">
                 <!-- 手机号输入框 -->
-                <div class="form-group">
+                <div class="form-group" v-if="showPasswordLogin || !autoLoginReady">
                     <label for="phone">手机号</label>
                     <div class="input-wrapper">
                         <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -35,7 +35,7 @@
                 </div>
 
                 <!-- 密码输入框 -->
-                <div class="form-group">
+                <div class="form-group" v-if="showPasswordLogin || !autoLoginReady">
                     <label for="password">密码</label>
                     <div class="input-wrapper">
                         <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -62,12 +62,24 @@
                 </div>
 
                 <!-- 自动登录 -->
-                <div class="checkbox-group">
+                <div class="checkbox-group" v-if="!autoLoginReady || showPasswordLogin">
                     <label class="checkbox-item">
                         <input v-model="form.autoLogin" type="checkbox" />
                         <span class="checkbox-custom"></span>
                         <span class="checkbox-label">自动登录</span>
                     </label>
+                </div>
+
+                <div v-if="autoLoginReady && !showPasswordLogin" class="auto-login-tip">
+                    <div class="tip-text">
+                        <svg class="tip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12" y2="8"></line>
+                        </svg>
+                        <span>检测到可自动登录</span>
+                    </div>
+                    <button type="button" class="switch-btn" @click="switchToPasswordLogin">密码登录</button>
                 </div>
 
                 <!-- 登录按钮 -->
@@ -92,12 +104,13 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeMount, ref } from 'vue'
+import { ref } from 'vue'
 import TitleBar from '@/components/TitleBar.vue'
 import { login, refreshToken } from '@/apis/user'
 import { ElMessage } from 'element-plus'
-import { getKey, getRefreshToken, KEY_AUTO_LOGIN, saveRefreshToken, setKey } from '@/utils/keytar'
+import { getRefreshToken, saveRefreshToken } from '@/utils/keytar'
 import { onMounted } from 'vue'
+import { useUserStore } from '@/store/user'
 
 interface LoginForm {
     phone: string
@@ -115,6 +128,9 @@ const passwordVisible = ref(false)
 const isLoading = ref(false)
 const phoneInput = ref<HTMLInputElement>()
 const passwordInput = ref<HTMLInputElement>()
+const autoLoginReady = ref(false)
+const showPasswordLogin = ref(false)
+const savedRefreshToken = ref<string | null>(null)
 
 const closeLogic = () => {
     window.ipcRenderer.send('quit')
@@ -157,6 +173,45 @@ const handleLogin = async () => {
     }
 }
 
+const handleAutoLogin = async () => {
+    if (!autoLoginReady.value || !savedRefreshToken.value) {
+        showPasswordLogin.value = true
+        return
+    }
+    try {
+        isLoading.value = true
+        useUserStore().setToken(await getRefreshToken() || '')
+        let res = await refreshToken()
+        window.ipcRenderer.send('window:new-window', {
+            key: 'home',
+            data: {
+                token: res.data.token,
+                refreshToken: savedRefreshToken.value
+            }
+        })
+        window.close()
+    } catch (error) {
+        ElMessage.error('自动登录失败')
+        form.value.password = ''
+        showPasswordLogin.value = true
+        autoLoginReady.value = false
+    } finally {
+        isLoading.value = false
+    }
+}
+
+const handleSubmit = async () => {
+    if (autoLoginReady.value && !showPasswordLogin.value) {
+        await handleAutoLogin()
+    } else {
+        await handleLogin()
+    }
+}
+
+const switchToPasswordLogin = () => {
+    showPasswordLogin.value = true
+}
+
 // 忘记密码
 const goToForgotPassword = (): void => {
     console.log('跳转到忘记密码页面')
@@ -175,31 +230,13 @@ const goToRegister = (): void => {
 onMounted(async () => {
     const rToken = await getRefreshToken()
     if (rToken) {
-        try {
-            isLoading.value = true
-            let res = await refreshToken()
-            window.ipcRenderer.send('window:new-window', {
-                key: 'home',
-                data: {
-                    token: res.data.token,
-                    refreshToken: rToken
-                }
-            })
-            window.close()
-        } catch (error) {
-            ElMessage.error('自动登录失败')
-            form.value.password=''
-        } finally {
-            isLoading.value = false
-        }
+        savedRefreshToken.value = rToken
+        autoLoginReady.value = true
+        showPasswordLogin.value = false
     } else {
-        ElMessage.error('自动登录失败')
+        autoLoginReady.value = false
+        showPasswordLogin.value = true
     }
-    // const refreshToken = await getRefreshToken()
-    // if (refreshToken) {
-    //     form.value.autoLogin = true
-    //     form.value.rememberPassword = true
-    // }
 })
 </script>
 
@@ -280,6 +317,42 @@ onMounted(async () => {
 .login-form {
     width: 100%;
     max-width: 360px;
+}
+
+.auto-login-tip {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 180px 0 20px 0;
+    padding: 12px 14px;
+    background: #f8f9fa;
+    border: 1px solid #e1e8ed;
+    border-radius: 10px;
+}
+.auto-login-tip .tip-text {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #2c3e50;
+    font-size: 14px;
+}
+.auto-login-tip .tip-icon {
+    width: 18px;
+    height: 18px;
+    color: #3498db;
+}
+.auto-login-tip .switch-btn {
+    -webkit-app-region: no-drag;
+    border: none;
+    background: #3498db;
+    color: #fff;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    cursor: pointer;
+}
+.auto-login-tip .switch-btn:hover {
+    background: #2980b9;
 }
 
 .form-group {
