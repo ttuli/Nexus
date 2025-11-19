@@ -45,7 +45,6 @@ instance.interceptors.request.use(
       let res = await refreshToken()
       useUserStore().setToken(res.data.token)
     }
-    console.log(useUserStore().getToken())
     config.headers['Authorization'] = 'Bearer ' + useUserStore().getToken()
     return config
   },

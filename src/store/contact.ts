@@ -7,7 +7,7 @@ import JSONbig from 'json-bigint'
 export const useContactStore = defineStore('contact', {
     state: () => ({
         Friends: reactive<FriendInfo[]>([]),
-        Groups: reactive<bigint[]>([]),
+        Groups: [] as bigint[],
     }),
     actions: {
         setFriend(friend: FriendInfo) {
@@ -18,11 +18,29 @@ export const useContactStore = defineStore('contact', {
                 this.Friends.push(friend)
             }
         },
-        AddGroup(id:bigint) {
-            if (!this.Groups.includes(id)) {
-                this.Groups.push(id)
-                this.Groups.sort((a, b) => (a > b ? 1 : -1))
+        HasGroup(id: bigint) {
+            const arr = this.Groups
+            let lo = 0, hi = arr.length - 1
+            while (lo <= hi) {
+                const mid = (lo + hi) >> 1
+                const v = arr[mid]
+                if (v === id) return true
+                if (v < id) lo = mid + 1
+                else hi = mid - 1
             }
+            return false
+        },
+        AddGroup(id: bigint) {
+            const arr = this.Groups
+            let lo = 0, hi = arr.length
+            while (lo < hi) {
+                const mid = (lo + hi) >> 1
+                const v = arr[mid]
+                if (v < id) lo = mid + 1
+                else hi = mid
+            }
+            if (arr[lo] === id) return
+            arr.splice(lo, 0, id)
         },
         Fserialize() {
             return JSONbig.stringify(this.Friends)

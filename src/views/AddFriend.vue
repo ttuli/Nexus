@@ -67,11 +67,12 @@
                                 <div class="line1">
                                     <span class="name">{{ g.name }}</span>
                                     <span class="uid">ID: {{ g.id }}</span>
+                                    <span class="members">成员: {{ Array.isArray(g.members) ? g.members.length : 0 }}</span>
                                 </div>
                             </div>
                             <div class="actions">
-                                <div class="joined" v-if="contactStore.Groups.includes(g.id)">已加入
-                                </div>
+                                <div class="joined" v-if="getGroupStatus(g) === 'joined'">已加入</div>
+                                <div class="pending" v-else-if="getGroupStatus(g) === 'pending'">申请中</div>
                                 <button class="primary" @click="onJoinGroupClick(g)" v-else>申请加入</button>
                             </div>
                         </div>
@@ -193,6 +194,19 @@ const stateLabel = (s?: 'added' | 'self' | '' | 'pending') => {
 const searchGroup = ref('')
 let filteredGroups = reactive<GroupInfo[]>([])
 
+const getGroupStatus = (g:GroupInfo) => {
+    if (contactStore.HasGroup(g.id))
+        return 'joined'
+    let a = applyStore.GrooupApplyMap.get(g.id)
+    if (a !== undefined) {
+        if (a.status === 1)
+            return 'pending';
+        else if (a.status === 2)
+            return 'added'
+    }
+    return ''
+}
+
 // 搜索节流与重复内容判断
 const MIN_FRIEND_SEARCH_INTERVAL = 800 // 毫秒
 const lastFriendQuery = ref('')
@@ -298,6 +312,7 @@ const commitGroupSearch = async () => {
                 name: raw
             })
             res = res.data.data
+            console.log(res)
             if (Array.isArray(res)) {
                 res.forEach(item => {
                     relationStore.setGroup({
@@ -307,7 +322,13 @@ const commitGroupSearch = async () => {
                         owner_id: BigInt(item.owner_id),
                         updated_at: item.updated_at,
                         created_at: item.created_at,
-                        member_ids: item.member_ids.map(BigInt),
+                        members: item.members.map((m:any) => ({
+                            group_id: BigInt(m.group_id),
+                            user_id: BigInt(m.user_id),
+                            role: m.role,
+                            nickname: m.nickname,
+                            joined_at: m.joined_at,
+                        }))
                     })
                     results.push({
                         id: BigInt(item.id),
@@ -316,7 +337,13 @@ const commitGroupSearch = async () => {
                         owner_id: BigInt(item.owner_id),
                         updated_at: item.updated_at,
                         created_at: item.created_at,
-                        member_ids: item.member_ids.map(BigInt),
+                        members: item.members.map((m:any) => ({
+                            group_id: BigInt(m.group_id),
+                            user_id: BigInt(m.user_id),
+                            role: m.role,
+                            nickname: m.nickname,
+                            joined_at: m.joined_at,
+                        }))
                     })
 
                 })
@@ -331,6 +358,7 @@ const commitGroupSearch = async () => {
         ElMessage.warning('未找到匹配的群组')
         filteredGroups = []
     } else {
+        console.log(results.length)
         filteredGroups.splice(0, filteredGroups.length, ...results)
     }
 }
@@ -425,7 +453,13 @@ const onCreateGroup = async () => {
             owner_id: BigInt(res.data.owner_id),
             created_at: res.data.created_at,
             updated_at: res.data.updated_at,
-            member_ids: res.data.member_ids.map(BigInt),
+            members: res.data.members.map((m:any) => ({
+                group_id: BigInt(m.group_id),
+                user_id: BigInt(m.user_id),
+                role: m.role,
+                nickname: m.nickname,
+                joined_at: m.joined_at,
+            }))
         })
         closeVerifyModal()
     } catch (e) {
@@ -754,6 +788,27 @@ const groupName = ref('')
 .actions .primary:disabled {
     background: #aacdea;
     cursor: not-allowed;
+}
+
+.joined,
+.pending {
+    padding: 6px 10px;
+    border-radius: 16px;
+    font-size: 12px;
+    line-height: 1;
+    border: 1px solid #e1e8ed;
+}
+
+.joined {
+    background: #e8f6ef;
+    color: #27ae60;
+    border-color: #cdebd8;
+}
+
+.pending {
+    background: #fff4e6;
+    color: #f39c12;
+    border-color: #fae5cd;
 }
 
 .verify-toggle {

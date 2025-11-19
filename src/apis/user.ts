@@ -65,3 +65,7 @@ export async function updateUserInfo(data: UpdateUserInfoRequest) {
 export async function refreshToken() {
   return instance.get(userServer+'/user/refresh')
 }
+
+export async function loginR() {
+  return instance.post(userServer+'/user/loginr')
+}

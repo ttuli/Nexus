@@ -106,7 +106,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import TitleBar from '@/components/TitleBar.vue'
-import { login, refreshToken } from '@/apis/user'
+import { login, loginR, refreshToken } from '@/apis/user'
 import { ElMessage } from 'element-plus'
 import { getRefreshToken, saveRefreshToken } from '@/utils/keytar'
 import { onMounted } from 'vue'
@@ -181,7 +181,7 @@ const handleAutoLogin = async () => {
     try {
         isLoading.value = true
         useUserStore().setToken(await getRefreshToken() || '')
-        let res = await refreshToken()
+        let res = await loginR()
         window.ipcRenderer.send('window:new-window', {
             key: 'home',
             data: {

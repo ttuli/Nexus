@@ -353,7 +353,6 @@ onMounted(async () => {
   }
   if (Array.isArray(groupData)) {
     groupData.forEach(item => {
-      console.log(item)
       contactStore.Groups.push(BigInt(item.id))
       relationStore.setGroup({
         id: BigInt(item.id),
@@ -362,7 +361,13 @@ onMounted(async () => {
         owner_id: BigInt(item.owner_id),
         created_at: item.created_at,
         updated_at: item.updated_at,
-        member_ids: item.member_ids.map(BigInt),
+        members: item.members.map((m:any) => ({
+          group_id: BigInt(m.group_id),
+          user_id: BigInt(m.user_id),
+          role: m.role,
+          nickname: m.nickname,
+          joined_at: m.joined_at,
+        }))
       })
     })
   }

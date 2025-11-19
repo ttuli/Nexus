@@ -20,7 +20,7 @@ export function createWindow(key: string) {
             },
             contact: {
                 friend: contactStore.Fserialize(),
-                group: {...contactStore.Groups}
+                group: [...contactStore.Groups]
             }   
         }
     })
