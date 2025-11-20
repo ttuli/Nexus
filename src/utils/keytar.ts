@@ -1,4 +1,5 @@
-// keytar.api.ts (渲染进程)
+import { ElMessage } from 'element-plus'
+import { jwtDecode } from 'jwt-decode'
 
 /**
  * 保存 refresh token 到系统密钥链
@@ -28,6 +29,11 @@ export async function getRefreshToken(): Promise<string | null> {
     const result = await window.ipcRenderer.invoke('safeStorage:getRefreshToken')
     if (!result.success) {
       console.error('Failed to get refresh token:', result.error)
+      return null
+    }
+    const decoded = jwtDecode(result.token || '')
+    if (!decoded.exp || decoded.exp * 1000 <= Date.now()) {
+      ElMessage.error('登录已过期,请重新输入')
       return null
     }
     return result.token || null

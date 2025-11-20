@@ -106,7 +106,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import TitleBar from '@/components/TitleBar.vue'
-import { login, loginR, refreshToken } from '@/apis/user'
+import { login, loginR } from '@/apis/user'
 import { ElMessage } from 'element-plus'
 import { getRefreshToken, saveRefreshToken } from '@/utils/keytar'
 import { onMounted } from 'vue'

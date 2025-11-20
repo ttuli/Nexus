@@ -79,7 +79,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useUserStore } from '@/store/user';
 import TitleBar from '@/components/TitleBar.vue';
 import ChatArea from './ChatArea.vue'
@@ -179,13 +179,28 @@ const clearVerifyUnread = () => {
   verifyUnreadCount.value = 0
 }
 
+const onlineStatusChanged = async () => {
+  if (navigator.onLine) {
+    await initFunc()
+    WebSocketCli.connect()
+  } else {
+    WebSocketCli.close()
+  }
+}
+
 onMounted(async () => {
+  window.addEventListener('online', onlineStatusChanged)
+  window.addEventListener('offline', onlineStatusChanged)
   try {
     await initFunc()
   } catch (e) {
     console.log(e)
   }
   WebSocketCli.connect()
+})
+onUnmounted(() => {
+  window.removeEventListener('online', onlineStatusChanged)
+  window.removeEventListener('offline', onlineStatusChanged)
 })
 const initFunc = async () => {
   try {

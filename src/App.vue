@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue'
+import { nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { useUserStore } from '@/store/user'
 import { useRelationStore } from '@/store/relationMap'
 import { useApplyStore } from './store/apply'
@@ -13,13 +13,12 @@ const relationStore = useRelationStore()
 const applyInfoStore = useApplyStore()
 const contactStore = useContactStore()
 
+const isAppMounted = ref(true)
+
 onMounted(() => {
     window.ipcRenderer.once('init-data', (e, data) => {
         if (data.token)
             userStore.setToken(data.token)
-        // if (data.refreshToken) {
-            
-        // }
         if (data.user)
             userStore.setUserInfo(data.user)
         if (data.userMap)
@@ -62,6 +61,8 @@ onMounted(() => {
         sqlJsDB.saveGroups([{ groupId: group.id.toString(), data: { ...group }, updatedAt: now, expiresAt: now + 7 * 24 * 60 * 60 * 1000 }])
     })
     window.ipcRenderer.once('app-quit', async () => {
+        isAppMounted.value = false
+        await nextTick()
         const chatStore = useChatStore()
         const ownerId = String(useUserStore().userId || '')
         const sessionCache = {
@@ -71,6 +72,7 @@ onMounted(() => {
         sqlJsDB.saveSessions(sessionCache)
         await sqlJsDB.persist()
         WebSocketCli.close()
+        
         window.close()
     })
     window.ipcRenderer.send('window:get-init-data')
@@ -85,7 +87,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <div class="container">
+    <div class="container" v-if="isAppMounted">
         <router-view></router-view>
     </div>
 </template>
