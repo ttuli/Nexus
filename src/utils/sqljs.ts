@@ -62,6 +62,7 @@ class SqlJsDB {
   }
   saveChats(chats: ChatCache[]) {
     if (!this.db) return
+    console.log(chats)
     const stmt = this.db.prepare(`INSERT OR REPLACE INTO chats(id,session_id, seq, data) VALUES(?,?,?,?)`)
     chats.forEach(r => stmt.run([r.id, r.sessionId, r.seq, JSONB.stringify(r.data)])) 
     stmt.free()

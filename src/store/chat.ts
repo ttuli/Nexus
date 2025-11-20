@@ -299,8 +299,8 @@ export const useChatStore = defineStore('chat', {
           const m = local[local.length - 1]
           if (!m || m.length === 0) return
           console.log(m)
-          if (Array.isArray(m[m.length - 1])) {
-            m[m.length - 1].forEach((item: any) => {
+          if (Array.isArray(m)) {
+            m.forEach((item: any) => {
               if (!item) return
 
               const msg = {
@@ -319,7 +319,7 @@ export const useChatStore = defineStore('chat', {
             })
           } else {
             if (s.some((m) => m.id === msg.id)) return
-            const item = m[m.length - 1]
+            const item = m
             const msg = {
               id: item.id || '',
               content: item.content || '',
