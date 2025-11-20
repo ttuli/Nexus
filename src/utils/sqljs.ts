@@ -7,7 +7,7 @@ import { useUserStore } from '@/store/user'
 type SessionCache = { ownerId: string, data: any }
 type UserCache = { userId: string, data: any, updatedAt: number, expiresAt: number }
 type GroupCache = { groupId: string, data: any, updatedAt: number, expiresAt: number }
-type ChatCache = { sessionId: string, seq: number, data: any }  
+type ChatCache = { id: string, sessionId: string, seq: number, data: any }  
 
 class SqlJsDB {
   private db: any | null = null 
@@ -23,10 +23,11 @@ class SqlJsDB {
       this.db = new SQL.Database()
       this.db.run(`
         CREATE TABLE IF NOT EXISTS chats (
+          id TEXT NOT NULL,
           session_id TEXT NOT NULL,
           seq INTEGER NOT NULL,
           data TEXT NOT NULL,
-          PRIMARY KEY(session_id, seq)
+          PRIMARY KEY(session_id, seq,id)
         );
         CREATE TABLE IF NOT EXISTS session_cache (
           owner_id TEXT PRIMARY KEY,
@@ -61,8 +62,8 @@ class SqlJsDB {
   }
   saveChats(chats: ChatCache[]) {
     if (!this.db) return
-    const stmt = this.db.prepare(`INSERT OR REPLACE INTO chats(session_id, seq, data) VALUES(?,?,?)`)
-    chats.forEach(r => stmt.run([r.sessionId, r.seq, JSONB.stringify(r.data)]))
+    const stmt = this.db.prepare(`INSERT OR REPLACE INTO chats(id,session_id, seq, data) VALUES(?,?,?,?)`)
+    chats.forEach(r => stmt.run([r.id, r.sessionId, r.seq, JSONB.stringify(r.data)])) 
     stmt.free()
   }
   getChats(sessionId: string, fromSeq?: number, endSeq?: number) {

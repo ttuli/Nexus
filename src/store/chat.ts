@@ -220,7 +220,7 @@ export const useChatStore = defineStore('chat', {
         const list = this.chatMsgs.get(sid) || []
         const saved = list.find(m => m.id === (msg.id || ''))
         if (saved) {
-          sqlJsDB.saveChats([{ sessionId: sid, seq: saved.seqid, data: { ...saved } }])
+          sqlJsDB.saveChats([{ id: saved.id, sessionId: sid, seq: saved.seqid, data: { ...saved } }])
         }
       } catch { }
       this.ensureGlobalMessageLimit()
