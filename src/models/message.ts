@@ -1,3 +1,4 @@
+import { ApplyStatus } from "./social"
 
 export enum MessageStatus {
   Sending = 1, // 发送中
@@ -13,6 +14,7 @@ export enum MsgType {
   Video = 5,   // TypeVideo
   System = 6,
   Heartbeat = 7,
+  ApplyUpdate = 8,
 }
 
 export interface ChatMessage {
@@ -44,4 +46,13 @@ export interface WsMessage {
 
   // 控制字段（心跳/ACK用）
   error?: string                   // 若是错误消息，填错误原因
+}
+
+export interface ApplyMsg {
+  apply_id: string,
+  relation_id: bigint,
+  status: ApplyStatus,
+  reason:string,
+  update_at:number,
+  type:string,
 }

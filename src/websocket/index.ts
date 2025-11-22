@@ -1,9 +1,12 @@
 import { WsConfig, wsConfig } from "@/configs/wsConfig"
-import { MsgType, WsMessage } from "@/models/message"
+import { ApplyMsg, MsgType, WsMessage } from "@/models/message"
 import { useUserStore } from "@/store/user"
 import { useChatStore } from "@/store/chat"
 import { ElMessage } from "element-plus"
 import JSONBIGINT from 'json-bigint'
+import { useApplyStore } from "@/store/apply"
+import { ApplyStatus } from "@/models/social"
+import { useContactStore } from "@/store/contact"
 
 class WebSocketClient {
     private ws: WebSocket | null = null
@@ -56,6 +59,21 @@ class WebSocketClient {
             console.log("收到消息:", text)
 
             const msg = JSONBIGINT.parse(text) as WsMessage
+            if (msg.msgType === MsgType.ApplyUpdate) {
+                const applyMsg = msg.extra?.apply as ApplyMsg
+                useApplyStore().ApplyUpdate(applyMsg)
+                if (applyMsg.status === ApplyStatus.Accepted) {
+                    if (applyMsg.type === 'group') {
+                        useContactStore().AddGroup(applyMsg.relation_id)
+                    } else {
+                        useContactStore().setFriend({
+                            user_id: applyMsg.relation_id,
+                            remark: '',
+                        })
+                    }
+                }
+                return
+            }
             useChatStore().parseWsMessage(msg)
         }
         this.ws.onerror = (err) => {

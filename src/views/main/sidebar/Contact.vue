@@ -153,6 +153,8 @@ import { useChatStore } from '@/store/chat'
 import { ApplyStatus } from '@/models/social'
 import { ElMessage } from 'element-plus'
 import { GroupInfo } from '@/models/group'
+import { WebSocketCli } from '@/websocket'
+import { ApplyMsg, MsgType } from '@/models/message'
 
 const userStore = useUserStore()
 const applyInfoStore = useApplyStore()
@@ -277,6 +279,25 @@ const handleFApply = async (apply: any, status: ApplyStatus) => {
       result: status,
       msg: ''
     })
+    const applymsg:ApplyMsg = {
+      apply_id: apply.apply_id,
+      relation_id: userStore.userInfo.user_id,
+      status: status,
+      reason: '',
+      update_at: Date.now(),
+      type:'friend',
+    }
+    WebSocketCli.SendMessage({
+      id:'',
+      msgType:MsgType.ApplyUpdate,
+      sender_id: userStore.userInfo.user_id,
+      receivers: [BigInt(apply.sender_id)],
+      timestamp: Date.now(),
+      content:'',
+      extra:{
+        apply:applymsg
+      }
+    })  
     apply.status = status
     const a = applyInfoStore.FriendApplyMap.get(apply.user_id)
     if (a) a.status = status
@@ -301,6 +322,25 @@ const handleGApply = async (apply: any, status: ApplyStatus) => {
       msg: ''
     })
     apply.status = status
+    const applymsg:ApplyMsg = {
+      apply_id: apply.apply_id,
+      relation_id: BigInt(apply.group_id),
+      status: status,
+      reason: '',
+      update_at: Date.now(),
+      type:'group',
+    }
+    WebSocketCli.SendMessage({
+      id:'',
+      msgType:MsgType.ApplyUpdate,
+      sender_id: userStore.userInfo.user_id,
+      receivers: [BigInt(apply.sender_id)],
+      timestamp: Date.now(),
+      content:'',
+      extra:{
+        apply:applymsg
+      }
+    })  
     const a = applyInfoStore.GrooupApplyMap.get(apply.group_id)
     if (a) a.status = status
     ElMessage.success("处理成功")

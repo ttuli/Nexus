@@ -2,6 +2,8 @@ import { FriendApplyInfo,GroupApplyInfo } from '@/models/social'
 import { defineStore } from 'pinia'
 import { reactive } from 'vue'
 import JSONbig from 'json-bigint';
+import { ApplyMsg } from '@/models/message';
+import { ElMessage } from 'element-plus';
 
 export const useApplyStore = defineStore('apply', {
   state: () => ({
@@ -27,6 +29,24 @@ export const useApplyStore = defineStore('apply', {
           applyInfo: { ...applyInfo }
         }
       })
+    },
+    ApplyUpdate(msg:ApplyMsg) {
+      if (msg.type === 'friend') {
+        const applyInfo = this.FriendApplyMap.get(BigInt(msg.apply_id))
+        if (applyInfo) {
+          applyInfo.status = msg.status
+          applyInfo.message = msg.reason
+          applyInfo.time = BigInt(msg.update_at)
+        }
+      } else if (msg.type === 'group') {
+        const applyInfo = this.GrooupApplyMap.get(BigInt(msg.apply_id))
+        if (applyInfo) {
+          applyInfo.status = msg.status
+          applyInfo.message = msg.reason
+        }
+      } else {
+        ElMessage.error('未知的申请类型')
+      }
     },
     Fserialize(): string {
       const obj: Record<string, any> = {};
