@@ -7,8 +7,8 @@ import { ElMessage } from 'element-plus';
 
 export const useApplyStore = defineStore('apply', {
   state: () => ({
-    FriendApplyMap: reactive(new Map<bigint, FriendApplyInfo>()),
-    GrooupApplyMap: reactive(new Map<bigint, GroupApplyInfo>()),
+    FriendApplyMap: reactive(new Map<string, FriendApplyInfo>()),
+    GrooupApplyMap: reactive(new Map<string, GroupApplyInfo>()),
     hasPull: false,
   }),
   actions: {
@@ -32,14 +32,14 @@ export const useApplyStore = defineStore('apply', {
     },
     ApplyUpdate(msg:ApplyMsg) {
       if (msg.type === 'friend') {
-        const applyInfo = this.FriendApplyMap.get(BigInt(msg.relation_id))
+        const applyInfo = this.FriendApplyMap.get(msg.apply_id)
         if (applyInfo) {
           applyInfo.status = msg.status
           applyInfo.message = msg.reason
           applyInfo.time = BigInt(msg.update_at)
         }
       } else if (msg.type === 'group') {
-        const applyInfo = this.GrooupApplyMap.get(BigInt(msg.relation_id))
+        const applyInfo = this.GrooupApplyMap.get(msg.apply_id)
         if (applyInfo) {
           applyInfo.status = msg.status
           applyInfo.message = msg.reason
@@ -62,7 +62,7 @@ export const useApplyStore = defineStore('apply', {
       this.FriendApplyMap.clear();
 
       Object.entries(obj).forEach(([key, value]: [string, any]) => {
-        this.FriendApplyMap.set(BigInt(key), value as FriendApplyInfo);
+        this.FriendApplyMap.set(key, value as FriendApplyInfo);
       });
     },
     Gserialize(): string {
@@ -79,7 +79,7 @@ export const useApplyStore = defineStore('apply', {
       this.GrooupApplyMap.clear();
 
       Object.entries(obj).forEach(([key, value]: [string, any]) => {
-        this.GrooupApplyMap.set(BigInt(key), value as GroupApplyInfo);
+        this.GrooupApplyMap.set(key, value as GroupApplyInfo);
       });
     }
   }
