@@ -32,14 +32,14 @@ export const useApplyStore = defineStore('apply', {
     },
     ApplyUpdate(msg:ApplyMsg) {
       if (msg.type === 'friend') {
-        const applyInfo = this.FriendApplyMap.get(BigInt(msg.apply_id))
+        const applyInfo = this.FriendApplyMap.get(BigInt(msg.relation_id))
         if (applyInfo) {
           applyInfo.status = msg.status
           applyInfo.message = msg.reason
           applyInfo.time = BigInt(msg.update_at)
         }
       } else if (msg.type === 'group') {
-        const applyInfo = this.GrooupApplyMap.get(BigInt(msg.apply_id))
+        const applyInfo = this.GrooupApplyMap.get(BigInt(msg.relation_id))
         if (applyInfo) {
           applyInfo.status = msg.status
           applyInfo.message = msg.reason
