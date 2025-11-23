@@ -398,9 +398,12 @@ const handleGApply = async (apply: any, status: ApplyStatus) => {
     const a = applyInfoStore.GrooupApplyMap.get(apply.group_id)
     if (a) a.status = status
     ElMessage.success("处理成功")
-  } finally {
+  } catch(err){
+    console.log(err)
+    ElMessage.error("处理失败")
+  }finally {
     apply.pending = false
-  }
+  } 
 }
 
 onMounted(async () => {

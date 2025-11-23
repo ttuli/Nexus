@@ -67,7 +67,8 @@
                                 <div class="line1">
                                     <span class="name">{{ g.name }}</span>
                                     <span class="uid">ID: {{ g.id }}</span>
-                                    <span class="members">成员: {{ Array.isArray(g.members) ? g.members.length : 0 }}</span>
+                                    <span class="members">成员: {{ Array.isArray(g.members) ? g.members.length : 0
+                                    }}</span>
                                 </div>
                             </div>
                             <div class="actions">
@@ -152,6 +153,8 @@ import { useRelationStore } from '@/store/relationMap'
 import { UserInfo } from '@/models/user'
 import { GroupInfo } from '@/models/group'
 import { useApplyStore } from '@/store/apply'
+import { WebSocketCli } from '@/websocket'
+import { ApplyMsg, MsgType } from '@/models/message'
 
 const applyStore = useApplyStore()
 const userStore = useUserStore()
@@ -168,7 +171,7 @@ let filteredUsers = reactive<UserInfo[]>([])
 const getState = (u: UserInfo) => {
     if (userStore.userInfo && u.user_id === userStore.userInfo.user_id)
         return 'self'
-    let a = applyStore.FriendApplyMap.get(u.user_id)
+    let a = applyStore.FriendApplyMap.get(applyStore.FriendIDMap.get(BigInt(u.user_id)) || '')
     if (a !== undefined) {
         if (a.status === 1)
             return 'pending';
@@ -194,10 +197,10 @@ const stateLabel = (s?: 'added' | 'self' | '' | 'pending') => {
 const searchGroup = ref('')
 let filteredGroups = reactive<GroupInfo[]>([])
 
-const getGroupStatus = (g:GroupInfo) => {
+const getGroupStatus = (g: GroupInfo) => {
     if (contactStore.HasGroup(g.id))
         return 'joined'
-    let a = applyStore.GrooupApplyMap.get(g.id)
+    let a = applyStore.GrooupApplyMap.get(applyStore.GroupIDMap.get(BigInt(g.id)) || '')
     if (a !== undefined) {
         if (a.status === 1)
             return 'pending';
@@ -312,7 +315,6 @@ const commitGroupSearch = async () => {
                 name: raw
             })
             res = res.data.data
-            console.log(res)
             if (Array.isArray(res)) {
                 res.forEach(item => {
                     relationStore.setGroup({
@@ -322,7 +324,7 @@ const commitGroupSearch = async () => {
                         owner_id: BigInt(item.owner_id),
                         updated_at: item.updated_at,
                         created_at: item.created_at,
-                        members: item.members.map((m:any) => ({
+                        members: item.members.map((m: any) => ({
                             group_id: BigInt(m.group_id),
                             user_id: BigInt(m.user_id),
                             role: m.role,
@@ -337,7 +339,7 @@ const commitGroupSearch = async () => {
                         owner_id: BigInt(item.owner_id),
                         updated_at: item.updated_at,
                         created_at: item.created_at,
-                        members: item.members.map((m:any) => ({
+                        members: item.members.map((m: any) => ({
                             group_id: BigInt(m.group_id),
                             user_id: BigInt(m.user_id),
                             role: m.role,
@@ -397,6 +399,25 @@ const confirmSend = async () => {
                 message: verifyMessage.value,
                 status: 1
             })
+            const applymsg: ApplyMsg = {
+                apply_id: res.data.apply_id,
+                relation_id: userStore.userInfo.user_id,
+                status: 1,
+                reason: '',
+                update_at: Date.now(),
+                type: 'friend',
+            }
+            WebSocketCli.SendMessage({
+                id: '',
+                msgType: MsgType.ApplyUpdate,
+                sender_id: userStore.userInfo.user_id,
+                receivers: [selectedUser.value.user_id],
+                timestamp: Date.now(),
+                content: '',
+                extra: {
+                    apply: applymsg
+                }
+            })
         } else if (selectedGroup.value) {
             const loading = ElLoading.service({
                 lock: true,
@@ -418,6 +439,25 @@ const confirmSend = async () => {
                     request_time: res.data.request_time,
                     message: verifyMessage.value,
                     status: res.data.status,
+                })
+                const applymsg: ApplyMsg = {
+                    apply_id: res.data.apply_id,
+                    relation_id: BigInt(res.data.group_id),
+                    status: res.data.status,
+                    reason: '',
+                    update_at: Date.now(),
+                    type: 'group',
+                }
+                WebSocketCli.SendMessage({
+                    id: '',
+                    msgType: MsgType.ApplyUpdate,
+                    sender_id: userStore.userInfo.user_id,
+                    receivers: [selectedGroup.value.owner_id],
+                    timestamp: Date.now(),
+                    content: '',
+                    extra: {
+                        apply: applymsg
+                    }
                 })
                 ElMessage.success('加入申请已发送')
             } finally {
@@ -453,7 +493,7 @@ const onCreateGroup = async () => {
             owner_id: BigInt(res.data.owner_id),
             created_at: res.data.created_at,
             updated_at: res.data.updated_at,
-            members: res.data.members.map((m:any) => ({
+            members: res.data.members.map((m: any) => ({
                 group_id: BigInt(m.group_id),
                 user_id: BigInt(m.user_id),
                 role: m.role,

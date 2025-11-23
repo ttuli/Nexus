@@ -60,9 +60,9 @@ instance.interceptors.response.use(
   (error) => {
     console.dir(error)
     if (error.response != undefined && error.response.data != undefined
-      && error.response.data.info !== undefined
+      && error.response.data.msg !== undefined
     ) {
-      const message = error.response.data.info
+      const message = error.response.data.msg
       const result = message.substring(message.lastIndexOf(" ") + 1)
       ElMessage.error(result)
     } else if (error.message !== undefined) {

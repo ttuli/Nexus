@@ -31,6 +31,9 @@ export async function getRefreshToken(): Promise<string | null> {
       console.error('Failed to get refresh token:', result.error)
       return null
     }
+    if (!result.token) {
+      return null
+    }
     const decoded = jwtDecode(result.token || '')
     if (!decoded.exp || decoded.exp * 1000 <= Date.now()) {
       ElMessage.error('登录已过期,请重新输入')

@@ -9,6 +9,8 @@ export const useApplyStore = defineStore('apply', {
   state: () => ({
     FriendApplyMap: reactive(new Map<string, FriendApplyInfo>()),
     GrooupApplyMap: reactive(new Map<string, GroupApplyInfo>()),
+    FriendIDMap: new Map<bigint,string>(),
+    GroupIDMap: new Map<bigint,string>(),
     hasPull: false,
   }),
   actions: {

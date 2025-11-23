@@ -51,8 +51,10 @@ onMounted(() => {
     window.ipcRenderer.on('new-apply-info', (e, { type, applyInfo }) => {
         if (type === 'friend') {
             applyInfoStore.FriendApplyMap.set(applyInfo.apply_id, applyInfo)
+            applyInfoStore.FriendIDMap.set(BigInt(applyInfo.user_id), applyInfo.apply_id)
         } else {
             applyInfoStore.GrooupApplyMap.set(applyInfo.request_id, applyInfo)
+            applyInfoStore.GroupIDMap.set(BigInt(applyInfo.group_id), applyInfo.request_id)
         }
     })
     window.ipcRenderer.on('update-group-map', (e, group: any) => {
