@@ -6,13 +6,16 @@
 
 <script lang="ts" setup>
 import defaultImg from '@/assets/default.png'
+import defaultGroupImg from '@/assets/defaultg.png'
 
 const props = withDefaults(
     defineProps<{
         source?: string
+        type?: string
     }>(),
     {   
-        source: defaultImg
+        source: defaultImg,
+        type: 'user'
     }
 )
 
@@ -21,12 +24,16 @@ const imgSrc = ref<string>(defaultImg)
 
 // 监听外部传入的source变化，实时更新显示
 watch(() => props.source, (val) => {
-  imgSrc.value = val || defaultImg
+  imgSrc.value = val
 }, { immediate: true })
 
 const onError = () => {
-    console.log('图片加载失败')
-  imgSrc.value = defaultImg
+    console.log('图片加载失败',props.type)
+    if (props.type === 'user') {
+        imgSrc.value = defaultImg
+    } else if (props.type === 'group') {
+        imgSrc.value = defaultGroupImg
+    }
 }
 </script>
 

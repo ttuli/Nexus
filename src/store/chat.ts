@@ -51,6 +51,8 @@ export const useChatStore = defineStore('chat', {
     sendingMap: reactive(new Map<string, { sessionId: string, deadline: number }>()),
     sendingSchedulerId: null as number | null,
     _selectedWatcherInited: false as boolean,
+    uiMode: 'chat' as 'chat' | 'userInfo',
+    userInfoId: null as bigint | null,
   }),
   actions: {
     async loadAllCaches() {
@@ -319,7 +321,7 @@ export const useChatStore = defineStore('chat', {
             })
           } else {
             if (s.some((m) => m.id === msg.id)) return
-            const item = m
+            let item = m as any
             const msg = {
               id: item.id || '',
               content: item.content || '',
@@ -386,6 +388,36 @@ export const useChatStore = defineStore('chat', {
           if (i >= 0 && i < list.length) list.splice(i, 1)
         })
       })
-    }
+    },
+    removeChat(chatId: bigint) {
+      const idx = this.chats.findIndex((c) => c.id === chatId)
+      if (idx === -1) return
+      const sessionId = this.chats[idx].session_id
+      this.chats.splice(idx, 1)
+      this.chatMsgs.delete(sessionId)
+      if (this.selectedChat?.id === chatId) {
+        this.selectedChat = null
+      }
+    },
+    markChatAsRead(chatId: bigint) {
+      const chat = this.chats.find((c) => c.id === chatId)
+      if (!chat) return
+      chat.unreadCount = 0
+    },
+    bumpChatToTop(chatId: bigint) {
+      const idx = this.chats.findIndex((c) => c.id === chatId)
+      if (idx <= 0) return
+      const [chat] = this.chats.splice(idx, 1)
+      this.chats.unshift(chat)
+    },
+    showUserInfo(userId: bigint) {
+      if (this.uiMode === 'userInfo' && this.userInfoId === userId) return
+      this.userInfoId = userId
+      this.uiMode = 'userInfo'
+    },
+    showChat() {
+      this.uiMode = 'chat'
+      this.userInfoId = null
+    },
   }
 })

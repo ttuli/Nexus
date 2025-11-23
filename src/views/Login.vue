@@ -159,6 +159,8 @@ const handleLogin = async () => {
         const res = await login({ phone: form.value.phone, password: form.value.password })
         if (form.value.autoLogin) {
             await saveRefreshToken(res.data.refreshToken)
+        } else {
+            await saveRefreshToken('')
         }
         window.ipcRenderer.send('window:new-window', {
             key: 'home',

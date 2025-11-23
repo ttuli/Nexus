@@ -65,9 +65,27 @@
       <!-- 聊天窗口 -->
       <div class="chat-window">
         <span></span>
-        <ChatArea v-if="chatStore.selectedChat" />
-
-        <!-- 未选择聊天时的占位符 -->
+        <div v-if="chatStore.uiMode === 'userInfo' && chatStore.userInfoId" class="user-info-panel">
+          <div class="user-info-header">
+            <button class="back-btn" @click="chatStore.showChat()">返回聊天</button>
+          </div>
+          <div class="user-info-card">
+            <div class="avatar-wrap">
+              <Avatar :source="relationStore.getUser(chatStore.userInfoId)?.avatar || ''" />
+            </div>
+            <div class="user-basic">
+              <div class="name">{{ relationStore.getUser(chatStore.userInfoId)?.user_name || '未知' }}</div>
+              <div class="uid">ID：{{ chatStore.userInfoId?.toString() }}</div>
+              <div class="signature">{{ relationStore.getUser(chatStore.userInfoId)?.personal_signature || '' }}</div>
+            </div>
+            <div class="user-details">
+              <div class="row"><span class="label">性别</span><span class="value">{{ (relationStore.getUser(chatStore.userInfoId)?.gender===1?'男':(relationStore.getUser(chatStore.userInfoId)?.gender===2?'女':'未知')) }}</span></div>
+              <div class="row"><span class="label">手机号</span><span class="value">{{ relationStore.getUser(chatStore.userInfoId)?.phone || '' }}</span></div>
+              <div class="row"><span class="label">加入类型</span><span class="value">{{ (relationStore.getUser(chatStore.userInfoId)?.join_type===1?'直接加入':'同意后加好友') }}</span></div>
+            </div>
+          </div>
+        </div>
+        <ChatArea v-else-if="chatStore.selectedChat" />
         <div v-else class="empty-chat">
           <div class="empty-icon">💬</div>
           <div class="empty-text">选择一个聊天开始对话</div>
@@ -492,6 +510,133 @@ const initFunc = async () => {
     height: 30px;
     background: #fafbfc;
   }
+}
+
+.user-info-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  -webkit-app-region: no-drag;
+  background:
+    radial-gradient(120px at 20% 30%, rgba(52,152,219,0.12), transparent 70%),
+    radial-gradient(140px at 80% 20%, rgba(46,204,113,0.10), transparent 70%),
+    radial-gradient(100px at 30% 80%, rgba(241,196,15,0.12), transparent 70%),
+    #f8f9fa;
+}
+.user-info-header {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 10px;
+}
+.back-btn {
+  -webkit-app-region: no-drag;
+  border: 1px solid #e1e8ed;
+  background: #fff;
+  color: #2c3e50;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: all .2s ease;
+}
+.back-btn:hover {
+  background: #3498db;
+  color: #fff;
+  border-color: #3498db;
+  box-shadow: 0 6px 16px rgba(52,152,219,0.25);
+}
+.user-info-card {
+  display: flex;
+  gap: 16px;
+  padding: 18px;
+  background: #fff;
+  border: 1px solid #e9eef3;
+  border-radius: 12px;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.08);
+  transition: transform .2s ease, box-shadow .2s ease;
+  align-items: center;
+}
+.user-info-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px rgba(0,0,0,0.12);
+}
+.avatar-wrap {
+  width: 92px;
+  height: 92px;
+  position: relative;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #eaf4ff, #ffffff);
+}
+.avatar-wrap::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, #3498db, #2ecc71, #f1c40f, #e74c3c, #3498db);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 0);
+  animation: spinSlow 6s linear infinite;
+}
+.user-basic {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.user-basic .name {
+  font-size: 20px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #3498db 0%, #2ecc71 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.user-basic .uid {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #95a5a6;
+}
+.user-basic .signature {
+  margin-top: 6px;
+  font-size: 13px;
+  color: #6c757d;
+}
+.user-details {
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+}
+.user-details .row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f8fbff;
+  border: 1px solid #e9eef3;
+  border-radius: 10px;
+  /* text-align: center; */
+  padding: 8px 10px;
+}
+.user-details .label {
+  width: 90px;
+  font-size: 13px;
+  color: #6c757d;
+  font-weight: 600;
+  /* text-align: center; */
+}
+.user-details .value {
+  font-size: 14px;
+  color: #2c3e50;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: #eef6ff;
+  border: 1px solid #d7e8ff;
+}
+@keyframes spinSlow {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 /* 消息容器 */

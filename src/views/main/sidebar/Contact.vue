@@ -5,7 +5,7 @@
       <button :class="{ active: activeTab === 'groups' }" @click="activeTab = 'groups'">群聊</button>
       <button :class="{ active: activeTab === 'verify' }" @click="openVerifyTab">
         验证消息
-        <span v-if="verifyUnreadCount > 0" class="badge">{{ verifyUnreadCount }}</span>
+        <span v-if="verifyUnread > 0" class="badge">{{ verifyUnread }}</span>
       </button>
     </div>
 
@@ -39,7 +39,7 @@
           <div v-for="group in ownedGroups" :key="group.id.toString()" class="contact-item"
             @click="selectContact('group', group)">
             <div class="contact-avatar">
-              <Avatar :source="group.avatar || ''" :alt="group.name" />
+              <Avatar :source="group.avatar || ''" :alt="group.name" type="group"/>
             </div>
             <div class="contact-info">
               <div class="contact-name">
@@ -63,7 +63,7 @@
           <div v-for="group in joinedGroups" :key="group.id.toString()" class="contact-item"
             @click="selectContact('group', group)">
             <div class="contact-avatar">
-              <Avatar :source="group.avatar || ''" :alt="group.name" />
+              <Avatar :source="group.avatar || ''" :alt="group.name" type="group"/>
             </div>
             <div class="contact-info">
               <div class="contact-name">{{ group.name }}</div>
@@ -77,14 +77,20 @@
     <!-- 验证消息（ApplyInfo 展示：头像、名字、性别、留言、状态） -->
     <div v-show="activeTab === 'verify'" class="verify-items">
       <div class="sub-segmented">
-        <button :class="{ active: verifyTab === 'friend' }" @click="verifyTab = 'friend'">好友验证</button>
-        <button :class="{ active: verifyTab === 'group' }" @click="verifyTab = 'group'">群聊验证</button>
+        <button :class="{ active: verifyTab === 'friend' }" @click="openFriendVerifyTab">
+          好友验证
+          <span v-if="verifyUnreadFriendCount > 0" class="badge">{{ verifyUnreadFriendCount }}</span>
+        </button>
+        <button :class="{ active: verifyTab === 'group' }" @click="openGroupVerifyTab">
+          群聊验证
+          <span v-if="verifyUnreadGroupCount > 0" class="badge">{{ verifyUnreadGroupCount }}</span>
+        </button>
       </div>
       <div v-show="verifyTab === 'friend'">
         <div v-for="v in friendVerifications" :key="v.apply_id" class="verify-item">
           <div class="verify-avatar">
             <Avatar :source="relationStore.getUser(v.user_id)?.avatar || ''"
-              :alt="relationStore.getUser(v.user_id)?.user_name || ''" />
+              :alt="relationStore.getUser(v.user_id)?.user_name || ''" @click="showUserInfo(v.user_id)" />
           </div>
           <div class="verify-info">
             <div class="verify-name">
@@ -119,7 +125,7 @@
             <div class="verify-name">
               <span v-if="v.sender_id.toString() !== userStore.userId">{{ relationStore.getUser(v.sender_id)?.user_name
                 ||
-                '未知' }}</span> 申请加入 {{ relationStore.getGroup(v.group_id)?.name || '群聊' }}
+                '未知' }} 申请加入 </span>{{ relationStore.getGroup(v.group_id)?.name || '群聊' }}
             </div>
             <div class="verify-note" v-if="v.message">{{ v.message }}</div>
             <div class="verify-time" v-if="v.request_time">{{ formatTime(Number(v.request_time)) }}</div>
@@ -142,7 +148,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import Avatar from '@/components/Avatar.vue'
 import { useUserStore } from '@/store/user'
 import { getApply, getContactList, handleFriendApply, handleGroupApply } from '@/apis/social'
@@ -155,6 +161,7 @@ import { ElMessage } from 'element-plus'
 import { GroupInfo } from '@/models/group'
 import { WebSocketCli } from '@/websocket'
 import { ApplyMsg, MsgType } from '@/models/message'
+import { UserInfo } from '@/models/user'
 
 const userStore = useUserStore()
 const applyInfoStore = useApplyStore()
@@ -222,45 +229,87 @@ const statusClass = (status?: number) => {
     default: return 'unknown'
   }
 }
-let verifyUnreadCount = 0
+const friendCleared = ref(false)
+const groupCleared = ref(false)
+const friendClearedBaseline = ref(0)
+const groupClearedBaseline = ref(0)
 
-const friendVerifications = computed(() => {
-  const size = applyInfoStore.FriendApplyMap.size // 建立依赖
+const friendPendingCount = computed(() => {
+  let count = 0
+  const size = applyInfoStore.FriendApplyMap.size
   applyInfoStore.FriendApplyMap.forEach(item => {
     if (item.status === ApplyStatus.Pending && item.sender_id.toString() !== userStore.userId) {
-      verifyUnreadCount++
+      count += 1
     }
   })
-  if (verifyUnreadCount > 0) {
-    emit('verifyUnread', verifyUnreadCount)
-  }
-  return Array.from(applyInfoStore.FriendApplyMap.values()).map(item => {
-    return { ...item, pending: false }
+  return count
+})
+
+const groupPendingCount = computed(() => {
+  let count = 0
+  const size = applyInfoStore.GrooupApplyMap.size
+  applyInfoStore.GrooupApplyMap.forEach(item => {
+    if (item.status === ApplyStatus.Pending && item.sender_id.toString() !== userStore.userId) {
+      count += 1
+    }
   })
+  return count
+})
+
+const verifyUnreadFriendCount = computed(() => friendCleared.value ? 0 : friendPendingCount.value)
+const verifyUnreadGroupCount = computed(() => groupCleared.value ? 0 : groupPendingCount.value)
+
+const verifyUnread = computed(() => {
+  return verifyUnreadFriendCount.value + verifyUnreadGroupCount.value
+})
+
+const friendVerifications = computed(() => {
+  const size = applyInfoStore.FriendApplyMap.size
+  return Array.from(applyInfoStore.FriendApplyMap.values()).map(item => ({ ...item, pending: false }))
 })
 
 const groupVerifications = computed(() => {
-  const size = applyInfoStore.GrooupApplyMap.size // 建立依赖
-  applyInfoStore.GrooupApplyMap.forEach(item => {
-    if (item.status === ApplyStatus.Pending && item.sender_id.toString() !== userStore.userId) {
-      verifyUnreadCount++
-    }
-  })
-  if (verifyUnreadCount > 0) {
-    emit('verifyUnread', verifyUnreadCount)
+  const size = applyInfoStore.GrooupApplyMap.size
+  return Array.from(applyInfoStore.GrooupApplyMap.values()).map(item => ({ ...item, pending: false }))
+})
+
+watch(verifyUnread, (val) => {
+  if (val > 0) {
+    emit('verifyUnread', val)
+  } else {
+    emit('verifyReadAll')
   }
-  return Array.from(applyInfoStore.GrooupApplyMap.values()).map(item => {
-    return { ...item, pending: false }
-  })
 })
 
 const openVerifyTab = () => {
   activeTab.value = 'verify'
-  if (verifyUnreadCount > 0) {
-    emit('verifyReadAll')
-    verifyUnreadCount = 0
-  }
 }
+
+const openFriendVerifyTab = () => {
+  verifyTab.value = 'friend'
+  friendCleared.value = true
+  friendClearedBaseline.value = friendPendingCount.value
+}
+
+const openGroupVerifyTab = () => {
+  verifyTab.value = 'group'
+  groupCleared.value = true
+  groupClearedBaseline.value = groupPendingCount.value
+}
+
+watch(friendPendingCount, (count) => {
+  if (count > friendClearedBaseline.value) {
+    friendCleared.value = false
+    friendClearedBaseline.value = count
+  }
+})
+
+watch(groupPendingCount, (count) => {
+  if (count > groupClearedBaseline.value) {
+    groupCleared.value = false
+    groupClearedBaseline.value = count
+  }
+})
 
 const formatTime = (ts: number) => {
   try {
@@ -311,6 +360,11 @@ const handleFApply = async (apply: any, status: ApplyStatus) => {
   } finally {
     apply.pending = false
   }
+}
+
+const showUserInfo = (userId: bigint) => {
+  if (chatStore.uiMode === 'userInfo' && chatStore.userInfoId === userId) return
+  chatStore.showUserInfo(userId)
 }
 
 const handleGApply = async (apply: any, status: ApplyStatus) => {
