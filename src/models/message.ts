@@ -52,6 +52,7 @@ export interface ApplyMsg {
   apply_id: string,
   relation_id: bigint,
   status: ApplyStatus,
+  message:string,
   reason:string,
   update_at:number,
   type:string,

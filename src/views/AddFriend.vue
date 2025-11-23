@@ -68,7 +68,7 @@
                                     <span class="name">{{ g.name }}</span>
                                     <span class="uid">ID: {{ g.id }}</span>
                                     <span class="members">成员: {{ Array.isArray(g.members) ? g.members.length : 0
-                                    }}</span>
+                                        }}</span>
                                 </div>
                             </div>
                             <div class="actions">
@@ -404,6 +404,7 @@ const confirmSend = async () => {
                 relation_id: userStore.userInfo.user_id,
                 status: 1,
                 reason: '',
+                message:verifyMessage.value,
                 update_at: Date.now(),
                 type: 'friend',
             }
@@ -444,19 +445,23 @@ const confirmSend = async () => {
                     apply_id: res.data.apply_id,
                     relation_id: BigInt(res.data.group_id),
                     status: res.data.status,
+                    message:verifyMessage.value,
                     reason: '',
                     update_at: Date.now(),
                     type: 'group',
                 }
-                WebSocketCli.SendMessage({
-                    id: '',
-                    msgType: MsgType.ApplyUpdate,
-                    sender_id: userStore.userInfo.user_id,
-                    receivers: [selectedGroup.value.owner_id],
-                    timestamp: Date.now(),
-                    content: '',
-                    extra: {
-                        apply: applymsg
+                window.ipcRenderer.send('window:publish', {
+                    channel: 'websocket:send',
+                    data: {
+                        id: '',
+                        msgType: MsgType.ApplyUpdate,
+                        sender_id: userStore.userInfo.user_id,
+                        receivers: [selectedGroup.value.owner_id],
+                        timestamp: Date.now(),
+                        content: '',
+                        extra: {
+                            apply: applymsg
+                        }
                     }
                 })
                 ElMessage.success('加入申请已发送')

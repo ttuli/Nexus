@@ -333,6 +333,7 @@ const handleFApply = async (apply: any, status: ApplyStatus) => {
       relation_id: userStore.userInfo.user_id,
       status: status,
       reason: '',
+      message:'',
       update_at: Date.now(),
       type:'friend',
     }
@@ -381,6 +382,7 @@ const handleGApply = async (apply: any, status: ApplyStatus) => {
       relation_id: BigInt(apply.group_id),
       status: status,
       reason: '',
+      message:"",
       update_at: Date.now(),
       type:'group',
     }

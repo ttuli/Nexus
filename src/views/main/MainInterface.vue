@@ -211,6 +211,9 @@ onMounted(async () => {
   window.addEventListener('offline', onlineStatusChanged)
   try {
     await initFunc()
+    window.ipcRenderer.on('websocket:send', (e,msg) => {
+      WebSocketCli.SendMessage(msg)
+    })
   } catch (e) {
     console.log(e)
   }
@@ -219,6 +222,7 @@ onMounted(async () => {
 onUnmounted(() => {
   window.removeEventListener('online', onlineStatusChanged)
   window.removeEventListener('offline', onlineStatusChanged)
+  window.ipcRenderer.removeAllListeners('websocket:send')
 })
 const initFunc = async () => {
   try {

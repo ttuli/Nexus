@@ -61,7 +61,7 @@ class WebSocketClient {
             const msg = JSONBIGINT.parse(text) as WsMessage
             if (msg.msgType === MsgType.ApplyUpdate) {
                 const applyMsg = msg.extra?.apply as ApplyMsg
-                useApplyStore().ApplyUpdate(applyMsg)
+                useApplyStore().ApplyUpdate(msg)
                 if (applyMsg.status === ApplyStatus.Accepted) {
                     if (applyMsg.type === 'group') {
                         useContactStore().AddGroup(applyMsg.relation_id)

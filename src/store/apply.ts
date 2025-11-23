@@ -2,7 +2,7 @@ import { FriendApplyInfo,GroupApplyInfo } from '@/models/social'
 import { defineStore } from 'pinia'
 import { reactive } from 'vue'
 import JSONbig from 'json-bigint';
-import { ApplyMsg } from '@/models/message';
+import { ApplyMsg, WsMessage } from '@/models/message';
 import { ElMessage } from 'element-plus';
 
 export const useApplyStore = defineStore('apply', {
@@ -32,19 +32,38 @@ export const useApplyStore = defineStore('apply', {
         }
       })
     },
-    ApplyUpdate(msg:ApplyMsg) {
+    ApplyUpdate(message:WsMessage) {
+      const msg = message.extra?.apply as ApplyMsg
       if (msg.type === 'friend') {
         const applyInfo = this.FriendApplyMap.get(msg.apply_id)
         if (applyInfo) {
           applyInfo.status = msg.status
           applyInfo.message = msg.reason
           applyInfo.time = BigInt(msg.update_at)
+        } else {
+          this.setFriendApply({
+            apply_id: msg.apply_id,
+            status: msg.status,
+            user_id: msg.relation_id,
+            sender_id: message.sender_id as bigint,
+            message: msg.reason,
+            time: BigInt(msg.update_at),
+          })
         }
       } else if (msg.type === 'group') {
         const applyInfo = this.GrooupApplyMap.get(msg.apply_id)
         if (applyInfo) {
           applyInfo.status = msg.status
           applyInfo.message = msg.reason
+        } else {
+          this.setGroupApply({
+            request_id: msg.apply_id,
+            status: msg.status,
+            group_id: msg.relation_id,
+            sender_id: message.sender_id as bigint,
+            message: msg.reason,
+            request_time: msg.update_at,
+          })
         }
       } else {
         ElMessage.error('未知的申请类型')
