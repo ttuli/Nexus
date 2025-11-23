@@ -377,7 +377,7 @@ const handleGApply = async (apply: any, status: ApplyStatus) => {
     })
     apply.status = status
     const applymsg:ApplyMsg = {
-      apply_id: apply.apply_id,
+      apply_id: apply.request_id,
       relation_id: BigInt(apply.group_id).toString(),
       status: status,
       reason: '',
