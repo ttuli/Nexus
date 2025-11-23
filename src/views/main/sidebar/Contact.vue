@@ -348,7 +348,7 @@ const handleFApply = async (apply: any, status: ApplyStatus) => {
       }
     })  
     apply.status = status
-    const a = applyInfoStore.FriendApplyMap.get(apply.user_id)
+    const a = applyInfoStore.FriendApplyMap.get(apply.apply_id)
     if (a) a.status = status
     if (status == ApplyStatus.Accepted) {
       contactStore.setFriend({
@@ -396,7 +396,7 @@ const handleGApply = async (apply: any, status: ApplyStatus) => {
         apply:applymsg
       }
     })  
-    const a = applyInfoStore.GrooupApplyMap.get(apply.group_id)
+    const a = applyInfoStore.GrooupApplyMap.get(apply.request_id)
     if (a) a.status = status
     ElMessage.success("处理成功")
   } catch(err){

@@ -33,6 +33,28 @@ export const useApplyStore = defineStore('apply', {
       })
     },
     ApplyUpdate(message:WsMessage) {
+      if (!document.hasFocus()) {
+        try {
+          const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+          const osc = ctx.createOscillator()
+          const gain = ctx.createGain()
+          osc.type = 'sine'
+          osc.frequency.value = 880
+          osc.connect(gain)
+          gain.connect(ctx.destination)
+          gain.gain.setValueAtTime(0.0001, ctx.currentTime)
+          gain.gain.exponentialRampToValueAtTime(0.1, ctx.currentTime + 0.02)
+          osc.start()
+          setTimeout(() => {
+            try {
+              gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.18)
+              osc.stop()
+            } finally {
+              ctx.close()
+            }
+          }, 200)
+        } catch {}
+      }
       const msg = message.extra?.apply as ApplyMsg
       if (msg.type === 'friend') {
         const applyInfo = this.FriendApplyMap.get(msg.apply_id)
