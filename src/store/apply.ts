@@ -44,8 +44,8 @@ export const useApplyStore = defineStore('apply', {
           this.setFriendApply({
             apply_id: msg.apply_id,
             status: msg.status,
-            user_id: msg.relation_id,
-            sender_id: message.sender_id as bigint,
+            user_id: BigInt(msg.relation_id),
+            sender_id: BigInt(message.sender_id as bigint),
             message: msg.reason,
             time: BigInt(msg.update_at),
           })
@@ -56,11 +56,12 @@ export const useApplyStore = defineStore('apply', {
           applyInfo.status = msg.status
           applyInfo.message = msg.reason
         } else {
+          console.log(message)
           this.setGroupApply({
             request_id: msg.apply_id,
             status: msg.status,
-            group_id: msg.relation_id,
-            sender_id: message.sender_id as bigint,
+            group_id: BigInt(msg.relation_id),
+            sender_id: BigInt(message.sender_id as bigint),
             message: msg.reason,
             request_time: msg.update_at,
           })

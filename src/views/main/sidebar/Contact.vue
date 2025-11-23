@@ -161,7 +161,6 @@ import { ElMessage } from 'element-plus'
 import { GroupInfo } from '@/models/group'
 import { WebSocketCli } from '@/websocket'
 import { ApplyMsg, MsgType } from '@/models/message'
-import { UserInfo } from '@/models/user'
 
 const userStore = useUserStore()
 const applyInfoStore = useApplyStore()
@@ -330,7 +329,7 @@ const handleFApply = async (apply: any, status: ApplyStatus) => {
     })
     const applymsg:ApplyMsg = {
       apply_id: apply.apply_id,
-      relation_id: userStore.userInfo.user_id,
+      relation_id: userStore.userInfo.user_id.toString(),
       status: status,
       reason: '',
       message:'',
@@ -379,7 +378,7 @@ const handleGApply = async (apply: any, status: ApplyStatus) => {
     apply.status = status
     const applymsg:ApplyMsg = {
       apply_id: apply.apply_id,
-      relation_id: BigInt(apply.group_id),
+      relation_id: BigInt(apply.group_id).toString(),
       status: status,
       reason: '',
       message:"",

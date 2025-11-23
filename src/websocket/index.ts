@@ -64,10 +64,10 @@ class WebSocketClient {
                 useApplyStore().ApplyUpdate(msg)
                 if (applyMsg.status === ApplyStatus.Accepted) {
                     if (applyMsg.type === 'group') {
-                        useContactStore().AddGroup(applyMsg.relation_id)
+                        useContactStore().AddGroup(BigInt(applyMsg.relation_id))
                     } else {
                         useContactStore().setFriend({
-                            user_id: applyMsg.relation_id,
+                            user_id: BigInt(applyMsg.relation_id),
                             remark: '',
                         })
                     }

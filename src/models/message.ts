@@ -50,7 +50,7 @@ export interface WsMessage {
 
 export interface ApplyMsg {
   apply_id: string,
-  relation_id: bigint,
+  relation_id: string,
   status: ApplyStatus,
   message:string,
   reason:string,

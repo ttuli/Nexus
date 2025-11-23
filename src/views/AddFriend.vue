@@ -401,22 +401,25 @@ const confirmSend = async () => {
             })
             const applymsg: ApplyMsg = {
                 apply_id: res.data.apply_id,
-                relation_id: userStore.userInfo.user_id,
+                relation_id: userStore.userInfo.user_id.toString(),
                 status: 1,
                 reason: '',
-                message:verifyMessage.value,
+                message: verifyMessage.value,
                 update_at: Date.now(),
                 type: 'friend',
             }
-            WebSocketCli.SendMessage({
-                id: '',
-                msgType: MsgType.ApplyUpdate,
-                sender_id: userStore.userInfo.user_id,
-                receivers: [selectedUser.value.user_id],
-                timestamp: Date.now(),
-                content: '',
-                extra: {
-                    apply: applymsg
+            window.ipcRenderer.send('window:publish', {
+                channel: 'websocket:send',
+                data: {
+                    id: '',
+                    msgType: MsgType.ApplyUpdate,
+                    sender_id: userStore.userInfo.user_id,
+                    receivers: [selectedUser.value.user_id],
+                    timestamp: Date.now(),
+                    content: '',
+                    extra: {
+                        apply: applymsg
+                    }
                 }
             })
         } else if (selectedGroup.value) {
@@ -442,10 +445,10 @@ const confirmSend = async () => {
                     status: res.data.status,
                 })
                 const applymsg: ApplyMsg = {
-                    apply_id: res.data.apply_id,
-                    relation_id: BigInt(res.data.group_id),
+                    apply_id: res.data.request_id,
+                    relation_id: BigInt(res.data.group_id).toString(),
                     status: res.data.status,
-                    message:verifyMessage.value,
+                    message: verifyMessage.value,
                     reason: '',
                     update_at: Date.now(),
                     type: 'group',

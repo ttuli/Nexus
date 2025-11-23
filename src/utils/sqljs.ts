@@ -11,9 +11,9 @@ type ChatCache = { id: string, sessionId: string, seq: number, data: any }
 
 class SqlJsDB {
   private db: any | null = null 
-  private file = 'imchat.sqlite'
+  private file = ''
   async init() {
-    this.file = useUserStore().userId + "_" + this.file
+    this.file = useUserStore().userId + "_" + 'imchat.sqlite'
     const SQL = await initSqlJs({ locateFile: () => wasmUrl })
     const buf = await window.ipcRenderer.invoke('fs:read-binary', { file: this.file })
     if (buf) {
