@@ -1,50 +1,15 @@
 import axios from 'axios'
 import { useUserStore } from '@/store/user'
 import { ElMessage } from 'element-plus'
-import JSONbig from 'json-bigint';
-import { jwtDecode } from 'jwt-decode';
 import { refreshToken } from '@/apis/user';
 import { getRefreshToken } from './keytar';
 
-const isTokenExpired = (token: string) => {
-  if (token === '') return false
-  try {
-    const decoded = jwtDecode(token);
-    return decoded.exp? decoded.exp * 1000 <= Date.now(): true;
-  } catch (error) {
-    console.error('Token解析失败:', error);
-    return true; // 解析失败视为过期
-  }
-};
-
 const instance = axios.create({
   timeout: 10000,
-  transformResponse: [function (data, header) {
-    if (header['content-type'] && header['content-type'].includes('application/json')) {
-      try {
-        // const JSONbigNative = JSONbig({ useNativeBigInt: true })
-        return JSONbig.parse(data); // 用 json-bigint 解析响应
-      } catch (e) {
-        return JSON.parse(data);
-      }
-    }
-    return data;
-  }],
-  transformRequest: [function (data, header) {
-    header['Content-Type'] = 'application/json'
-    const d = JSONbig.stringify(data);
-    return d
-  }],
 })
 
 instance.interceptors.request.use(
   async (config) => {
-    if (isTokenExpired(useUserStore().getToken())) {
-      let rtoken = await getRefreshToken()
-      useUserStore().setToken(rtoken || '')
-      let res = await refreshToken()
-      useUserStore().setToken(res.data.token)
-    }
     config.headers['Authorization'] = 'Bearer ' + useUserStore().getToken()
     return config
   },
@@ -55,16 +20,13 @@ instance.interceptors.request.use(
 
 instance.interceptors.response.use(
   (response) => {
-    return response.data
+    return response
   },
   (error) => {
-    console.dir(error)
     if (error.response != undefined && error.response.data != undefined
-      && error.response.data.msg !== undefined
+      && error.response.data.message !== undefined
     ) {
-      const message = error.response.data.msg
-      const result = message.substring(message.lastIndexOf(" ") + 1)
-      ElMessage.error(result)
+      ElMessage.error(error.response.data.message)
     } else if (error.message !== undefined) {
       ElMessage.error(error.message)
     } else {

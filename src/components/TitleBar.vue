@@ -46,7 +46,7 @@ const onMax = () => {
 }
 
 onMounted(() => {
-    window.ipcRenderer.on('window:state', (event, state) => {
+    window.ipcRenderer.on('window:state', (_event, state) => {
         console.log('window:state', state)
         if (state === 'maximized') {
             isMax.value = true
@@ -61,7 +61,6 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss" scoped>
-@use "sass:color";
 .main-container {
     position: fixed;
     z-index: 1000;
@@ -96,7 +95,7 @@ onUnmounted(() => {
             background-color: red;
         }
         &:active {
-            background-color: color.adjust(red, $lightness: -10%);
+            background-color: #cc0000; // red 变暗 10%
         }
     }
     .max-btn {
@@ -104,15 +103,15 @@ onUnmounted(() => {
             background-color: rgba(163, 163, 163, 0.305);
         }
         &:active {   
-            background-color: color.adjust(rgba(163, 163, 163, 0.305), $lightness: -10%);
+            background-color: rgba(140, 140, 140, 0.305); // 变暗 10%
         }
     }
     .min-btn {
         &:hover {
             background-color: rgba(163, 163, 163, 0.305);
         }
-        &:active {   
-            background-color: color.adjust(rgba(163, 163, 163, 0.305), $lightness: -10%);
+        &:active {
+            background-color: rgba(140, 140, 140, 0.305); // 变暗 10%
         }
     }
 }

@@ -106,7 +106,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import TitleBar from '@/components/TitleBar.vue'
-import { login, loginR } from '@/apis/user'
+import { login } from '@/apis/user'
 import { ElMessage } from 'element-plus'
 import { getRefreshToken, saveRefreshToken } from '@/utils/keytar'
 import { onMounted } from 'vue'
@@ -180,26 +180,26 @@ const handleAutoLogin = async () => {
         showPasswordLogin.value = true
         return
     }
-    try {
-        isLoading.value = true
-        useUserStore().setToken(await getRefreshToken() || '')
-        let res = await loginR()
-        window.ipcRenderer.send('window:new-window', {
-            key: 'home',
-            data: {
-                token: res.data.token,
-                refreshToken: savedRefreshToken.value
-            }
-        })
-        window.close()
-    } catch (error) {
-        ElMessage.error('自动登录失败')
-        form.value.password = ''
-        showPasswordLogin.value = true
-        autoLoginReady.value = false
-    } finally {
-        isLoading.value = false
-    }
+    // try {
+    //     isLoading.value = true
+    //     useUserStore().setToken(await getRefreshToken() || '')
+    //     let res = await loginR()
+    //     window.ipcRenderer.send('window:new-window', {
+    //         key: 'home',
+    //         data: {
+    //             token: res.data.token,
+    //             refreshToken: savedRefreshToken.value
+    //         }
+    //     })
+    //     window.close()
+    // } catch (error) {
+    //     ElMessage.error('自动登录失败')
+    //     form.value.password = ''
+    //     showPasswordLogin.value = true
+    //     autoLoginReady.value = false
+    // } finally {
+    //     isLoading.value = false
+    // }
 }
 
 const handleSubmit = async () => {
@@ -245,9 +245,8 @@ onMounted(async () => {
 <style scoped lang="scss">
 .login-container {
     display: flex;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu',
-        'Cantarell', sans-serif;
+    background: $gradient-primary;
+    font-family: $font-family-base;
     flex-direction: column;
 
     .login-panel {
@@ -256,9 +255,8 @@ onMounted(async () => {
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        padding: 30px 35px;
-        background: rgba(255, 255, 255, 0.95);
-        // background-color: #667eea;
+        padding: $spacing-lg $spacing-xl;
+        background: rgba($color-bg-primary, 0.95);
         backdrop-filter: blur(10px);
     }
 }
@@ -266,53 +264,55 @@ onMounted(async () => {
 .logo-area {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-top: 20px;
-    margin-bottom: 55px;
-    // background-color: #667eea;
+    gap: $spacing-sm;
+    margin-top: $spacing-md;
+    margin-bottom: $spacing-3xl;
 
     .logo-icon {
-        width: 48px;
-        height: 48px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-radius: 12px;
+        width: $size-icon-xl;
+        height: $size-icon-xl;
+        background: $gradient-primary;
+        border-radius: $radius-xl;
         display: flex;
         align-items: center;
         justify-content: center;
         color: white;
 
         svg {
-            width: 28px;
-            height: 28px;
+            width: $size-icon-lg;
+            height: $size-icon-lg;
         }
     }
 
     .logo-text {
-        font-size: 32px;
-        font-weight: 700;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        font-size: $font-size-3xl;
+        font-weight: $font-weight-bold;
+        background: $gradient-primary;
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
         margin: 0;
+        line-height: $line-height-tight;
     }
 }
 
 .welcome-text {
     text-align: center;
-    margin-bottom: 32px;
+    margin-bottom: $spacing-lg;
 
     h2 {
-        font-size: 28px;
-        font-weight: 600;
-        color: #1a1a1a;
-        margin: 0 0 8px 0;
+        font-size: $font-size-2xl;
+        font-weight: $font-weight-semibold;
+        color: $color-text-primary;
+        margin: 0 0 $spacing-xs 0;
+        line-height: $line-height-tight;
     }
 
     p {
-        font-size: 14px;
-        color: #666;
+        font-size: $font-size-base;
+        color: $color-text-secondary;
         margin: 0;
+        line-height: $line-height-normal;
     }
 }
 
@@ -325,47 +325,59 @@ onMounted(async () => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin: 180px 0 20px 0;
-    padding: 12px 14px;
-    background: #f8f9fa;
-    border: 1px solid #e1e8ed;
-    border-radius: 10px;
-}
-.auto-login-tip .tip-text {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: #2c3e50;
-    font-size: 14px;
-}
-.auto-login-tip .tip-icon {
-    width: 18px;
-    height: 18px;
-    color: #3498db;
-}
-.auto-login-tip .switch-btn {
-    -webkit-app-region: no-drag;
-    border: none;
-    background: #3498db;
-    color: #fff;
-    border-radius: 8px;
-    padding: 8px 12px;
-    font-size: 13px;
-    cursor: pointer;
-}
-.auto-login-tip .switch-btn:hover {
-    background: #2980b9;
+    margin: $spacing-3xl 0 $spacing-md 0; // 从 180px 改为 64px
+    padding: $spacing-sm $spacing-sm + 2px;
+    background: $color-bg-tertiary;
+    border: 1px solid $color-border;
+    border-radius: $radius-lg;
+
+    .tip-text {
+        display: flex;
+        align-items: center;
+        gap: $spacing-xs + 2px;
+        color: $color-text-primary;
+        font-size: $font-size-base;
+        line-height: $line-height-normal;
+    }
+
+    .tip-icon {
+        width: $size-icon-sm;
+        height: $size-icon-sm;
+        color: $color-info;
+    }
+
+    .switch-btn {
+        -webkit-app-region: no-drag;
+        border: none;
+        background: $color-info;
+        color: $color-bg-primary;
+        border-radius: $radius-md;
+        padding: $spacing-xs $spacing-sm;
+        font-size: $font-size-sm;
+        font-weight: $font-weight-medium;
+        cursor: pointer;
+        transition: background $transition-base;
+
+        &:hover {
+            background: $color-info-dark;
+        }
+
+        &:active {
+            transform: scale(0.98);
+        }
+    }
 }
 
 .form-group {
-    margin-bottom: 20px;
+    margin-bottom: $spacing-md;
 
     label {
         display: block;
-        font-size: 14px;
-        font-weight: 500;
-        color: #333;
-        margin-bottom: 8px;
+        font-size: $font-size-base;
+        font-weight: $font-weight-medium;
+        color: $color-text-primary;
+        margin-bottom: $spacing-xs;
+        line-height: $line-height-normal;
     }
 
     .input-wrapper {
@@ -377,54 +389,61 @@ onMounted(async () => {
         .input-icon {
             position: absolute;
             left: 14px;
-            width: 18px;
-            height: 18px;
-            color: #999;
+            width: $size-icon-sm;
+            height: $size-icon-sm;
+            color: $color-text-tertiary;
             pointer-events: none;
+            transition: color $transition-base;
         }
 
         input {
             width: 100%;
-            height: 48px;
+            height: $size-input-height;
             padding: 0 14px 0 44px;
-            border: 1.5px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
-            transition: all 0.3s ease;
-            background: #fafafa;
+            border: 1.5px solid $color-border;
+            border-radius: $radius-md;
+            font-size: $font-size-base;
+            line-height: $line-height-normal;
+            transition: all $transition-base;
+            background: $color-bg-secondary;
+            color: $color-text-primary;
 
             &:focus {
                 outline: none;
-                border-color: #667eea;
-                background: white;
-                box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+                border-color: $color-border-focus;
+                background: $color-bg-primary;
+                box-shadow: $shadow-focus;
+
+                ~.input-icon {
+                    color: $color-primary;
+                }
             }
 
             &::placeholder {
-                color: #bbb;
+                color: $color-text-placeholder;
             }
         }
 
         .password-toggle {
             position: absolute;
-            right: 12px;
+            right: $spacing-sm - 4px;
             background: none;
             border: none;
             cursor: pointer;
-            padding: 8px;
+            padding: $spacing-xs;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #999;
-            transition: color 0.3s ease;
+            color: $color-text-tertiary;
+            transition: color $transition-base;
 
             &:hover {
-                color: #667eea;
+                color: $color-primary;
             }
 
             svg {
-                width: 18px;
-                height: 18px;
+                width: $size-icon-sm;
+                height: $size-icon-sm;
             }
         }
     }
@@ -432,15 +451,15 @@ onMounted(async () => {
 
 .checkbox-group {
     display: flex;
-    gap: 20px;
-    margin-bottom: 24px;
+    gap: $spacing-md;
+    margin-bottom: $spacing-md;
     justify-content: space-between;
 
     .checkbox-item {
         -webkit-app-region: no-drag;
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: $spacing-xs;
         cursor: pointer;
         user-select: none;
 
@@ -449,11 +468,11 @@ onMounted(async () => {
         }
 
         .checkbox-custom {
-            width: 18px;
-            height: 18px;
-            border: 1.5px solid #e0e0e0;
+            width: $size-icon-sm;
+            height: $size-icon-sm;
+            border: 1.5px solid $color-border;
             border-radius: 4px;
-            transition: all 0.3s ease;
+            transition: all $transition-base;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -466,18 +485,19 @@ onMounted(async () => {
                 border: solid white;
                 border-width: 0 2px 2px 0;
                 transform: rotate(45deg) scale(0);
-                transition: transform 0.3s ease;
+                transition: transform $transition-base;
             }
         }
 
         .checkbox-label {
-            font-size: 13px;
-            color: #666;
-            font-weight: 500;
+            font-size: $font-size-sm;
+            color: $color-text-secondary;
+            font-weight: $font-weight-medium;
+            line-height: $line-height-normal;
         }
 
         input[type='checkbox']:checked~.checkbox-custom {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: $gradient-primary;
             border-color: transparent;
 
             &::after {
@@ -486,7 +506,7 @@ onMounted(async () => {
         }
 
         &:hover .checkbox-custom {
-            border-color: #667eea;
+            border-color: $color-border-hover;
         }
     }
 }
@@ -494,22 +514,23 @@ onMounted(async () => {
 .login-btn {
     -webkit-app-region: no-drag;
     width: 100%;
-    height: 48px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    height: $size-button-height;
+    background: $gradient-primary;
+    color: $color-bg-primary;
     border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: 600;
+    border-radius: $radius-md;
+    font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
+    line-height: $line-height-tight;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all $transition-base;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 20px;
+    margin-bottom: $spacing-md;
 
     &:hover:not(:disabled) {
-        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        box-shadow: $shadow-lg;
         transform: translateY(-2px);
     }
 
@@ -529,7 +550,7 @@ onMounted(async () => {
         span {
             width: 6px;
             height: 6px;
-            background: white;
+            background: $color-bg-primary;
             border-radius: 50%;
             animation: pulse 1.4s infinite;
 
@@ -553,42 +574,32 @@ onMounted(async () => {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
+    gap: $spacing-sm;
 
     .link-btn {
         -webkit-app-region: no-drag;
         background: none;
         border: none;
-        color: #667eea;
-        font-size: 13px;
+        color: $color-primary;
+        font-size: $font-size-sm;
         cursor: pointer;
-        transition: all 0.3s ease;
-        font-weight: 500;
+        transition: all $transition-base;
+        font-weight: $font-weight-medium;
         padding: 0;
+        line-height: $line-height-normal;
 
         &:hover {
-            color: #764ba2;
+            color: $color-primary-dark;
             text-decoration: underline;
         }
     }
 
     .divider {
-        color: #e0e0e0;
+        color: $color-border;
     }
 }
 
-@keyframes float {
-
-    0%,
-    100% {
-        transform: translateY(0px);
-    }
-
-    50% {
-        transform: translateY(-30px);
-    }
-}
-
+// 动画
 @keyframes pulse {
 
     0%,

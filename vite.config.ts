@@ -30,8 +30,15 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': resolve(path.dirname(fileURLToPath(import.meta.url)),'src'),
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
       __dirname: path.resolve(__dirname, '.'),
     }
+  },
+  css: {
+    preprocessorOptions: {
+      scss: {
+        additionalData: `@import "@/style/_constant.scss";`,
+      },
+    },
   },
 })

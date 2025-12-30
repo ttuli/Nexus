@@ -1,25 +1,11 @@
 import { BrowserWindow } from 'electron'
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
-interface WindowConfig {
+interface WindowConfig extends Electron.BrowserWindowConstructorOptions {
     key: string;
     url: string;
     data?: Record<string, any>;
-    width?: number;
-    height?: number;
-    minWidth?: number;
-    minHeight?: number;
-    resizable?: boolean;
-    modal?: boolean;
-    parent?: BrowserWindow;
     parentId?:string;
-    frame?: boolean;
-    preload?: string;
-    webPreferences?: Electron.WebPreferences;
 }
 
 interface ManagedWindow {
@@ -39,6 +25,7 @@ let configs: Map<string, WindowConfig> = new Map([
             height: 630,
             resizable: false,
             frame: false,
+            maximizable: false,
             data: {
                 key: 'login'
             }

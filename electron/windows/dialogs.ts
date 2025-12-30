@@ -91,6 +91,7 @@ class WindowManager {
       minWidth = 400,
       minHeight = 300,
       resizable = true,
+      maximizable = true,
       modal = false,
       frame = true,
       parent,
@@ -111,6 +112,7 @@ class WindowManager {
       minWidth,
       minHeight,
       resizable,
+      maximizable,
       frame,
       icon: path.join(__dirname, '../src/assets/icon.png'),
       modal,
@@ -130,8 +132,8 @@ class WindowManager {
     })
 
     // 监听窗口状态变化并通过 IPC 通知渲染进程
-    window.on('maximize', () => {
-      if (!window.isDestroyed()) {
+    window.on('maximize', (e: Event) => {
+      if (!window.isDestroyed() && resizable) {
         window.webContents.send('window:state', 'maximized')
       }
     })
