@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { UserInfo } from '@/models/user'
+import { UserInfo } from '@/types/user'
 import { reactive } from 'vue'
 import { GroupInfo } from '@/models/group'
 import { getUserInfo } from '@/apis/user'
@@ -7,16 +7,25 @@ import { ElMessage } from 'element-plus'
 import JSONbig from 'json-bigint';
 import { getGroupList } from '@/apis/social'
 import { sqlJsDB } from '@/utils/sqljs'
+import { resourceManager } from '@/utils/resourceManager'
 
 export const useRelationStore = defineStore('relationMap', {
   state: () => ({
-    userMap: reactive(new Map<bigint, UserInfo>()),
+    userMap: reactive(new Map<string, UserInfo>()),
     groupMap: reactive(new Map<bigint, GroupInfo>()),
     groupMemberMap: reactive(new Map<bigint, bigint[]>()),
-    gettingQueue: new Set<bigint>(),
+    gettingQueue: new Set<string>(),
   }),
   actions: {
     setUser(userInfo: UserInfo) {
+      // 更新本地 Map
+      this.userMap.set(userInfo.user_id, userInfo)
+      
+      // 更新主进程缓存
+      window.ipcRenderer.invoke('resource:update-user', userInfo)
+        .catch(err => console.error('Failed to update user in main process:', err))
+      
+      // 广播到其他窗口
       window.ipcRenderer.send('window:publish', {
         channel: 'update-user-map',
         data: { ...userInfo }
@@ -43,8 +52,8 @@ export const useRelationStore = defineStore('relationMap', {
           created_at: 0,
           members: [],
         })
-        if (!this.gettingQueue.has(id)) {
-          this.gettingQueue.add(id)
+        if (!this.gettingQueue.has(id.toString())) {
+          this.gettingQueue.add(id.toString())
           getGroupList({
             name: '',
             id: id,
@@ -86,71 +95,67 @@ export const useRelationStore = defineStore('relationMap', {
                 })),
               })
             }
-            this.gettingQueue.delete(id)
+            this.gettingQueue.delete(id.toString())
           }).catch((err) => {
             console.log(err)
-            this.gettingQueue.delete(id)
+            this.gettingQueue.delete(id.toString())
           })
         }
       }
       return this.groupMap.get(id)
     },
-    getUser(id: bigint) {
-      if (!this.userMap.has(id)) {
-        this.userMap.set(id, {
-          user_id: id,
-          user_name: 'unknown',
-          gender: 0,
-          avatar: '',
-          personal_signature: '',
-          phone: '',
-          join_type: 1,
-        })
-        if (!this.gettingQueue.has(id)) {
-          this.gettingQueue.add(id)
-          getUserInfo([id]).then((res) => {
-            const u = res.data.data[0]
-            if (u) {
-              const user = {
-                user_id: BigInt(u?.user_id ?? u?.id ?? ''),
-                user_name: String(u?.user_name ?? u?.name ?? ''),
-                gender: u.gender,
-                avatar: u?.avatar ?? '',
-                personal_signature: u?.personal_signature ?? u?.signature ?? '',
-                phone: u?.phone ?? '',
-                join_type: u.join_type ?? 1
-              }
-
-              this.setUser(user)
-            } else {
-              ElMessage.error("获取用户数据失败")
-            }
-          }).catch((err) => {
-            ElMessage.error("获取用户数据失败")
-            console.error(err)
-          }).finally(() => {
-            this.gettingQueue.delete(id)
-          })
-        }
+    async getUser(id: string): Promise<UserInfo | undefined> {
+      // 先检查本地缓存
+      if (this.userMap.has(id)) {
+        return this.userMap.get(id)
       }
+
+      // 如果正在获取，直接返回占位符
+      if (this.gettingQueue.has(id)) {
+        return this.userMap.get(id)
+      }
+
+      this.gettingQueue.add(id)
+
+      try {
+        // 优先从主进程获取（主进程会自动处理缓存和 API 调用）
+        const user = await resourceManager.getUsers([id])
+        
+        if (user.length > 0) {
+          this.setUser(user[0])
+          return user[0]
+        }
+
+        // 如果主进程没有，直接调用 API（作为后备方案）
+        const res = await getUserInfo([id])
+        const u: any = res.data?.data?.[0]
+        
+        if (u) {
+          const user: UserInfo = {
+            user_id: String(u.user_id || u.id || u.UserID || id),
+            user_name: String(u.user_name || u.name || u.UserName || ''),
+            gender: Number(u.gender || u.Gender || 0),
+            avatar: String(u.avatar || u.Avatar || ''),
+            personal_signature: String(u.personal_signature || u.signature || u.PersonalSignature || ''),
+            phone: String(u.phone || u.Phone || ''),
+            join_type: Number(u.join_type || u.JoinType || 1),
+            create_time: Number(u.create_time || u.CreateTime || 0),
+            update_time: Number(u.update_time || u.UpdateTime || 0),
+          }
+
+          this.setUser(user)
+          return user
+        } else {
+          ElMessage.error("获取用户数据失败")
+        }
+      } catch (err) {
+        ElMessage.error("获取用户数据失败")
+        console.error(err)
+      } finally {
+        this.gettingQueue.delete(id)
+      }
+
       return this.userMap.get(id)
-    },
-    Fserialize(): string {
-      const obj: Record<string, any> = {};
-
-      this.userMap.forEach((value, key) => {
-        obj[key.toString()] = value;
-      });
-
-      return JSONbig.stringify(obj);
-    },
-    Fdeserialize(jsonString: string) {
-      const obj = JSONbig.parse(jsonString);
-      this.userMap.clear();
-
-      Object.entries(obj).forEach(([key, value]: [string, any]) => {
-        this.userMap.set(BigInt(key), value as UserInfo);
-      });
     },
     Gserialize() {
       return JSONbig.stringify(Array.from(this.groupMap.values()))
@@ -164,15 +169,17 @@ export const useRelationStore = defineStore('relationMap', {
     loadLocalCache() {
       const users = sqlJsDB.getUsers()
       users.forEach((u: any) => {
-        const user = {
-          user_id: BigInt(u?.user_id ?? u?.id ?? 0),
+        const user: UserInfo = {
+          user_id: String(u?.user_id ?? u?.id ?? ''),
           user_name: String(u?.user_name ?? u?.name ?? ''),
           gender: Number(u?.gender ?? 0),
           avatar: String(u?.avatar ?? ''),
           personal_signature: String(u?.personal_signature ?? u?.signature ?? ''),
           phone: String(u?.phone ?? ''),
           join_type: Number(u?.join_type ?? 1),
-        } as UserInfo
+          create_time: Number(u?.create_time ?? 0),
+          update_time: Number(u?.update_time ?? 0),
+        }
         this.userMap.set(user.user_id, user)
       })
       const groups = sqlJsDB.getGroups()

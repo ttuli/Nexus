@@ -1,18 +1,39 @@
 import { BrowserWindow } from 'electron'
 
+// 窗口状态接口（用于持久化）
+export interface WindowState {
+    x?: number;
+    y?: number;
+    width: number;
+    height: number;
+    isMaximized?: boolean;
+    isMinimized?: boolean;
+}
 
-interface WindowConfig extends Electron.BrowserWindowConstructorOptions {
+// 窗口创建配置接口
+export interface WindowConfig extends Electron.BrowserWindowConstructorOptions {
     key: string;
     url: string;
     data?: Record<string, any>;
-    parentId?:string;
+    parentId?: string;
+    // 是否允许关闭时最小化到托盘（仅对 home 窗口有效）
+    allowHideOnClose?: boolean;
 }
 
-interface ManagedWindow {
+// 窗口创建请求接口
+export interface CreateWindowRequest {
+    key: string;
+    data?: Record<string, any>;
+}
+
+// 管理的窗口接口
+export interface ManagedWindow {
     key: string;
     window: BrowserWindow;
     url: string;
     data?: Record<string, any>;
+    // 事件监听器清理函数
+    cleanup?: () => void;
 }
 
 let configs: Map<string, WindowConfig> = new Map([
@@ -54,6 +75,7 @@ let configs: Map<string, WindowConfig> = new Map([
             resizable: true,
             width: 1000,
             height: 830,
+            allowHideOnClose: true, // 允许关闭时隐藏到托盘
         }
     ],
     [
@@ -81,10 +103,5 @@ let configs: Map<string, WindowConfig> = new Map([
         }
     ],
 ])
-
-export type {
-    WindowConfig,
-    ManagedWindow
-}
 
 export default configs

@@ -4,7 +4,7 @@ import {
   LoginRequest, LoginResponse,
   RegisterRequest, UpdateUserInfoRequest,
   UserInfo, GetUserInfoResp
-} from '@/types/api/user'
+} from '@/types/user'
 
 import { ParseUserInfo, StoreUserInfo } from '@/utils/store'
 

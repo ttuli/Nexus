@@ -110,7 +110,7 @@ import { login } from '@/apis/user'
 import { ElMessage } from 'element-plus'
 import { getRefreshToken, saveRefreshToken } from '@/utils/keytar'
 import { onMounted } from 'vue'
-import { useUserStore } from '@/store/user'
+import { resourceManager } from '@/utils/resourceManager'
 
 interface LoginForm {
     phone: string
@@ -162,12 +162,10 @@ const handleLogin = async () => {
         } else {
             await saveRefreshToken('')
         }
+        await resourceManager.updateRefreshToken(res.data.refreshToken)
+        await resourceManager.updateToken(res.data.token)
         window.ipcRenderer.send('window:new-window', {
             key: 'home',
-            data: {
-                token: res.data.token,
-                refreshToken: res.data.refreshToken
-            }
         })
         window.close()
     } finally {
