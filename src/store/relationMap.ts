@@ -20,16 +20,6 @@ export const useRelationStore = defineStore('relationMap', {
     setUser(userInfo: UserInfo) {
       // 更新本地 Map
       this.userMap.set(userInfo.user_id, userInfo)
-      
-      // 更新主进程缓存
-      window.ipcRenderer.invoke('resource:update-user', userInfo)
-        .catch(err => console.error('Failed to update user in main process:', err))
-      
-      // 广播到其他窗口
-      window.ipcRenderer.send('window:publish', {
-        channel: 'update-user-map',
-        data: { ...userInfo }
-      })
     },
     setGroup(g: GroupInfo) {
       try {
@@ -124,29 +114,6 @@ export const useRelationStore = defineStore('relationMap', {
         if (user.length > 0) {
           this.setUser(user[0])
           return user[0]
-        }
-
-        // 如果主进程没有，直接调用 API（作为后备方案）
-        const res = await getUserInfo([id])
-        const u: any = res.data?.data?.[0]
-        
-        if (u) {
-          const user: UserInfo = {
-            user_id: String(u.user_id || u.id || u.UserID || id),
-            user_name: String(u.user_name || u.name || u.UserName || ''),
-            gender: Number(u.gender || u.Gender || 0),
-            avatar: String(u.avatar || u.Avatar || ''),
-            personal_signature: String(u.personal_signature || u.signature || u.PersonalSignature || ''),
-            phone: String(u.phone || u.Phone || ''),
-            join_type: Number(u.join_type || u.JoinType || 1),
-            create_time: Number(u.create_time || u.CreateTime || 0),
-            update_time: Number(u.update_time || u.UpdateTime || 0),
-          }
-
-          this.setUser(user)
-          return user
-        } else {
-          ElMessage.error("获取用户数据失败")
         }
       } catch (err) {
         ElMessage.error("获取用户数据失败")

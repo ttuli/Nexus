@@ -208,19 +208,18 @@ class ResourceManager {
         success: true,
         token: this.token,
         refreshToken: this.refreshToken,
-        users: Array.from(this.userCache.values()),
       };
     });
     // 更新 token
     ipcMain.handle('resource:update-token', async (_event, token: string) => {
       this.token = token;
-      windowManager.broadcastMessage('update-token', token);
+      windowManager.broadcastMessage('resource:update-token', token);
       return { success: true };
     });
     // 更新 refresh token
     ipcMain.handle('resource:update-refreshToken', async (_event, refreshToken: string) => {
       this.refreshToken = refreshToken;
-      windowManager.broadcastMessage('update-refreshToken', refreshToken);
+      windowManager.broadcastMessage('resource:update-refreshToken', refreshToken);
       return { success: true };
     });
     // 批量获取用户信息
@@ -257,6 +256,7 @@ class ResourceManager {
     ipcMain.handle('resource:update-users', async (_event, usersData: UserInfo[]) => {
       try {
         this.setUsersInfo(usersData);
+        windowManager.broadcastMessage('resource:update-users', usersData);
         return { success: true };
       } catch (error) {
         console.error('Failed to update users:', error);

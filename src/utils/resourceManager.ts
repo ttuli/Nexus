@@ -19,17 +19,24 @@ class ResourceManager {
 
     // 监听主进程的资源更新通知
     this.setupListeners();
+    window.ipcRenderer.invoke('resource:get-all-info').then((res : any) => {
+        if (res.success) {
+            const userStore = useUserStore();
+            userStore.setToken(res.token)
+            userStore.setRefreshToken(res.refreshToken)
+        }
+    })
   }
 
   /**
    * 设置监听器
    */
   private setupListeners(): void {
-    window.ipcRenderer.on('update-refreshToken',(e,data:string) => {
+    window.ipcRenderer.on('resource:update-refreshToken',(e,data:string) => {
       const userStore = useUserStore();
       userStore.setRefreshToken(data)
     })
-    window.ipcRenderer.on('update-token', (e, data: string) => {
+    window.ipcRenderer.on('resource:update-token', (e, data: string) => {
       const userStore = useUserStore();
       userStore.setToken(data)
     })
@@ -83,7 +90,7 @@ class ResourceManager {
     });
 
     // 监听主进程的用户信息更新通知
-    window.ipcRenderer.on('resource:user-updated', (_event, userData: UserInfo) => {
+    window.ipcRenderer.on('resource:update-users', (_event, userData: UserInfo) => {
       try {
         // 更新 Pinia store（需要转换为 bigint 格式）
         const relationStore = useRelationStore();

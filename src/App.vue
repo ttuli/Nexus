@@ -1,13 +1,10 @@
 <script setup lang="ts">
 import { nextTick, onMounted, onUnmounted, ref } from 'vue'
-import { useUserStore } from '@/store/user'
 import { useRelationStore } from '@/store/relationMap'
 import { useApplyStore } from './store/apply'
-import { UserInfo } from '@/types/user'
 import { sqlJsDB } from '@/utils/sqljs'
 import { resourceManager } from '@/utils/resourceManager'
 
-const userStore = useUserStore()
 const relationStore = useRelationStore()
 const applyInfoStore = useApplyStore()
 
@@ -46,15 +43,6 @@ onMounted(() => {
         await nextTick().then(() => {
             window.close()
         })
-    })
-    window.ipcRenderer.invoke('resource:get-all-info').then((res) => {
-        if (res.success) {
-            userStore.setToken(res.token)
-            userStore.setRefreshToken(res.refreshToken)
-            res.users.forEach((user: UserInfo) => {
-                relationStore.setUser(user)
-            })
-        }
     })
 })
 onUnmounted(() => {
