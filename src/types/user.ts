@@ -5,6 +5,7 @@ interface UserInfo {
     gender: number;                 // 性别：0未知 1男 2女
     phone: string;                  // 手机号
     join_type: number;              // 加入类型：0直接加入，1同意后加好友
+    status: number;                 // 状态：1正常 0禁用
     personal_signature?: string;    // 个性签名，可为空
     create_time: number;
     update_time: number;

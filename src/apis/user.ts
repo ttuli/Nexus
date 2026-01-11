@@ -1,12 +1,11 @@
 import instance from '@/utils/request'
-import { ApiResponse } from '@/types/common/common'
+import { ApiResponse } from '@/types/common'
 import {
   LoginRequest, LoginResponse,
   RegisterRequest, UpdateUserInfoRequest,
-  UserInfo, GetUserInfoResp
+  GetUserInfoResp
 } from '@/types/user'
-
-import { ParseUserInfo, StoreUserInfo } from '@/utils/store'
+import qs from 'qs';
 
 const userServer = import.meta.env.VITE_USER_SERVER
 
@@ -26,7 +25,11 @@ export async function getUserInfo(ids: string[]) {
   let res = await instance<ApiResponse<GetUserInfoResp>>({
     method: 'get',
     url: userServer + '/user/userInfo',
-    params: { ids },
+    params: {ids},
+    paramsSerializer: params => {
+      // arrayFormat: 'repeat' 会生成 ids=100&ids=200
+      return qs.stringify(params, { arrayFormat: 'repeat' })
+    }
   })
   return res.data
 }

@@ -1,27 +1,6 @@
 import { BrowserWindow, ipcMain, IpcMainInvokeEvent } from 'electron';
-import { windowManager } from '../windows/dialogs';
-
-/**
- * 前端 UserInfo 定义（与 src/types/api/user.ts 保持一致）
- */
-interface UserInfo {
-  user_id: string;                // 用户ID（字符串格式）
-  user_name: string;              // 用户名
-  avatar?: string;                // 头像URL，可为空
-  gender: number;                 // 性别：0未知 1男 2女
-  phone: string;                  // 手机号
-  join_type: number;              // 加入类型：0直接加入，1同意后加好友
-  personal_signature?: string;    // 个性签名，可为空
-  create_time: number;
-  update_time: number;
-}
-
-/**
- * 后端返回的用户信息结构（可能包含 status 字段）
- */
-interface BackendUserInfo extends UserInfo {
-  status?: number;
-}
+import { windowManager } from '../windows/windowManager';
+import { UserInfo } from '@/types/user';
 
 /**
  * 资源管理器
@@ -37,14 +16,6 @@ class ResourceManager {
 
   constructor() {
     this.setupIpcHandlers();
-  }
-
-  /**
-   * 清理后端用户信息（移除 status 等额外字段）
-   */
-  private cleanUserInfo(backendUser: BackendUserInfo): UserInfo {
-    const { status, ...userInfo } = backendUser;
-    return userInfo;
   }
 
   /**
@@ -66,21 +37,18 @@ class ResourceManager {
   /**
    * 设置用户信息（更新缓存）
    */
-  public setUserInfo(user: BackendUserInfo | UserInfo): void {
-    // 清理后端格式的额外字段
-    const cleanUser = 'status' in user ? this.cleanUserInfo(user as BackendUserInfo) : user as UserInfo;
-    
-    const userId = cleanUser.user_id;
-    this.userCache.set(userId, cleanUser);
+  public setUserInfo(user: UserInfo): void {
+    const userId = user.user_id;
+    this.userCache.set(userId, user);
 
     // 通知所有渲染进程用户信息已更新
-    this.broadcastUserUpdate(cleanUser);
+    this.broadcastUserUpdate(user);
   }
 
   /**
    * 批量设置用户信息
    */
-  public setUsersInfo(users: (BackendUserInfo | UserInfo)[]): void {
+  public setUsersInfo(users: UserInfo[]): void {
     users.forEach((user) => this.setUserInfo(user));
   }
 
@@ -119,30 +87,24 @@ class ResourceManager {
         return;
       }
 
-      // 检查哪些用户需要获取
-      const missingIds = userIds.filter(
-        (id) => !this.userCache.has(id) && !this.fetchingUsers.has(id)
-      );
-
-      if (missingIds.length === 0) {
-        // 所有用户都在缓存中
-        resolve(this.getUsersInfo(userIds));
+      if (userIds.length === 0) {
         return;
       }
 
       // 标记为正在获取
-      missingIds.forEach((id) => this.fetchingUsers.add(id));
+      userIds.forEach((id) => this.fetchingUsers.add(id));
 
       // 通过 IPC 请求渲染进程获取用户信息
       const requestId = `fetch-users-${Date.now()}`;
       const responseChannel = `resource:fetch-users-response-${requestId}`;
 
       let timeoutId: NodeJS.Timeout | null = null;
+      console.log(responseChannel)
 
       // 监听响应
       const responseHandler = (_e: any, response: {
         success: boolean;
-        users?: BackendUserInfo[];
+        users?: UserInfo[];
         error?: string;
       }) => {
         // 清理超时
@@ -153,13 +115,13 @@ class ResourceManager {
 
         // 清理监听器
         try {
-          (event.sender as any).removeListener(responseChannel, responseHandler);
+          ipcMain.removeListener(responseChannel, responseHandler);
         } catch (err) {
           // 忽略清理错误
         }
         
         // 移除获取标记
-        missingIds.forEach((id) => this.fetchingUsers.delete(id));
+        userIds.forEach((id) => this.fetchingUsers.delete(id));
 
         if (response.success && response.users) {
           // 更新缓存
@@ -171,17 +133,17 @@ class ResourceManager {
         }
       };
 
-      (event.sender as any).once(responseChannel, responseHandler);
+      ipcMain.once(responseChannel, responseHandler);
 
       // 发送请求到渲染进程
       try {
         event.sender.send('resource:fetch-users-request', {
           requestId,
-          userIds: missingIds,
+          userIds: userIds,
           responseChannel,
         });
       } catch (error) {
-        missingIds.forEach((id) => this.fetchingUsers.delete(id));
+        userIds.forEach((id) => this.fetchingUsers.delete(id));
         reject(new Error('Failed to send fetch request'));
         return;
       }
@@ -189,11 +151,11 @@ class ResourceManager {
       // 设置超时（10秒）
       timeoutId = setTimeout(() => {
         try {
-          (event.sender as any).removeListener(responseChannel, responseHandler);
+          ipcMain.removeListener(responseChannel, responseHandler);
         } catch (err) {
           // 忽略清理错误
         }
-        missingIds.forEach((id) => this.fetchingUsers.delete(id));
+        userIds.forEach((id) => this.fetchingUsers.delete(id));
         reject(new Error('Fetch users timeout'));
       }, 10000);
     });

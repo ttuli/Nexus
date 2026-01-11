@@ -111,6 +111,7 @@ import { ElMessage } from 'element-plus'
 import { getRefreshToken, saveRefreshToken } from '@/utils/keytar'
 import { onMounted } from 'vue'
 import { resourceManager } from '@/utils/resourceManager'
+import { createWindow } from '@/utils/window'
 
 interface LoginForm {
     phone: string
@@ -164,9 +165,7 @@ const handleLogin = async () => {
         }
         await resourceManager.updateRefreshToken(res.data.refreshToken)
         await resourceManager.updateToken(res.data.token)
-        window.ipcRenderer.send('window:new-window', {
-            key: 'home',
-        })
+        createWindow('home')
         window.close()
     } finally {
         isLoading.value = false

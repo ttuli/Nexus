@@ -64,12 +64,15 @@ class ResourceManager {
             gender: Number(user.gender || user.Gender || 0),
             phone: String(user.phone || user.Phone || ''),
             join_type: Number(user.join_type || user.JoinType || 0),
+            status: Number(user.status || user.Status || 0),
             personal_signature: user.personal_signature || user.PersonalSignature,
             create_time: Number(user.create_time || user.CreateTime || 0),
             update_time: Number(user.update_time || user.UpdateTime || 0),
           }));
+          console.log(usersData,users)
 
           // 发送响应到主进程
+          console.log(...users)
           window.ipcRenderer.send(responseChannel, {
             success: true,
             users,
@@ -101,6 +104,7 @@ class ResourceManager {
           gender: userData.gender,
           phone: userData.phone,
           join_type: userData.join_type,
+          status: userData.status,
           personal_signature: userData.personal_signature,
           create_time: userData.create_time,
           update_time: userData.update_time,
@@ -169,6 +173,7 @@ class ResourceManager {
         gender: user.gender,
         phone: user.phone,
         join_type: user.join_type,
+        status: user.status,
         personal_signature: user.personal_signature,
         create_time: (user as UserInfo).create_time || 0,
         update_time: (user as UserInfo).update_time || 0,

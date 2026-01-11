@@ -3,7 +3,7 @@
     <!-- 左侧选择栏 -->
     <div class="sidebar">
       <div class="sidebar-header">
-        <Avatar :source="userStore.avatar" @click="createWindow('userInfo')" />
+        <Avatar :uid="userStore.getUserID()" @click="createWindow('userInfo')" />
       </div>
 
       <div class="sidebar-nav">
@@ -199,10 +199,10 @@ const clearVerifyUnread = () => {
 
 const onlineStatusChanged = async () => {
   if (navigator.onLine) {
-    await initFunc()
-    WebSocketCli.connect()
+    // await initFunc()
+    // WebSocketCli.connect()
   } else {
-    WebSocketCli.close()
+    // WebSocketCli.close()
   }
 }
 
@@ -210,19 +210,19 @@ onMounted(async () => {
   window.addEventListener('online', onlineStatusChanged)
   window.addEventListener('offline', onlineStatusChanged)
   try {
-    await initFunc()
-    window.ipcRenderer.on('websocket:send', (e,msg) => {
-      WebSocketCli.SendMessage(msg)
-    })
+    // await initFunc()
+    // window.ipcRenderer.on('websocket:send', (e,msg) => {
+    //   WebSocketCli.SendMessage(msg)
+    // })
   } catch (e) {
     console.log(e)
   }
-  WebSocketCli.connect()
+  // WebSocketCli.connect()
 })
 onUnmounted(() => {
   window.removeEventListener('online', onlineStatusChanged)
   window.removeEventListener('offline', onlineStatusChanged)
-  window.ipcRenderer.removeAllListeners('websocket:send')
+  // window.ipcRenderer.removeAllListeners('websocket:send')
 })
 const initFunc = async () => {
   try {

@@ -1,8 +1,6 @@
 import axios from 'axios'
 import { useUserStore } from '@/store/user'
 import { ElMessage } from 'element-plus'
-import { refreshToken } from '@/apis/user';
-import { getRefreshToken } from './keytar';
 
 const instance = axios.create({
   timeout: 10000,
@@ -10,6 +8,7 @@ const instance = axios.create({
 
 instance.interceptors.request.use(
   async (config) => {
+    console.log(useUserStore().getToken())
     config.headers['Authorization'] = 'Bearer ' + useUserStore().getToken()
     return config
   },

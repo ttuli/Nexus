@@ -2,7 +2,6 @@ import { defineStore } from 'pinia'
 import { UserInfo } from '@/types/user'
 import { reactive } from 'vue'
 import { GroupInfo } from '@/models/group'
-import { getUserInfo } from '@/apis/user'
 import { ElMessage } from 'element-plus'
 import JSONbig from 'json-bigint';
 import { getGroupList } from '@/apis/social'
@@ -94,7 +93,7 @@ export const useRelationStore = defineStore('relationMap', {
       }
       return this.groupMap.get(id)
     },
-    async getUser(id: string): Promise<UserInfo | undefined> {
+    getUser(id: string): UserInfo | undefined {
       // 先检查本地缓存
       if (this.userMap.has(id)) {
         return this.userMap.get(id)
@@ -107,20 +106,9 @@ export const useRelationStore = defineStore('relationMap', {
 
       this.gettingQueue.add(id)
 
-      try {
-        // 优先从主进程获取（主进程会自动处理缓存和 API 调用）
-        const user = await resourceManager.getUsers([id])
-        
-        if (user.length > 0) {
-          this.setUser(user[0])
-          return user[0]
-        }
-      } catch (err) {
-        ElMessage.error("获取用户数据失败")
-        console.error(err)
-      } finally {
+      resourceManager.getUsers([id]).finally(() => {
         this.gettingQueue.delete(id)
-      }
+      })
 
       return this.userMap.get(id)
     },

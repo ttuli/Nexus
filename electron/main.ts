@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 import './fs'
-import { windowManager } from './windows/dialogs'
+import { windowManager } from './windows/windowManager'
 import { registerKeytarHandlers } from './keytar'
 import './utils/resourceManager' // 注册资源管理器 IPC 处理器
 

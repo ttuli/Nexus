@@ -215,6 +215,11 @@ class WindowManager {
         cleanup,
       });
 
+      // 如果是开发环境，以独立窗口打开调试工具
+      if (process.env['VITE_DEV_SERVER_URL']) {
+        window.webContents.openDevTools({ mode: 'detach' });
+      }
+
       // 加载页面
       this.loadWindowContent(window, url);
 
@@ -296,7 +301,7 @@ class WindowManager {
     };
 
     // 页面加载错误处理
-    const onDidFailLoad = (event: Electron.Event, errorCode: number, errorDescription: string) => {
+    const onDidFailLoad = (_event: Electron.Event, errorCode: number, errorDescription: string) => {
       console.error(`Window "${key}" failed to load:`, errorCode, errorDescription);
       if (this.isValidWindow(window)) {
         window.webContents.send('window:load-error', { errorCode, errorDescription });

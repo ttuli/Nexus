@@ -5,16 +5,18 @@
 </template>
 
 <script lang="ts" setup>
+import { useRelationStore } from '@/store/relationMap';
 import defaultImg from '@/assets/default.png'
 import defaultGroupImg from '@/assets/defaultg.png'
 
+const relationStore = useRelationStore();
+
 const props = withDefaults(
     defineProps<{
-        source?: string
         type?: string
+        uid: string
     }>(),
-    {   
-        source: defaultImg,
+    { 
         type: 'user'
     }
 )
@@ -23,8 +25,12 @@ import { ref, watch } from 'vue'
 const imgSrc = ref<string>(defaultImg)
 
 // 监听外部传入的source变化，实时更新显示
-watch(() => props.source, (val) => {
-  imgSrc.value = val
+watch(() => props.uid, (val) => {
+  if (props.type === 'user') {
+    imgSrc.value = relationStore.getUser(val)?.avatar || ''
+  } else {
+
+  }
 }, { immediate: true })
 
 const onError = () => {

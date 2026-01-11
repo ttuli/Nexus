@@ -111,14 +111,24 @@ import { computed, ref, reactive } from 'vue'
 import { getUserInfo } from '@/apis/user'
 import AvatarUpload from '@/components/AvatarUpload.vue'
 import TitleBar from '@/components/TitleBar.vue'
-import { useUserStore } from '@/store/user'
-import type { UserInfo } from '@/models/user'
+import { useRelationStore } from '@/store/relationMap'
+import type { UserInfo } from '@/types/user'
 import { ElMessage } from 'element-plus'
 import { updateUserInfo } from '@/apis/user'
 import { updateAllInfo } from '@/utils/window'
 
-const store = useUserStore()
-const info = computed<UserInfo>(() => store.userInfo || ({} as UserInfo))
+const props = withDefaults(
+    defineProps<{
+        type?: string
+        uid: string
+    }>(),
+    { 
+        type: 'user'
+    }
+)
+
+const relationStore = useRelationStore()
+const info = computed<UserInfo>(() => relationStore.getUser())
 
 const genderText = (g: number | undefined) => {
   if (g === 1) return '男'
