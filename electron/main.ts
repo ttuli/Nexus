@@ -1,13 +1,11 @@
-import { app, ipcMain } from 'electron'
+import { app, ipcMain, protocol } from 'electron'
 import { fileURLToPath } from 'node:url'
-import { createRequire } from 'node:module'
 import path from 'node:path'
-import './fs'
 import { windowManager } from './windows/windowManager'
-import { registerKeytarHandlers } from './keytar'
-import './utils/resourceManager' // 注册资源管理器 IPC 处理器
+import { resourceManager } from './resource'
+import { IpcChannels } from '../src/types/ipc'
+import { wsManager } from './websocket'
 
-const require = createRequire(import.meta.url)
 export const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // The built directory structure
@@ -33,31 +31,44 @@ function createWindow(): void {
     key: 'login',
   });
 }
+
 // 设置全局应用名，影响窗口默认标题、任务栏和托盘等展示
 app.setName('IMChat')
 app.whenReady().then(() => {
-  registerKeytarHandlers()
+  // 注册 file:// 协议处理器
+  protocol.registerFileProtocol('imag', (request, callback) => {
+    const url = request.url.substr(7)
+    callback(decodeURI(path.normalize(url)))
+  });
+
+  // 初始化资源管理器
+  resourceManager.init();
   createWindow()
 
-  ipcMain.on('quit', () => {
+  // 直接关闭登录窗口触发
+  ipcMain.on(IpcChannels.QUIT, () => {
+    resourceManager.setStoreRefreshToken(true);
+    windowManager.setExitting(true);
     windowManager.closeAllWindows()
   })
+
+  ipcMain.on(IpcChannels.LOGOUT, () => {
+    resourceManager.setStoreRefreshToken(false);
+    windowManager.closeAllWindows().finally(() => {
+      windowManager.CreateWindow({
+        key: 'login',
+      })
+    })
+  })
+
+
 })
 
-// 当所有窗口关闭时，如果不是 macOS 或明确要求退出，则隐藏到托盘
 app.on('window-all-closed', (e: Event) => {
-  if (!windowManager.isRequireQuit()) {
-    // 阻止默认行为（不退出应用），窗口会隐藏到托盘
-    e.preventDefault();
-  } else {
-    // 明确要求退出，真正退出应用
+  if (windowManager.getExitting()) {
+    wsManager.disconnect()
     app.quit();
-  }
-});
-
-// macOS 特殊处理：当应用被激活时，如果没有窗口则创建登录窗口
-app.on('activate', () => {
-  if (windowManager.getWindow('home') === null && windowManager.getWindow('login') === null) {
-    windowManager.CreateWindow({ key: 'login' });
+  } else {
+    e.preventDefault();
   }
 });

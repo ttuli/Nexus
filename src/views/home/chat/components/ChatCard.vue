@@ -1,0 +1,166 @@
+<template>
+    <div class="chat-card" :class="{ active: props.isActive }" @click="handleClick">
+        <div class="avatar-container">
+            <Avatar :uid="props.data.target_id"
+                :type="props.data.type === ImTypes.ConversationType.CONVERSATION_TYPE_GROUP ? 'group' : 'user'" />
+        </div>
+        <div class="content-container">
+            <div class="top-row">
+                <span class="name">{{ displayName }}</span>
+                <span class="time" v-if="props.data.last_content">{{ formatTime(props.data.last_message_time)
+                    }}</span>
+            </div>
+            <div class="bottom-row">
+                <span class="message">{{ props.data.last_content || '' }}</span>
+                <div class="badge" v-if="props.data.unread_count > 0">{{ props.data.unread_count }}</div>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue';
+import { ImTypes } from '@/types';
+import { useUserStore } from '@/store/user';
+import { useGroupStore } from '@/store/group';
+
+// Props
+interface Props {
+    data: ImTypes.Conversation;
+    isActive?: boolean;
+}
+const props = defineProps<Props>();
+
+const userStore = useUserStore();
+const groupStore = useGroupStore();
+
+// 动态获取名称
+const displayName = computed(() => {
+    if (props.data.type === ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE) {
+        const user = userStore.getUser(props.data.target_id);
+        const friend = userStore.getFriend(props.data.target_id);
+        return friend?.remark || user?.user_name || `用户${props.data.target_id}`;
+    } else {
+        const group = groupStore.getGroup(props.data.target_id);
+        return group?.name || `群组${props.data.target_id}`;
+    }
+});
+
+// Emits
+const emit = defineEmits<{
+    (e: 'click', sessionId: string): void;
+}>();
+
+const handleClick = () => {
+    emit('click', props.data.conversation_id);
+};
+
+// Utils
+const formatTime = (timestamp: number | null) => {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    const now = new Date();
+
+    const isSameDay = (d1: Date, d2: Date) =>
+        d1.getFullYear() === d2.getFullYear() &&
+        d1.getMonth() === d2.getMonth() &&
+        d1.getDate() === d2.getDate();
+
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+
+    if (isSameDay(date, now)) {
+        return date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
+    } else if (isSameDay(date, yesterday)) {
+        return '昨天';
+    } else {
+        return (date.getMonth() + 1).toString().padStart(2, '0') + '-' + date.getDate().toString().padStart(2, '0');
+    }
+};
+</script>
+
+<style scoped lang="scss">
+@use "@/style/_constant.scss" as *;
+
+.chat-card {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    background-color: transparent; // Parent handles bg
+    cursor: pointer;
+    transition: background-color 0.2s;
+    height: 72px; // Fixed height for consistency
+    box-sizing: border-box;
+
+    &:hover {
+        background-color: $bg-hover;
+    }
+
+    &.active {
+        background-color: $bg-active;
+    }
+
+    .avatar-container {
+        margin-right: 12px;
+        flex-shrink: 0;
+    }
+
+    .content-container {
+        flex: 1;
+        min-width: 0; // flex child truncation fix
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        height: 100%;
+
+        .top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+
+            .name {
+                font-size: 16px;
+                font-weight: 500;
+                color: $color-text-primary;
+                @include ellipsis;
+            }
+
+            .time {
+                font-size: 12px;
+                color: $color-text-placeholder;
+                flex-shrink: 0;
+                margin-left: 8px;
+            }
+        }
+
+        .bottom-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            .message {
+                font-size: 14px;
+                color: $color-text-secondary;
+                @include ellipsis;
+                flex: 1;
+                margin-right: 8px;
+            }
+
+            .badge {
+                min-width: 18px;
+                height: 18px;
+                border-radius: 9px;
+                background-color: $color-error;
+                color: white;
+                font-size: 10px;
+                line-height: 18px;
+                text-align: center;
+                padding: 0 5px;
+                box-sizing: border-box;
+                flex-shrink: 0;
+            }
+        }
+    }
+}
+</style>

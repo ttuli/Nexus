@@ -1,31 +1,143 @@
+import { ImTypes } from '@/types';
 import { defineStore } from 'pinia'
 import { jwtDecode } from "jwt-decode";
-import { TokenPayload } from '@/types/common'
+import { TokenPayload } from '@/types'
+import { reactive } from 'vue'
 
 export const useUserStore = defineStore('user', {
   state: () => ({
     token: '',
-    refreshToken: '',
-    userID: ''
+    userID: 0,
+
+    userMap: reactive(new Map<number, ImTypes.UserInfo>()),
+    friendMap: reactive(new Map<number, ImTypes.Friend>()),
+    friendRequestMap: reactive(new Map<number, ImTypes.FriendRequest>()),
+    // 辅助 Set，用于 O(1) 查找用户是否有好友请求
+    friendRequestUserIds: reactive(new Set<number>()),
   }),
   actions: {
+    // ==================== Auth ====================
     setToken(token: string) {
       this.token = token
       if (token === '') return
       const payload = jwtDecode<TokenPayload>(token)
-      this.userID = payload.user_id
+      this.userID = Number(payload.user_id)
     },
     getToken() {
       return this.token
     },
-    setRefreshToken(refreshToken: string) {
-      this.refreshToken = refreshToken
-    },
-    getRefreshToken() {
-      return this.refreshToken
-    },
     getUserID() {
       return this.userID
+    },
+
+    // ==================== User ====================
+    setUser(userInfo: ImTypes.UserInfo) {
+      this.userMap.set(userInfo.user_id, userInfo)
+    },
+
+    getUser(id: number): ImTypes.UserInfo | undefined {
+      return this.userMap.get(id)
+    },
+
+    hasUser(id: number): boolean {
+      return this.userMap.has(id)
+    },
+
+    // ==================== Friend ====================
+    setFriend(friendInfo: ImTypes.Friend) {
+      this.friendMap.set(friendInfo.friend_id, friendInfo)
+    },
+
+    getFriend(id: number): ImTypes.Friend | undefined {
+      return this.friendMap.get(id)
+    },
+
+    hasFriend(id: number): boolean {
+      return this.friendMap.has(id)
+    },
+
+    deleteFriend(friendId: number) {
+      this.friendMap.delete(friendId)
+    },
+
+    isFriend(id: number): boolean {
+      return this.friendMap.has(id)
+    },
+
+    // ==================== Friend Request ====================
+    setFriendRequest(friendRequest: ImTypes.FriendRequest) {
+      this.friendRequestMap.set(friendRequest.id, friendRequest)
+      // 同步更新辅助 Set
+      this.friendRequestUserIds.add(friendRequest.from_user_id)
+      this.friendRequestUserIds.add(friendRequest.to_user_id)
+    },
+
+    getFriendRequest(id: number): ImTypes.FriendRequest | undefined {
+      return this.friendRequestMap.get(id)
+    },
+
+    hasFriendRequest(id: number): boolean {
+      return this.friendRequestMap.has(id)
+    },
+
+    deleteFriendRequest(requestId: number) {
+      const request = this.friendRequestMap.get(requestId)
+      if (request) {
+        // 检查是否还有其他请求涉及这些用户
+        this.friendRequestMap.delete(requestId)
+        const fromId = request.from_user_id
+        const toId = request.to_user_id
+        // 重新检查是否还有其他请求包含这些用户
+        let hasFrom = false, hasTo = false
+        for (const req of this.friendRequestMap.values()) {
+          if (req.from_user_id === fromId || req.to_user_id === fromId) hasFrom = true
+          if (req.from_user_id === toId || req.to_user_id === toId) hasTo = true
+          if (hasFrom && hasTo) break
+        }
+        if (!hasFrom) this.friendRequestUserIds.delete(fromId)
+        if (!hasTo) this.friendRequestUserIds.delete(toId)
+      }
+    },
+
+    isFriendRequest(id: number): boolean {
+      return this.friendRequestUserIds.has(id)
+    },
+
+    // ==================== Batch Operations ====================
+    setUsers(users: ImTypes.UserInfo[]) {
+      users.forEach(user => this.userMap.set(user.user_id, user))
+    },
+
+    setFriends(friends: ImTypes.Friend[]) {
+      friends.forEach(friend => this.friendMap.set(friend.friend_id, friend))
+    },
+
+    setFriendRequests(requests: ImTypes.FriendRequest[]) {
+      requests.forEach(request => this.setFriendRequest(request))
+    },
+
+    // ==================== Clear ====================
+    clearAll() {
+      this.userMap.clear()
+      this.friendMap.clear()
+      this.friendRequestMap.clear()
+      this.friendRequestUserIds.clear()
+    }
+  },
+  getters: {
+    // 获取待处理的请求数量（接收者是我，且状态为 Pending）
+    pendingRequestCount: (state) => {
+      return Array.from(state.friendRequestMap.values()).filter(req => req.status === 1) // 1 is Pending
+    },
+
+    // 获取所有好友列表
+    friendList: (state) => {
+      return Array.from(state.friendMap.values())
+    },
+
+    // 获取所有好友请求列表
+    friendRequestList: (state) => {
+      return Array.from(state.friendRequestMap.values())
     }
   }
 })

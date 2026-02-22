@@ -1,0 +1,39 @@
+/* Global Scrollbar Styles */
+
+@mixin scrollbar-style($width, $thumb-color: rgba(144, 147, 153, 0.3), $hover-color: rgba(144, 147, 153, 0.5)) {
+    &::-webkit-scrollbar {
+        width: $width;
+        height: $width;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-color: $thumb-color;
+        border-radius: $width; // 圆角
+        transition: background-color 0.3s;
+
+        // 确保非交互模式下（thin）虽然不期望交互，但如果有 hover 效果也不错
+        // 如果严格"不期望交互"，可以 pointer-events: none，但那样就划不动了
+        &:hover {
+            background-color: $hover-color;
+        }
+    }
+}
+
+// thin: 非常薄，不期望交互，只是能看见位置 (4px)
+.scroll-bar-thin {
+    @include scrollbar-style(4px, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.2));
+}
+
+// normal: 可交互可看见但不能太厚 (6px)
+.scroll-bar-normal {
+    @include scrollbar-style(6px, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.35));
+}
+
+// thick: normal稍微厚一点 (10px - 接近原生但稍微美化)
+.scroll-bar-thick {
+    @include scrollbar-style(10px, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.4));
+}

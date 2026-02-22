@@ -1,6 +1,14 @@
-import instance from '@/utils/request'
-const fileServer = import.meta.env.VITE_FILE_SERVER
+import instance, { decodeResponse, ApiResponse } from '@/utils/request'
+import { ApiTypes } from '@/types'
+import { config } from '@/config';
 
-export async function getUploadSignature() {
-  return await instance.get(fileServer+'/fileupload/getPostSignature')
+export async function getUploadSignature(data: ApiTypes.file.GetPostSignatureReq) {
+  // GetPostSignatureReq has `key: string`, `content_md5: string`, etc.
+  // Axios params will serialize it.
+  // Assuming simple types match.
+
+  let res = await instance.get<ApiResponse<ApiTypes.file.PolicyToken>>(config.fileServer + '/fileupload/getPostSignature', {
+    params: data
+  })
+  return decodeResponse(res.data, ApiTypes.file.PolicyToken.decode)
 }

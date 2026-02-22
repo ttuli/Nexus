@@ -1,0 +1,74 @@
+:root {
+    /* ------------------------------
+       Global Color Palette (Light Theme Default)
+       ------------------------------ */
+
+    /* Brand Colors */
+    --color-primary: #5879d7;
+    --color-primary-dark: #3d5cba;
+
+    /* Text Colors */
+    --text-primary: #333333;
+    --text-secondary: #666666;
+    --text-placeholder: #999999;
+    --text-disabled: #cccccc;
+
+    /* Background Colors */
+    --bg-body: #f5f7fa;
+    /* Overall app background, chat area background */
+    --bg-card: #ffffff;
+    --bg-list: #ffffff;
+    /* Cards, sidebars, panels */
+    --bg-overlay: rgba(0, 0, 0, 0.4);
+    /* Masks, overlays */
+    --bg-auth: #ecf3ff;
+    /* Auth screens */
+
+    /* Interactive Backgrounds */
+    --bg-hover: #f5f7fa;
+    --bg-active: #e6e8eb;
+    --bg-disabled: #f5f7fa;
+
+    /* Border Colors */
+    --border-color: #e0e0e0;
+    --border-hover: #5879d7;
+    /* Often same as primary, but separated for flexibility */
+
+    /* Shadows */
+    --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.05);
+    --shadow-primary: 0 4px 12px rgba(88, 121, 215, 0.3);
+}
+
+/* Dark Theme - Future Ready */
+[data-theme='dark'] {
+    /* Brand Colors */
+    --color-primary: #5879d7;
+    /* Adjust for dark mode if needed */
+    --color-primary-dark: #3d5cba;
+
+    /* Text Colors */
+    --text-primary: #e0e0e0;
+    --text-secondary: #a0a0a0;
+    --text-placeholder: #666666;
+    --text-disabled: #4a4a4a;
+
+    /* Background Colors */
+    --bg-body: #121212;
+    --bg-card: #1e1e1e;
+    --bg-list: #2c2c2c;
+    --bg-overlay: rgba(0, 0, 0, 0.7);
+    --bg-auth: #0a0a0a;
+
+    /* Interactive Backgrounds */
+    --bg-hover: #2a2a2a;
+    --bg-active: #333333;
+    --bg-disabled: #1e1e1e;
+
+    /* Border Colors */
+    --border-color: #333333;
+    --border-hover: #5879d7;
+
+    /* Shadows */
+    --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.2);
+    --shadow-primary: 0 4px 12px rgba(88, 121, 215, 0.1);
+}

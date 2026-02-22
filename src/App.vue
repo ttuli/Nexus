@@ -1,56 +1,58 @@
 <script setup lang="ts">
 import { nextTick, onMounted, onUnmounted, ref } from 'vue'
-import { useRelationStore } from '@/store/relationMap'
-import { useApplyStore } from './store/apply'
-import { sqlJsDB } from '@/utils/sqljs'
-import { resourceManager } from '@/utils/resourceManager'
+import CusDialog from './components/CusDialog/CusDialog'
+import { useUserStore } from './store/user'
+import { ipcService, windowService, tokenService, listenerService, LogoutType } from '@/services'
+import { IpcChannels } from '@/types'
 
-const relationStore = useRelationStore()
-const applyInfoStore = useApplyStore()
-
-const isAppMounted = ref(true)
+const isAppMounted = ref(false)
 
 onMounted(() => {
-    // 初始化资源管理器
-    resourceManager.init()
+    // 初始化 IPC 监听器
+    try {
+        listenerService.init()
 
-    window.ipcRenderer.on('new-apply-info', (e, { type, applyInfo }) => {
-        if (type === 'friend') {
-            applyInfoStore.FriendApplyMap.set(applyInfo.apply_id, applyInfo)
-            applyInfoStore.FriendIDMap.set(BigInt(applyInfo.user_id), applyInfo.apply_id)
-        } else {
-            applyInfoStore.GrooupApplyMap.set(applyInfo.request_id, applyInfo)
-            applyInfoStore.GroupIDMap.set(BigInt(applyInfo.group_id), applyInfo.request_id)
-        }
-    })
-    window.ipcRenderer.on('update-group-map', (e, group: any) => {
-        relationStore.groupMap.set(group.id, group)
-        const now = Date.now()
-        sqlJsDB.saveGroups([{ groupId: group.id.toString(), data: { ...group }, updatedAt: now, expiresAt: now + 7 * 24 * 60 * 60 * 1000 }])
-    })
-    window.ipcRenderer.once('app-quit', async () => {
-        isAppMounted.value = false
-        // await nextTick()
-        // const chatStore = useChatStore()
-        // const ownerId = String(useUserStore().userId || '')
-        // const sessionCache = {
-        //   ownerId,
-        //   data: chatStore.chats.map((chat) => ({ sessionId: chat.session_id, data: { ...chat } })),
-        // }
-        // sqlJsDB.saveSessions(sessionCache)
-        // await sqlJsDB.persist()
-        // WebSocketCli.close()
-        await nextTick().then(() => {
-            window.close()
+        ipcService.once(IpcChannels.APP_QUIT, async () => {
+            isAppMounted.value = false
+            await nextTick().then(() => {
+                window.close()
+            })
         })
-    })
+        ipcService.on(IpcChannels.LOGOUT_REMIND, async (_e, data) => {
+            if (data.type === LogoutType.KICKED) {
+                await CusDialog.open({
+                    title: '消息',
+                    showCancel: false,
+                    content: '账号在其他设备登录，将退出登录',
+                    confirmText: '确定',
+                })
+            } else if (data.type === LogoutType.LOGOUT) {
+                await CusDialog.open({
+                    title: '消息',
+                    showCancel: false,
+                    content: '身份已失效，请重新登录',
+                    confirmText: '确定',
+                })
+            }
+            windowService.sendLogout()
+        })
+        tokenService.getAllInfo().then((data) => {
+            if (data.success && data.token) {
+                useUserStore().setToken(data.token)
+            }
+        }).finally(() => {
+            isAppMounted.value = true
+        })
+    } catch (error) {
+        console.error('Failed to set up IPC listeners:', error)
+        isAppMounted.value = true
+    }
+
 })
 onUnmounted(() => {
-    // 销毁资源管理器
-    resourceManager.destroy()
-    
-    window.ipcRenderer.removeAllListeners('new-apply-info')
-    window.ipcRenderer.removeAllListeners('update-group-map')
+    // 销毁 IPC 监听器
+    ipcService.removeAllListeners()
+    listenerService.destroy()
 })
 </script>
 
@@ -73,6 +75,7 @@ onUnmounted(() => {
         position: absolute;
         width: 100%;
         height: 100%;
+        user-select: none;
     }
 }
 </style>

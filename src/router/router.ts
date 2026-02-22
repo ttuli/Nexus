@@ -10,27 +10,87 @@ const router = createRouter({
         {
             path: '/login',
             name: '登录',
-            component: () => import('@/views/Login.vue')
+            component: () => import('@/views/auth/Login.vue')
         },
         {
             path: '/register',
             name: '注册',
-            component: () => import('@/views/Register.vue')
+            component: () => import('@/views/auth/Register.vue')
         },
         {
             path: '/home',
             name: '主界面',
-            component: () => import('@/views/main/MainInterface.vue')
+            component: () => import('@/views/home/index.vue'),
+            redirect: '/home/chat',
+            children: [
+                {
+                    path: 'chat',
+                    name: '消息',
+                    components: {
+                        list: () => import('@/views/home/chat/ChatList.vue'),
+                        default: () => import('@/views/home/chat/ChatContent.vue')
+                    }
+                },
+                {
+                    path: 'contacts',
+                    name: '联系人',
+                    redirect: '/home/contacts/empty',
+                    children: [
+                        {
+                            path: 'empty',
+                            name: 'ContactEmpty',
+                            components: {
+                                list: () => import('@/views/home/contact/components/ContactSidebar.vue'),
+                                default: () => import('@/components/BlankPage.vue')
+                            }
+                        },
+                        {
+                            path: 'validation',
+                            name: 'ValidationMessages',
+                            components: {
+                                list: () => import('@/views/home/contact/components/ContactSidebar.vue'),
+                                default: () => import('@/views/home/contact/ValidationMessages.vue')
+                            }
+                        },
+                        {
+                            path: 'friend',
+                            name: 'FriendDetail',
+                            components: {
+                                list: () => import('@/views/home/contact/components/ContactSidebar.vue'),
+                                default: () => import('@/views/home/contact/FriendDetail.vue')
+                            }
+                        },
+                        {
+                            path: 'group',
+                            name: 'GroupDetail',
+                            components: {
+                                list: () => import('@/views/home/contact/components/ContactSidebar.vue'),
+                                default: () => import('@/views/home/contact/GroupDetail.vue')
+                            }
+                        }
+                    ]
+                },
+            ]
         },
         {
             path: '/addFriend',
             name: '添加好友',
-            component: () => import('@/views/AddFriend.vue')
+            component: () => import('@/views/search/AddFriend.vue')
         },
         {
             path: '/userInfo',
             name: '用户信息',
-            component: () => import('@/views/main/InfoView/UserInfo.vue')
+            component: () => import('@/views/infos/index.vue')
+        },
+        {
+            path: '/settings',
+            name: '设置',
+            component: () => import('@/views/settings/SettingsLayout.vue')
+        },
+        {
+            path: '/photoViewer',
+            name: '图片查看',
+            component: () => import('@/views/photo-viewer/index.vue')
         }
     ]
 })

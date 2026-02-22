@@ -1,5 +1,6 @@
 <template>
-    <div class="main-container">
+    <div class="main-container" :class="{ dark: props.theme === 'dark' }">
+        <span class="title-content">{{ props.title }}</span>
         <button class="min-btn" @click="onMin" v-if="needMin">
             <img :src="Min"></img>
         </button>
@@ -11,26 +12,31 @@
             <img :src="X"></img>
         </button>
     </div>
-</template> 
+</template>
 
 <script lang="ts" setup>
 import Min from '@/assets/Minimize2.svg'
 import X from '@/assets/x.svg'
 import Max from '@/assets/Maximize1.svg'
 import UnMax from '@/assets/Maximize2.svg'
-import { onMounted, onUnmounted,ref } from 'vue';
+import { onMounted, ref } from 'vue';
+import { windowService } from '@/services';
 
 const props = withDefaults(
     defineProps<{
         height?: string
         needMin?: boolean
-        needMax?:boolean
+        needMax?: boolean
+        title?: string
+        theme?: 'dark' | 'light'
         onClose?: () => void
     }>(),
-    {   
+    {
         height: '35px',
         needMin: true,
         needMax: false,
+        title: '',
+        theme: 'light',
         onClose: () => {
             window.close()
         }
@@ -39,43 +45,42 @@ const props = withDefaults(
 const isMax = ref(false)
 
 const onMin = () => {
-    window.ipcRenderer.send('window:minimize')
+    windowService.minimize()
 }
 const onMax = () => {
-    window.ipcRenderer.send('window:maximize')
+    windowService.maximize()
 }
 
 onMounted(() => {
-    window.ipcRenderer.on('window:state', (_event, state) => {
-        console.log('window:state', state)
-        if (state === 'maximized') {
-            isMax.value = true
-        } else {
-            isMax.value = false
-        }
+    windowService.onWindowState((state) => {
+        isMax.value = state === 'maximized'
     })
-})
-onUnmounted(() => {
-    window.ipcRenderer.removeAllListeners('window:state')
 })
 </script>
 
 <style lang="scss" scoped>
 .main-container {
-    position: fixed;
-    z-index: 1000;
-    top: 0;
-    left: 0;
-    right: 0;
+    position: relative;
     width: 100%;
-    background-color: transparent;
-    height: v-bind(height);
+    height: v-bind('props.height');
     display: flex;
+    flex-direction: row;
     justify-content: flex-end;
     pointer-events: none;
+    background-color: transparent;
+
+    .title-content {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 16px;
+        color: $color-text-primary;
+    }
+
     button {
-        width: v-bind(height);
-        height: v-bind(height);
+        width: v-bind('props.height');
+        height: v-bind('props.height');
         border: none;
         background-color: transparent;
         cursor: pointer;
@@ -85,33 +90,59 @@ onUnmounted(() => {
         display: flex;
         align-items: center;
         justify-content: center;
+
         img {
             width: 70%;
             height: 70%;
         }
     }
+
     .close-btn {
         &:hover {
             background-color: red;
         }
+
         &:active {
             background-color: #cc0000; // red 变暗 10%
         }
     }
+
     .max-btn {
         &:hover {
             background-color: rgba(163, 163, 163, 0.305);
         }
-        &:active {   
+
+        &:active {
             background-color: rgba(140, 140, 140, 0.305); // 变暗 10%
         }
     }
+
     .min-btn {
         &:hover {
             background-color: rgba(163, 163, 163, 0.305);
         }
+
         &:active {
             background-color: rgba(140, 140, 140, 0.305); // 变暗 10%
+        }
+    }
+}
+
+.main-container.dark {
+    button {
+        img {
+            filter: invert(1);
+        }
+    }
+
+    .max-btn,
+    .min-btn {
+        &:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        &:active {
+            background-color: rgba(255, 255, 255, 0.2);
         }
     }
 }

@@ -1,0 +1,246 @@
+<template>
+    <div class="message-bubble" :class="{ 'is-self': isSelf }">
+        <div class="avatar-wrapper">
+            <Avatar :uid="message.fromUserId" type="user" :size="36" />
+        </div>
+
+        <div class="content-wrapper">
+            <div class="header" v-if="!isSelf">
+                <span class="name">{{ senderName }}</span>
+                <span class="time">{{ formatTime(message.sendTime) }}</span>
+            </div>
+
+            <!-- New wrapper for bubble and status -->
+            <div class="bubble-row" :class="{ 'is-self': isSelf }">
+                <div class="bubble" @contextmenu.prevent="handleContextMenu">
+                    <div class="text">{{ messageContent }}</div>
+                </div>
+
+                <!-- Status Indicators (Only for self messages) -->
+                <div class="status-indicator loading"
+                    v-if="isSelf && message.status === MessageStatus.MESSAGE_STATUS_SENDING"></div>
+                <div class="status-indicator failed"
+                    v-if="isSelf && message.status === MessageStatus.MESSAGE_STATUS_FAILED">!</div>
+            </div>
+
+            <div class="footer" v-if="isSelf">
+                <span class="time">{{ formatTime(message.sendTime) }}</span>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue';
+import { useUserStore } from '@/store/user';
+
+// Replace MessageItem definition with IChatMessage import
+import { IChatMessage, ILocalTextMessage, ILocalFileMessage } from '@/types/chatMessage';
+import { ImTypes } from '@/types';
+
+// Rename MessageType/Status to avoid conflict if needed, or just use types.MessageType
+const MessageType = ImTypes.MessageType;
+const MessageStatus = ImTypes.MessageStatus;
+
+interface Props {
+    message: IChatMessage;
+    isSelf: boolean;
+}
+
+const props = defineProps<Props>();
+const userStore = useUserStore();
+
+const senderName = computed(() => {
+    if (props.isSelf) return '我';
+    const friend = userStore.getFriend(props.message.fromUserId);
+    const user = userStore.getUser(props.message.fromUserId);
+    return friend?.remark || user?.user_name || `用户${props.message.fromUserId}`;
+});
+
+// Helper to get message content based on type
+const messageContent = computed(() => {
+    switch (props.message.type) {
+        case MessageType.CHAT_TEXT:
+        case MessageType.GROUP_TEXT:
+            return (props.message as ILocalTextMessage).content;
+        case MessageType.CHAT_IMAGE:
+        case MessageType.GROUP_IMAGE:
+            return '[图片]'; // Placeholder for now as original code didn't handle mixed types explicitly in template
+        case MessageType.CHAT_VIDEO:
+        case MessageType.GROUP_VIDEO:
+            return '[视频]';
+        case MessageType.CHAT_FILE:
+        case MessageType.GROUP_FILE:
+            return `[文件] ${(props.message as ILocalFileMessage).fileName}`;
+        default:
+            return '[未知消息]';
+    }
+});
+
+const emit = defineEmits<{
+    (e: 'contextmenu', event: MouseEvent, message: IChatMessage): void;
+}>();
+
+const handleContextMenu = (event: MouseEvent) => {
+    emit('contextmenu', event, props.message);
+};
+
+const formatTime = (timestamp: number) => {
+    const date = new Date(timestamp);
+    return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+};
+
+// const handleAvatarClick = () => {
+//     console.log('avatar click');
+// };
+</script>
+
+<style scoped lang="scss">
+@use "@/style/_constant.scss" as *;
+
+.message-bubble {
+    display: flex;
+    margin-bottom: 20px;
+    padding: 0 16px;
+    width: 100%;
+    box-sizing: border-box;
+
+    &.is-self {
+        flex-direction: row-reverse;
+
+        .avatar-wrapper {
+            margin-right: 0;
+            margin-left: 12px;
+        }
+
+        .content-wrapper {
+            align-items: flex-end;
+
+            .bubble {
+                background-color: $color-primary;
+                color: white;
+                border-top-left-radius: 12px;
+                border-top-right-radius: 2px;
+                border-bottom-right-radius: 12px;
+                border-bottom-left-radius: 12px;
+            }
+        }
+    }
+
+    .avatar-wrapper {
+        flex-shrink: 0;
+        margin-right: 12px;
+        margin-top: 2px; // Align with top of bubble or name
+    }
+
+    .content-wrapper {
+        display: flex;
+        flex-direction: column;
+        max-width: 70%;
+        align-items: flex-start;
+
+        .header {
+            display: flex;
+            align-items: baseline;
+            margin-bottom: 4px;
+
+            .name {
+                font-size: 12px;
+                color: $color-text-secondary;
+                margin-right: 8px;
+            }
+
+            .time {
+                font-size: 10px;
+                color: $color-text-placeholder;
+            }
+        }
+
+        .bubble-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            /* Space between status and bubble */
+
+            /* Reverse order for self messages so status is on the left */
+            &.is-self {
+                flex-direction: row-reverse;
+            }
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+
+            &.loading {
+                border: 2px solid $color-border;
+                border-top: 2px solid $color-primary;
+                border-radius: 50%;
+                width: 14px;
+                height: 14px;
+                animation: spin 1s linear infinite;
+            }
+
+            &.failed {
+                background-color: $color-error;
+                color: white;
+                border-radius: 50%;
+                width: 16px;
+                height: 16px;
+                font-size: 12px;
+                font-weight: bold;
+                line-height: 16px;
+                text-align: center;
+                cursor: pointer;
+            }
+        }
+
+        .bubble {
+            padding: 10px 14px;
+            background-color: white;
+            border-top-left-radius: 2px;
+            border-top-right-radius: 12px;
+            border-bottom-right-radius: 12px;
+            border-bottom-left-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            position: relative;
+            word-break: break-all;
+            line-height: 1.5;
+            font-size: 14px;
+            color: $color-text-primary;
+            transition: all 0.2s;
+
+            &:hover {
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            }
+        }
+
+        .footer {
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            justify-content: flex-end;
+            /* Align time to the right for self */
+
+            .time {
+                font-size: 10px;
+                color: $color-text-placeholder;
+            }
+        }
+    }
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+</style>

@@ -26,6 +26,11 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
     const [channel, ...omit] = args
     return ipcRenderer.removeAllListeners(channel, ...omit)
   },
-  // You can expose other APTs you need here.
-  // ...
+})
+
+// Expose process object for platform detection
+contextBridge.exposeInMainWorld('process', {
+  platform: process.platform,
+  versions: process.versions,
+  env: process.env
 })

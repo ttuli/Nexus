@@ -1,67 +1,35 @@
-import { BrowserWindow, ipcMain, IpcMainEvent, Tray, Menu, nativeImage, app, screen } from 'electron';
+import { BrowserWindow, ipcMain, IpcMainEvent, app, screen } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WindowConfig, ManagedWindow, CreateWindowRequest, WindowState } from './windowAttribute';
 import configs from './windowAttribute';
 import { windowStateManager } from '../utils/windowState';
+import { resourceManager } from '../resource';
+import { TrayManager } from './trayManager';
+import { IpcChannels } from '../../src/types';
+import { config } from '../config';
+import player from 'play-sound';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 class WindowManager {
   private windows: Map<string, ManagedWindow> = new Map();
-  private tray: Tray | null = null;
-  private requireQuit: boolean = false;
+  private trayManager: TrayManager | null = null;
+  private exitting = false;
+  // Map of webContentsId -> showWindow callback for pending ready signals
+  private pendingReadyWindows: Map<number, () => void> = new Map();
 
   constructor() {
     this.setupIpcHandlers();
   }
 
-  public isRequireQuit(): boolean {
-    return this.requireQuit
+  public setExitting(exitting: boolean) {
+    this.exitting = exitting;
   }
 
-  private createTray(): void {
-    try {
-      const iconPath = path.join(__dirname, '../src/assets/icon.png');
-      const icon = nativeImage.createFromPath(iconPath);
-      
-      if (icon.isEmpty()) {
-        console.error('Failed to load tray icon from:', iconPath);
-        return;
-      }
-
-      this.tray = new Tray(icon);
-      
-      const contextMenu = Menu.buildFromTemplate([
-        {
-          label: '显示主窗口',
-          click: () => {
-            this.showWindow('home');
-          },
-        },
-        {
-          type: 'separator',
-        },
-        {
-          label: '退出',
-          click: () => {
-            this.closeAllWindows();
-          },
-        },
-      ]);
-
-      // 托盘图标点击事件
-      this.tray.on('click', () => {
-        this.showWindow('home');
-      });
-
-      // 托盘图标右键菜单
-      this.tray.setContextMenu(contextMenu);
-      this.tray.setToolTip(app.getName());
-    } catch (error) {
-      console.error('Failed to create tray:', error);
-    }
+  public getExitting(): boolean {
+    return this.exitting;
   }
 
   /**
@@ -70,7 +38,7 @@ class WindowManager {
   public CreateWindow(config: CreateWindowRequest): void {
     try {
       const wc: WindowConfig | undefined = configs.get(config.key);
-      
+
       if (!wc) {
         console.error(`Invalid window key: ${config.key}`);
         return;
@@ -78,7 +46,23 @@ class WindowManager {
 
       // 如果是 home 窗口，创建托盘
       if (wc.key === 'home') {
-        this.createTray();
+        if (!this.trayManager) {
+          this.trayManager = new TrayManager({
+            onShowHome: () => this.showWindow('home'),
+            onOpenSettings: () => {
+              this.showWindow('home');
+              setTimeout(() => {
+                this.sendMessage('home', IpcChannels.ROUTE_NAVIGATE, '/home/settings');
+              }, 200);
+            },
+            onQuit: () => {
+              if (this.exitting) return;
+              this.exitting = true;
+              this.closeAllWindows();
+            }
+          });
+        }
+        this.trayManager.createTray();
       }
 
       // 合并数据
@@ -98,7 +82,6 @@ class WindowManager {
           console.warn(`Parent window "${wc.parentId}" not found or destroyed`);
         }
       }
-
       this.createWindow(wc);
     } catch (error) {
       console.error(`Failed to create window "${config.key}":`, error);
@@ -150,7 +133,7 @@ class WindowManager {
    */
   private createWindow(config: WindowConfig): BrowserWindow | null {
     try {
-      const {
+      let {
         key,
         url,
         data,
@@ -163,7 +146,6 @@ class WindowManager {
         modal = false,
         frame = true,
         parent,
-        allowHideOnClose = false,
         webPreferences = {},
       } = config;
 
@@ -175,8 +157,8 @@ class WindowManager {
       }
 
       // 加载保存的窗口状态
-      // const savedState = windowStateManager.getState(key);
-      const savedState = undefined;
+      const savedState = windowStateManager.getState(key);
+      // const savedState = undefined;
       const bounds = this.getSafeWindowBounds(savedState, defaultWidth, defaultHeight);
 
       // 创建窗口
@@ -190,7 +172,7 @@ class WindowManager {
         resizable,
         maximizable,
         frame,
-        icon: path.join(__dirname, '../src/assets/icon.png'),
+        icon: path.join(process.env.VITE_PUBLIC || __dirname, 'icon.png'),
         modal,
         title: app.getName(),
         parent: parent,
@@ -204,7 +186,7 @@ class WindowManager {
       });
 
       // 设置事件监听器
-      const cleanup = this.setupWindowListeners(window, key, resizable, allowHideOnClose);
+      const cleanup = this.setupWindowListeners(window, key, resizable);
 
       // 记录窗口
       this.windows.set(key, {
@@ -215,14 +197,29 @@ class WindowManager {
         cleanup,
       });
 
+
+      // 监听渲染进程的控制台输出（便于调试）
+      // window.webContents.on('console-message', (_event, level, message, line, sourceId) => {
+      //   const levelName = ['log', 'warn', 'error'][level] || 'info';
+      //   console.log(`[Renderer:${key}] [${levelName}] ${message} (${sourceId}:${line})`);
+      // });
+
       // 如果是开发环境，以独立窗口打开调试工具
       if (process.env['VITE_DEV_SERVER_URL']) {
+        const devtools = new BrowserWindow({
+          width: 1000,
+          height: 800,
+          show: true,
+        });
+        window.on('closed', () => {
+          devtools.close();
+        })
+        window.webContents.setDevToolsWebContents(devtools.webContents)
         window.webContents.openDevTools({ mode: 'detach' });
       }
 
-      // 加载页面
-      this.loadWindowContent(window, url);
-
+      // 加载页面（将 data 作为 query 参数传递）
+      this.loadWindowContent(window, url, data);
       return window;
     } catch (error) {
       console.error(`Failed to create window "${config.key}":`, error);
@@ -236,75 +233,90 @@ class WindowManager {
   private setupWindowListeners(
     window: BrowserWindow,
     key: string,
-    resizable: boolean,
-    allowHideOnClose: boolean
+    resizable: boolean
   ): () => void {
-    // 窗口加载完成
+    // 在窗口销毁前保存 webContents.id
+    const webContentsId = window.webContents.id;
+
+    // 窗口是否已显示的标志
+    let isShown = false;
+    let readyTimeout: NodeJS.Timeout | null = null;
+
+    // 显示窗口的辅助函数
+    const showWindow = () => {
+      if (isShown || !this.isValidWindow(window)) return;
+      isShown = true;
+      if (readyTimeout) {
+        clearTimeout(readyTimeout);
+        readyTimeout = null;
+      }
+      this.pendingReadyWindows.delete(webContentsId);
+      window.show();
+      if (!window.isMaximized()) {
+        window.center();
+      }
+    };
+
+    // 注册到 pendingReadyWindows，等待 window:ready 信号
+    this.pendingReadyWindows.set(webContentsId, showWindow);
+
+    // 窗口加载完成 - 启动超时计时器
     const onDidFinishLoad = () => {
-      if (this.isValidWindow(window)) {
-        window.show();
-        if (!window.isMaximized()) {
-          window.center();
-        }
+      if (this.isValidWindow(window) && !isShown) {
+        // 设置超时保护：3秒后如果还没收到 ready 信号，强制显示
+        readyTimeout = setTimeout(() => {
+          console.warn(`Window "${key}" ready timeout, forcing show`);
+          showWindow();
+        }, config.windowConfig.showTimeoutMs);
       }
     };
 
     // 窗口状态变化监听
     const onMaximize = () => {
       if (this.isValidWindow(window) && resizable) {
-        window.webContents.send('window:state', 'maximized');
-        this.saveWindowState(key, window);
+        window.webContents.send(IpcChannels.WINDOW_STATE, 'maximized');
       }
     };
 
     const onUnmaximize = () => {
       if (this.isValidWindow(window)) {
-        window.webContents.send('window:state', 'unmaximize');
-        this.saveWindowState(key, window);
+        window.webContents.send(IpcChannels.WINDOW_STATE, 'unmaximize');
       }
     };
 
     const onMinimize = () => {
       if (this.isValidWindow(window)) {
-        window.webContents.send('window:state', 'minimized');
+        window.webContents.send(IpcChannels.WINDOW_STATE, 'minimized');
       }
     };
 
     const onRestore = () => {
       if (this.isValidWindow(window)) {
-        window.webContents.send('window:state', 'restored');
+        window.webContents.send(IpcChannels.WINDOW_STATE, 'restored');
       }
     };
 
-    const onResize = () => {
-      if (this.isValidWindow(window) && !window.isMaximized()) {
-        this.saveWindowState(key, window);
-      }
-    };
-
-    // 窗口关闭事件（根据配置决定是隐藏还是真正关闭）
-    const onClose = (event: Electron.Event) => {
-      if (allowHideOnClose && key === 'home') {
-        // 主窗口关闭时隐藏到托盘
-        event.preventDefault();
-        window.hide();
-      } else {
-        // 其他窗口或明确要求关闭时，真正关闭
-        this.saveWindowState(key, window);
+    const onFocus = () => {
+      if (this.isValidWindow(window)) {
+        window.webContents.send(IpcChannels.WINDOW_STATE, 'focused');
+        window.flashFrame(false);
       }
     };
 
     // 窗口真正关闭时清理
     const onClosed = () => {
+      if (readyTimeout) {
+        clearTimeout(readyTimeout);
+      }
+      this.pendingReadyWindows.delete(webContentsId);
       this.windows.delete(key);
-      windowStateManager.deleteState(key);
     };
 
     // 页面加载错误处理
     const onDidFailLoad = (_event: Electron.Event, errorCode: number, errorDescription: string) => {
       console.error(`Window "${key}" failed to load:`, errorCode, errorDescription);
       if (this.isValidWindow(window)) {
-        window.webContents.send('window:load-error', { errorCode, errorDescription });
+        window.webContents.send(IpcChannels.WINDOW_LOAD_ERROR, { errorCode, errorDescription });
       }
     };
 
@@ -314,22 +326,26 @@ class WindowManager {
     window.on('unmaximize', onUnmaximize);
     window.on('minimize', onMinimize);
     window.on('restore', onRestore);
-    window.on('resize', onResize);
-    window.on('close', onClose);
     window.on('closed', onClosed);
+    window.on('focus', onFocus);
     window.webContents.on('did-fail-load', onDidFailLoad);
 
     // 返回清理函数
     return () => {
-      window.webContents.removeListener('did-finish-load', onDidFinishLoad);
+      if (readyTimeout) {
+        clearTimeout(readyTimeout);
+      }
+      this.pendingReadyWindows.delete(webContentsId);
+      if (this.isValidWindow(window)) {
+        window.webContents.removeListener('did-finish-load', onDidFinishLoad);
+        window.webContents.removeListener('did-fail-load', onDidFailLoad);
+      }
       window.removeListener('maximize', onMaximize);
       window.removeListener('unmaximize', onUnmaximize);
       window.removeListener('minimize', onMinimize);
       window.removeListener('restore', onRestore);
-      window.removeListener('resize', onResize);
-      window.removeListener('close', onClose);
       window.removeListener('closed', onClosed);
-      window.webContents.removeListener('did-fail-load', onDidFailLoad);
+      window.removeListener('focus', onFocus);
     };
   }
 
@@ -358,18 +374,35 @@ class WindowManager {
   /**
    * 加载窗口内容
    */
-  private loadWindowContent(window: BrowserWindow, url: string): void {
+  private loadWindowContent(window: BrowserWindow, url: string, data?: Record<string, any>): void {
     try {
       const baseUrl = process.env['VITE_DEV_SERVER_URL']
         ? process.env['VITE_DEV_SERVER_URL']
         : path.join(__dirname, '../index.html');
 
+      // Build query string from data
+      let queryString = '';
+      if (data && Object.keys(data).length > 0) {
+        const params = new URLSearchParams();
+        for (const [key, value] of Object.entries(data)) {
+          // Serialize objects/arrays as JSON
+          if (typeof value === 'object') {
+            params.append(key, JSON.stringify(value));
+          } else {
+            params.append(key, String(value));
+          }
+        }
+        queryString = '?' + params.toString();
+      }
+
       if (process.env['VITE_DEV_SERVER_URL']) {
-        window.loadURL(baseUrl + '/#' + url).catch((error) => {
+        const fullUrl = baseUrl + '/#' + url + queryString;
+        window.loadURL(fullUrl).catch((error) => {
           console.error('Failed to load URL:', error);
         });
       } else {
-        window.loadFile(baseUrl, { hash: url }).catch((error) => {
+        // For production, hash includes both path and query
+        window.loadFile(baseUrl, { hash: url + queryString }).catch((error) => {
           console.error('Failed to load file:', error);
         });
       }
@@ -396,47 +429,75 @@ class WindowManager {
   /**
    * 关闭所有窗口（真正退出应用）
    */
-  public closeAllWindows(): void {
-    this.requireQuit = true;
+  public closeAllWindows(): Promise<void> {
 
-    // 先通知所有窗口准备退出
-    const promises: Promise<void>[] = [];
+    // 先调用退出登录 API（此时 token 还存在）
+    const logoutPromise = resourceManager.callLogoutApi();
+
+    // 收集需要关闭的窗口
+    const windowsToClose: ManagedWindow[] = [];
     this.windows.forEach((managed) => {
       if (this.isValidWindow(managed.window)) {
+        windowsToClose.push(managed);
+      }
+    });
+
+    // 先绑定 close 事件，再发送退出信号并清理
+    const closePromises = windowsToClose.map((managed) => {
+      return new Promise<void>((resolve) => {
+        // 在窗口关闭前保存状态和执行清理（此时窗口还未销毁）
+        managed.window.once('close', () => {
+          if (managed.key === 'home') {
+            this.saveWindowState(managed.key, managed.window);
+          }
+          // 在窗口销毁前执行清理
+          if (managed.cleanup) {
+            try {
+              managed.cleanup();
+            } catch (error) {
+              console.error(`Failed to cleanup window "${managed.key}":`, error);
+            }
+          }
+        });
+
+        // 窗口销毁后 resolve
+        managed.window.once('closed', () => {
+          resolve();
+        });
+
         // 发送退出信号
         try {
-          managed.window.webContents.send('app-quit');
+          managed.window.webContents.send(IpcChannels.APP_QUIT);
         } catch (error) {
           console.error(`Failed to send quit signal to window "${managed.key}":`, error);
         }
 
-        // 清理事件监听器
-        if (managed.cleanup) {
-          try {
-            managed.cleanup();
-          } catch (error) {
-            console.error(`Failed to cleanup window "${managed.key}":`, error);
-          }
-        }
-
-        // 关闭窗口
-        promises.push(
-          new Promise<void>((resolve) => {
-            managed.window.once('closed', () => resolve());
-            managed.window.destroy();
-          })
-        );
-      }
+      });
     });
 
-    // 等待所有窗口关闭（最多等待 3 秒）
-    Promise.race([
-      Promise.all(promises),
-      new Promise<void>((resolve) => setTimeout(resolve, 3000)),
-    ]).finally(() => {
+    // 等待所有窗口关闭和退出登录 API 完成，最多 3 秒
+    return new Promise<void>((resolve) => {
+      const timeout = setTimeout(() => {
+        // 超时后强制销毁未关闭的窗口
+        windowsToClose.forEach((managed) => {
+          if (this.isValidWindow(managed.window)) {
+            console.warn(`Window "${managed.key}" did not close in time, forcing destroy`);
+            managed.window.destroy();
+          }
+        });
+        resolve();
+      }, 10000);
+
+      Promise.all([...closePromises, logoutPromise]).then(() => {
+        clearTimeout(timeout);
+        resolve();
+      });
+    }).finally(() => {
+      // 清理资源（在 API 调用完成后）
+      resourceManager.cleanout();
       this.windows.clear();
-      this.tray?.destroy();
-      this.tray = null;
+      this.trayManager?.destroy();
+      this.trayManager = null;
     });
   }
 
@@ -497,12 +558,12 @@ class WindowManager {
    */
   private setupIpcHandlers(): void {
     // 创建新窗口
-    ipcMain.on('window:new-window', (_e: IpcMainEvent, config: CreateWindowRequest) => {
+    ipcMain.on(IpcChannels.WINDOW_NEW, (_e: IpcMainEvent, config: CreateWindowRequest) => {
       this.CreateWindow(config);
     });
 
     // 最小化窗口
-    ipcMain.on('window:minimize', (event: IpcMainEvent) => {
+    ipcMain.on(IpcChannels.WINDOW_MINIMIZE, (event: IpcMainEvent) => {
       try {
         const sender = BrowserWindow.fromWebContents(event.sender);
         if (sender && this.isValidWindow(sender)) {
@@ -514,7 +575,7 @@ class WindowManager {
     });
 
     // 最大化/还原窗口
-    ipcMain.on('window:maximize', (event: IpcMainEvent) => {
+    ipcMain.on(IpcChannels.WINDOW_MAXIMIZE, (event: IpcMainEvent) => {
       try {
         const sender = BrowserWindow.fromWebContents(event.sender);
         if (sender && this.isValidWindow(sender)) {
@@ -530,7 +591,7 @@ class WindowManager {
     });
 
     // 隐藏窗口（最小化到托盘）
-    ipcMain.on('window:hide', (event: IpcMainEvent) => {
+    ipcMain.on(IpcChannels.WINDOW_HIDE, (event: IpcMainEvent) => {
       try {
         const sender = BrowserWindow.fromWebContents(event.sender);
         if (sender && this.isValidWindow(sender)) {
@@ -542,18 +603,64 @@ class WindowManager {
     });
 
     // 显示窗口
-    ipcMain.on('window:show', (_event: IpcMainEvent, key: string) => {
+    ipcMain.on(IpcChannels.WINDOW_SHOW, (_event: IpcMainEvent, key: string) => {
       this.showWindow(key);
     });
 
     // 向指定窗口发送消息
-    ipcMain.on('window:send-to', (_event: IpcMainEvent, { key, channel, data }: { key: string; channel: string; data?: any }) => {
+    ipcMain.on(IpcChannels.WINDOW_SEND_TO, (_event: IpcMainEvent, { key, channel, data }: { key: string; channel: string; data?: any }) => {
       this.sendMessage(key, channel, data);
     });
 
     // 广播消息到所有窗口
-    ipcMain.on('window:publish', (_event: IpcMainEvent, { channel, data }: { channel: string; data?: any }) => {
+    ipcMain.on(IpcChannels.WINDOW_PUBLISH, (_event: IpcMainEvent, { channel, data }: { channel: string; data?: any }) => {
       this.broadcastMessage(channel, data);
+    });
+
+    // 窗口 ready 信号（统一处理所有窗口）
+    ipcMain.on(IpcChannels.WINDOW_READY, (event: IpcMainEvent) => {
+      const webContentsId = event.sender.id;
+      const showWindow = this.pendingReadyWindows.get(webContentsId);
+      if (showWindow) {
+        showWindow();
+      }
+    });
+
+    // 检查窗口是否焦点状态 (invoke)
+    ipcMain.handle(IpcChannels.WINDOW_IS_FOCUSED, (event) => {
+      try {
+        const sender = BrowserWindow.fromWebContents(event.sender);
+        return sender !== null && this.isValidWindow(sender) && sender.isFocused();
+      } catch (error) {
+        console.error('Failed to get window focused state:', error);
+        return false;
+      }
+    });
+
+    // 播放提示音并闪烁
+    ipcMain.on(IpcChannels.WINDOW_PLAY_SOUND, (event) => {
+      try {
+        const sender = BrowserWindow.fromWebContents(event.sender);
+        if (sender && this.isValidWindow(sender)) {
+          // 1. 播放提示音.
+          const publicPath = process.env.VITE_PUBLIC || app.getAppPath();
+
+          const audioPath = path.join(publicPath, 'audio/notify_msg.wav');
+          player().play(audioPath, (err) => {
+            if (err) {
+              console.error('Failed to play sound via play-sound, falling back to beep:', err);
+              require('electron').shell.beep();
+            }
+          });
+
+          // 2. 任务栏闪烁 (如果窗口未聚焦)
+          if (!sender.isFocused()) {
+            sender.flashFrame(true);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to handle play sound request:', error);
+      }
     });
   }
 }

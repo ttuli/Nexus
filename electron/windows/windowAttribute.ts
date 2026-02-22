@@ -43,7 +43,7 @@ let configs: Map<string, WindowConfig> = new Map([
             key: 'login',
             url: '',
             width: 400,
-            height: 630,
+            height: 570,
             resizable: false,
             frame: false,
             maximizable: false,
@@ -61,8 +61,9 @@ let configs: Map<string, WindowConfig> = new Map([
             parentId: 'login',
             frame: false,
             resizable: false,
-            width: 600,
-            height: 730,
+            maximizable: false,
+            width: 620,
+            height: 780,
         }
     ],
     [
@@ -75,7 +76,8 @@ let configs: Map<string, WindowConfig> = new Map([
             resizable: true,
             width: 1000,
             height: 830,
-            allowHideOnClose: true, // 允许关闭时隐藏到托盘
+            minWidth: 750,
+            minHeight: 430,
         }
     ],
     [
@@ -97,9 +99,43 @@ let configs: Map<string, WindowConfig> = new Map([
             url: '/userInfo',
             modal: false,
             frame: false,
-            resizable: false,
-            width: 600,
-            height: 450,
+            resizable: true,
+            minWidth: 360,
+            minHeight: 480,
+            width: 480,
+            height: 720,
+        }
+    ],
+    [
+        'settings',
+        {
+            key: 'settings',
+            url: '/settings',
+            modal: false,
+            frame: false,
+            resizable: true,
+            width: 800,
+            height: 600,
+            minWidth: 600,
+            minHeight: 500,
+        }
+    ],
+    [
+        'photoViewer',
+        {
+            key: 'photoViewer',
+            url: '/photoViewer',
+            modal: false,
+            frame: false,
+            resizable: true,
+            width: 800,
+            height: 600,
+            minWidth: 400,
+            minHeight: 300,
+            backgroundColor: '#00000000', // Transparent for custom background
+            webPreferences: {
+                webSecurity: false // Allow loading local images
+            }
         }
     ],
 ])
