@@ -305,10 +305,10 @@ const confirmAddFriend = async () => {
     }
 };
 onMounted(async () => {
+    signalWindowReady()
+
     await friendService.loadFriendListToStore()
     await friendService.loadPendingRequestsToStore()
-
-    signalWindowReady()
 })
 </script>
 

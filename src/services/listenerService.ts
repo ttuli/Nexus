@@ -12,6 +12,7 @@ import { ElMessage } from 'element-plus'
 import { useChatStore } from '@/store/chat'
 import { convertApplySrc2FriendSrc, convertWSMessageToIChatMessage, generateSessionId } from '@/utils/chat'
 import windowService, { NotifySoundType } from './windowService'
+import cacheService from './cacheService'
 
 type ResourceHandler = (items: any[]) => void
 
@@ -187,16 +188,16 @@ class ListenerService {
             }
         })
 
-        ipcService.on(IpcChannels.WS_NOTIFICATION, (_event, data: { type: ImTypes.MessageType; payload: ImTypes.WSMessage }) => {
+        ipcService.on(IpcChannels.WS_NOTIFICATION, async (_event, data: { type: ImTypes.MessageType; payload: ImTypes.WSMessage }) => {
             const userStore = useUserStore()
             const chatStore = useChatStore()
             const groupStore = useGroupStore()
             switch (data.type) {
                 case ImTypes.MessageType.FRIEND_REQUEST:
                     const friendRequest = ImTypes.FriendRequest.decode(data.payload.payload)
-                    userStore.setFriendRequest(friendRequest)
+                    await cacheService.updateItems(UpdateAction.Update, ResourceType.FRIEND_REQUEST, [friendRequest])
                     if (friendRequest.status === ImTypes.ApplyStatus.APPLY_STATUS_AGREED) {
-                        userStore.setFriend({
+                        await cacheService.updateItems(UpdateAction.Update, ResourceType.FRIEND, [{
                             user_id: userStore.getUserID(),
                             friend_id: friendRequest.to_user_id,
                             remark: '',
@@ -205,20 +206,20 @@ class ListenerService {
                             source: convertApplySrc2FriendSrc(friendRequest.source),
                             create_time: friendRequest.handle_time,
                             extra: '',
-                        })
-                        chatStore.addChat(generateSessionId(friendRequest.from_user_id,friendRequest.to_user_id))
+                        }])
+                        chatStore.addChat(generateSessionId(friendRequest.from_user_id, friendRequest.to_user_id))
                     }
                     windowService.playNotificationSound(NotifySoundType.Request)
                     break;
                 case ImTypes.MessageType.FRIEND_ADD:
                     const friend = ImTypes.Friend.decode(data.payload.payload)
-                    userStore.setFriend(friend)
-                    chatStore.addChat(generateSessionId(friend.friend_id,friend.user_id))
+                    await cacheService.updateItems(UpdateAction.Update, ResourceType.FRIEND, [friend])
+                    chatStore.addChat(generateSessionId(friend.friend_id, friend.user_id))
                     windowService.playNotificationSound(NotifySoundType.Message)
                     break;
                 case ImTypes.MessageType.GROUP_REQUEST:
                     const groupRequest = ImTypes.GroupApply.decode(data.payload.payload)
-                    groupStore.setGroupRequests([groupRequest])
+                    await cacheService.updateItems(UpdateAction.Update, ResourceType.GROUP_APPLY, [groupRequest])
                     windowService.playNotificationSound(NotifySoundType.Request)
                     break;
                 default:
