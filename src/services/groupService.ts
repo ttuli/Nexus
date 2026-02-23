@@ -12,7 +12,7 @@ import { ipcService } from './ipcService'
 import { ResourceType, IpcChannels, UpdateAction } from '@/types'
 import { useGroupStore } from '@/store/group'
 import { useUserStore } from '@/store/user'
-import { updateGroup, setMemberNickname, joinGroup, createGroup, leaveGroup } from '@/apis/group'
+import { updateGroup, setMemberNickname, joinGroup, createGroup, leaveGroup, handleGroupApply as apiHandleGroupApply } from '@/apis/group'
 import { ApiTypes } from '@/types'
 import cacheService from './cacheService'
 
@@ -177,6 +177,13 @@ class GroupService {
      */
     async leaveGroup(data: ApiTypes.group.LeaveGroupReq) {
         return leaveGroup(data)
+    }
+
+    /**
+     * 处理群申请
+     */
+    async handleGroupApply(data: ApiTypes.group.HandleGroupApplyReq) {
+        return apiHandleGroupApply(data)
     }
 }
 

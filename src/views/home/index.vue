@@ -118,7 +118,9 @@ onMounted(async () => {
     chatStore.loadFromStorage(userStore.getUserID());
     // 预加载子路由组件（等待加载完成后再继续后续逻辑）
 
-    nextTick(signalWindowReady)
+    nextTick(() =>setTimeout(() => {
+        signalWindowReady()
+    }, 200))
     await initRelationStore()
     await websocketService.connect()
 });

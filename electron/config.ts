@@ -19,7 +19,7 @@ export const config = {
         maxReconnectIntervalMs: 30000,
         heartbeatIntervalMs: 30000,
         heartbeatTimeoutMs: 10000,
-        
+
     },
 
     windowConfig: {
@@ -33,6 +33,9 @@ export const config = {
         msgTimeoutMs: 10000, // 消息超时时间
     },
 
-    /** 缓存过期时间（毫秒），默认 5 分钟 */
-    cacheExpirationMs: 5 * 60 * 1000,
+    /** 缓存过期时间（毫秒），默认 3 天 */
+    cacheExpirationMs: 3 * 24 * 60 * 60 * 1000,
+
+    /** 每个类型的资源最大缓存数量 */
+    maxCacheItems: 5000,
 };

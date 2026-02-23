@@ -17,15 +17,8 @@ export type WsMessageTypeValue = ImTypes.MessageType;
 /**
  * Handle incoming text message
  */
-const handleTextMessage: MessageHandler = async (message: WsMessage) => {
+const handleChatMessage: MessageHandler = async (message: WsMessage) => {
     try {
-        const payload = message.payload instanceof Uint8Array
-            ? ImTypes.TextMessage.decode(message.payload)
-            : message.payload; // Fallback if already decoded or not bytes
-
-        console.log('[Routes] Received text message:', payload);
-
-        // Broadcast to all renderer windows
         windowManager.broadcastMessage(IpcChannels.WS_MESSAGE, {
             type: message.type,
             payload: message,
@@ -58,19 +51,11 @@ const handleMsgAck: MessageHandler = async (message: WsMessage) => {
 /**
  * Handle friend request notification
  */
-const handleFriendRequest: MessageHandler = async (message: WsMessage) => {
+const handleNotification: MessageHandler = async (message: WsMessage) => {
     try {
-        const payload = message.payload instanceof Uint8Array
-            ? ImTypes.FriendRequest.decode(message.payload)
-            : message.payload;
-
-        console.log('[Routes] Received friend request:', payload);
-
-        // Broadcast to renderers
-        windowManager.broadcastMessage(IpcChannels.WS_MESSAGE, {
+        windowManager.broadcastMessage(IpcChannels.WS_NOTIFICATION, {
             type: message.type,
-            payload: payload,
-            timestamp: message.timestamp,
+            payload: message,
         });
     } catch (e) {
         console.error('Failed to decode FriendRequest', e);
@@ -140,13 +125,17 @@ const handleErrorMessage: MessageHandler = async (message: WsMessage) => {
  * Main route table - maps message types to handlers
  */
 export const wsRouteTable: Record<number, MessageHandler> = {
-    [ImTypes.MessageType.CHAT_TEXT]: handleTextMessage,
-    [ImTypes.MessageType.FRIEND_REQUEST]: handleFriendRequest,
+    [ImTypes.MessageType.CHAT_TEXT]: handleChatMessage,
+    [ImTypes.MessageType.FRIEND_REQUEST]: handleNotification,
+    [ImTypes.MessageType.FRIEND_ADD]: handleNotification,
+    [ImTypes.MessageType.GROUP_REQUEST]: handleNotification,
+    [ImTypes.MessageType.MSG_ACK]: handleMsgAck,
+
+
+    [ImTypes.MessageType.GROUP_TEXT]: handleChatMessage,
     [ImTypes.MessageType.MSG_RECALL]: handleMessageRecall,
     [ImTypes.MessageType.USER_OFFLINE]: handleOfflineNotify,
     [ImTypes.MessageType.ERROR]: handleErrorMessage,
-
-    [ImTypes.MessageType.MSG_ACK]: handleMsgAck,
 };
 
 /**

@@ -29,7 +29,7 @@ class WebSocketService {
     /**
      * 发送消息
      */
-    async send(message: ImTypes.WSMessage, clientId: string): Promise<IpcResponse & { sent?: boolean, error?: string }> {
+    async send(message: ImTypes.WSMessage, clientId = ''): Promise<IpcResponse & { sent?: boolean, error?: string }> {
         return ipcService.invoke(IpcChannels.WS_SEND, message, clientId)
     }
 }

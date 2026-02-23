@@ -120,10 +120,14 @@ export enum MessageType {
   NOTIFICATION = 600,
   /** FRIEND_REQUEST - 好友请求 */
   FRIEND_REQUEST = 601,
-  /** FRIEND_ACCEPT - 接受好友 */
-  FRIEND_ACCEPT = 602,
-  /** FRIEND_REJECT - 拒绝好友 */
-  FRIEND_REJECT = 603,
+  /** FRIEND_ADD - 添加好友 */
+  FRIEND_ADD = 602,
+  /** GROUP_REQUEST - 群请求 */
+  GROUP_REQUEST = 603,
+  /** APPLY_ACCEPT - 接受申请 */
+  APPLY_ACCEPT = 604,
+  /** APPLY_REJECT - 拒绝申请 */
+  APPLY_REJECT = 605,
   /** ERROR - 错误响应 900-999 */
   ERROR = 900,
   UNRECOGNIZED = -1,
@@ -228,11 +232,17 @@ export function messageTypeFromJSON(object: any): MessageType {
     case "FRIEND_REQUEST":
       return MessageType.FRIEND_REQUEST;
     case 602:
-    case "FRIEND_ACCEPT":
-      return MessageType.FRIEND_ACCEPT;
+    case "FRIEND_ADD":
+      return MessageType.FRIEND_ADD;
     case 603:
-    case "FRIEND_REJECT":
-      return MessageType.FRIEND_REJECT;
+    case "GROUP_REQUEST":
+      return MessageType.GROUP_REQUEST;
+    case 604:
+    case "APPLY_ACCEPT":
+      return MessageType.APPLY_ACCEPT;
+    case 605:
+    case "APPLY_REJECT":
+      return MessageType.APPLY_REJECT;
     case 900:
     case "ERROR":
       return MessageType.ERROR;
@@ -309,10 +319,14 @@ export function messageTypeToJSON(object: MessageType): string {
       return "NOTIFICATION";
     case MessageType.FRIEND_REQUEST:
       return "FRIEND_REQUEST";
-    case MessageType.FRIEND_ACCEPT:
-      return "FRIEND_ACCEPT";
-    case MessageType.FRIEND_REJECT:
-      return "FRIEND_REJECT";
+    case MessageType.FRIEND_ADD:
+      return "FRIEND_ADD";
+    case MessageType.GROUP_REQUEST:
+      return "GROUP_REQUEST";
+    case MessageType.APPLY_ACCEPT:
+      return "APPLY_ACCEPT";
+    case MessageType.APPLY_REJECT:
+      return "APPLY_REJECT";
     case MessageType.ERROR:
       return "ERROR";
     case MessageType.UNRECOGNIZED:

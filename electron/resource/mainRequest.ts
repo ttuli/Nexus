@@ -114,6 +114,12 @@ function executeRequest<T>(options: MainRequestOptions, token?: string): Promise
                 const buffer = Buffer.concat(chunks);
 
                 try {
+                    // 空 body（如 logout 返回 200 无内容）：直接视为成功
+                    if (buffer.length === 0) {
+                        resolve({ code: statusCode === 200 ? 200 : statusCode, message: 'ok' });
+                        return;
+                    }
+
                     if (contentType.includes('application/x-protobuf')) {
                         // 解析外层 ApiResponse protobuf
                         const apiResp = ImTypes.ApiResponse.decode(new Uint8Array(buffer));

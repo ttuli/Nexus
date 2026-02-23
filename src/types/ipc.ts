@@ -75,9 +75,9 @@ export const IpcChannels = {
     WS_SEND: 'ws:send',
     WS_GET_STATE: 'ws:get-state',
     WS_STATE_CHANGE: 'ws:state-change',
-    // WS_MESSAGE_RECEIVED: 'ws:message-received',
     WS_MESSAGE: 'ws:message',
     WS_MESSAGE_ACK: 'ws:message-ack',
+    WS_NOTIFICATION: 'ws:notification',
 
     // 窗口相关
     WINDOW_NEW: 'window:new-window',
@@ -91,7 +91,7 @@ export const IpcChannels = {
     WINDOW_READY: 'window:ready',
     WINDOW_LOAD_ERROR: 'window:load-error',
     WINDOW_IS_FOCUSED: 'window:is-focused',
-    WINDOW_PLAY_SOUND: 'window:play-sound',
+    WINDOW_FLASH_FRAME: 'window:flash-frame',
 
     // 应用相关
     APP_QUIT: 'app-quit',
@@ -102,6 +102,10 @@ export const IpcChannels = {
 
     // 路由相关
     ROUTE_NAVIGATE: 'route:navigate',
+
+    // 设置相关
+    SETTINGS_GET_STORAGE_PATH: 'settings:get-storage-path',
+    SETTINGS_SELECT_STORAGE_PATH: 'settings:select-storage-path',
 } as const
 
 export type IpcChannel = typeof IpcChannels[keyof typeof IpcChannels]

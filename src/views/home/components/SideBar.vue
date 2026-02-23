@@ -20,11 +20,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useUserStore } from '@/store/user';
+import { useGroupStore } from '@/store/group';
 
-import { ImTypes } from '@/types';
 import ChatIcon from '@/assets/view/message.svg?url';
 import ContactsIcon from '@/assets/input/input_name.svg?url';
 import SettingIcon from '@/assets/view/setting.svg?url';
@@ -36,34 +36,10 @@ const userStore = useUserStore();
 
 const activeRoute = computed(() => route.path);
 
-// Sync with ContactSidebar logic
-const lastReadTime = ref(Number(localStorage.getItem('validationLastReadTime') || 0));
-
-// Listen for storage changes to sync badge clearing across components
-window.addEventListener('storage', (e) => {
-    if (e.key === 'validationLastReadTime') {
-        lastReadTime.value = Number(e.newValue);
-    }
-});
-
-// Also hook into route changes to update if we navigated to validation
-router.afterEach((to) => {
-    if (to.path.includes('/contact/validation')) {
-        lastReadTime.value = Date.now();
-    }
-    // Refresh value from storage just in case
-    lastReadTime.value = Number(localStorage.getItem('validationLastReadTime') || 0);
-});
+const groupStore = useGroupStore();
 
 const contactBadge = computed(() => {
-    const userId = userStore.userID;
-    const requests = Array.from(userStore.friendRequestMap.values());
-
-    return requests.filter(req => {
-        return req.status === ImTypes.ApplyStatus.APPLY_STATUS_PENDING &&
-            req.to_user_id === userId &&
-            req.request_time > lastReadTime.value;
-    }).length;
+    return userStore.unreadPendingRequestCount + groupStore.unreadPendingRequestCount;
 });
 
 const navigateTo = (name: string) => {

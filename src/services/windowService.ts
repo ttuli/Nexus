@@ -2,11 +2,15 @@
  * 窗口服务
  * 处理窗口相关操作
  */
-
 import { ipcService } from './ipcService'
 import { IpcChannels, LogoutType } from '@/types'
 
 export { LogoutType }
+
+export enum NotifySoundType {
+    Message = 'msg',
+    Request = 'request',   
+}
 
 class WindowService {
     /**
@@ -79,8 +83,10 @@ class WindowService {
     /**
      * 播放提示音
      */
-    playNotificationSound(): void {
-        ipcService.send(IpcChannels.WINDOW_PLAY_SOUND);
+    playNotificationSound(type: NotifySoundType = NotifySoundType.Message): void {
+        const audio = new Audio(`/audio/notify_${type}.wav`);
+        audio.play().catch(e => console.error('Failed to play notification sound:', e));
+        ipcService.send(IpcChannels.WINDOW_FLASH_FRAME);
     }
 }
 

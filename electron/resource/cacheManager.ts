@@ -1,15 +1,15 @@
 import { ResourceType, ResourceIdKeyMap, IpcChannels } from '../../src/types';
 import { windowManager } from '../windows/windowManager';
 import { config } from '../config';
+import { LRUCache } from 'lru-cache';
 
 /**
  * 缓存管理器
  * 负责通用资源缓存的读写操作
  */
 class CacheManager {
-    // 通用缓存结构: Map<ResourceType, Map<id, { data, lastUpdated }>>
-    // lastUpdated 字段保留，未来接入 SQLite 时用于启动时清理过期数据
-    private caches: Map<ResourceType, Map<number, { data: any; lastUpdated: number }>> = new Map();
+    // 通用缓存结构: 采用 LRU Cache 限制内存持续增长
+    private caches: Map<ResourceType, LRUCache<number, { data: any; lastUpdated: number }>> = new Map();
 
     // 用户加入的群组 ID 列表
     private userGroupIds: number[] = [];
@@ -22,7 +22,11 @@ class CacheManager {
 
         // 初始化各类型缓存
         Object.values(ResourceType).forEach((type) => {
-            this.caches.set(type, new Map());
+            this.caches.set(type, new LRUCache({
+                max: config.maxCacheItems || 5000,
+                ttl: config.cacheExpirationMs,
+                updateAgeOnGet: false, // 遵循原逻辑，不因被读取而延长生命周期
+            }));
         });
     }
 
@@ -35,7 +39,7 @@ class CacheManager {
         const cache = this.caches.get(type);
         const cached = cache?.get(id);
 
-        // 检查过期
+        // 检查过期 (LRUCache 提供 ttl 机制，但为兼容原逻辑保守起见保留手动判断)
         if (cached && Date.now() - cached.lastUpdated > config.cacheExpirationMs) {
             cache?.delete(id);
             return null;

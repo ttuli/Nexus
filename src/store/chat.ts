@@ -273,10 +273,9 @@ export const useChatStore = defineStore('chat', {
          */
         addMessage(message: IChatMessage) {
             // Deduplicate
-            if (this.messages.some(m => m.msgId === message.msgId || (message.clientId && m.clientId === message.clientId))) {
+            if (this.messages.some(m => (message.msgId !== '' && m.msgId === message.msgId) || (message.clientId && m.clientId === message.clientId))) {
                 return this.updateMessageStatus(message.sessionId, message.clientId || '', message.status);
             }
-
             // Check if message belongs to current session
             if (this.currentSessionId && message.sessionId === this.currentSessionId) {
                 this.messages.push(message);

@@ -10,8 +10,8 @@ import { useGroupStore } from '@/store/group'
 import { ResourceType, IpcChannels, UpdateAction, ImTypes } from '@/types'
 import { ElMessage } from 'element-plus'
 import { useChatStore } from '@/store/chat'
-import { convertWSMessageToIChatMessage } from '@/utils/chat'
-import windowService from './windowService'
+import { convertWSMessageToIChatMessage, generateSessionId } from '@/utils/chat'
+import windowService, { NotifySoundType } from './windowService'
 
 type ResourceHandler = (items: any[]) => void
 
@@ -100,6 +100,17 @@ class ListenerService {
                 })
             }],
 
+            [ResourceType.GROUP_APPLY, (items) => {
+                items.forEach((item: any) => {
+                    const { action, ...request } = item
+                    if (action === UpdateAction.Delete) {
+                        groupStore.removeGroupRequest(request.id)
+                    } else {
+                        groupStore.setGroupRequests([request])
+                    }
+                })
+            }],
+
             [ResourceType.GROUP_MEMBER, (items) => {
                 items.forEach((item: any) => {
                     const { action, group_id, members } = item
@@ -151,17 +162,6 @@ class ListenerService {
                 windowService.playNotificationSound();
             }
             switch (data.type) {
-                case ImTypes.MessageType.CHAT_TEXT:
-                case ImTypes.MessageType.GROUP_TEXT:
-                case ImTypes.MessageType.CHAT_IMAGE:
-                case ImTypes.MessageType.GROUP_IMAGE:
-                case ImTypes.MessageType.CHAT_VIDEO:
-                case ImTypes.MessageType.GROUP_VIDEO:
-                case ImTypes.MessageType.CHAT_FILE:
-                case ImTypes.MessageType.GROUP_FILE:
-                case ImTypes.MessageType.FRIEND_REQUEST:
-                case ImTypes.MessageType.MSG_RECALL:
-                    break;
                 case ImTypes.MessageType.ERROR:
                     const errorMsg = data.payload as ImTypes.ErrorMessage
                     ElMessage.error(errorMsg.error_msg || '未知错误')
@@ -184,6 +184,32 @@ class ListenerService {
                 chatStore.updateMessageStatus(data.session_id, data.client_id, ImTypes.MessageStatus.MESSAGE_STATUS_FAILED)
             } else if (data.status === ImTypes.AckStatus.ACK_STATUS_SUCCESS) {
                 chatStore.updateMessageStatus(data.session_id, data.client_id, ImTypes.MessageStatus.MESSAGE_STATUS_SENT)
+            }
+        })
+
+        ipcService.on(IpcChannels.WS_NOTIFICATION, (_event, data: { type: ImTypes.MessageType; payload: ImTypes.WSMessage }) => {
+            const userStore = useUserStore()
+            const chatStore = useChatStore()
+            const groupStore = useGroupStore()
+            switch (data.type) {
+                case ImTypes.MessageType.FRIEND_REQUEST:
+                    const friendRequest = ImTypes.FriendRequest.decode(data.payload.payload)
+                    userStore.setFriendRequest(friendRequest)
+                    windowService.playNotificationSound(NotifySoundType.Request)
+                    break;
+                case ImTypes.MessageType.FRIEND_ADD:
+                    const friend = ImTypes.Friend.decode(data.payload.payload)
+                    userStore.setFriend(friend)
+                    chatStore.addChat(generateSessionId(friend.friend_id,friend.user_id))
+                    windowService.playNotificationSound(NotifySoundType.Message)
+                    break;
+                case ImTypes.MessageType.GROUP_REQUEST:
+                    const groupRequest = ImTypes.GroupApply.decode(data.payload.payload)
+                    groupStore.setGroupRequests([groupRequest])
+                    windowService.playNotificationSound(NotifySoundType.Request)
+                    break;
+                default:
+                    break;
             }
         })
     }

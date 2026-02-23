@@ -37,24 +37,18 @@ const groupStore = useGroupStore();
 /**
  * 解析尺寸字符串为数字（如 '40px' -> 40）
  */
-const parseDimension = (dim: string): number => {
-    const match = dim.match(/^(\d+(?:\.\d+)?)/);
-    return match ? Math.ceil(parseFloat(match[1])) : 40;
-}
 
 /**
- * 为 OSS URL 添加图片缩放参数
- * 使用 2x 尺寸以支持高清屏
+ * 将网络 URL 转换为 imcache:// 协议地址
+ * 主进程拦截该协议：本地有缓存则直接返回磁盘文件，否则 fallback 到原网络地址
  */
-const appendOssResize = (url: string): string => {
-    if (!url || url.startsWith('data:') || url.startsWith('blob:')) {
+const toImcacheUrl = (url: string): string => {
+    if (!url || url.startsWith('data:') || url.startsWith('blob:') || url.startsWith('imcache://')) {
         return url;
     }
-
-    const w = parseDimension(props.width) * 2;
-    const h = parseDimension(props.height) * 2;
-    const separator = url.includes('?') ? '&' : '?';
-    return `${url}${separator}x-oss-process=image/resize,w_${w},h_${h}`;
+    const encoded = btoa(unescape(encodeURIComponent(url)))
+        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    return `imcache://${encoded}`;
 }
 
 const getSrc = () => {
@@ -65,12 +59,13 @@ const getSrc = () => {
         url = groupStore.getGroup(props.uid)?.avatar || '';
     }
     if (!url) {
-        url = (props.type === 'user' ? defaultImg : defaultGroupImg)
-        source.value = url
+        url = (props.type === 'user' ? defaultImg : defaultGroupImg);
+        source.value = url;
         return url;
     }
-    source.value = url
-    return appendOssResize(url);
+    source.value = url;
+    // 通过 imcache:// 协议渲染：命中本地缓存时秒出，否则由主进程 fallback 到网络图
+    return toImcacheUrl(url);
 }
 
 const handleClick = () => {

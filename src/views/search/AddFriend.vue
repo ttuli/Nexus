@@ -104,11 +104,12 @@ import { UpdateAction, ResourceType } from '@/types';
 import GlobalLoading from '@/components/GlobalLoading/GlobalLoading';
 import { useUserStore } from '@/store/user';
 import { signalWindowReady } from '@/utils/windowReady';
-import { userService, friendService, cacheService, groupService } from '@/services';
+import { userService, friendService, cacheService, groupService, websocketService } from '@/services';
 import { ElMessage } from 'element-plus';
 
 import maleIcon from '@/assets/gender/male.svg?url';
 import femaleIcon from '@/assets/gender/female.svg?url';
+import { buildVerifyWsMsg } from '@/utils/chat';
 
 // Search State
 const searchType = ref<'user' | 'group'>('user');
@@ -264,6 +265,16 @@ const confirmAddFriend = async () => {
                     starred: false,
                     create_time: Date.now(),
                 }])
+                const { msg, clientId } = buildVerifyWsMsg(ImTypes.MessageType.FRIEND_ADD, {
+                    user_id: targetUser.value.user_id,
+                    friend_id: useUserStore().getUserID(),
+                    remark: '',
+                    source: ImTypes.ApplySource.APPLY_SOURCE_SEARCH_ACCOUNT,
+                    blocked: false,
+                    starred: false,
+                    create_time: Date.now(),
+                } as any)
+                websocketService.send(msg, clientId)
                 ElMessage.success("添加成功")
             } else {
                 let res = await friendService.applyFriend({
@@ -273,6 +284,8 @@ const confirmAddFriend = async () => {
                 } as any);
                 if (res.data) {
                     await cacheService.updateItems(UpdateAction.Add, ResourceType.FRIEND_REQUEST, [res.data])
+                    const { msg, clientId } = buildVerifyWsMsg(ImTypes.MessageType.FRIEND_REQUEST, res.data.data as any)
+                    websocketService.send(msg, clientId)
                 }
                 ElMessage.success("发送好友申请成功")
             }
@@ -281,8 +294,8 @@ const confirmAddFriend = async () => {
                 groupId: targetGroup.value.id,
                 message: applyMessage.value
             } as any);
-            console.log(res);
-            // await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_REQUEST, [res.data.data])
+            await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_APPLY, [res.data.data])
+
             ElMessage.success("发送入群申请成功")
         }
     } finally {

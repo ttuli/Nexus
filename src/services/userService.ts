@@ -93,8 +93,8 @@ class UserService {
     /**
      * 获取登录历史记录
      */
-    async getLoginHistory(): Promise<{ userId: number; name: string; avatarLocal?: string; lastLoginTime: number }[]> {
-        const response = await ipcService.invoke<{ userId: number; name: string; avatarLocal?: string; lastLoginTime: number }[]>(IpcChannels.USER_GET_LOGIN_HISTORY)
+    async getLoginHistory(): Promise<{ userId: number; name: string; account: string; avatarUrl?: string; lastLoginTime: number }[]> {
+        const response = await ipcService.invoke<{ userId: number; name: string; account: string; avatarUrl?: string; lastLoginTime: number }[]>(IpcChannels.USER_GET_LOGIN_HISTORY)
         return response.data || []
     }
 }

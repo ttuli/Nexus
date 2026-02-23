@@ -1,10 +1,11 @@
-import { app, ipcMain, protocol } from 'electron'
+import { app, ipcMain, protocol, net } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { windowManager } from './windows/windowManager'
 import { resourceManager } from './resource'
 import { IpcChannels } from '../src/types/ipc'
 import { wsManager } from './websocket'
+import { fileCacheManager, IMCACHE_SCHEME } from './resource/fileCacheManager'
 
 export const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -35,10 +36,24 @@ function createWindow(): void {
 // 设置全局应用名，影响窗口默认标题、任务栏和托盘等展示
 app.setName('IMChat')
 app.whenReady().then(() => {
-  // 注册 file:// 协议处理器
-  protocol.registerFileProtocol('imag', (request, callback) => {
-    const url = request.url.substr(7)
-    callback(decodeURI(path.normalize(url)))
+  // 初始化本地文件缓存管理器
+  fileCacheManager.init();
+
+  // 注册 imcache:// 自定义协议：将网络图片请求映射到本地磁盘缓存
+  protocol.handle(IMCACHE_SCHEME, (request) => {
+    const localPath = fileCacheManager.handleProtocolRequest(request.url);
+    if (localPath) {
+      // 本地缓存命中，通过 Electron 的 net.fetch 读取本地文件（ESM 安全）
+      return net.fetch('file://' + localPath);
+    }
+    // 本地缓存 miss，解码出原始 URL 并重定向到网络图片（兜底）
+    const encoded = request.url.replace(`${IMCACHE_SCHEME}://`, '').split('?')[0];
+    try {
+      const originalUrl = Buffer.from(encoded, 'base64url').toString('utf-8');
+      return net.fetch(originalUrl);
+    } catch {
+      return new Response(null, { status: 404 });
+    }
   });
 
   // 初始化资源管理器

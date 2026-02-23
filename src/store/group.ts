@@ -11,10 +11,18 @@ export const useGroupStore = defineStore('group', {
     state: () => ({
         groupMap: reactive(new Map<number, ImTypes.GroupInfo>()),
         groupMemberMap: reactive(new Map<number, ImTypes.GroupMember[]>()),
-        groupRequestMap: reactive(new Map<number, ImTypes.GroupApply[]>()),
+        groupRequestMap: reactive(new Map<number, ImTypes.GroupApply>()),
         joinedGroupIds: reactive(new Set<number>()),
+
+        lastReadGroupRequestTime: 0,
     }),
     actions: {
+        initLastReadTime(userId: number) {
+            const savedTime = localStorage.getItem(`lastReadGroupRequestTime_${userId}`)
+            if (savedTime) {
+                this.lastReadGroupRequestTime = parseInt(savedTime, 10)
+            }
+        },
         // ==================== ImTypes.GroupInfo ====================
         setGroup(groupInfo: ImTypes.GroupInfo) {
             this.groupMap.set(groupInfo.id, groupInfo)
@@ -83,30 +91,25 @@ export const useGroupStore = defineStore('group', {
         },
 
         // ==================== ImTypes.GroupInfo Requests ====================
-        setGroupRequests(groupId: number, requests: ImTypes.GroupApply[]) {
-            this.groupRequestMap.set(groupId, requests)
-        },
-
-        getGroupRequests(groupId: number): ImTypes.GroupApply[] {
-            return this.groupRequestMap.get(groupId) || []
-        },
-
-        addGroupRequest(groupId: number, request: ImTypes.GroupApply) {
-            const requests = this.groupRequestMap.get(groupId) || []
-            const idx = requests.findIndex(r => r.id === request.id)
-            if (idx >= 0) {
-                requests[idx] = request
-            } else {
-                requests.push(request)
+        updateLastReadGroupRequestTime(userId: number) {
+            this.lastReadGroupRequestTime = Date.now()
+            if (userId) {
+                localStorage.setItem(`lastReadGroupRequestTime_${userId}`, this.lastReadGroupRequestTime.toString())
             }
-            this.groupRequestMap.set(groupId, requests)
         },
 
-        removeGroupRequest(groupId: number, requestId: number) {
-            const requests = this.groupRequestMap.get(groupId)
-            if (requests) {
-                this.groupRequestMap.set(groupId, requests.filter(r => r.id !== requestId))
-            }
+        setGroupRequests(requests: ImTypes.GroupApply[]) {
+            requests.forEach(req => {
+                this.groupRequestMap.set(req.id, req)
+            })
+        },
+
+        getGroupRequest(requestId: number): ImTypes.GroupApply | undefined {
+            return this.groupRequestMap.get(requestId)
+        },
+
+        removeGroupRequest(requestId: number) {
+            this.groupRequestMap.delete(requestId)
         },
 
         // ==================== Joined ImTypes.GroupInfo IDs ====================
@@ -128,8 +131,22 @@ export const useGroupStore = defineStore('group', {
             this.groupMemberMap.clear()
             this.groupRequestMap.clear()
             this.joinedGroupIds.clear()
+            this.lastReadGroupRequestTime = 0
         }
     },
     getters: {
+        // 获取未读待处理的群请求数量
+        unreadPendingRequestCount: (state) => {
+            let count = 0;
+            for (const req of state.groupRequestMap.values()) {
+                if (req.status === ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_PENDING) {
+                    const time = req.handle_time || req.request_time;
+                    if (time > state.lastReadGroupRequestTime) {
+                        count++;
+                    }
+                }
+            }
+            return count;
+        },
     }
 })

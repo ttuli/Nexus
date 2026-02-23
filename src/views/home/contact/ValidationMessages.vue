@@ -11,7 +11,8 @@
             <div class="list" v-if="type === 'friend'">
                 <div v-if="friendRequests.length === 0" class="empty">暂无好友申请</div>
 
-                <div v-for="req in friendRequests" :key="req.id" class="req-item">
+                <div v-for="req in friendRequests" :key="req.id" class="req-item"
+                    :class="{ unread: isUnread(req, 'friend') }">
                     <div class="avatar-box">
                         <Avatar :uid="getRelatedUserInfo(req)?.user_id || 0"></Avatar>
                     </div>
@@ -40,26 +41,92 @@
             </div>
 
             <div class="list" v-else>
-                <div class="empty">暂无群聊通知</div>
+                <div v-if="groupRequests.length === 0" class="empty">暂无群聊通知</div>
+
+                <div v-for="req in groupRequests" :key="req.id" class="req-item"
+                    :class="{ unread: isUnread(req, 'group') }">
+                    <div class="avatar-box">
+                        <Avatar :uid="getGroupInfo(req.group_id)?.id || 0" type="group"></Avatar>
+                    </div>
+                    <div class="info">
+                        <div class="top">
+                            <span class="name">
+                                {{ getGroupInfo(req.group_id)?.name || req.group_id }}
+                                {{ req.sender_id === userStore.userID ? '' : '- 用户 ' +
+                                    (getUserInfo(req.sender_id)?.user_name ||
+                                        req.sender_id) + ' 申请加群' }}
+                            </span>
+                        </div>
+                        <div class="msg">留言: {{ req.apply_msg }}</div>
+                    </div>
+                    <span class="date">{{ formatDate(req.request_time) }}</span>
+                    <div class="actions">
+                        <template v-if="req.status === ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_PENDING">
+                            <template v-if="req.sender_id !== userStore.userID">
+                                <CusButton type="primary" :show-icon="false" class="btn"
+                                    @click="handleGroupReq(req, 'accept')">同意</CusButton>
+                                <CusButton type="normal" :show-icon="false" class="btn reject"
+                                    @click="handleGroupReq(req, 'reject')">拒绝</CusButton>
+                            </template>
+                            <span v-else class="status-text">等待验证</span>
+                        </template>
+                        <span v-else class="status-text">{{ getGroupStatusText(req.status) }}</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 
 import { useUserStore } from '@/store/user';
+import { useGroupStore } from '@/store/group';
 import { UpdateAction, ResourceType, ImTypes } from '@/types';
-import { cacheService } from '@/services';
+import { cacheService, groupService, websocketService } from '@/services';
 import { friendService } from '@/services'
 import GlobalLoading from '@/components/GlobalLoading/GlobalLoading';
+import { buildVerifyWsMsg } from '@/utils/chat';
 
 const type = ref<'friend' | 'group'>('friend');
 const userStore = useUserStore();
+const groupStore = useGroupStore();
+
+const enterTimeFriend = ref(Date.now());
+const enterTimeGroup = ref(Date.now());
+
+// Capture the time when entering the tab and mark as read
+watch(type, (newType) => {
+    if (newType === 'friend') {
+        enterTimeFriend.value = userStore.lastReadFriendRequestTime; // Use the value BEFORE we update it
+        userStore.updateLastReadFriendRequestTime();
+    } else {
+        enterTimeGroup.value = groupStore.lastReadGroupRequestTime;
+        groupStore.updateLastReadGroupRequestTime(userStore.userID);
+    }
+}, { immediate: true });
+
+const isUnread = (req: any, reqType: 'friend' | 'group') => {
+    if (req.status !== ImTypes.ApplyStatus.APPLY_STATUS_PENDING && req.status !== ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_PENDING) return false;
+
+    // For friend, only receiver sees it as unread
+    if (reqType === 'friend' && req.from_user_id === userStore.userID) return false;
+
+    const time = req.handle_time || req.request_time;
+    if (reqType === 'friend') {
+        return time > enterTimeFriend.value;
+    } else {
+        return time > enterTimeGroup.value;
+    }
+};
 
 const friendRequests = computed(() => {
     return Array.from(userStore.friendRequestMap.values()).sort((a, b) => b.request_time - a.request_time);
+});
+
+const groupRequests = computed(() => {
+    return Array.from(groupStore.groupRequestMap.values()).sort((a, b) => b.request_time - a.request_time);
 });
 
 const formatDate = (ts: number) => {
@@ -75,11 +142,28 @@ const getStatusText = (status: ImTypes.ApplyStatus) => {
     }
 };
 
+const getGroupStatusText = (status: ImTypes.GroupApplyStatus) => {
+    switch (status) {
+        case ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_ACCEPTED: return '已同意';
+        case ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_REJECTED: return '已拒绝';
+        case ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_IGNORED: return '已忽略';
+        default: return '待处理';
+    }
+};
+
 const getRelatedUserInfo = (req: ImTypes.FriendRequest) => {
     const isSelf = req.from_user_id === userStore.userID;
     const targetId = isSelf ? req.to_user_id : req.from_user_id;
     // 用户信息已在 home/index.vue 预加载，直接从 store 读取
     return userStore.getUser(targetId);
+};
+
+const getUserInfo = (userId: number) => {
+    return userStore.getUser(userId);
+};
+
+const getGroupInfo = (groupId: number) => {
+    return groupStore.getGroup(groupId);
 };
 
 const handleApply = async (req: ImTypes.FriendRequest, type: 'accept' | 'reject') => {
@@ -118,6 +202,30 @@ const handleApply = async (req: ImTypes.FriendRequest, type: 'accept' | 'reject'
         GlobalLoading.close();
     }
 
+};
+
+const handleGroupReq = async (req: ImTypes.GroupApply, actionType: 'accept' | 'reject') => {
+    const status: ImTypes.GroupApplyStatus = actionType === 'accept' ? ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_ACCEPTED : ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_REJECTED;
+    try {
+        GlobalLoading.show();
+        await groupService.handleGroupApply({
+            applyId: req.id,
+            action: status as any
+        } as any);
+
+        await cacheService.updateItems(UpdateAction.Update, ResourceType.GROUP_APPLY, [{ ...req, status }])
+
+        if (status === ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_ACCEPTED) {
+            await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_MEMBER, [{
+                group_id: req.group_id,
+                members: [req.sender_id],
+            }])
+        }
+        const { msg, clientId } = buildVerifyWsMsg(ImTypes.MessageType.GROUP_REQUEST, req)
+        websocketService.send(msg, clientId)
+    } finally {
+        GlobalLoading.close();
+    }
 };
 </script>
 
@@ -178,6 +286,21 @@ const handleApply = async (req: ImTypes.FriendRequest, type: 'accept' | 'reject'
         border-radius: 8px;
         margin-bottom: 12px;
         gap: 16px;
+        transition: background-color 0.3s;
+
+        &.unread {
+            animation: highlight-yellow 2s ease-out;
+        }
+
+        @keyframes highlight-yellow {
+            0% {
+                background-color: rgba(255, 193, 7, 0.4); // Highlight yellow color
+            }
+
+            100% {
+                background-color: $bg-card;
+            }
+        }
 
         .avatar-box {
             .avatar {

@@ -2,23 +2,18 @@ import { cacheManager } from './cacheManager';
 import { mainGet, decodeMainResponse } from './mainRequest';
 import { ResourceType, ImTypes, ApiTypes } from '../../src/types';
 type UserInfo = ImTypes.UserInfo;
-import { app } from 'electron';
-import * as fs from 'fs';
-import * as path from 'path';
 import { storage, StorageKeys } from '../utils/storage';
 import { config } from '../config';
+import { fileCacheManager } from './fileCacheManager';
 
 // 登录历史记录类型
 export interface LoginAccountInfo {
     userId: number;
     account: string;  // 登录账号
     name: string;
-    avatarLocal?: string;  // 本地头像路径
+    avatarUrl?: string;  // 头像网络地址
     lastLoginTime: number;
 }
-
-// 头像存储目录（保留，用于存储下载的头像文件）
-const AVATAR_DIR = path.join(app.getPath('userData'), 'avatars');
 
 // 请求合并：正在进行的请求
 type PendingRequest<T> = {
@@ -210,14 +205,13 @@ class UserService {
      * @param account 登录账号
      */
     public async cacheLoginAccount(userId: number, account?: string): Promise<void> {
-        // 1. 验证 userId 是否合法
         if (!userId || userId <= 0 || !Number.isInteger(userId)) {
             console.error('[UserService] Invalid userId:', userId);
             return;
         }
 
         try {
-            // 2. 获取用户信息（强制从服务器获取最新数据）
+            // 1. 获取用户最新信息
             const users = await this.fetchUsersByIds([userId], true);
             if (users.length === 0) {
                 console.error('[UserService] User not found:', userId);
@@ -226,47 +220,31 @@ class UserService {
 
             const userInfo = users[0];
 
-            // 3. 确保头像目录存在
-            if (!fs.existsSync(AVATAR_DIR)) {
-                fs.mkdirSync(AVATAR_DIR, { recursive: true });
-            }
-
-            // 4. 下载头像到本地
-            let localAvatarPath: string | undefined;
+            // 2. 后台预热头像到本地磁盘（非阅塞）
             if (userInfo.avatar) {
-                localAvatarPath = await this.downloadAvatar(userId, userInfo.avatar);
+                fileCacheManager.prefetch(userInfo.avatar);
             }
 
-            // 5. 读取现有登录历史（从 storage.ts）
+            // 3. 读取现有登录历史
             let loginHistory: LoginAccountInfo[] = storage.get<LoginAccountInfo[]>(StorageKeys.LOGIN_HISTORY) || [];
 
-            // 6. 更新或添加账号记录
+            // 4. 更新或添加账号记录
             const existingIndex = loginHistory.findIndex(acc => acc.userId === userId);
             const accountInfo: LoginAccountInfo = {
                 userId,
-                account: account || (existingIndex !== -1 ? loginHistory[existingIndex].account : ''), // Use provided account or keep existing
+                account: account || (existingIndex !== -1 ? loginHistory[existingIndex].account : ''),
                 name: userInfo.user_name,
-                avatarLocal: localAvatarPath,
+                avatarUrl: userInfo.avatar,  // 只存网络 URL，前端通过 imcache:// 协议渲染
                 lastLoginTime: Date.now(),
             };
 
-            if (existingIndex !== -1) {
-                loginHistory.splice(existingIndex, 1);
-            }
+            if (existingIndex !== -1) loginHistory.splice(existingIndex, 1);
             loginHistory.unshift(accountInfo);
 
-            // 7. 最多保留5个账号记录
-            if (loginHistory.length > 5) {
-                const removed = loginHistory.splice(5);
-                // 删除多余账号的本地头像
-                removed.forEach(acc => {
-                    if (acc.avatarLocal && fs.existsSync(acc.avatarLocal)) {
-                        fs.unlinkSync(acc.avatarLocal);
-                    }
-                });
-            }
+            // 5. 最多保留 5 个账号记录（不再需要手动删除本地文件，由 fileCacheManager LRU 统一管理）
+            if (loginHistory.length > 5) loginHistory.splice(5);
 
-            // 8. 保存到 storage.ts
+            // 6. 保存
             storage.set(StorageKeys.LOGIN_HISTORY, loginHistory);
             console.log('[UserService] Login account cached:', userId);
         } catch (error) {
@@ -279,30 +257,6 @@ class UserService {
      */
     public getLoginHistory(): LoginAccountInfo[] {
         return storage.get<LoginAccountInfo[]>(StorageKeys.LOGIN_HISTORY) || [];
-    }
-
-    /**
-     * 下载头像到本地
-     */
-    private async downloadAvatar(userId: number, avatarUrl: string): Promise<string | undefined> {
-        try {
-            const ext = path.extname(new URL(avatarUrl).pathname) || '.png';
-            const localPath = path.join(AVATAR_DIR, `avatar_${userId}${ext}`);
-
-            // 使用 fetch 下载头像
-            const response = await fetch(avatarUrl);
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
-
-            const buffer = Buffer.from(await response.arrayBuffer());
-            fs.writeFileSync(localPath, buffer);
-
-            return localPath;
-        } catch (error) {
-            console.error('[UserService] Failed to download avatar:', error);
-            return undefined;
-        }
     }
 }
 

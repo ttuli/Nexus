@@ -14,6 +14,8 @@ export const useUserStore = defineStore('user', {
     friendRequestMap: reactive(new Map<number, ImTypes.FriendRequest>()),
     // 辅助 Set，用于 O(1) 查找用户是否有好友请求
     friendRequestUserIds: reactive(new Set<number>()),
+
+    lastReadFriendRequestTime: 0,
   }),
   actions: {
     // ==================== Auth ====================
@@ -22,6 +24,12 @@ export const useUserStore = defineStore('user', {
       if (token === '') return
       const payload = jwtDecode<TokenPayload>(token)
       this.userID = Number(payload.user_id)
+
+      // Load last read time from localStorage
+      const savedTime = localStorage.getItem(`lastReadFriendRequestTime_${this.userID}`)
+      if (savedTime) {
+        this.lastReadFriendRequestTime = parseInt(savedTime, 10)
+      }
     },
     getToken() {
       return this.token
@@ -65,6 +73,13 @@ export const useUserStore = defineStore('user', {
     },
 
     // ==================== Friend Request ====================
+    updateLastReadFriendRequestTime() {
+      this.lastReadFriendRequestTime = Date.now()
+      if (this.userID) {
+        localStorage.setItem(`lastReadFriendRequestTime_${this.userID}`, this.lastReadFriendRequestTime.toString())
+      }
+    },
+
     setFriendRequest(friendRequest: ImTypes.FriendRequest) {
       this.friendRequestMap.set(friendRequest.id, friendRequest)
       // 同步更新辅助 Set
@@ -122,12 +137,22 @@ export const useUserStore = defineStore('user', {
       this.friendMap.clear()
       this.friendRequestMap.clear()
       this.friendRequestUserIds.clear()
+      this.lastReadFriendRequestTime = 0
     }
   },
   getters: {
-    // 获取待处理的请求数量（接收者是我，且状态为 Pending）
-    pendingRequestCount: (state) => {
-      return Array.from(state.friendRequestMap.values()).filter(req => req.status === 1) // 1 is Pending
+    // 获取未读待处理的请求数量（接收者是我，且状态为 Pending，且时间晚于上次读取时间）
+    unreadPendingRequestCount: (state) => {
+      let count = 0;
+      for (const req of state.friendRequestMap.values()) {
+        if (req.status === ImTypes.ApplyStatus.APPLY_STATUS_PENDING && req.to_user_id === state.userID) {
+          const time = req.handle_time || req.request_time;
+          if (time > state.lastReadFriendRequestTime) {
+            count++;
+          }
+        }
+      }
+      return count;
     },
 
     // 获取所有好友列表

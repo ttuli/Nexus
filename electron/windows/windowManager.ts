@@ -8,7 +8,6 @@ import { resourceManager } from '../resource';
 import { TrayManager } from './trayManager';
 import { IpcChannels } from '../../src/types';
 import { config } from '../config';
-import player from 'play-sound';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -637,29 +636,18 @@ class WindowManager {
       }
     });
 
-    // 播放提示音并闪烁
-    ipcMain.on(IpcChannels.WINDOW_PLAY_SOUND, (event) => {
+    // 任务栏闪烁
+    ipcMain.on(IpcChannels.WINDOW_FLASH_FRAME, (event) => {
       try {
         const sender = BrowserWindow.fromWebContents(event.sender);
         if (sender && this.isValidWindow(sender)) {
-          // 1. 播放提示音.
-          const publicPath = process.env.VITE_PUBLIC || app.getAppPath();
-
-          const audioPath = path.join(publicPath, 'audio/notify_msg.wav');
-          player().play(audioPath, (err) => {
-            if (err) {
-              console.error('Failed to play sound via play-sound, falling back to beep:', err);
-              require('electron').shell.beep();
-            }
-          });
-
-          // 2. 任务栏闪烁 (如果窗口未聚焦)
+          // 任务栏闪烁 (如果窗口未聚焦)
           if (!sender.isFocused()) {
             sender.flashFrame(true);
           }
         }
       } catch (error) {
-        console.error('Failed to handle play sound request:', error);
+        console.error('Failed to handle flash frame request:', error);
       }
     });
   }

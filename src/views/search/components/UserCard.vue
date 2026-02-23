@@ -63,7 +63,6 @@ const userStore = useUserStore();
 const isMe = computed(() => userStore.userID === props.userInfo.user_id);
 
 const status = computed(() => {
-
     if (userStore.isFriend(props.userInfo.user_id)) {
         return 'added';
     }

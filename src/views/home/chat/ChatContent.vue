@@ -181,9 +181,7 @@ const handleSendMessage = async (content: string) => {
         content);
 
     // Optimistically add to list
-    if (localMsg) {
-        chatStore.addMessage(localMsg);
-    }
+    chatStore.addMessage(localMsg);
 
     const result = await websocketService.send(msg, clientId);
     if (!result.success || !result.data.sent) {

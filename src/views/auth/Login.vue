@@ -37,7 +37,7 @@
                 </CusInput>
 
                 <!-- 复选框区域 -->
-                <CusCheckBox v-model="form.rememberMe" label="记住密码" />
+                <CusCheckBox v-model="form.rememberMe" label="记住我" class="check-box"/>
 
                 <!-- 登录按钮 -->
                 <CusButton html-type="submit" :loading="isLoading" :showIcon="false">
@@ -80,7 +80,6 @@ import PasswordIcon from '@/assets/input/input_password.svg?url'
 import EyeOpenIcon from '@/assets/input/eye_open.svg?url'
 import EyeClosedIcon from '@/assets/input/eye_closed.svg?url'
 import { signalWindowReady } from '@/utils/windowReady'
-import { normalizeLocalPath } from '@/utils/url'
 import AccountSelector, { AccountOption } from './components/AccountSelector.vue';
 
 interface LoginForm {
@@ -186,12 +185,17 @@ const goToRegister = (): void => {
 onMounted(async () => {
     autologin.value = await tokenService.ableToAutoLogin()
     let history = await userService.getLoginHistory()
-    console.log(history)
-    // Populate account options
-    accountOptions.value = history.map((item: any) => ({
-        account: item.userId?.toString() || '',
+    const toImcacheUrl = (url: string): string => {
+        if (!url || url.startsWith('data:') || url.startsWith('blob:') || url.startsWith('imcache://')) return url;
+        const encoded = btoa(unescape(encodeURIComponent(url)))
+            .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        return `imcache://${encoded}`;
+    };
+
+    accountOptions.value = history.map((item) => ({
+        account: item.account || item.userId?.toString() || '',
         name: item.name,
-        avatar: normalizeLocalPath(item.avatarLocal || '')
+        avatar: toImcacheUrl(item.avatarUrl || '')
     }));
 
     // Default select first account if available and not empty
@@ -201,7 +205,7 @@ onMounted(async () => {
 
     if (history.length > 0 && autologin.value) {
         autoLoginInfo.value = {
-            avatar: normalizeLocalPath(history[0].avatarLocal || ''),
+            avatar: toImcacheUrl(history[0].avatarUrl || ''),
             name: history[0].name
         }
     }
@@ -290,6 +294,10 @@ onMounted(async () => {
             flex-direction: column;
             gap: 24px;
             width: 100%;
+
+            .check-box {
+                margin-left: 5px;
+            }
 
             .input-icon {
                 width: 30px;

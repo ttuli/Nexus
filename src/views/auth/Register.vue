@@ -119,7 +119,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { authService } from '@/services'
 
@@ -131,6 +131,7 @@ import EyeClosedIcon from '@/assets/input/eye_closed.svg?url'
 import CheckValidIcon from '@/assets/input/check_valid.svg?url'
 import CheckInvalidIcon from '@/assets/input/check_invalid.svg?url'
 import CodeIcon from '@/assets/input/input_code.svg?url'
+import { signalWindowReady } from '@/utils/windowReady'
 
 interface RegisterForm {
     nickname: string
@@ -277,6 +278,8 @@ const showPrivacy = (e: Event): void => {
     console.log('显示隐私政策')
     // 可以打开模态框显示隐私政策
 }
+
+onMounted(signalWindowReady)
 </script>
 
 <style scoped lang="scss">

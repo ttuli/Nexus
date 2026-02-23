@@ -148,7 +148,7 @@ export function generateGroupSessionId(groupId: number): string {
     return `group_${groupId}`;
 }
 
-export function buildWsMessage(type: ImTypes.MessageType, content: string): { msg: ImTypes.WSMessage, clientId: string, localMsg: IChatMessage } {
+export function buildWsMessage(type: ImTypes.MessageType, content: any): { msg: ImTypes.WSMessage, clientId: string, localMsg: IChatMessage } {
     const chatStore = useChatStore();
     const userStore = useUserStore();
     const clientId = ulid();
@@ -190,81 +190,41 @@ export function buildWsMessage(type: ImTypes.MessageType, content: string): { ms
 
     switch (type) {
         case ImTypes.MessageType.CHAT_TEXT:
-
-            payload = ImTypes.TextMessage.encode({ base: baseMsg, content, at_list: [] }).finish();
-            localMsg = {
-                ...commonFields,
-                type: ImTypes.MessageType.CHAT_TEXT,
-                content,
-                atList: []
-            } as ILocalTextMessage;
-            break;
         case ImTypes.MessageType.GROUP_TEXT:
-
             payload = ImTypes.TextMessage.encode({ base: baseMsg, content, at_list: [] }).finish();
             localMsg = {
                 ...commonFields,
-                type: ImTypes.MessageType.GROUP_TEXT,
+                type,
                 content,
                 atList: []
             } as ILocalTextMessage;
             break;
         case ImTypes.MessageType.CHAT_IMAGE:
-
-            payload = ImTypes.ImageMessage.encode({ base: baseMsg, url: content, thumbnail_url: '', width: 0, height: 0, size: 0, format: '' }).finish();
-            localMsg = {
-                ...commonFields,
-                type: ImTypes.MessageType.CHAT_IMAGE,
-                url: content,
-                width: 0, height: 0, size: 0, format: ''
-            } as ILocalImageMessage;
-            break;
         case ImTypes.MessageType.GROUP_IMAGE:
-
             payload = ImTypes.ImageMessage.encode({ base: baseMsg, url: content, thumbnail_url: '', width: 0, height: 0, size: 0, format: '' }).finish();
             localMsg = {
                 ...commonFields,
-                type: ImTypes.MessageType.GROUP_IMAGE,
+                type,
                 url: content,
                 width: 0, height: 0, size: 0, format: ''
             } as ILocalImageMessage;
             break;
         case ImTypes.MessageType.CHAT_VIDEO:
-
-            payload = ImTypes.VideoMessage.encode({ base: baseMsg, url: content, thumbnail_url: '', duration: 0, width: 0, height: 0, size: 0, format: '' }).finish();
-            localMsg = {
-                ...commonFields,
-                type: ImTypes.MessageType.CHAT_VIDEO,
-                url: content,
-                duration: 0, width: 0, height: 0, size: 0, format: ''
-            } as ILocalVideoMessage;
-            break;
         case ImTypes.MessageType.GROUP_VIDEO:
-
             payload = ImTypes.VideoMessage.encode({ base: baseMsg, url: content, thumbnail_url: '', duration: 0, width: 0, height: 0, size: 0, format: '' }).finish();
             localMsg = {
                 ...commonFields,
-                type: ImTypes.MessageType.GROUP_VIDEO,
+                type,
                 url: content,
                 duration: 0, width: 0, height: 0, size: 0, format: ''
             } as ILocalVideoMessage;
             break;
         case ImTypes.MessageType.CHAT_FILE:
-
-            payload = ImTypes.FileMessage.encode({ base: baseMsg, url: content, file_name: '', size: 0, file_type: ImTypes.FileType.FILE_TYPE_UNSPECIFIED, md5: '' }).finish();
-            localMsg = {
-                ...commonFields,
-                type: ImTypes.MessageType.CHAT_FILE,
-                url: content,
-                fileName: '', size: 0, fileType: ImTypes.FileType.FILE_TYPE_UNSPECIFIED
-            } as ILocalFileMessage;
-            break;
         case ImTypes.MessageType.GROUP_FILE:
-
             payload = ImTypes.FileMessage.encode({ base: baseMsg, url: content, file_name: '', size: 0, file_type: ImTypes.FileType.FILE_TYPE_UNSPECIFIED, md5: '' }).finish();
             localMsg = {
                 ...commonFields,
-                type: ImTypes.MessageType.GROUP_FILE,
+                type,
                 url: content,
                 fileName: '', size: 0, fileType: ImTypes.FileType.FILE_TYPE_UNSPECIFIED
             } as ILocalFileMessage;
@@ -276,4 +236,37 @@ export function buildWsMessage(type: ImTypes.MessageType, content: string): { ms
 
     wsMsg.payload = payload;
     return { msg: wsMsg, clientId: baseMsg.client_id, localMsg };
+}
+
+export function buildVerifyWsMsg(type: ImTypes.MessageType, data: 
+    ImTypes.FriendRequest | 
+    ImTypes.GroupApply | 
+    ImTypes.Friend
+): { msg: ImTypes.WSMessage, clientId?: string } {
+    const wsMsg: ImTypes.WSMessage = {
+        type,
+        timestamp: Date.now(),
+        version: config.wsMessageVersion,
+        payload: new Uint8Array(),
+    };
+
+    let payload: Uint8Array = new Uint8Array();
+
+    switch (type) {
+        case ImTypes.MessageType.FRIEND_REQUEST:
+            payload = ImTypes.FriendRequest.encode(data as ImTypes.FriendRequest).finish();
+            break;
+        case ImTypes.MessageType.GROUP_REQUEST:
+            payload = ImTypes.GroupApply.encode(data as ImTypes.GroupApply).finish();
+            break;
+        case ImTypes.MessageType.FRIEND_ADD:
+            payload = ImTypes.Friend.encode(data as ImTypes.Friend).finish();
+            break;
+        default:
+            // Should not happen for handled types, but need a fallback or throw
+            throw new Error(`Unsupported message type: ${type}`);
+    }
+
+    wsMsg.payload = payload;
+    return { msg: wsMsg, clientId: ulid() };
 }

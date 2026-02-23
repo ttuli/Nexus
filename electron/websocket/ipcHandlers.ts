@@ -19,11 +19,10 @@ export function setupWsIpcHandlers(): void {
 
     // Send a message
     ipcMain.handle(IpcChannels.WS_SEND, async (_event, message: ImTypes.WSMessage, clientId: string) => {
-        // message is coming from renderer, payload might be Buffer or standard JS object if not properly serialized
         try {
-            const msg = { ...message, clientId: clientId }
+            const msg = { ...message, clientId };
             const sent = wsManager.send(msg);
-            return { sent:sent };
+            return { sent };
         } catch (error) {
             console.error('[WS IPC] Send error:', error);
             return { sent: false, error: (error as Error).message };
