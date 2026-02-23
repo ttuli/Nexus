@@ -39,7 +39,6 @@ import FriendList from './FriendList.vue';
 import GroupList from './GroupList.vue';
 
 import { useUserStore } from '@/store/user';
-import { ImTypes } from '@/types';
 
 const router = useRouter();
 const route = useRoute();
@@ -49,13 +48,14 @@ const currentTab = ref<'friend' | 'group'>('friend');
 const lastReadTime = ref(Number(localStorage.getItem('validationLastReadTime') || 0));
 
 const pendingCount = computed(() => {
-    const userId = userStore.userID;
     const requests = Array.from(userStore.friendRequestMap.values());
 
     return requests.filter(req => {
-        return req.status === ImTypes.ApplyStatus.APPLY_STATUS_PENDING &&
-            req.to_user_id === userId &&
-            req.request_time > lastReadTime.value;
+        if (req.handle_time) {
+            return req.handle_time > lastReadTime.value;
+        }
+
+        return req.request_time > lastReadTime.value;
     }).length;
 });
 
@@ -146,14 +146,14 @@ watch(() => route.path, (newPath) => {
             right: -6px;
             background-color: $color-error;
             color: white;
-            font-size: 10px;
-            padding: 0 5px;
-            height: 16px;
-            min-width: 16px;
-            line-height: 16px;
-            border-radius: 8px;
+            font-size: 11px;
+            height: 18px;
+            width: 18px;
+            border-radius: 50%;
             text-align: center;
-            border: 2px solid #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
     }
 

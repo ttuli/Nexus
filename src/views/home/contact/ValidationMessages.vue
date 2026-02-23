@@ -18,7 +18,7 @@
                     </div>
                     <div class="info">
                         <div class="top">
-                            <span class="name">用户 {{ getRelatedUserInfo(req)?.user_name || (req.from_user_id ===
+                            <span class="name">{{ getRelatedUserInfo(req)?.user_name || (req.from_user_id ===
                                 userStore.userID ? req.to_user_id : req.from_user_id) }}</span>
                         </div>
                         <div class="msg">留言: {{ req.apply_msg }}</div>
@@ -96,12 +96,12 @@ const groupStore = useGroupStore();
 const enterTimeFriend = ref(Date.now());
 const enterTimeGroup = ref(Date.now());
 
-// Capture the time when entering the tab and mark as read
+// 当进入页面或者切换标签时清除对应的未读红点，并记录时间供闪烁特效使用
 watch(type, (newType) => {
     if (newType === 'friend') {
-        enterTimeFriend.value = userStore.lastReadFriendRequestTime; // Use the value BEFORE we update it
+        enterTimeFriend.value = userStore.lastReadFriendRequestTime;
         userStore.updateLastReadFriendRequestTime();
-    } else {
+    } else if (newType === 'group') {
         enterTimeGroup.value = groupStore.lastReadGroupRequestTime;
         groupStore.updateLastReadGroupRequestTime(userStore.userID);
     }
@@ -154,7 +154,6 @@ const getGroupStatusText = (status: ImTypes.GroupApplyStatus) => {
 const getRelatedUserInfo = (req: ImTypes.FriendRequest) => {
     const isSelf = req.from_user_id === userStore.userID;
     const targetId = isSelf ? req.to_user_id : req.from_user_id;
-    // 用户信息已在 home/index.vue 预加载，直接从 store 读取
     return userStore.getUser(targetId);
 };
 

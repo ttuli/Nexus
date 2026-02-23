@@ -114,18 +114,15 @@ const openUserInfo = () => {
 
         .badge {
             position: absolute;
-            top: 4px;
-            right: 4px;
+            top: -4px;
+            right: -2px;
             background-color: #ff4d4f;
             color: white;
             font-size: 10px;
-            height: 14px;
-            min-width: 14px;
-            padding: 0 4px;
-            line-height: 14px;
-            border-radius: 7px;
+            height: 18px;
+            width: 18px;
+            border-radius: 50%;
             text-align: center;
-            border: 1px solid #fff;
             display: flex;
             justify-content: center;
             align-items: center;
