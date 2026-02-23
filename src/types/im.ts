@@ -9,6 +9,39 @@ import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
 
 export const protobufPackage = "im";
 
+export enum TargetType {
+  USER = 0,
+  GROUP = 1,
+  UNRECOGNIZED = -1,
+}
+
+export function targetTypeFromJSON(object: any): TargetType {
+  switch (object) {
+    case 0:
+    case "USER":
+      return TargetType.USER;
+    case 1:
+    case "GROUP":
+      return TargetType.GROUP;
+    case -1:
+    case "UNRECOGNIZED":
+    default:
+      return TargetType.UNRECOGNIZED;
+  }
+}
+
+export function targetTypeToJSON(object: TargetType): string {
+  switch (object) {
+    case TargetType.USER:
+      return "USER";
+    case TargetType.GROUP:
+      return "GROUP";
+    case TargetType.UNRECOGNIZED:
+    default:
+      return "UNRECOGNIZED";
+  }
+}
+
 /** ws连接状态 */
 export enum ConnectionState {
   DISCONNECTED = 0,
@@ -1224,7 +1257,9 @@ export interface WSMessage {
 /** 跨节点内部通信消息 */
 export interface InternalMessage {
   /** 路由目标 */
-  target_user_id: number;
+  target_id: number;
+  /** 路由目标类型 */
+  target_type: TargetType;
   /** 实际消息 */
   message:
     | WSMessage
@@ -1861,19 +1896,22 @@ export const WSMessage: MessageFns<WSMessage> = {
 };
 
 function createBaseInternalMessage(): InternalMessage {
-  return { target_user_id: 0, message: undefined, internal_ext: {} };
+  return { target_id: 0, target_type: 0, message: undefined, internal_ext: {} };
 }
 
 export const InternalMessage: MessageFns<InternalMessage> = {
   encode(message: InternalMessage, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.target_user_id !== 0) {
-      writer.uint32(8).uint64(message.target_user_id);
+    if (message.target_id !== 0) {
+      writer.uint32(8).uint64(message.target_id);
+    }
+    if (message.target_type !== 0) {
+      writer.uint32(16).int32(message.target_type);
     }
     if (message.message !== undefined) {
-      WSMessage.encode(message.message, writer.uint32(18).fork()).join();
+      WSMessage.encode(message.message, writer.uint32(26).fork()).join();
     }
     globalThis.Object.entries(message.internal_ext).forEach(([key, value]: [string, string]) => {
-      InternalMessage_InternalExtEntry.encode({ key: key as any, value }, writer.uint32(26).fork()).join();
+      InternalMessage_InternalExtEntry.encode({ key: key as any, value }, writer.uint32(34).fork()).join();
     });
     return writer;
   },
@@ -1890,15 +1928,15 @@ export const InternalMessage: MessageFns<InternalMessage> = {
             break;
           }
 
-          message.target_user_id = longToNumber(reader.uint64());
+          message.target_id = longToNumber(reader.uint64());
           continue;
         }
         case 2: {
-          if (tag !== 18) {
+          if (tag !== 16) {
             break;
           }
 
-          message.message = WSMessage.decode(reader, reader.uint32());
+          message.target_type = reader.int32() as any;
           continue;
         }
         case 3: {
@@ -1906,9 +1944,17 @@ export const InternalMessage: MessageFns<InternalMessage> = {
             break;
           }
 
-          const entry3 = InternalMessage_InternalExtEntry.decode(reader, reader.uint32());
-          if (entry3.value !== undefined) {
-            message.internal_ext[entry3.key] = entry3.value;
+          message.message = WSMessage.decode(reader, reader.uint32());
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          const entry4 = InternalMessage_InternalExtEntry.decode(reader, reader.uint32());
+          if (entry4.value !== undefined) {
+            message.internal_ext[entry4.key] = entry4.value;
           }
           continue;
         }
@@ -1923,10 +1969,15 @@ export const InternalMessage: MessageFns<InternalMessage> = {
 
   fromJSON(object: any): InternalMessage {
     return {
-      target_user_id: isSet(object.targetUserId)
-        ? globalThis.Number(object.targetUserId)
-        : isSet(object.target_user_id)
-        ? globalThis.Number(object.target_user_id)
+      target_id: isSet(object.targetId)
+        ? globalThis.Number(object.targetId)
+        : isSet(object.target_id)
+        ? globalThis.Number(object.target_id)
+        : 0,
+      target_type: isSet(object.targetType)
+        ? targetTypeFromJSON(object.targetType)
+        : isSet(object.target_type)
+        ? targetTypeFromJSON(object.target_type)
         : 0,
       message: isSet(object.message) ? WSMessage.fromJSON(object.message) : undefined,
       internal_ext: isObject(object.internalExt)
@@ -1951,8 +2002,11 @@ export const InternalMessage: MessageFns<InternalMessage> = {
 
   toJSON(message: InternalMessage): unknown {
     const obj: any = {};
-    if (message.target_user_id !== 0) {
-      obj.targetUserId = Math.round(message.target_user_id);
+    if (message.target_id !== 0) {
+      obj.targetId = Math.round(message.target_id);
+    }
+    if (message.target_type !== 0) {
+      obj.targetType = targetTypeToJSON(message.target_type);
     }
     if (message.message !== undefined) {
       obj.message = WSMessage.toJSON(message.message);
@@ -1974,7 +2028,8 @@ export const InternalMessage: MessageFns<InternalMessage> = {
   },
   fromPartial<I extends Exact<DeepPartial<InternalMessage>, I>>(object: I): InternalMessage {
     const message = createBaseInternalMessage();
-    message.target_user_id = object.target_user_id ?? 0;
+    message.target_id = object.target_id ?? 0;
+    message.target_type = object.target_type ?? 0;
     message.message = (object.message !== undefined && object.message !== null)
       ? WSMessage.fromPartial(object.message)
       : undefined;

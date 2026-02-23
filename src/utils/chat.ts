@@ -270,3 +270,19 @@ export function buildVerifyWsMsg(type: ImTypes.MessageType, data:
     wsMsg.payload = payload;
     return { msg: wsMsg, clientId: ulid() };
 }
+
+export function convertApplySrc2FriendSrc(src: ImTypes.ApplySource): ImTypes.FriendSource {
+    switch (src) {
+        case ImTypes.ApplySource.APPLY_SOURCE_SEARCH_ACCOUNT:
+        case ImTypes.ApplySource.APPLY_SOURCE_SEARCH_PHONE:
+        case ImTypes.ApplySource.APPLY_SOURCE_SEARCH_NAME:
+            return ImTypes.FriendSource.FRIEND_SOURCE_SEARCH;
+        case ImTypes.ApplySource.APPLY_SOURCE_FROM_GROUP:
+            return ImTypes.FriendSource.FRIEND_SOURCE_GROUP;
+        case ImTypes.ApplySource.APPLY_SOURCE_FROM_RECOMMEND:
+            return ImTypes.FriendSource.FRIEND_SOURCE_RECOMMEND;
+        case ImTypes.ApplySource.APPLY_SOURCE_UNSPECIFIED:
+        default:
+            return ImTypes.FriendSource.FRIEND_SOURCE_UNSPECIFIED;
+    }
+}

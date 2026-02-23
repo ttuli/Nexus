@@ -10,7 +10,7 @@ import { useGroupStore } from '@/store/group'
 import { ResourceType, IpcChannels, UpdateAction, ImTypes } from '@/types'
 import { ElMessage } from 'element-plus'
 import { useChatStore } from '@/store/chat'
-import { convertWSMessageToIChatMessage, generateSessionId } from '@/utils/chat'
+import { convertApplySrc2FriendSrc, convertWSMessageToIChatMessage, generateSessionId } from '@/utils/chat'
 import windowService, { NotifySoundType } from './windowService'
 
 type ResourceHandler = (items: any[]) => void
@@ -195,6 +195,19 @@ class ListenerService {
                 case ImTypes.MessageType.FRIEND_REQUEST:
                     const friendRequest = ImTypes.FriendRequest.decode(data.payload.payload)
                     userStore.setFriendRequest(friendRequest)
+                    if (friendRequest.status === ImTypes.ApplyStatus.APPLY_STATUS_AGREED) {
+                        userStore.setFriend({
+                            user_id: userStore.getUserID(),
+                            friend_id: friendRequest.to_user_id,
+                            remark: '',
+                            starred: false,
+                            blocked: false,
+                            source: convertApplySrc2FriendSrc(friendRequest.source),
+                            create_time: friendRequest.handle_time,
+                            extra: '',
+                        })
+                        chatStore.addChat(generateSessionId(friendRequest.from_user_id,friendRequest.to_user_id))
+                    }
                     windowService.playNotificationSound(NotifySoundType.Request)
                     break;
                 case ImTypes.MessageType.FRIEND_ADD:

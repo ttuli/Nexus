@@ -266,8 +266,8 @@ const confirmAddFriend = async () => {
                     create_time: Date.now(),
                 }])
                 const { msg, clientId } = buildVerifyWsMsg(ImTypes.MessageType.FRIEND_ADD, {
-                    user_id: targetUser.value.user_id,
-                    friend_id: useUserStore().getUserID(),
+                    user_id: useUserStore().getUserID(),
+                    friend_id: targetUser.value.user_id,
                     remark: '',
                     source: ImTypes.ApplySource.APPLY_SOURCE_SEARCH_ACCOUNT,
                     blocked: false,
@@ -295,7 +295,8 @@ const confirmAddFriend = async () => {
                 message: applyMessage.value
             } as any);
             await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_APPLY, [res.data.data])
-
+            const { msg, clientId } = buildVerifyWsMsg(ImTypes.MessageType.GROUP_REQUEST, res.data.data as any)
+            websocketService.send(msg, clientId)
             ElMessage.success("发送入群申请成功")
         }
     } finally {

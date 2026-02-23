@@ -87,7 +87,7 @@ import { UpdateAction, ResourceType, ImTypes } from '@/types';
 import { cacheService, groupService, websocketService } from '@/services';
 import { friendService } from '@/services'
 import GlobalLoading from '@/components/GlobalLoading/GlobalLoading';
-import { buildVerifyWsMsg } from '@/utils/chat';
+import { buildVerifyWsMsg, convertApplySrc2FriendSrc } from '@/utils/chat';
 
 const type = ref<'friend' | 'group'>('friend');
 const userStore = useUserStore();
@@ -195,9 +195,13 @@ const handleApply = async (req: ImTypes.FriendRequest, type: 'accept' | 'reject'
                 blocked: false,
                 starred: false,
                 create_time: Date.now(),
-                source: source
-            }])
+                source: convertApplySrc2FriendSrc(source),
+                extra: ""
+            } as ImTypes.Friend])
         }
+
+        const { msg, clientId } = buildVerifyWsMsg(ImTypes.MessageType.FRIEND_REQUEST, { ...req, status })
+        websocketService.send(msg, clientId)
     } finally {
         GlobalLoading.close();
     }
@@ -221,7 +225,7 @@ const handleGroupReq = async (req: ImTypes.GroupApply, actionType: 'accept' | 'r
                 members: [req.sender_id],
             }])
         }
-        const { msg, clientId } = buildVerifyWsMsg(ImTypes.MessageType.GROUP_REQUEST, req)
+        const { msg, clientId } = buildVerifyWsMsg(ImTypes.MessageType.GROUP_REQUEST, { ...req, status })
         websocketService.send(msg, clientId)
     } finally {
         GlobalLoading.close();

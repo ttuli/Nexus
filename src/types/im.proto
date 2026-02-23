@@ -23,9 +23,15 @@ message WSMessage {
 
 // 跨节点内部通信消息
 message InternalMessage {
-  uint64 target_user_id = 1;      // 路由目标
-  WSMessage message = 2;          // 实际消息
-  map<string, string> internal_ext = 3; // 内部扩展字段
+  uint64 target_id = 1;      // 路由目标
+  TargetType target_type = 2; // 路由目标类型
+  WSMessage message = 3;          // 实际消息
+  map<string, string> internal_ext = 4; // 内部扩展字段
+}
+
+enum TargetType {
+    USER = 0;
+    GROUP = 1;
 }
 
 // ws连接状态
