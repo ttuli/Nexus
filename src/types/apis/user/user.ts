@@ -170,6 +170,12 @@ export interface HandleFriendApplyReq {
   reject_reason: string;
 }
 
+/** HandleFriendApplyResp */
+export interface HandleFriendApplyResp {
+  /** @gotags: json:"data" */
+  data: FriendRequest | undefined;
+}
+
 /** GetPendingFriendAppliesReq */
 export interface GetPendingFriendAppliesReq {
 }
@@ -1803,6 +1809,66 @@ export const HandleFriendApplyReq: MessageFns<HandleFriendApplyReq> = {
     message.request_id = object.request_id ?? 0;
     message.result = object.result ?? 0;
     message.reject_reason = object.reject_reason ?? "";
+    return message;
+  },
+};
+
+function createBaseHandleFriendApplyResp(): HandleFriendApplyResp {
+  return { data: undefined };
+}
+
+export const HandleFriendApplyResp: MessageFns<HandleFriendApplyResp> = {
+  encode(message: HandleFriendApplyResp, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.data !== undefined) {
+      FriendRequest.encode(message.data, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): HandleFriendApplyResp {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseHandleFriendApplyResp();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.data = FriendRequest.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): HandleFriendApplyResp {
+    return { data: isSet(object.data) ? FriendRequest.fromJSON(object.data) : undefined };
+  },
+
+  toJSON(message: HandleFriendApplyResp): unknown {
+    const obj: any = {};
+    if (message.data !== undefined) {
+      obj.data = FriendRequest.toJSON(message.data);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<HandleFriendApplyResp>, I>>(base?: I): HandleFriendApplyResp {
+    return HandleFriendApplyResp.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<HandleFriendApplyResp>, I>>(object: I): HandleFriendApplyResp {
+    const message = createBaseHandleFriendApplyResp();
+    message.data = (object.data !== undefined && object.data !== null)
+      ? FriendRequest.fromPartial(object.data)
+      : undefined;
     return message;
   },
 };

@@ -7,6 +7,9 @@
             <div class="info-content">
                 <div class="name-row">
                     <span class="name" v-html="highlightKeyword(userInfo.user_name || '未命名')"></span>
+                    <img :src="maleIcon" class="gender-icon" v-if="userInfo.gender === ImTypes.Gender.GENDER_MALE" />
+                    <img :src="femaleIcon" class="gender-icon"
+                        v-else-if="userInfo.gender === ImTypes.Gender.GENDER_FEMALE" />
                     <span v-if="isMe" class="me-tag">我</span>
                 </div>
                 <div class="sub-info">
@@ -48,6 +51,8 @@ import { computed } from 'vue';
 import { ImTypes } from '@/types';
 import { useUserStore } from '@/store/user';
 import Avatar from '@/components/Avatar.vue';
+import maleIcon from '@/assets/gender/male.svg?url';
+import femaleIcon from '@/assets/gender/female.svg?url';
 
 
 const props = defineProps<{
@@ -142,6 +147,11 @@ const highlightKeyword = (text: string) => {
                 display: flex;
                 align-items: center;
                 gap: 8px;
+
+                .gender-icon {
+                    width: 14px;
+                    height: 14px;
+                }
 
                 .name {
                     font-size: $font-size-lg;

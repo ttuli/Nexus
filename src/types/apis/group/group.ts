@@ -50,7 +50,7 @@ export interface Group {
 /** GroupRequest */
 export interface GroupRequest {
   /** @gotags: json:"id" */
-  id: string;
+  id: number;
   /** @gotags: json:"sender_id" */
   sender_id: number;
   /** @gotags: json:"group_id" */
@@ -146,13 +146,16 @@ export interface JoinGroupResp {
 /** HandleGroupApplyReq */
 export interface HandleGroupApplyReq {
   /** @gotags: json:"apply_id" */
-  apply_id: string;
+  apply_id: number;
   /** @gotags: json:"result" */
   result: number;
-  /** @gotags: json:"operator_id" */
-  operator_id: number;
   /** @gotags: json:"reject_reason,optional" */
   reject_reason: string;
+}
+
+export interface HandleGroupApplyResp {
+  /** @gotags: json:"data" */
+  data: GroupRequest | undefined;
 }
 
 /** InviteMembersReq */
@@ -607,7 +610,7 @@ export const Group: MessageFns<Group> = {
 
 function createBaseGroupRequest(): GroupRequest {
   return {
-    id: "",
+    id: 0,
     sender_id: 0,
     group_id: 0,
     apply_msg: "",
@@ -621,8 +624,8 @@ function createBaseGroupRequest(): GroupRequest {
 
 export const GroupRequest: MessageFns<GroupRequest> = {
   encode(message: GroupRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.id !== "") {
-      writer.uint32(10).string(message.id);
+    if (message.id !== 0) {
+      writer.uint32(8).int64(message.id);
     }
     if (message.sender_id !== 0) {
       writer.uint32(16).uint64(message.sender_id);
@@ -659,11 +662,11 @@ export const GroupRequest: MessageFns<GroupRequest> = {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1: {
-          if (tag !== 10) {
+          if (tag !== 8) {
             break;
           }
 
-          message.id = reader.string();
+          message.id = longToNumber(reader.int64());
           continue;
         }
         case 2: {
@@ -741,7 +744,7 @@ export const GroupRequest: MessageFns<GroupRequest> = {
 
   fromJSON(object: any): GroupRequest {
     return {
-      id: isSet(object.id) ? globalThis.String(object.id) : "",
+      id: isSet(object.id) ? globalThis.Number(object.id) : 0,
       sender_id: isSet(object.senderId)
         ? globalThis.Number(object.senderId)
         : isSet(object.sender_id)
@@ -783,8 +786,8 @@ export const GroupRequest: MessageFns<GroupRequest> = {
 
   toJSON(message: GroupRequest): unknown {
     const obj: any = {};
-    if (message.id !== "") {
-      obj.id = message.id;
+    if (message.id !== 0) {
+      obj.id = Math.round(message.id);
     }
     if (message.sender_id !== 0) {
       obj.senderId = Math.round(message.sender_id);
@@ -818,7 +821,7 @@ export const GroupRequest: MessageFns<GroupRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<GroupRequest>, I>>(object: I): GroupRequest {
     const message = createBaseGroupRequest();
-    message.id = object.id ?? "";
+    message.id = object.id ?? 0;
     message.sender_id = object.sender_id ?? 0;
     message.group_id = object.group_id ?? 0;
     message.apply_msg = object.apply_msg ?? "";
@@ -1576,22 +1579,19 @@ export const JoinGroupResp: MessageFns<JoinGroupResp> = {
 };
 
 function createBaseHandleGroupApplyReq(): HandleGroupApplyReq {
-  return { apply_id: "", result: 0, operator_id: 0, reject_reason: "" };
+  return { apply_id: 0, result: 0, reject_reason: "" };
 }
 
 export const HandleGroupApplyReq: MessageFns<HandleGroupApplyReq> = {
   encode(message: HandleGroupApplyReq, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.apply_id !== "") {
-      writer.uint32(10).string(message.apply_id);
+    if (message.apply_id !== 0) {
+      writer.uint32(8).int64(message.apply_id);
     }
     if (message.result !== 0) {
       writer.uint32(16).int32(message.result);
     }
-    if (message.operator_id !== 0) {
-      writer.uint32(24).uint64(message.operator_id);
-    }
     if (message.reject_reason !== "") {
-      writer.uint32(34).string(message.reject_reason);
+      writer.uint32(26).string(message.reject_reason);
     }
     return writer;
   },
@@ -1604,11 +1604,11 @@ export const HandleGroupApplyReq: MessageFns<HandleGroupApplyReq> = {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1: {
-          if (tag !== 10) {
+          if (tag !== 8) {
             break;
           }
 
-          message.apply_id = reader.string();
+          message.apply_id = longToNumber(reader.int64());
           continue;
         }
         case 2: {
@@ -1620,15 +1620,7 @@ export const HandleGroupApplyReq: MessageFns<HandleGroupApplyReq> = {
           continue;
         }
         case 3: {
-          if (tag !== 24) {
-            break;
-          }
-
-          message.operator_id = longToNumber(reader.uint64());
-          continue;
-        }
-        case 4: {
-          if (tag !== 34) {
+          if (tag !== 26) {
             break;
           }
 
@@ -1647,16 +1639,11 @@ export const HandleGroupApplyReq: MessageFns<HandleGroupApplyReq> = {
   fromJSON(object: any): HandleGroupApplyReq {
     return {
       apply_id: isSet(object.applyId)
-        ? globalThis.String(object.applyId)
+        ? globalThis.Number(object.applyId)
         : isSet(object.apply_id)
-        ? globalThis.String(object.apply_id)
-        : "",
-      result: isSet(object.result) ? globalThis.Number(object.result) : 0,
-      operator_id: isSet(object.operatorId)
-        ? globalThis.Number(object.operatorId)
-        : isSet(object.operator_id)
-        ? globalThis.Number(object.operator_id)
+        ? globalThis.Number(object.apply_id)
         : 0,
+      result: isSet(object.result) ? globalThis.Number(object.result) : 0,
       reject_reason: isSet(object.rejectReason)
         ? globalThis.String(object.rejectReason)
         : isSet(object.reject_reason)
@@ -1667,14 +1654,11 @@ export const HandleGroupApplyReq: MessageFns<HandleGroupApplyReq> = {
 
   toJSON(message: HandleGroupApplyReq): unknown {
     const obj: any = {};
-    if (message.apply_id !== "") {
-      obj.applyId = message.apply_id;
+    if (message.apply_id !== 0) {
+      obj.applyId = Math.round(message.apply_id);
     }
     if (message.result !== 0) {
       obj.result = Math.round(message.result);
-    }
-    if (message.operator_id !== 0) {
-      obj.operatorId = Math.round(message.operator_id);
     }
     if (message.reject_reason !== "") {
       obj.rejectReason = message.reject_reason;
@@ -1687,10 +1671,69 @@ export const HandleGroupApplyReq: MessageFns<HandleGroupApplyReq> = {
   },
   fromPartial<I extends Exact<DeepPartial<HandleGroupApplyReq>, I>>(object: I): HandleGroupApplyReq {
     const message = createBaseHandleGroupApplyReq();
-    message.apply_id = object.apply_id ?? "";
+    message.apply_id = object.apply_id ?? 0;
     message.result = object.result ?? 0;
-    message.operator_id = object.operator_id ?? 0;
     message.reject_reason = object.reject_reason ?? "";
+    return message;
+  },
+};
+
+function createBaseHandleGroupApplyResp(): HandleGroupApplyResp {
+  return { data: undefined };
+}
+
+export const HandleGroupApplyResp: MessageFns<HandleGroupApplyResp> = {
+  encode(message: HandleGroupApplyResp, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.data !== undefined) {
+      GroupRequest.encode(message.data, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): HandleGroupApplyResp {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseHandleGroupApplyResp();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.data = GroupRequest.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): HandleGroupApplyResp {
+    return { data: isSet(object.data) ? GroupRequest.fromJSON(object.data) : undefined };
+  },
+
+  toJSON(message: HandleGroupApplyResp): unknown {
+    const obj: any = {};
+    if (message.data !== undefined) {
+      obj.data = GroupRequest.toJSON(message.data);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<HandleGroupApplyResp>, I>>(base?: I): HandleGroupApplyResp {
+    return HandleGroupApplyResp.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<HandleGroupApplyResp>, I>>(object: I): HandleGroupApplyResp {
+    const message = createBaseHandleGroupApplyResp();
+    message.data = (object.data !== undefined && object.data !== null)
+      ? GroupRequest.fromPartial(object.data)
+      : undefined;
     return message;
   },
 };

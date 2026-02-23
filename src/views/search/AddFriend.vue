@@ -95,7 +95,7 @@
 
 <script lang="ts" setup>
 import { onMounted, ref, watch } from 'vue';
-import { ImTypes } from '@/types';
+import { ImTypes, IpcChannels } from '@/types';
 import SearchIcon from '@/assets/input/search.svg?url';
 import UserCard from './components/UserCard.vue';
 import GroupCard from './components/GroupCard.vue';
@@ -104,7 +104,7 @@ import { UpdateAction, ResourceType } from '@/types';
 import GlobalLoading from '@/components/GlobalLoading/GlobalLoading';
 import { useUserStore } from '@/store/user';
 import { signalWindowReady } from '@/utils/windowReady';
-import { userService, friendService, cacheService, groupService, websocketService } from '@/services';
+import { userService, friendService, cacheService, groupService, websocketService, windowService } from '@/services';
 import { ElMessage } from 'element-plus';
 
 import maleIcon from '@/assets/gender/male.svg?url';

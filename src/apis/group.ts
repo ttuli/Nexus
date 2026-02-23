@@ -99,8 +99,12 @@ export async function joinGroup(data: ApiTypes.group.JoinGroupReq) {
  * PUT /group/apply/handle
  */
 export async function handleGroupApply(data: ApiTypes.group.HandleGroupApplyReq) {
-    const res = await instance.put(config.groupServer + '/group/apply/handle', data)
-    return res.data
+    const res = await instance<ApiResponse<ApiTypes.group.HandleGroupApplyResp>>({
+        method: 'put',
+        url: config.groupServer + '/group/apply/handle',
+        data
+    })
+    return decodeResponse(res.data, ApiTypes.group.HandleGroupApplyResp.decode)
 }
 
 /**

@@ -1,54 +1,6 @@
-
 import instance, { decodeResponse, ApiResponse } from '@/utils/request'
 import { ApiTypes } from '@/types'
 import { config } from '@/config';
-
-
-// ==================== User APIs ====================
-
-// /**
-//  * 获取用户信息 (支持批量)
-//  * GET /user/info
-//  */
-// export async function getUserInfo(ids: number[]) {
-//   // ApiTypes.user.GetUserInfoReq expects { ids: number[], ... }
-//   // We can pass the object directly to params
-//   let res = await instance<ApiResponse<any>>({
-//     method: 'get',
-//     url: config.userServer + '/user/info',
-//     params: { ids },
-//     paramsSerializer: params => {
-//       return qs.stringify(params, { arrayFormat: 'repeat' })
-//     }
-//   })
-//   return res.data as unknown as ApiTypes.user.GetUserInfoResp
-// }
-
-// /**
-//  * 根据手机号获取用户信息
-//  * GET /user/info
-//  */
-// export async function getUserInfoByPhone(phone: string) {
-//   let res = await instance<ApiResponse<any>>({
-//     method: 'get',
-//     url: config.userServer + '/user/info',
-//     params: { phone }
-//   })
-//   return res.data as unknown as ApiTypes.user.GetUserInfoResp
-// }
-
-// /**
-//  * 根据用户名获取用户信息
-//  * GET /user/info
-//  */
-// export async function getUserInfoByName(name: string) {
-//   let res = await instance<ApiResponse<any>>({
-//     method: 'get',
-//     url: config.userServer + '/user/info',
-//     params: { name }
-//   })
-//   return res.data as unknown as ApiTypes.user.GetUserInfoResp
-// }
 
 /**
  * 更新个人信息
@@ -126,8 +78,12 @@ export async function applyFriend(data: ApiTypes.user.NewFriendApplyReq) {
  * PUT /user/friend/apply/handle
  */
 export async function handleFriendApply(data: ApiTypes.user.HandleFriendApplyReq) {
-  let res = await instance.put(config.userServer + '/user/friend/apply/handle', data)
-  return res.data
+  let res = await instance<ApiResponse<ApiTypes.user.HandleFriendApplyResp>>({
+    method: 'put',
+    url: config.userServer + '/user/friend/apply/handle',
+    data
+  })
+  return decodeResponse(res.data, ApiTypes.user.HandleFriendApplyResp.decode)
 }
 
 /**

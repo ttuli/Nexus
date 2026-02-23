@@ -149,11 +149,11 @@ export const useUserStore = defineStore('user', {
     unreadPendingRequestCount: (state) => {
       let count = 0;
       for (const req of state.friendRequestMap.values()) {
-        if (req.status === ImTypes.ApplyStatus.APPLY_STATUS_PENDING && req.to_user_id === state.userID) {
-          const time = req.handle_time || req.request_time;
-          if (time > state.lastReadFriendRequestTime) {
-            count++;
-          }
+        if (req.from_user_id === state.userID && req.status === ImTypes.ApplyStatus.APPLY_STATUS_PENDING)
+          continue;
+        const time = req.handle_time || req.request_time;
+        if (time > state.lastReadFriendRequestTime) {
+          count++;
         }
       }
       return count;

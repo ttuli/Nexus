@@ -29,7 +29,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 
 defineOptions({ name: 'ContactSidebar' });
@@ -39,24 +39,17 @@ import FriendList from './FriendList.vue';
 import GroupList from './GroupList.vue';
 
 import { useUserStore } from '@/store/user';
+import { useGroupStore } from '@/store/group';
 
 const router = useRouter();
 const route = useRoute();
 const userStore = useUserStore();
+const groupStore = useGroupStore();
 
 const currentTab = ref<'friend' | 'group'>('friend');
-const lastReadTime = ref(Number(localStorage.getItem('validationLastReadTime') || 0));
 
 const pendingCount = computed(() => {
-    const requests = Array.from(userStore.friendRequestMap.values());
-
-    return requests.filter(req => {
-        if (req.handle_time) {
-            return req.handle_time > lastReadTime.value;
-        }
-
-        return req.request_time > lastReadTime.value;
-    }).length;
+    return userStore.unreadPendingRequestCount + groupStore.unreadPendingRequestCount;
 });
 
 const isValidationActive = computed(() => route.path.includes('/contact/validation'));
@@ -66,20 +59,9 @@ const currentListComponent = computed(() => {
 });
 
 const goToValidation = () => {
-    // Clear badge on click
-    lastReadTime.value = Date.now();
-    localStorage.setItem('validationLastReadTime', lastReadTime.value.toString());
-
     router.push('/home/contacts/validation');
 };
 
-// Also clear if we match the route (e.g. refresh on page)
-watch(() => route.path, (newPath) => {
-    if (newPath.includes('/contact/validation')) {
-        lastReadTime.value = Date.now();
-        localStorage.setItem('validationLastReadTime', lastReadTime.value.toString());
-    }
-}, { immediate: true });
 </script>
 
 <style scoped lang="scss">

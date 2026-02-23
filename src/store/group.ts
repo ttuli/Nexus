@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { reactive } from 'vue'
 import { ImTypes } from '@/types'
+import { useUserStore } from './user'
 
 /**
  * 群组数据 Store
@@ -139,11 +140,13 @@ export const useGroupStore = defineStore('group', {
         unreadPendingRequestCount: (state) => {
             let count = 0;
             for (const req of state.groupRequestMap.values()) {
-                if (req.status === ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_PENDING) {
-                    const time = req.handle_time || req.request_time;
-                    if (time > state.lastReadGroupRequestTime) {
-                        count++;
-                    }
+                if (req.status === ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_PENDING
+                    && req.sender_id === useUserStore().getUserID()
+                ) continue;
+                
+                const time = req.handle_time || req.request_time;
+                if (time > state.lastReadGroupRequestTime) {
+                    count++;
                 }
             }
             return count;

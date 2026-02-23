@@ -93,31 +93,22 @@ const type = ref<'friend' | 'group'>('friend');
 const userStore = useUserStore();
 const groupStore = useGroupStore();
 
-const enterTimeFriend = ref(Date.now());
-const enterTimeGroup = ref(Date.now());
-
 // 当进入页面或者切换标签时清除对应的未读红点，并记录时间供闪烁特效使用
 watch(type, (newType) => {
+    alert(newType)
     if (newType === 'friend') {
-        enterTimeFriend.value = userStore.lastReadFriendRequestTime;
         userStore.updateLastReadFriendRequestTime();
     } else if (newType === 'group') {
-        enterTimeGroup.value = groupStore.lastReadGroupRequestTime;
         groupStore.updateLastReadGroupRequestTime(userStore.userID);
     }
 }, { immediate: true });
 
 const isUnread = (req: any, reqType: 'friend' | 'group') => {
-    if (req.status !== ImTypes.ApplyStatus.APPLY_STATUS_PENDING && req.status !== ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_PENDING) return false;
-
-    // For friend, only receiver sees it as unread
-    if (reqType === 'friend' && req.from_user_id === userStore.userID) return false;
-
     const time = req.handle_time || req.request_time;
     if (reqType === 'friend') {
-        return time > enterTimeFriend.value;
+        return time > userStore.lastReadFriendRequestTime;
     } else {
-        return time > enterTimeGroup.value;
+        return time > groupStore.lastReadGroupRequestTime;
     }
 };
 
@@ -169,13 +160,14 @@ const handleApply = async (req: ImTypes.FriendRequest, type: 'accept' | 'reject'
     const status: ImTypes.ApplyStatus = type === 'accept' ? ImTypes.ApplyStatus.APPLY_STATUS_AGREED : ImTypes.ApplyStatus.APPLY_STATUS_REJECTED;
     try {
         GlobalLoading.show();
-        await friendService.handleFriendApply({
-            applyId: req.id,
-            action: status
-        } as any);
+        let res = await friendService.handleFriendApply({
+            request_id: req.id,
+            result: status,
+            reject_reason: ''
+        });
 
         // Cache update is handled by listenerService
-        await cacheService.updateItems(UpdateAction.Update, ResourceType.FRIEND_REQUEST, [{ ...req, status }])
+        await cacheService.updateItems(UpdateAction.Update, ResourceType.FRIEND_REQUEST, [res.data.data])
         if (status === ImTypes.ApplyStatus.APPLY_STATUS_AGREED) {
             let source: ImTypes.ApplySource;
             if (req.source === ImTypes.ApplySource.APPLY_SOURCE_SEARCH_ACCOUNT ||
@@ -199,7 +191,7 @@ const handleApply = async (req: ImTypes.FriendRequest, type: 'accept' | 'reject'
             } as ImTypes.Friend])
         }
 
-        const { msg, clientId } = buildVerifyWsMsg(ImTypes.MessageType.FRIEND_REQUEST, { ...req, status })
+        const { msg, clientId } = buildVerifyWsMsg(ImTypes.MessageType.FRIEND_REQUEST, res.data.data as ImTypes.FriendRequest)
         websocketService.send(msg, clientId)
     } finally {
         GlobalLoading.close();
@@ -211,12 +203,13 @@ const handleGroupReq = async (req: ImTypes.GroupApply, actionType: 'accept' | 'r
     const status: ImTypes.GroupApplyStatus = actionType === 'accept' ? ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_ACCEPTED : ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_REJECTED;
     try {
         GlobalLoading.show();
-        await groupService.handleGroupApply({
-            applyId: req.id,
-            action: status as any
-        } as any);
+        let res = await groupService.handleGroupApply({
+            apply_id: req.id,
+            result: status,
+            reject_reason: '',
+        });
 
-        await cacheService.updateItems(UpdateAction.Update, ResourceType.GROUP_APPLY, [{ ...req, status }])
+        await cacheService.updateItems(UpdateAction.Update, ResourceType.GROUP_APPLY, [res.data.data])
 
         if (status === ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_ACCEPTED) {
             await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_MEMBER, [{
@@ -224,7 +217,7 @@ const handleGroupReq = async (req: ImTypes.GroupApply, actionType: 'accept' | 'r
                 members: [req.sender_id],
             }])
         }
-        const { msg, clientId } = buildVerifyWsMsg(ImTypes.MessageType.GROUP_REQUEST, { ...req, status })
+        const { msg, clientId } = buildVerifyWsMsg(ImTypes.MessageType.GROUP_REQUEST, res.data.data as ImTypes.GroupApply)
         websocketService.send(msg, clientId)
     } finally {
         GlobalLoading.close();
