@@ -109,7 +109,7 @@ import { ElMessage } from 'element-plus';
 
 import maleIcon from '@/assets/gender/male.svg?url';
 import femaleIcon from '@/assets/gender/female.svg?url';
-import { buildVerifyWsMsg } from '@/utils/chat';
+import { buildVerifyWsMsg, convertApplySrc2FriendSrc } from '@/utils/chat';
 
 // Search State
 const searchType = ref<'user' | 'group'>('user');
@@ -269,19 +269,19 @@ const confirmAddFriend = async () => {
                     user_id: useUserStore().getUserID(),
                     friend_id: targetUser.value.user_id,
                     remark: '',
-                    source: ImTypes.ApplySource.APPLY_SOURCE_SEARCH_ACCOUNT,
+                    source: convertApplySrc2FriendSrc(ImTypes.ApplySource.APPLY_SOURCE_SEARCH_ACCOUNT),
                     blocked: false,
                     starred: false,
                     create_time: Date.now(),
-                } as any)
+                } as ImTypes.Friend)
                 websocketService.send(msg, clientId)
                 ElMessage.success("添加成功")
             } else {
                 let res = await friendService.applyFriend({
-                    toUserId: targetUser.value.user_id,
-                    applyMsg: applyMessage.value,
+                    to_user_id: targetUser.value.user_id,
+                    apply_msg: applyMessage.value,
                     source: searchMode.value
-                } as any);
+                });
                 if (res.data) {
                     await cacheService.updateItems(UpdateAction.Add, ResourceType.FRIEND_REQUEST, [res.data])
                     const { msg, clientId } = buildVerifyWsMsg(ImTypes.MessageType.FRIEND_REQUEST, res.data.data as any)
@@ -291,9 +291,9 @@ const confirmAddFriend = async () => {
             }
         } else if (targetGroup.value) {
             let res = await groupService.joinGroup({
-                groupId: targetGroup.value.id,
+                group_id: targetGroup.value.id,
                 message: applyMessage.value
-            } as any);
+            });
             await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_APPLY, [res.data.data])
             const { msg, clientId } = buildVerifyWsMsg(ImTypes.MessageType.GROUP_REQUEST, res.data.data as any)
             websocketService.send(msg, clientId)
