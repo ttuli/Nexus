@@ -282,8 +282,8 @@ const confirmAddFriend = async () => {
                     apply_msg: applyMessage.value,
                     source: searchMode.value
                 });
-                if (res.data) {
-                    await cacheService.updateItems(UpdateAction.Add, ResourceType.FRIEND_REQUEST, [res.data])
+                if (res.data.data) {
+                    await cacheService.updateItems(UpdateAction.Add, ResourceType.FRIEND_REQUEST, [res.data.data])
                     const { msg, clientId } = buildVerifyWsMsg(ImTypes.MessageType.FRIEND_REQUEST, res.data.data as any)
                     websocketService.send(msg, clientId)
                 }
