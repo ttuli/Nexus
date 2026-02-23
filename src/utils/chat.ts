@@ -254,7 +254,9 @@ export function buildVerifyWsMsg(type: ImTypes.MessageType, data:
 
     switch (type) {
         case ImTypes.MessageType.FRIEND_REQUEST:
+            console.log(data)
             payload = ImTypes.FriendRequest.encode(data as ImTypes.FriendRequest).finish();
+            console.log('finish')
             break;
         case ImTypes.MessageType.GROUP_REQUEST:
             payload = ImTypes.GroupApply.encode(data as ImTypes.GroupApply).finish();

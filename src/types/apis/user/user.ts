@@ -55,8 +55,8 @@ export interface Friend {
 
 /** FriendRequest */
 export interface FriendRequest {
-  /** @gotags: json:"request_id" */
-  request_id: number;
+  /** @gotags: json:"id" */
+  id: number;
   /** @gotags: json:"from_user_id" */
   from_user_id: number;
   /** @gotags: json:"to_user_id" */
@@ -77,15 +77,15 @@ export interface FriendRequest {
 
 /** GetUserInfoReq */
 export interface GetUserInfoReq {
-  /** @gotags: form:"ids,optional" */
+  /** @gotags: form:"ids,optional" json:"ids,optional" */
   ids: number[];
-  /** @gotags: form:"phone,optional" */
+  /** @gotags: form:"phone,optional" json:"phone,optional" */
   phone: string;
-  /** @gotags: form:"name,optional" */
+  /** @gotags: form:"name,optional" json:"name,optional" */
   name: string;
-  /** @gotags: form:"limit,optional,default=20" */
+  /** @gotags: form:"limit,optional,default=20" json:"limit,optional,default=20" */
   limit: number;
-  /** @gotags: form:"offset,optional,default=0" */
+  /** @gotags: form:"offset,optional,default=0" json:"offset,optional,default=0" */
   offset: number;
 }
 
@@ -181,15 +181,15 @@ export interface GetPendingFriendAppliesResp {
 
 /** SearchFriendReq */
 export interface SearchFriendReq {
-  /** @gotags: form:"name,optional" */
+  /** @gotags: form:"name,optional" json:"name,optional" */
   name: string;
-  /** @gotags: form:"id,optional" */
+  /** @gotags: form:"id,optional" json:"id,optional" */
   id: number;
-  /** @gotags: form:"phone,optional" */
+  /** @gotags: form:"phone,optional" json:"phone,optional" */
   phone: string;
-  /** @gotags: form:"limit,optional,default=30" */
+  /** @gotags: form:"limit,optional,default=30" json:"limit,optional,default=30" */
   limit: number;
-  /** @gotags: form:"offset,optional,default=0" */
+  /** @gotags: form:"offset,optional,default=0" json:"offset,optional,default=0" */
   offset: number;
 }
 
@@ -624,7 +624,7 @@ export const Friend: MessageFns<Friend> = {
 
 function createBaseFriendRequest(): FriendRequest {
   return {
-    request_id: 0,
+    id: 0,
     from_user_id: 0,
     to_user_id: 0,
     apply_msg: "",
@@ -638,8 +638,8 @@ function createBaseFriendRequest(): FriendRequest {
 
 export const FriendRequest: MessageFns<FriendRequest> = {
   encode(message: FriendRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.request_id !== 0) {
-      writer.uint32(8).uint64(message.request_id);
+    if (message.id !== 0) {
+      writer.uint32(8).uint64(message.id);
     }
     if (message.from_user_id !== 0) {
       writer.uint32(16).uint64(message.from_user_id);
@@ -680,7 +680,7 @@ export const FriendRequest: MessageFns<FriendRequest> = {
             break;
           }
 
-          message.request_id = longToNumber(reader.uint64());
+          message.id = longToNumber(reader.uint64());
           continue;
         }
         case 2: {
@@ -758,11 +758,7 @@ export const FriendRequest: MessageFns<FriendRequest> = {
 
   fromJSON(object: any): FriendRequest {
     return {
-      request_id: isSet(object.requestId)
-        ? globalThis.Number(object.requestId)
-        : isSet(object.request_id)
-        ? globalThis.Number(object.request_id)
-        : 0,
+      id: isSet(object.id) ? globalThis.Number(object.id) : 0,
       from_user_id: isSet(object.fromUserId)
         ? globalThis.Number(object.fromUserId)
         : isSet(object.from_user_id)
@@ -800,8 +796,8 @@ export const FriendRequest: MessageFns<FriendRequest> = {
 
   toJSON(message: FriendRequest): unknown {
     const obj: any = {};
-    if (message.request_id !== 0) {
-      obj.requestId = Math.round(message.request_id);
+    if (message.id !== 0) {
+      obj.id = Math.round(message.id);
     }
     if (message.from_user_id !== 0) {
       obj.fromUserId = Math.round(message.from_user_id);
@@ -835,7 +831,7 @@ export const FriendRequest: MessageFns<FriendRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<FriendRequest>, I>>(object: I): FriendRequest {
     const message = createBaseFriendRequest();
-    message.request_id = object.request_id ?? 0;
+    message.id = object.id ?? 0;
     message.from_user_id = object.from_user_id ?? 0;
     message.to_user_id = object.to_user_id ?? 0;
     message.apply_msg = object.apply_msg ?? "";

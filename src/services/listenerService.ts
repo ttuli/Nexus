@@ -191,7 +191,6 @@ class ListenerService {
         ipcService.on(IpcChannels.WS_NOTIFICATION, async (_event, data: { type: ImTypes.MessageType; payload: ImTypes.WSMessage }) => {
             const userStore = useUserStore()
             const chatStore = useChatStore()
-            const groupStore = useGroupStore()
             switch (data.type) {
                 case ImTypes.MessageType.FRIEND_REQUEST:
                     const friendRequest = ImTypes.FriendRequest.decode(data.payload.payload)

@@ -211,6 +211,7 @@ class WindowManager {
           show: true,
         });
         window.on('closed', () => {
+          if (devtools.isDestroyed()) return;
           devtools.close();
         })
         window.webContents.setDevToolsWebContents(devtools.webContents)

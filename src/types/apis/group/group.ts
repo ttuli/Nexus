@@ -49,14 +49,14 @@ export interface Group {
 
 /** GroupRequest */
 export interface GroupRequest {
-  /** @gotags: json:"request_id" */
-  request_id: string;
+  /** @gotags: json:"id" */
+  id: string;
   /** @gotags: json:"sender_id" */
   sender_id: number;
   /** @gotags: json:"group_id" */
   group_id: number;
-  /** @gotags: json:"message" */
-  message: string;
+  /** @gotags: json:"apply_msg" */
+  apply_msg: string;
   /** @gotags: json:"status" */
   status: number;
   /** @gotags: json:"handler_id,omitempty" */
@@ -65,6 +65,8 @@ export interface GroupRequest {
   request_time: number;
   /** @gotags: json:"handle_time" */
   handle_time: number;
+  /** @gotags: json:"reject_reason,omitempty" */
+  reject_reason: string;
 }
 
 /** CreateGroupReq */
@@ -85,19 +87,19 @@ export interface CreateGroupResp {
 
 /** GetGroupReq */
 export interface GetGroupReq {
-  /** @gotags: form:"group_id,optional" */
+  /** @gotags: form:"group_id,optional" json:"group_id,optional" */
   group_ids: number[];
-  /** @gotags: form:"name_keyword,optional" */
+  /** @gotags: form:"name_keyword,optional" json:"name_keyword,optional" */
   name_keyword: string;
-  /** @gotags: form:"limit,optional,default=30" */
+  /** @gotags: form:"limit,optional,default=30" json:"limit,optional,default=30" */
   limit: number;
-  /** @gotags: form:"offset,optional,default=0" */
+  /** @gotags: form:"offset,optional,default=0" json:"offset,optional,default=0" */
   offset: number;
 }
 
 /** GetGroupMembersReq */
 export interface GetGroupMembersReq {
-  /** @gotags: form:"group_id" */
+  /** @gotags: form:"group_id" json:"group_id,optional" */
   group_id: number;
 }
 
@@ -605,21 +607,22 @@ export const Group: MessageFns<Group> = {
 
 function createBaseGroupRequest(): GroupRequest {
   return {
-    request_id: "",
+    id: "",
     sender_id: 0,
     group_id: 0,
-    message: "",
+    apply_msg: "",
     status: 0,
     handler_id: 0,
     request_time: 0,
     handle_time: 0,
+    reject_reason: "",
   };
 }
 
 export const GroupRequest: MessageFns<GroupRequest> = {
   encode(message: GroupRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.request_id !== "") {
-      writer.uint32(10).string(message.request_id);
+    if (message.id !== "") {
+      writer.uint32(10).string(message.id);
     }
     if (message.sender_id !== 0) {
       writer.uint32(16).uint64(message.sender_id);
@@ -627,8 +630,8 @@ export const GroupRequest: MessageFns<GroupRequest> = {
     if (message.group_id !== 0) {
       writer.uint32(24).uint64(message.group_id);
     }
-    if (message.message !== "") {
-      writer.uint32(34).string(message.message);
+    if (message.apply_msg !== "") {
+      writer.uint32(34).string(message.apply_msg);
     }
     if (message.status !== 0) {
       writer.uint32(40).int32(message.status);
@@ -641,6 +644,9 @@ export const GroupRequest: MessageFns<GroupRequest> = {
     }
     if (message.handle_time !== 0) {
       writer.uint32(64).int64(message.handle_time);
+    }
+    if (message.reject_reason !== "") {
+      writer.uint32(74).string(message.reject_reason);
     }
     return writer;
   },
@@ -657,7 +663,7 @@ export const GroupRequest: MessageFns<GroupRequest> = {
             break;
           }
 
-          message.request_id = reader.string();
+          message.id = reader.string();
           continue;
         }
         case 2: {
@@ -681,7 +687,7 @@ export const GroupRequest: MessageFns<GroupRequest> = {
             break;
           }
 
-          message.message = reader.string();
+          message.apply_msg = reader.string();
           continue;
         }
         case 5: {
@@ -716,6 +722,14 @@ export const GroupRequest: MessageFns<GroupRequest> = {
           message.handle_time = longToNumber(reader.int64());
           continue;
         }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.reject_reason = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -727,11 +741,7 @@ export const GroupRequest: MessageFns<GroupRequest> = {
 
   fromJSON(object: any): GroupRequest {
     return {
-      request_id: isSet(object.requestId)
-        ? globalThis.String(object.requestId)
-        : isSet(object.request_id)
-        ? globalThis.String(object.request_id)
-        : "",
+      id: isSet(object.id) ? globalThis.String(object.id) : "",
       sender_id: isSet(object.senderId)
         ? globalThis.Number(object.senderId)
         : isSet(object.sender_id)
@@ -742,7 +752,11 @@ export const GroupRequest: MessageFns<GroupRequest> = {
         : isSet(object.group_id)
         ? globalThis.Number(object.group_id)
         : 0,
-      message: isSet(object.message) ? globalThis.String(object.message) : "",
+      apply_msg: isSet(object.applyMsg)
+        ? globalThis.String(object.applyMsg)
+        : isSet(object.apply_msg)
+        ? globalThis.String(object.apply_msg)
+        : "",
       status: isSet(object.status) ? globalThis.Number(object.status) : 0,
       handler_id: isSet(object.handlerId)
         ? globalThis.Number(object.handlerId)
@@ -759,13 +773,18 @@ export const GroupRequest: MessageFns<GroupRequest> = {
         : isSet(object.handle_time)
         ? globalThis.Number(object.handle_time)
         : 0,
+      reject_reason: isSet(object.rejectReason)
+        ? globalThis.String(object.rejectReason)
+        : isSet(object.reject_reason)
+        ? globalThis.String(object.reject_reason)
+        : "",
     };
   },
 
   toJSON(message: GroupRequest): unknown {
     const obj: any = {};
-    if (message.request_id !== "") {
-      obj.requestId = message.request_id;
+    if (message.id !== "") {
+      obj.id = message.id;
     }
     if (message.sender_id !== 0) {
       obj.senderId = Math.round(message.sender_id);
@@ -773,8 +792,8 @@ export const GroupRequest: MessageFns<GroupRequest> = {
     if (message.group_id !== 0) {
       obj.groupId = Math.round(message.group_id);
     }
-    if (message.message !== "") {
-      obj.message = message.message;
+    if (message.apply_msg !== "") {
+      obj.applyMsg = message.apply_msg;
     }
     if (message.status !== 0) {
       obj.status = Math.round(message.status);
@@ -788,6 +807,9 @@ export const GroupRequest: MessageFns<GroupRequest> = {
     if (message.handle_time !== 0) {
       obj.handleTime = Math.round(message.handle_time);
     }
+    if (message.reject_reason !== "") {
+      obj.rejectReason = message.reject_reason;
+    }
     return obj;
   },
 
@@ -796,14 +818,15 @@ export const GroupRequest: MessageFns<GroupRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<GroupRequest>, I>>(object: I): GroupRequest {
     const message = createBaseGroupRequest();
-    message.request_id = object.request_id ?? "";
+    message.id = object.id ?? "";
     message.sender_id = object.sender_id ?? 0;
     message.group_id = object.group_id ?? 0;
-    message.message = object.message ?? "";
+    message.apply_msg = object.apply_msg ?? "";
     message.status = object.status ?? 0;
     message.handler_id = object.handler_id ?? 0;
     message.request_time = object.request_time ?? 0;
     message.handle_time = object.handle_time ?? 0;
+    message.reject_reason = object.reject_reason ?? "";
     return message;
   },
 };
