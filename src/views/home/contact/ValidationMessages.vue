@@ -93,22 +93,25 @@ const type = ref<'friend' | 'group'>('friend');
 const userStore = useUserStore();
 const groupStore = useGroupStore();
 
-// 当进入页面或者切换标签时清除对应的未读红点，并记录时间供闪烁特效使用
+const enterIdFriend = ref(0);
+const enterIdGroup = ref(0);
+
+// 当进入页面或者切换标签时清除对应的未读红点，并记录ID供闪烁特效使用
 watch(type, (newType) => {
-    alert(newType)
     if (newType === 'friend') {
-        userStore.updateLastReadFriendRequestTime();
+        enterIdFriend.value = userStore.lastReadFriendRequestId;
+        userStore.updateLastReadFriendRequestId();
     } else if (newType === 'group') {
-        groupStore.updateLastReadGroupRequestTime(userStore.userID);
+        enterIdGroup.value = groupStore.lastReadGroupRequestId;
+        groupStore.updateLastReadGroupRequestId(userStore.userID);
     }
 }, { immediate: true });
 
 const isUnread = (req: any, reqType: 'friend' | 'group') => {
-    const time = req.handle_time || req.request_time;
     if (reqType === 'friend') {
-        return time > userStore.lastReadFriendRequestTime;
+        return req.id > enterIdFriend.value;
     } else {
-        return time > groupStore.lastReadGroupRequestTime;
+        return Number(req.id) > enterIdGroup.value;
     }
 };
 
@@ -185,7 +188,7 @@ const handleApply = async (req: ImTypes.FriendRequest, type: 'accept' | 'reject'
                 remark: '',
                 blocked: false,
                 starred: false,
-                create_time: Date.now(),
+                create_time: res.data.data?.handle_time,
                 source: convertApplySrc2FriendSrc(source),
                 extra: ""
             } as ImTypes.Friend])

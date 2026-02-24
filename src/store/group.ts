@@ -15,13 +15,13 @@ export const useGroupStore = defineStore('group', {
         groupRequestMap: reactive(new Map<number, ImTypes.GroupApply>()),
         joinedGroupIds: reactive(new Set<number>()),
 
-        lastReadGroupRequestTime: 0,
+        lastReadGroupRequestId: 0,
     }),
     actions: {
-        initLastReadTime(userId: number) {
-            const savedTime = localStorage.getItem(`lastReadGroupRequestTime_${userId}`)
-            if (savedTime) {
-                this.lastReadGroupRequestTime = parseInt(savedTime, 10)
+        initLastReadId(userId: number) {
+            const savedId = localStorage.getItem(`lastReadGroupRequestId_${userId}`)
+            if (savedId) {
+                this.lastReadGroupRequestId = parseInt(savedId, 10)
             }
         },
         // ==================== ImTypes.GroupInfo ====================
@@ -92,10 +92,17 @@ export const useGroupStore = defineStore('group', {
         },
 
         // ==================== ImTypes.GroupInfo Requests ====================
-        updateLastReadGroupRequestTime(userId: number) {
-            this.lastReadGroupRequestTime = Date.now()
+        updateLastReadGroupRequestId(userId: number) {
+            let maxId = 0
+            for (const req of this.groupRequestMap.values()) {
+                const reqId = Number(req.id)
+                if (reqId > maxId) {
+                    maxId = reqId
+                }
+            }
+            this.lastReadGroupRequestId = maxId
             if (userId) {
-                localStorage.setItem(`lastReadGroupRequestTime_${userId}`, this.lastReadGroupRequestTime.toString())
+                localStorage.setItem(`lastReadGroupRequestId_${userId}`, this.lastReadGroupRequestId.toString())
             }
         },
 
@@ -132,7 +139,7 @@ export const useGroupStore = defineStore('group', {
             this.groupMemberMap.clear()
             this.groupRequestMap.clear()
             this.joinedGroupIds.clear()
-            this.lastReadGroupRequestTime = 0
+            this.lastReadGroupRequestId = 0
         }
     },
     getters: {
@@ -143,9 +150,8 @@ export const useGroupStore = defineStore('group', {
                 if (req.status === ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_PENDING
                     && req.sender_id === useUserStore().getUserID()
                 ) continue;
-                
-                const time = req.handle_time || req.request_time;
-                if (time > state.lastReadGroupRequestTime) {
+
+                if (Number(req.id) > state.lastReadGroupRequestId) {
                     count++;
                 }
             }

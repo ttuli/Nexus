@@ -16,7 +16,7 @@ export const useUserStore = defineStore('user', {
     // 辅助 Set，用于 O(1) 查找用户是否有好友请求
     friendRequestUserIds: reactive(new Set<number>()),
 
-    lastReadFriendRequestTime: 0,
+    lastReadFriendRequestId: 0,
   }),
   actions: {
     // ==================== Auth ====================
@@ -26,10 +26,10 @@ export const useUserStore = defineStore('user', {
       const payload = jwtDecode<TokenPayload>(token)
       this.userID = Number(payload.user_id)
 
-      // Load last read time from localStorage
-      const savedTime = localStorage.getItem(`lastReadFriendRequestTime_${this.userID}`)
-      if (savedTime) {
-        this.lastReadFriendRequestTime = parseInt(savedTime, 10)
+      // Load last read id from localStorage
+      const savedId = localStorage.getItem(`lastReadFriendRequestId_${this.userID}`)
+      if (savedId) {
+        this.lastReadFriendRequestId = parseInt(savedId, 10)
       }
     },
     getToken() {
@@ -77,10 +77,16 @@ export const useUserStore = defineStore('user', {
     },
 
     // ==================== Friend Request ====================
-    updateLastReadFriendRequestTime() {
-      this.lastReadFriendRequestTime = Date.now()
+    updateLastReadFriendRequestId() {
+      let maxId = 0
+      for (const req of this.friendRequestMap.values()) {
+        if (req.id > maxId) {
+          maxId = req.id
+        }
+      }
+      this.lastReadFriendRequestId = maxId
       if (this.userID) {
-        localStorage.setItem(`lastReadFriendRequestTime_${this.userID}`, this.lastReadFriendRequestTime.toString())
+        localStorage.setItem(`lastReadFriendRequestId_${this.userID}`, this.lastReadFriendRequestId.toString())
       }
     },
 
@@ -141,18 +147,18 @@ export const useUserStore = defineStore('user', {
       this.friendMap.clear()
       this.friendRequestMap.clear()
       this.friendRequestUserIds.clear()
-      this.lastReadFriendRequestTime = 0
+      this.lastReadFriendRequestId = 0
     }
   },
   getters: {
-    // 获取未读待处理的请求数量（接收者是我，且状态为 Pending，且时间晚于上次读取时间）
+    // 获取未读待处理的请求数量（接收者是我，且状态为 Pending，且ID大于上次读取ID）
     unreadPendingRequestCount: (state) => {
       let count = 0;
       for (const req of state.friendRequestMap.values()) {
         if (req.from_user_id === state.userID && req.status === ImTypes.ApplyStatus.APPLY_STATUS_PENDING)
           continue;
-        const time = req.handle_time || req.request_time;
-        if (time > state.lastReadFriendRequestTime) {
+
+        if (req.id > state.lastReadFriendRequestId) {
           count++;
         }
       }

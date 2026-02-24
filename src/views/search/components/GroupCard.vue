@@ -172,6 +172,7 @@ const highlightKeyword = (text: string) => {
             padding: 6px 12px;
 
             &.success {
+                font-size: $font-size-base;
                 color: $color-success;
             }
 

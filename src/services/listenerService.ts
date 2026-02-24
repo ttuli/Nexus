@@ -177,14 +177,14 @@ class ListenerService {
             // chatStore.setConnectionState(data.state)
         })
 
-        ipcService.on(IpcChannels.WS_MESSAGE_ACK, async (_event, data: ImTypes.MessageAck) => {
+        ipcService.on(IpcChannels.WS_MESSAGE_ACK, async (_event, data: { ack: ImTypes.MessageAck, timestamp: number }) => {
             const chatStore = useChatStore()
             // if (data.session_id !== chatStore.currentSessionId) return;
 
-            if (data.status === ImTypes.AckStatus.ACK_STATUS_FAILED) {
-                chatStore.updateMessageStatus(data.session_id, data.client_id, ImTypes.MessageStatus.MESSAGE_STATUS_FAILED)
-            } else if (data.status === ImTypes.AckStatus.ACK_STATUS_SUCCESS) {
-                chatStore.updateMessageStatus(data.session_id, data.client_id, ImTypes.MessageStatus.MESSAGE_STATUS_SENT)
+            if (data.ack.status === ImTypes.AckStatus.ACK_STATUS_FAILED) {
+                chatStore.updateMessageStatus(data.ack.session_id, data.ack.client_id, ImTypes.MessageStatus.MESSAGE_STATUS_FAILED, data.timestamp)
+            } else if (data.ack.status === ImTypes.AckStatus.ACK_STATUS_SUCCESS) {
+                chatStore.updateMessageStatus(data.ack.session_id, data.ack.client_id, ImTypes.MessageStatus.MESSAGE_STATUS_SENT, data.timestamp)
             }
         })
 
@@ -208,18 +208,18 @@ class ListenerService {
                         }])
                         chatStore.addChat(generateSessionId(friendRequest.from_user_id, friendRequest.to_user_id))
                     }
-                    windowService.playNotificationSound(NotifySoundType.Request)
+                    // windowService.playNotificationSound(NotifySoundType.Request)
                     break;
                 case ImTypes.MessageType.FRIEND_ADD:
                     const friend = ImTypes.Friend.decode(data.payload.payload)
                     await cacheService.updateItems(UpdateAction.Update, ResourceType.FRIEND, [friend])
                     chatStore.addChat(generateSessionId(friend.friend_id, friend.user_id))
-                    windowService.playNotificationSound(NotifySoundType.Message)
+                    // windowService.playNotificationSound(NotifySoundType.Message)
                     break;
                 case ImTypes.MessageType.GROUP_REQUEST:
                     const groupRequest = ImTypes.GroupApply.decode(data.payload.payload)
                     await cacheService.updateItems(UpdateAction.Update, ResourceType.GROUP_APPLY, [groupRequest])
-                    windowService.playNotificationSound(NotifySoundType.Request)
+                    // windowService.playNotificationSound(NotifySoundType.Request)
                     break;
                 default:
                     break;

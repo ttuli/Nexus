@@ -127,6 +127,12 @@ export interface CreateFriendReq {
   remark: string;
 }
 
+/** CreateFriendResp */
+export interface CreateFriendResp {
+  /** @gotags: json:"data" */
+  data: Friend | undefined;
+}
+
 /** UpdateFriendReq */
 export interface UpdateFriendReq {
   /** @gotags: json:"friend_id" */
@@ -1373,6 +1379,64 @@ export const CreateFriendReq: MessageFns<CreateFriendReq> = {
     message.friend_id = object.friend_id ?? 0;
     message.source = object.source ?? 0;
     message.remark = object.remark ?? "";
+    return message;
+  },
+};
+
+function createBaseCreateFriendResp(): CreateFriendResp {
+  return { data: undefined };
+}
+
+export const CreateFriendResp: MessageFns<CreateFriendResp> = {
+  encode(message: CreateFriendResp, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.data !== undefined) {
+      Friend.encode(message.data, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CreateFriendResp {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCreateFriendResp();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.data = Friend.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CreateFriendResp {
+    return { data: isSet(object.data) ? Friend.fromJSON(object.data) : undefined };
+  },
+
+  toJSON(message: CreateFriendResp): unknown {
+    const obj: any = {};
+    if (message.data !== undefined) {
+      obj.data = Friend.toJSON(message.data);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CreateFriendResp>, I>>(base?: I): CreateFriendResp {
+    return CreateFriendResp.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CreateFriendResp>, I>>(object: I): CreateFriendResp {
+    const message = createBaseCreateFriendResp();
+    message.data = (object.data !== undefined && object.data !== null) ? Friend.fromPartial(object.data) : undefined;
     return message;
   },
 };

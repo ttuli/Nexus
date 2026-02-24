@@ -95,21 +95,20 @@
 
 <script lang="ts" setup>
 import { onMounted, ref, watch } from 'vue';
-import { ImTypes, IpcChannels } from '@/types';
+import { ImTypes } from '@/types';
 import SearchIcon from '@/assets/input/search.svg?url';
 import UserCard from './components/UserCard.vue';
 import GroupCard from './components/GroupCard.vue';
 import Avatar from '@/components/Avatar.vue';
 import { UpdateAction, ResourceType } from '@/types';
 import GlobalLoading from '@/components/GlobalLoading/GlobalLoading';
-import { useUserStore } from '@/store/user';
 import { signalWindowReady } from '@/utils/windowReady';
-import { userService, friendService, cacheService, groupService, websocketService, windowService } from '@/services';
+import { userService, friendService, cacheService, groupService, websocketService } from '@/services';
 import { ElMessage } from 'element-plus';
 
 import maleIcon from '@/assets/gender/male.svg?url';
 import femaleIcon from '@/assets/gender/female.svg?url';
-import { buildVerifyWsMsg, convertApplySrc2FriendSrc } from '@/utils/chat';
+import { buildVerifyWsMsg } from '@/utils/chat';
 
 // Search State
 const searchType = ref<'user' | 'group'>('user');
@@ -251,29 +250,13 @@ const confirmAddFriend = async () => {
         GlobalLoading.show('正在提交...');
         if (targetUser.value) {
             if (targetUser.value.join_type === ImTypes.JoinType.JOIN_TYPE_DIRECT) {
-                await friendService.createFriend({
+                let res = await friendService.createFriend({
                     friend_id: targetUser.value.user_id,
                     source: ImTypes.ApplySource.APPLY_SOURCE_SEARCH_ACCOUNT, // Or relevant source
                     remark: applyMessage.value
                 }); // Cast because Strict Protobuf checks might complain about exact match or missing fields if optional
-                await cacheService.updateItems(UpdateAction.Add, ResourceType.FRIEND, [{
-                    user_id: useUserStore().getUserID(),
-                    friend_id: targetUser.value.user_id,
-                    remark: '',
-                    source: ImTypes.ApplySource.APPLY_SOURCE_SEARCH_ACCOUNT,
-                    blocked: false,
-                    starred: false,
-                    create_time: Date.now(),
-                }])
-                const { msg, clientId } = buildVerifyWsMsg(ImTypes.MessageType.FRIEND_ADD, {
-                    user_id: useUserStore().getUserID(),
-                    friend_id: targetUser.value.user_id,
-                    remark: '',
-                    source: convertApplySrc2FriendSrc(ImTypes.ApplySource.APPLY_SOURCE_SEARCH_ACCOUNT),
-                    blocked: false,
-                    starred: false,
-                    create_time: Date.now(),
-                } as ImTypes.Friend)
+                await cacheService.updateItems(UpdateAction.Add, ResourceType.FRIEND, [res.data.data])
+                const { msg, clientId } = buildVerifyWsMsg(ImTypes.MessageType.FRIEND_ADD, res.data.data as ImTypes.Friend)
                 websocketService.send(msg, clientId)
                 ElMessage.success("添加成功")
             } else {
@@ -309,6 +292,7 @@ onMounted(async () => {
 
     await friendService.loadFriendListToStore()
     await friendService.loadPendingRequestsToStore()
+    await groupService.fetchUserGroupIds()
 })
 </script>
 

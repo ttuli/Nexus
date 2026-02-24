@@ -40,6 +40,8 @@ import GroupList from './GroupList.vue';
 
 import { useUserStore } from '@/store/user';
 import { useGroupStore } from '@/store/group';
+import { windowService } from '@/services';
+import { NotifySoundType } from '@/services/windowService';
 
 const router = useRouter();
 const route = useRoute();
@@ -49,7 +51,11 @@ const groupStore = useGroupStore();
 const currentTab = ref<'friend' | 'group'>('friend');
 
 const pendingCount = computed(() => {
-    return userStore.unreadPendingRequestCount + groupStore.unreadPendingRequestCount;
+    const count = userStore.unreadPendingRequestCount + groupStore.unreadPendingRequestCount;
+    if (count > 0) {
+        windowService.playNotificationSound(NotifySoundType.Request)
+    }
+    return count;
 });
 
 const isValidationActive = computed(() => route.path.includes('/contact/validation'));

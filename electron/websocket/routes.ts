@@ -36,7 +36,10 @@ const handleMsgAck: MessageHandler = async (message: WsMessage) => {
                 const ack = ImTypes.MessageAck.decode(message.payload);
                 // Assuming msg_id in MessageAck corresponds to the client_id we sent
                 messageQueue.acknowledge(ack.client_id);
-                windowManager.broadcastMessage(IpcChannels.WS_MESSAGE_ACK, ack);
+                windowManager.broadcastMessage(IpcChannels.WS_MESSAGE_ACK, {
+                    ack: ack,
+                    timestamp: message.timestamp,
+                });
             } catch (e) {
                 console.error('[WebSocketManager] Failed to decode ACK', e);
             }

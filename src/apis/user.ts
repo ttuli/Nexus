@@ -54,8 +54,12 @@ export async function deleteFriend(friend_id: number) {
  * POST /user/friend/create
  */
 export async function createFriend(data: ApiTypes.user.CreateFriendReq) {
-  let res = await instance.post(config.userServer + '/user/friend/create', data)
-  return res.data
+  let res = await instance<ApiResponse<ApiTypes.user.CreateFriendResp>>({
+    method: 'post',
+    url: config.userServer + '/user/friend/create',
+    data
+  })
+  return decodeResponse(res.data, ApiTypes.user.CreateFriendResp.decode)
 }
 
 // ==================== Friend Apply APIs ====================

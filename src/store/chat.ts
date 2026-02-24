@@ -133,10 +133,11 @@ export const useChatStore = defineStore('chat', {
         /**
          * 更新消息状态
          */
-        updateMessageStatus(sessionId: string, clientId: string, status: ImTypes.MessageStatus) {
+        updateMessageStatus(sessionId: string, clientId: string, status: ImTypes.MessageStatus, timestamp: number) {
             const msgIndex = this.messages.findIndex(m => m.sessionId === sessionId && m.clientId === clientId);
             if (msgIndex !== -1) {
                 this.messages[msgIndex].status = status;
+                this.messages[msgIndex].sendTime = timestamp;
                 void chatService.updateMessageStatus(sessionId, clientId, status).catch((e) => {
                     console.error('[ChatStore] Failed to persist message status', e);
                 });
@@ -274,7 +275,7 @@ export const useChatStore = defineStore('chat', {
         addMessage(message: IChatMessage) {
             // Deduplicate
             if (this.messages.some(m => (message.msgId !== '' && m.msgId === message.msgId) || (message.clientId && m.clientId === message.clientId))) {
-                return this.updateMessageStatus(message.sessionId, message.clientId || '', message.status);
+                return this.updateMessageStatus(message.sessionId, message.clientId || '', message.status, message.sendTime);
             }
             // Check if message belongs to current session
             if (this.currentSessionId && message.sessionId === this.currentSessionId) {
