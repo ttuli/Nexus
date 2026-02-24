@@ -116,7 +116,7 @@ onMounted(async () => {
     });
 
     chatStore.loadFromStorage(userStore.getUserID());
-    // 预加载子路由组件（等待加载完成后再继续后续逻辑）
+    import('@/views/home/contact/components/ContactSidebar.vue')
 
     nextTick(() =>setTimeout(() => {
         signalWindowReady()

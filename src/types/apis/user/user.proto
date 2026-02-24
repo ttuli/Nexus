@@ -158,6 +158,8 @@ message NewFriendApplyReq {
 // NewFriendApplyResp
 message NewFriendApplyResp {
   FriendRequest data = 1;
+  // @gotags: json:"friend,omitempty"
+  Friend friend = 2;
 }
 
 // HandleFriendApplyReq

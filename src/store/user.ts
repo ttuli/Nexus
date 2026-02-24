@@ -16,7 +16,7 @@ export const useUserStore = defineStore('user', {
     // 辅助 Set，用于 O(1) 查找用户是否有好友请求
     friendRequestUserIds: reactive(new Set<number>()),
 
-    lastReadFriendRequestId: 0,
+    lastReadFriendRequestTime: 0,
   }),
   actions: {
     // ==================== Auth ====================
@@ -27,9 +27,9 @@ export const useUserStore = defineStore('user', {
       this.userID = Number(payload.user_id)
 
       // Load last read id from localStorage
-      const savedId = localStorage.getItem(`lastReadFriendRequestId_${this.userID}`)
-      if (savedId) {
-        this.lastReadFriendRequestId = parseInt(savedId, 10)
+      const savedTime = localStorage.getItem(`lastReadFriendRequestTime_${this.userID}`)
+      if (savedTime) {
+        this.lastReadFriendRequestTime = parseInt(savedTime, 10)
       }
     },
     getToken() {
@@ -77,16 +77,17 @@ export const useUserStore = defineStore('user', {
     },
 
     // ==================== Friend Request ====================
-    updateLastReadFriendRequestId() {
-      let maxId = 0
+    updateLastReadFriendRequestTime() {
+      let maxTime = 0
       for (const req of this.friendRequestMap.values()) {
-        if (req.id > maxId) {
-          maxId = req.id
+        const reqTime = Number(req.request_time)
+        if (reqTime > maxTime) {
+          maxTime = reqTime
         }
       }
-      this.lastReadFriendRequestId = maxId
+      this.lastReadFriendRequestTime = maxTime
       if (this.userID) {
-        localStorage.setItem(`lastReadFriendRequestId_${this.userID}`, this.lastReadFriendRequestId.toString())
+        localStorage.setItem(`lastReadFriendRequestTime_${this.userID}`, this.lastReadFriendRequestTime.toString())
       }
     },
 
@@ -147,7 +148,7 @@ export const useUserStore = defineStore('user', {
       this.friendMap.clear()
       this.friendRequestMap.clear()
       this.friendRequestUserIds.clear()
-      this.lastReadFriendRequestId = 0
+      this.lastReadFriendRequestTime = 0
     }
   },
   getters: {
@@ -158,7 +159,7 @@ export const useUserStore = defineStore('user', {
         if (req.from_user_id === state.userID && req.status === ImTypes.ApplyStatus.APPLY_STATUS_PENDING)
           continue;
 
-        if (req.id > state.lastReadFriendRequestId) {
+        if (req.request_time > state.lastReadFriendRequestTime) {
           count++;
         }
       }

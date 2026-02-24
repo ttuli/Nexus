@@ -1,11 +1,11 @@
 import { cacheManager } from './cacheManager';
 import { mainGet, decodeMainResponse } from './mainRequest';
-import { ResourceType, ApiTypes } from '../../src/types';
+import { ResourceType, ApiTypes, ImTypes } from '../../src/types';
 import { config } from '../config';
 
-type Group = ApiTypes.group.Group;
-type GroupMember = ApiTypes.group.GroupMember;
-type GroupRequest = ApiTypes.group.GroupRequest;
+type Group = ImTypes.GroupInfo;
+type GroupMember = ImTypes.GroupMember;
+type GroupRequest = ImTypes.GroupApply;
 
 // 请求合并：正在进行的请求
 type PendingRequest<T> = {
@@ -58,7 +58,8 @@ class GroupService {
         this.pendingByIds.set(key, { promise, resolve: resolvePromise!, reject: rejectPromise! });
 
         try {
-            const groups = await this.doFetchGroupsByIds(idsToFetch);
+            const groupsApi = await this.doFetchGroupsByIds(idsToFetch);
+            const groups = groupsApi.map(g => g as unknown as Group);
             cacheManager.setItems(ResourceType.GROUP, groups);
             resolvePromise!(groups);
             return [...cachedGroups, ...groups];
@@ -90,7 +91,8 @@ class GroupService {
         this.pendingByName.set(key, { promise, resolve: resolvePromise!, reject: rejectPromise! });
 
         try {
-            const groups = await this.doFetchGroupsByQuery({ name, limit, offset });
+            const groupsApi = await this.doFetchGroupsByQuery({ name, limit, offset });
+            const groups = groupsApi.map(g => g as unknown as Group);
             cacheManager.setItems(ResourceType.GROUP, groups);
             resolvePromise!(groups);
             return groups;
@@ -126,7 +128,8 @@ class GroupService {
         this.pendingMembers.set(groupId, { promise, resolve: resolvePromise!, reject: rejectPromise! });
 
         try {
-            const members = await this.doFetchGroupMembers(groupId);
+            const membersApi = await this.doFetchGroupMembers(groupId);
+            const members = membersApi.map(m => m as unknown as GroupMember);
             cacheManager.setItem(ResourceType.GROUP_MEMBER, { group_id: groupId, members });
             resolvePromise!(members);
             return members;
@@ -216,7 +219,8 @@ class GroupService {
             const response = await mainGet<any>(`${config.groupServer}/group/apply/pending`);
             if (response.code === 200) {
                 const decoded = decodeMainResponse(response, ApiTypes.group.GetPendingAppliesResp.decode);
-                const result = decoded.data?.data ?? [];
+                const resultApi = decoded.data?.data ?? [];
+                const result = resultApi.map(r => r as unknown as GroupRequest);
                 cacheManager.setItems(ResourceType.GROUP_APPLY, result);
                 resolvePromise!(result);
                 return result;
@@ -236,12 +240,12 @@ class GroupService {
 
     // ==================== 内部 API 调用 ====================
 
-    private async doFetchGroupsByIds(ids: number[]): Promise<Group[]> {
+    private async doFetchGroupsByIds(ids: number[]): Promise<ApiTypes.group.Group[]> {
         const params = ids.map(id => `group_id=${id}`).join('&');
         return this.doGroupRequest(`${config.groupServer}/group/info?${params}`);
     }
 
-    private async doFetchGroupsByQuery(query: { name?: string; limit?: number; offset?: number }): Promise<Group[]> {
+    private async doFetchGroupsByQuery(query: { name?: string; limit?: number; offset?: number }): Promise<ApiTypes.group.Group[]> {
         const params = new URLSearchParams();
         if (query.name) params.append('name_keyword', query.name);
         if (query.limit !== undefined) params.append('limit', query.limit.toString());
@@ -249,7 +253,7 @@ class GroupService {
         return this.doGroupRequest(`${config.groupServer}/group/info?${params.toString()}`);
     }
 
-    private async doFetchGroupMembers(groupId: number): Promise<GroupMember[]> {
+    private async doFetchGroupMembers(groupId: number): Promise<ApiTypes.group.GroupMember[]> {
         try {
             const response = await mainGet<any>(`${config.groupServer}/group/members?group_id=${groupId}`);
             if (response.code === 200) {
@@ -264,7 +268,7 @@ class GroupService {
         }
     }
 
-    private async doGroupRequest(url: string): Promise<Group[]> {
+    private async doGroupRequest(url: string): Promise<ApiTypes.group.Group[]> {
         try {
             const response = await mainGet<any>(url);
             if (response.code === 200) {

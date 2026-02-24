@@ -1,6 +1,6 @@
 import { mainGet, decodeMainResponse } from './mainRequest';
 import { cacheManager } from './cacheManager';
-import { ResourceType, ApiTypes } from '../../src/types';
+import { ResourceType, ApiTypes, ImTypes } from '../../src/types';
 import { config } from '../config';
 
 type FriendInfo = ApiTypes.user.Friend;
@@ -18,18 +18,20 @@ class FriendService {
     /**
      * 获取好友列表（返回全部好友，无分页）
      */
-    public async fetchFriendList(): Promise<FriendInfo[]> {
+    public async fetchFriendList(): Promise<ImTypes.Friend[]> {
         if (this.pendingFriendList) {
             console.log('[FriendService] Reusing pending friend list request');
-            return this.pendingFriendList;
+            const friends = await this.pendingFriendList;
+            return friends.map(f => f as unknown as ImTypes.Friend);
         }
 
         this.pendingFriendList = this.doFetchFriendList();
 
         try {
             const friends = await this.pendingFriendList;
-            cacheManager.setItems(ResourceType.FRIEND, friends);
-            return friends;
+            const imFriends = friends.map(f => f as unknown as ImTypes.Friend);
+            cacheManager.setItems(ResourceType.FRIEND, imFriends);
+            return imFriends;
         } finally {
             this.pendingFriendList = null;
         }
@@ -38,18 +40,20 @@ class FriendService {
     /**
      * 获取待处理的好友申请（返回全部申请，无分页）
      */
-    public async fetchPendingRequests(): Promise<FriendRequest[]> {
+    public async fetchPendingRequests(): Promise<ImTypes.FriendRequest[]> {
         if (this.pendingRequests) {
             console.log('[FriendService] Reusing pending requests request');
-            return this.pendingRequests;
+            const requests = await this.pendingRequests;
+            return requests.map(r => r as unknown as ImTypes.FriendRequest);
         }
 
         this.pendingRequests = this.doFetchPendingRequests();
 
         try {
             const requests = await this.pendingRequests;
-            cacheManager.setItems(ResourceType.FRIEND_REQUEST, requests);
-            return requests;
+            const imRequests = requests.map(r => r as unknown as ImTypes.FriendRequest);
+            cacheManager.setItems(ResourceType.FRIEND_REQUEST, imRequests);
+            return imRequests;
         } finally {
             this.pendingRequests = null;
         }

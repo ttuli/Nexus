@@ -20,7 +20,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onMounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useUserStore } from '@/store/user';
 import { useGroupStore } from '@/store/group';
@@ -29,6 +29,8 @@ import ChatIcon from '@/assets/view/message.svg?url';
 import ContactsIcon from '@/assets/input/input_name.svg?url';
 import SettingIcon from '@/assets/view/setting.svg?url';
 import { createWindow } from '@/utils/window';
+import { windowService } from '@/services';
+import { NotifySoundType } from '@/services/windowService';
 
 const router = useRouter();
 const route = useRoute();
@@ -52,6 +54,11 @@ const openUserInfo = () => {
     createWindow('userInfo');
 }
 
+watch(contactBadge, (newVal, oldVal) => {
+    if (newVal > (oldVal || 0)) {
+        windowService.playNotificationSound(NotifySoundType.Request);
+    }
+})
 </script>
 
 <style scoped lang="scss">

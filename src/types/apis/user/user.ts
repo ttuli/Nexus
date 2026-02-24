@@ -163,7 +163,11 @@ export interface NewFriendApplyReq {
 
 /** NewFriendApplyResp */
 export interface NewFriendApplyResp {
-  data: FriendRequest | undefined;
+  data:
+    | FriendRequest
+    | undefined;
+  /** @gotags: json:"friend,omitempty" */
+  friend: Friend | undefined;
 }
 
 /** HandleFriendApplyReq */
@@ -1718,13 +1722,16 @@ export const NewFriendApplyReq: MessageFns<NewFriendApplyReq> = {
 };
 
 function createBaseNewFriendApplyResp(): NewFriendApplyResp {
-  return { data: undefined };
+  return { data: undefined, friend: undefined };
 }
 
 export const NewFriendApplyResp: MessageFns<NewFriendApplyResp> = {
   encode(message: NewFriendApplyResp, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.data !== undefined) {
       FriendRequest.encode(message.data, writer.uint32(10).fork()).join();
+    }
+    if (message.friend !== undefined) {
+      Friend.encode(message.friend, writer.uint32(18).fork()).join();
     }
     return writer;
   },
@@ -1744,6 +1751,14 @@ export const NewFriendApplyResp: MessageFns<NewFriendApplyResp> = {
           message.data = FriendRequest.decode(reader, reader.uint32());
           continue;
         }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.friend = Friend.decode(reader, reader.uint32());
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1754,13 +1769,19 @@ export const NewFriendApplyResp: MessageFns<NewFriendApplyResp> = {
   },
 
   fromJSON(object: any): NewFriendApplyResp {
-    return { data: isSet(object.data) ? FriendRequest.fromJSON(object.data) : undefined };
+    return {
+      data: isSet(object.data) ? FriendRequest.fromJSON(object.data) : undefined,
+      friend: isSet(object.friend) ? Friend.fromJSON(object.friend) : undefined,
+    };
   },
 
   toJSON(message: NewFriendApplyResp): unknown {
     const obj: any = {};
     if (message.data !== undefined) {
       obj.data = FriendRequest.toJSON(message.data);
+    }
+    if (message.friend !== undefined) {
+      obj.friend = Friend.toJSON(message.friend);
     }
     return obj;
   },
@@ -1772,6 +1793,9 @@ export const NewFriendApplyResp: MessageFns<NewFriendApplyResp> = {
     const message = createBaseNewFriendApplyResp();
     message.data = (object.data !== undefined && object.data !== null)
       ? FriendRequest.fromPartial(object.data)
+      : undefined;
+    message.friend = (object.friend !== undefined && object.friend !== null)
+      ? Friend.fromPartial(object.friend)
       : undefined;
     return message;
   },

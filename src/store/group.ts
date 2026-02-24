@@ -15,13 +15,13 @@ export const useGroupStore = defineStore('group', {
         groupRequestMap: reactive(new Map<number, ImTypes.GroupApply>()),
         joinedGroupIds: reactive(new Set<number>()),
 
-        lastReadGroupRequestId: 0,
+        lastReadGroupRequestTime: 0,
     }),
     actions: {
-        initLastReadId(userId: number) {
-            const savedId = localStorage.getItem(`lastReadGroupRequestId_${userId}`)
-            if (savedId) {
-                this.lastReadGroupRequestId = parseInt(savedId, 10)
+        initLastReadTime(userId: number) {
+            const savedTime = localStorage.getItem(`lastReadGroupRequestTime_${userId}`)
+            if (savedTime) {
+                this.lastReadGroupRequestTime = parseInt(savedTime, 10)
             }
         },
         // ==================== ImTypes.GroupInfo ====================
@@ -92,17 +92,17 @@ export const useGroupStore = defineStore('group', {
         },
 
         // ==================== ImTypes.GroupInfo Requests ====================
-        updateLastReadGroupRequestId(userId: number) {
-            let maxId = 0
+        updateLastReadGroupRequestTime(userId: number) {
+            let maxTime = 0
             for (const req of this.groupRequestMap.values()) {
-                const reqId = Number(req.id)
-                if (reqId > maxId) {
-                    maxId = reqId
+                const reqTime = Number(req.request_time)
+                if (reqTime > maxTime) {
+                    maxTime = reqTime
                 }
             }
-            this.lastReadGroupRequestId = maxId
+            this.lastReadGroupRequestTime = maxTime
             if (userId) {
-                localStorage.setItem(`lastReadGroupRequestId_${userId}`, this.lastReadGroupRequestId.toString())
+                localStorage.setItem(`lastReadGroupRequestTime_${userId}`, this.lastReadGroupRequestTime.toString())
             }
         },
 
@@ -139,7 +139,7 @@ export const useGroupStore = defineStore('group', {
             this.groupMemberMap.clear()
             this.groupRequestMap.clear()
             this.joinedGroupIds.clear()
-            this.lastReadGroupRequestId = 0
+            this.lastReadGroupRequestTime = 0
         }
     },
     getters: {
@@ -151,7 +151,7 @@ export const useGroupStore = defineStore('group', {
                     && req.sender_id === useUserStore().getUserID()
                 ) continue;
 
-                if (Number(req.id) > state.lastReadGroupRequestId) {
+                if (Number(req.request_time) > state.lastReadGroupRequestTime) {
                     count++;
                 }
             }

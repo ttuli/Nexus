@@ -1244,6 +1244,10 @@ export interface ApiResponse {
 
 /** WebSocket传输的顶层消息 */
 export interface WSMessage {
+  /** 路由目标 */
+  route_target: number;
+  /** 路由目标类型 */
+  route_target_type: TargetType;
   /** 时间戳(毫秒) */
   timestamp: number;
   /** 消息类型 */
@@ -1252,25 +1256,6 @@ export interface WSMessage {
   payload: Uint8Array;
   /** 协议版本号 */
   version: number;
-}
-
-/** 跨节点内部通信消息 */
-export interface InternalMessage {
-  /** 路由目标 */
-  target_id: number;
-  /** 路由目标类型 */
-  target_type: TargetType;
-  /** 实际消息 */
-  message:
-    | WSMessage
-    | undefined;
-  /** 内部扩展字段 */
-  internal_ext: { [key: string]: string };
-}
-
-export interface InternalMessage_InternalExtEntry {
-  key: string;
-  value: string;
 }
 
 /** 基础消息信息 */
@@ -1499,6 +1484,8 @@ export interface GroupInfo {
   avatar: string;
   /** 群公告 */
   notice: string;
+  /** 加群方式 */
+  join_type: number;
   /** 成员数量 */
   member_count: number;
   /** 创建时间 */
@@ -1788,22 +1775,28 @@ export const ApiResponse: MessageFns<ApiResponse> = {
 };
 
 function createBaseWSMessage(): WSMessage {
-  return { timestamp: 0, type: 0, payload: new Uint8Array(0), version: 0 };
+  return { route_target: 0, route_target_type: 0, timestamp: 0, type: 0, payload: new Uint8Array(0), version: 0 };
 }
 
 export const WSMessage: MessageFns<WSMessage> = {
   encode(message: WSMessage, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.route_target !== 0) {
+      writer.uint32(8).uint64(message.route_target);
+    }
+    if (message.route_target_type !== 0) {
+      writer.uint32(16).int32(message.route_target_type);
+    }
     if (message.timestamp !== 0) {
-      writer.uint32(8).int64(message.timestamp);
+      writer.uint32(24).int64(message.timestamp);
     }
     if (message.type !== 0) {
-      writer.uint32(16).int32(message.type);
+      writer.uint32(32).int32(message.type);
     }
     if (message.payload.length !== 0) {
-      writer.uint32(26).bytes(message.payload);
+      writer.uint32(42).bytes(message.payload);
     }
     if (message.version !== 0) {
-      writer.uint32(32).int32(message.version);
+      writer.uint32(48).int32(message.version);
     }
     return writer;
   },
@@ -1820,7 +1813,7 @@ export const WSMessage: MessageFns<WSMessage> = {
             break;
           }
 
-          message.timestamp = longToNumber(reader.int64());
+          message.route_target = longToNumber(reader.uint64());
           continue;
         }
         case 2: {
@@ -1828,19 +1821,35 @@ export const WSMessage: MessageFns<WSMessage> = {
             break;
           }
 
-          message.type = reader.int32() as any;
+          message.route_target_type = reader.int32() as any;
           continue;
         }
         case 3: {
-          if (tag !== 26) {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.timestamp = longToNumber(reader.int64());
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.type = reader.int32() as any;
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
             break;
           }
 
           message.payload = reader.bytes();
           continue;
         }
-        case 4: {
-          if (tag !== 32) {
+        case 6: {
+          if (tag !== 48) {
             break;
           }
 
@@ -1858,6 +1867,16 @@ export const WSMessage: MessageFns<WSMessage> = {
 
   fromJSON(object: any): WSMessage {
     return {
+      route_target: isSet(object.routeTarget)
+        ? globalThis.Number(object.routeTarget)
+        : isSet(object.route_target)
+        ? globalThis.Number(object.route_target)
+        : 0,
+      route_target_type: isSet(object.routeTargetType)
+        ? targetTypeFromJSON(object.routeTargetType)
+        : isSet(object.route_target_type)
+        ? targetTypeFromJSON(object.route_target_type)
+        : 0,
       timestamp: isSet(object.timestamp) ? globalThis.Number(object.timestamp) : 0,
       type: isSet(object.type) ? messageTypeFromJSON(object.type) : 0,
       payload: isSet(object.payload) ? bytesFromBase64(object.payload) : new Uint8Array(0),
@@ -1867,6 +1886,12 @@ export const WSMessage: MessageFns<WSMessage> = {
 
   toJSON(message: WSMessage): unknown {
     const obj: any = {};
+    if (message.route_target !== 0) {
+      obj.routeTarget = Math.round(message.route_target);
+    }
+    if (message.route_target_type !== 0) {
+      obj.routeTargetType = targetTypeToJSON(message.route_target_type);
+    }
     if (message.timestamp !== 0) {
       obj.timestamp = Math.round(message.timestamp);
     }
@@ -1887,241 +1912,12 @@ export const WSMessage: MessageFns<WSMessage> = {
   },
   fromPartial<I extends Exact<DeepPartial<WSMessage>, I>>(object: I): WSMessage {
     const message = createBaseWSMessage();
+    message.route_target = object.route_target ?? 0;
+    message.route_target_type = object.route_target_type ?? 0;
     message.timestamp = object.timestamp ?? 0;
     message.type = object.type ?? 0;
     message.payload = object.payload ?? new Uint8Array(0);
     message.version = object.version ?? 0;
-    return message;
-  },
-};
-
-function createBaseInternalMessage(): InternalMessage {
-  return { target_id: 0, target_type: 0, message: undefined, internal_ext: {} };
-}
-
-export const InternalMessage: MessageFns<InternalMessage> = {
-  encode(message: InternalMessage, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.target_id !== 0) {
-      writer.uint32(8).uint64(message.target_id);
-    }
-    if (message.target_type !== 0) {
-      writer.uint32(16).int32(message.target_type);
-    }
-    if (message.message !== undefined) {
-      WSMessage.encode(message.message, writer.uint32(26).fork()).join();
-    }
-    globalThis.Object.entries(message.internal_ext).forEach(([key, value]: [string, string]) => {
-      InternalMessage_InternalExtEntry.encode({ key: key as any, value }, writer.uint32(34).fork()).join();
-    });
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): InternalMessage {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseInternalMessage();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 8) {
-            break;
-          }
-
-          message.target_id = longToNumber(reader.uint64());
-          continue;
-        }
-        case 2: {
-          if (tag !== 16) {
-            break;
-          }
-
-          message.target_type = reader.int32() as any;
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
-            break;
-          }
-
-          message.message = WSMessage.decode(reader, reader.uint32());
-          continue;
-        }
-        case 4: {
-          if (tag !== 34) {
-            break;
-          }
-
-          const entry4 = InternalMessage_InternalExtEntry.decode(reader, reader.uint32());
-          if (entry4.value !== undefined) {
-            message.internal_ext[entry4.key] = entry4.value;
-          }
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): InternalMessage {
-    return {
-      target_id: isSet(object.targetId)
-        ? globalThis.Number(object.targetId)
-        : isSet(object.target_id)
-        ? globalThis.Number(object.target_id)
-        : 0,
-      target_type: isSet(object.targetType)
-        ? targetTypeFromJSON(object.targetType)
-        : isSet(object.target_type)
-        ? targetTypeFromJSON(object.target_type)
-        : 0,
-      message: isSet(object.message) ? WSMessage.fromJSON(object.message) : undefined,
-      internal_ext: isObject(object.internalExt)
-        ? (globalThis.Object.entries(object.internalExt) as [string, any][]).reduce(
-          (acc: { [key: string]: string }, [key, value]: [string, any]) => {
-            acc[key] = globalThis.String(value);
-            return acc;
-          },
-          {},
-        )
-        : isObject(object.internal_ext)
-        ? (globalThis.Object.entries(object.internal_ext) as [string, any][]).reduce(
-          (acc: { [key: string]: string }, [key, value]: [string, any]) => {
-            acc[key] = globalThis.String(value);
-            return acc;
-          },
-          {},
-        )
-        : {},
-    };
-  },
-
-  toJSON(message: InternalMessage): unknown {
-    const obj: any = {};
-    if (message.target_id !== 0) {
-      obj.targetId = Math.round(message.target_id);
-    }
-    if (message.target_type !== 0) {
-      obj.targetType = targetTypeToJSON(message.target_type);
-    }
-    if (message.message !== undefined) {
-      obj.message = WSMessage.toJSON(message.message);
-    }
-    if (message.internal_ext) {
-      const entries = globalThis.Object.entries(message.internal_ext) as [string, string][];
-      if (entries.length > 0) {
-        obj.internalExt = {};
-        entries.forEach(([k, v]) => {
-          obj.internalExt[k] = v;
-        });
-      }
-    }
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<InternalMessage>, I>>(base?: I): InternalMessage {
-    return InternalMessage.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<InternalMessage>, I>>(object: I): InternalMessage {
-    const message = createBaseInternalMessage();
-    message.target_id = object.target_id ?? 0;
-    message.target_type = object.target_type ?? 0;
-    message.message = (object.message !== undefined && object.message !== null)
-      ? WSMessage.fromPartial(object.message)
-      : undefined;
-    message.internal_ext = (globalThis.Object.entries(object.internal_ext ?? {}) as [string, string][]).reduce(
-      (acc: { [key: string]: string }, [key, value]: [string, string]) => {
-        if (value !== undefined) {
-          acc[key] = globalThis.String(value);
-        }
-        return acc;
-      },
-      {},
-    );
-    return message;
-  },
-};
-
-function createBaseInternalMessage_InternalExtEntry(): InternalMessage_InternalExtEntry {
-  return { key: "", value: "" };
-}
-
-export const InternalMessage_InternalExtEntry: MessageFns<InternalMessage_InternalExtEntry> = {
-  encode(message: InternalMessage_InternalExtEntry, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.key !== "") {
-      writer.uint32(10).string(message.key);
-    }
-    if (message.value !== "") {
-      writer.uint32(18).string(message.value);
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): InternalMessage_InternalExtEntry {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseInternalMessage_InternalExtEntry();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.key = reader.string();
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
-
-          message.value = reader.string();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): InternalMessage_InternalExtEntry {
-    return {
-      key: isSet(object.key) ? globalThis.String(object.key) : "",
-      value: isSet(object.value) ? globalThis.String(object.value) : "",
-    };
-  },
-
-  toJSON(message: InternalMessage_InternalExtEntry): unknown {
-    const obj: any = {};
-    if (message.key !== "") {
-      obj.key = message.key;
-    }
-    if (message.value !== "") {
-      obj.value = message.value;
-    }
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<InternalMessage_InternalExtEntry>, I>>(
-    base?: I,
-  ): InternalMessage_InternalExtEntry {
-    return InternalMessage_InternalExtEntry.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<InternalMessage_InternalExtEntry>, I>>(
-    object: I,
-  ): InternalMessage_InternalExtEntry {
-    const message = createBaseInternalMessage_InternalExtEntry();
-    message.key = object.key ?? "";
-    message.value = object.value ?? "";
     return message;
   },
 };
@@ -4176,7 +3972,17 @@ export const TypingStatus: MessageFns<TypingStatus> = {
 };
 
 function createBaseGroupInfo(): GroupInfo {
-  return { id: 0, owner_id: 0, name: "", avatar: "", notice: "", member_count: 0, create_time: 0, update_time: 0 };
+  return {
+    id: 0,
+    owner_id: 0,
+    name: "",
+    avatar: "",
+    notice: "",
+    join_type: 0,
+    member_count: 0,
+    create_time: 0,
+    update_time: 0,
+  };
 }
 
 export const GroupInfo: MessageFns<GroupInfo> = {
@@ -4196,14 +4002,17 @@ export const GroupInfo: MessageFns<GroupInfo> = {
     if (message.notice !== "") {
       writer.uint32(42).string(message.notice);
     }
+    if (message.join_type !== 0) {
+      writer.uint32(48).int32(message.join_type);
+    }
     if (message.member_count !== 0) {
-      writer.uint32(48).int32(message.member_count);
+      writer.uint32(56).int32(message.member_count);
     }
     if (message.create_time !== 0) {
-      writer.uint32(56).int64(message.create_time);
+      writer.uint32(64).int64(message.create_time);
     }
     if (message.update_time !== 0) {
-      writer.uint32(64).int64(message.update_time);
+      writer.uint32(72).int64(message.update_time);
     }
     return writer;
   },
@@ -4260,7 +4069,7 @@ export const GroupInfo: MessageFns<GroupInfo> = {
             break;
           }
 
-          message.member_count = reader.int32();
+          message.join_type = reader.int32();
           continue;
         }
         case 7: {
@@ -4268,11 +4077,19 @@ export const GroupInfo: MessageFns<GroupInfo> = {
             break;
           }
 
-          message.create_time = longToNumber(reader.int64());
+          message.member_count = reader.int32();
           continue;
         }
         case 8: {
           if (tag !== 64) {
+            break;
+          }
+
+          message.create_time = longToNumber(reader.int64());
+          continue;
+        }
+        case 9: {
+          if (tag !== 72) {
             break;
           }
 
@@ -4299,6 +4116,11 @@ export const GroupInfo: MessageFns<GroupInfo> = {
       name: isSet(object.name) ? globalThis.String(object.name) : "",
       avatar: isSet(object.avatar) ? globalThis.String(object.avatar) : "",
       notice: isSet(object.notice) ? globalThis.String(object.notice) : "",
+      join_type: isSet(object.joinType)
+        ? globalThis.Number(object.joinType)
+        : isSet(object.join_type)
+        ? globalThis.Number(object.join_type)
+        : 0,
       member_count: isSet(object.memberCount)
         ? globalThis.Number(object.memberCount)
         : isSet(object.member_count)
@@ -4334,6 +4156,9 @@ export const GroupInfo: MessageFns<GroupInfo> = {
     if (message.notice !== "") {
       obj.notice = message.notice;
     }
+    if (message.join_type !== 0) {
+      obj.joinType = Math.round(message.join_type);
+    }
     if (message.member_count !== 0) {
       obj.memberCount = Math.round(message.member_count);
     }
@@ -4356,6 +4181,7 @@ export const GroupInfo: MessageFns<GroupInfo> = {
     message.name = object.name ?? "";
     message.avatar = object.avatar ?? "";
     message.notice = object.notice ?? "";
+    message.join_type = object.join_type ?? 0;
     message.member_count = object.member_count ?? 0;
     message.create_time = object.create_time ?? 0;
     message.update_time = object.update_time ?? 0;

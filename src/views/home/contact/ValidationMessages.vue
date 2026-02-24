@@ -84,34 +84,42 @@ import { ref, computed, watch } from 'vue';
 import { useUserStore } from '@/store/user';
 import { useGroupStore } from '@/store/group';
 import { UpdateAction, ResourceType, ImTypes } from '@/types';
-import { cacheService, groupService, websocketService } from '@/services';
+import { cacheService, groupService } from '@/services';
 import { friendService } from '@/services'
 import GlobalLoading from '@/components/GlobalLoading/GlobalLoading';
-import { buildVerifyWsMsg, convertApplySrc2FriendSrc } from '@/utils/chat';
+import { convertApplySrc2FriendSrc, generateSessionId } from '@/utils/chat';
+import { useChatStore } from '@/store/chat';
 
 const type = ref<'friend' | 'group'>('friend');
 const userStore = useUserStore();
 const groupStore = useGroupStore();
+const chatStore = useChatStore();
 
-const enterIdFriend = ref(0);
-const enterIdGroup = ref(0);
+const enterTimeFriend = ref(0);
+const enterTimeGroup = ref(0);
 
-// 当进入页面或者切换标签时清除对应的未读红点，并记录ID供闪烁特效使用
+// 当进入页面或者切换标签时清除对应的未读红点，并记录时间供闪烁特效使用
 watch(type, (newType) => {
     if (newType === 'friend') {
-        enterIdFriend.value = userStore.lastReadFriendRequestId;
-        userStore.updateLastReadFriendRequestId();
+        enterTimeFriend.value = userStore.lastReadFriendRequestTime;
+        userStore.updateLastReadFriendRequestTime();
     } else if (newType === 'group') {
-        enterIdGroup.value = groupStore.lastReadGroupRequestId;
-        groupStore.updateLastReadGroupRequestId(userStore.userID);
+        enterTimeGroup.value = groupStore.lastReadGroupRequestTime;
+        groupStore.updateLastReadGroupRequestTime(userStore.userID);
     }
 }, { immediate: true });
 
 const isUnread = (req: any, reqType: 'friend' | 'group') => {
     if (reqType === 'friend') {
-        return req.id > enterIdFriend.value;
+        if (req.from_user_id === userStore.userID && req.status === ImTypes.ApplyStatus.APPLY_STATUS_PENDING) {
+            return false;
+        }
+        return req.request_time > enterTimeFriend.value;
     } else {
-        return Number(req.id) > enterIdGroup.value;
+        if (req.sender_id === userStore.userID && req.status === ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_PENDING) {
+            return false;
+        }
+        return req.request_time > enterTimeGroup.value;
     }
 };
 
@@ -192,10 +200,8 @@ const handleApply = async (req: ImTypes.FriendRequest, type: 'accept' | 'reject'
                 source: convertApplySrc2FriendSrc(source),
                 extra: ""
             } as ImTypes.Friend])
+            chatStore.addChat(generateSessionId(req.from_user_id, userStore.getUserID()))
         }
-
-        const { msg, clientId } = buildVerifyWsMsg(ImTypes.MessageType.FRIEND_REQUEST, res.data.data as ImTypes.FriendRequest)
-        websocketService.send(msg, clientId)
     } finally {
         GlobalLoading.close();
     }
@@ -213,15 +219,6 @@ const handleGroupReq = async (req: ImTypes.GroupApply, actionType: 'accept' | 'r
         });
 
         await cacheService.updateItems(UpdateAction.Update, ResourceType.GROUP_APPLY, [res.data.data])
-
-        if (status === ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_ACCEPTED) {
-            await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_MEMBER, [{
-                group_id: req.group_id,
-                members: [req.sender_id],
-            }])
-        }
-        const { msg, clientId } = buildVerifyWsMsg(ImTypes.MessageType.GROUP_REQUEST, res.data.data as ImTypes.GroupApply)
-        websocketService.send(msg, clientId)
     } finally {
         GlobalLoading.close();
     }

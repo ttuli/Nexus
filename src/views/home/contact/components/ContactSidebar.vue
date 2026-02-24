@@ -29,7 +29,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 
 defineOptions({ name: 'ContactSidebar' });
@@ -51,11 +51,14 @@ const groupStore = useGroupStore();
 const currentTab = ref<'friend' | 'group'>('friend');
 
 const pendingCount = computed(() => {
-    const count = userStore.unreadPendingRequestCount + groupStore.unreadPendingRequestCount;
-    if (count > 0) {
-        windowService.playNotificationSound(NotifySoundType.Request)
+    return userStore.unreadPendingRequestCount + groupStore.unreadPendingRequestCount;
+});
+
+watch(pendingCount, (newVal, oldVal) => {
+    console.log(newVal, oldVal)
+    if (newVal > (oldVal || 0)) {
+        windowService.playNotificationSound(NotifySoundType.Request);
     }
-    return count;
 });
 
 const isValidationActive = computed(() => route.path.includes('/contact/validation'));
@@ -67,7 +70,6 @@ const currentListComponent = computed(() => {
 const goToValidation = () => {
     router.push('/home/contacts/validation');
 };
-
 </script>
 
 <style scoped lang="scss">

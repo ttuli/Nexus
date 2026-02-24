@@ -103,12 +103,11 @@ import Avatar from '@/components/Avatar.vue';
 import { UpdateAction, ResourceType } from '@/types';
 import GlobalLoading from '@/components/GlobalLoading/GlobalLoading';
 import { signalWindowReady } from '@/utils/windowReady';
-import { userService, friendService, cacheService, groupService, websocketService } from '@/services';
+import { userService, friendService, cacheService, groupService } from '@/services';
 import { ElMessage } from 'element-plus';
 
 import maleIcon from '@/assets/gender/male.svg?url';
 import femaleIcon from '@/assets/gender/female.svg?url';
-import { buildVerifyWsMsg } from '@/utils/chat';
 
 // Search State
 const searchType = ref<'user' | 'group'>('user');
@@ -249,38 +248,26 @@ const confirmAddFriend = async () => {
     try {
         GlobalLoading.show('正在提交...');
         if (targetUser.value) {
-            if (targetUser.value.join_type === ImTypes.JoinType.JOIN_TYPE_DIRECT) {
-                let res = await friendService.createFriend({
-                    friend_id: targetUser.value.user_id,
-                    source: ImTypes.ApplySource.APPLY_SOURCE_SEARCH_ACCOUNT, // Or relevant source
-                    remark: applyMessage.value
-                }); // Cast because Strict Protobuf checks might complain about exact match or missing fields if optional
-                await cacheService.updateItems(UpdateAction.Add, ResourceType.FRIEND, [res.data.data])
-                const { msg, clientId } = buildVerifyWsMsg(ImTypes.MessageType.FRIEND_ADD, res.data.data as ImTypes.Friend)
-                websocketService.send(msg, clientId)
-                ElMessage.success("添加成功")
-            } else {
-                let res = await friendService.applyFriend({
-                    to_user_id: targetUser.value.user_id,
-                    apply_msg: applyMessage.value,
-                    source: searchMode.value
-                });
-                if (res.data.data) {
-                    await cacheService.updateItems(UpdateAction.Add, ResourceType.FRIEND_REQUEST, [res.data.data])
-                    const { msg, clientId } = buildVerifyWsMsg(ImTypes.MessageType.FRIEND_REQUEST, res.data.data as any)
-                    websocketService.send(msg, clientId)
-                }
-                ElMessage.success("发送好友申请成功")
+            let res = await friendService.applyFriend({
+                to_user_id: targetUser.value.user_id,
+                apply_msg: applyMessage.value,
+                source: searchMode.value
+            });
+            if (res.data.friend) {
+                await cacheService.updateItems(UpdateAction.Add, ResourceType.FRIEND, [res.data.friend]);
+                ElMessage.success("添加成功");
+            } else if (res.data.data) {
+                console.log(res.data)
+                await cacheService.updateItems(UpdateAction.Add, ResourceType.FRIEND_REQUEST, [res.data.data]);
+                ElMessage.success("发送好友申请成功");
             }
         } else if (targetGroup.value) {
             let res = await groupService.joinGroup({
                 group_id: targetGroup.value.id,
                 message: applyMessage.value
             });
-            await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_APPLY, [res.data.data])
-            const { msg, clientId } = buildVerifyWsMsg(ImTypes.MessageType.GROUP_REQUEST, res.data.data as any)
-            websocketService.send(msg, clientId)
-            ElMessage.success("发送入群申请成功")
+            await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_APPLY, [res.data.data]);
+            ElMessage.success("发送入群申请成功");
         }
     } finally {
         GlobalLoading.close();

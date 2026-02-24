@@ -39,6 +39,8 @@ export interface Group {
   owner_id: number;
   /** @gotags: json:"notice" */
   notice: string;
+  /** @gotags: json:"join_type" */
+  join_type: number;
   /** @gotags: json:"member_count" */
   member_count: number;
   /** @gotags: json:"created_at" */
@@ -139,8 +141,12 @@ export interface JoinGroupReq {
 
 /** JoinGroupResp */
 export interface JoinGroupResp {
-  /** @gotags: json:"data" */
-  data: GroupRequest | undefined;
+  /** @gotags: json:"data,omitempty" */
+  data:
+    | GroupRequest
+    | undefined;
+  /** @gotags: json:"member,omitempty" */
+  member: GroupMember | undefined;
 }
 
 /** HandleGroupApplyReq */
@@ -421,7 +427,17 @@ export const GroupMember: MessageFns<GroupMember> = {
 };
 
 function createBaseGroup(): Group {
-  return { id: 0, name: "", avatar: "", owner_id: 0, notice: "", member_count: 0, created_at: 0, updated_at: 0 };
+  return {
+    id: 0,
+    name: "",
+    avatar: "",
+    owner_id: 0,
+    notice: "",
+    join_type: 0,
+    member_count: 0,
+    created_at: 0,
+    updated_at: 0,
+  };
 }
 
 export const Group: MessageFns<Group> = {
@@ -441,14 +457,17 @@ export const Group: MessageFns<Group> = {
     if (message.notice !== "") {
       writer.uint32(42).string(message.notice);
     }
+    if (message.join_type !== 0) {
+      writer.uint32(48).int32(message.join_type);
+    }
     if (message.member_count !== 0) {
-      writer.uint32(48).int32(message.member_count);
+      writer.uint32(56).int32(message.member_count);
     }
     if (message.created_at !== 0) {
-      writer.uint32(56).int64(message.created_at);
+      writer.uint32(64).int64(message.created_at);
     }
     if (message.updated_at !== 0) {
-      writer.uint32(64).int64(message.updated_at);
+      writer.uint32(72).int64(message.updated_at);
     }
     return writer;
   },
@@ -505,7 +524,7 @@ export const Group: MessageFns<Group> = {
             break;
           }
 
-          message.member_count = reader.int32();
+          message.join_type = reader.int32();
           continue;
         }
         case 7: {
@@ -513,11 +532,19 @@ export const Group: MessageFns<Group> = {
             break;
           }
 
-          message.created_at = longToNumber(reader.int64());
+          message.member_count = reader.int32();
           continue;
         }
         case 8: {
           if (tag !== 64) {
+            break;
+          }
+
+          message.created_at = longToNumber(reader.int64());
+          continue;
+        }
+        case 9: {
+          if (tag !== 72) {
             break;
           }
 
@@ -544,6 +571,11 @@ export const Group: MessageFns<Group> = {
         ? globalThis.Number(object.owner_id)
         : 0,
       notice: isSet(object.notice) ? globalThis.String(object.notice) : "",
+      join_type: isSet(object.joinType)
+        ? globalThis.Number(object.joinType)
+        : isSet(object.join_type)
+        ? globalThis.Number(object.join_type)
+        : 0,
       member_count: isSet(object.memberCount)
         ? globalThis.Number(object.memberCount)
         : isSet(object.member_count)
@@ -579,6 +611,9 @@ export const Group: MessageFns<Group> = {
     if (message.notice !== "") {
       obj.notice = message.notice;
     }
+    if (message.join_type !== 0) {
+      obj.joinType = Math.round(message.join_type);
+    }
     if (message.member_count !== 0) {
       obj.memberCount = Math.round(message.member_count);
     }
@@ -601,6 +636,7 @@ export const Group: MessageFns<Group> = {
     message.avatar = object.avatar ?? "";
     message.owner_id = object.owner_id ?? 0;
     message.notice = object.notice ?? "";
+    message.join_type = object.join_type ?? 0;
     message.member_count = object.member_count ?? 0;
     message.created_at = object.created_at ?? 0;
     message.updated_at = object.updated_at ?? 0;
@@ -1519,13 +1555,16 @@ export const JoinGroupReq: MessageFns<JoinGroupReq> = {
 };
 
 function createBaseJoinGroupResp(): JoinGroupResp {
-  return { data: undefined };
+  return { data: undefined, member: undefined };
 }
 
 export const JoinGroupResp: MessageFns<JoinGroupResp> = {
   encode(message: JoinGroupResp, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.data !== undefined) {
       GroupRequest.encode(message.data, writer.uint32(10).fork()).join();
+    }
+    if (message.member !== undefined) {
+      GroupMember.encode(message.member, writer.uint32(18).fork()).join();
     }
     return writer;
   },
@@ -1545,6 +1584,14 @@ export const JoinGroupResp: MessageFns<JoinGroupResp> = {
           message.data = GroupRequest.decode(reader, reader.uint32());
           continue;
         }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.member = GroupMember.decode(reader, reader.uint32());
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1555,13 +1602,19 @@ export const JoinGroupResp: MessageFns<JoinGroupResp> = {
   },
 
   fromJSON(object: any): JoinGroupResp {
-    return { data: isSet(object.data) ? GroupRequest.fromJSON(object.data) : undefined };
+    return {
+      data: isSet(object.data) ? GroupRequest.fromJSON(object.data) : undefined,
+      member: isSet(object.member) ? GroupMember.fromJSON(object.member) : undefined,
+    };
   },
 
   toJSON(message: JoinGroupResp): unknown {
     const obj: any = {};
     if (message.data !== undefined) {
       obj.data = GroupRequest.toJSON(message.data);
+    }
+    if (message.member !== undefined) {
+      obj.member = GroupMember.toJSON(message.member);
     }
     return obj;
   },
@@ -1573,6 +1626,9 @@ export const JoinGroupResp: MessageFns<JoinGroupResp> = {
     const message = createBaseJoinGroupResp();
     message.data = (object.data !== undefined && object.data !== null)
       ? GroupRequest.fromPartial(object.data)
+      : undefined;
+    message.member = (object.member !== undefined && object.member !== null)
+      ? GroupMember.fromPartial(object.member)
       : undefined;
     return message;
   },

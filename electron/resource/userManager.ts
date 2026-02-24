@@ -72,7 +72,8 @@ class UserService {
         this.pendingByIds.set(key, { promise, resolve: resolvePromise!, reject: rejectPromise! });
 
         try {
-            const users = await this.doFetchUsersByIds(idsToFetch);
+            const usersApi = await this.doFetchUsersByIds(idsToFetch);
+            const users = usersApi.map(u => u as unknown as UserInfo);
             cacheManager.setItems(ResourceType.USER, users);
             resolvePromise!(users);
             return [...cachedUsers, ...users];
@@ -106,7 +107,8 @@ class UserService {
         this.pendingByPhone.set(phone, { promise, resolve: resolvePromise!, reject: rejectPromise! });
 
         try {
-            const users = await this.doFetchUserByQuery({ phone });
+            const usersApi = await this.doFetchUserByQuery({ phone });
+            const users = usersApi.map(u => u as unknown as UserInfo);
             cacheManager.setItems(ResourceType.USER, users);
             resolvePromise!(users);
             return users;
@@ -143,7 +145,8 @@ class UserService {
         this.pendingByName.set(key, { promise, resolve: resolvePromise!, reject: rejectPromise! });
 
         try {
-            const users = await this.doFetchUserByQuery({ name, limit, offset });
+            const usersApi = await this.doFetchUserByQuery({ name, limit, offset });
+            const users = usersApi.map(u => u as unknown as UserInfo);
             cacheManager.setItems(ResourceType.USER, users);
             resolvePromise!(users);
             return users;
@@ -160,7 +163,7 @@ class UserService {
     /**
      * 调用 API 获取用户信息（按 ID）
      */
-    private async doFetchUsersByIds(ids: number[]): Promise<UserInfo[]> {
+    private async doFetchUsersByIds(ids: number[]): Promise<ApiTypes.user.UserInfo[]> {
         const params = ids.map(id => `ids=${id}`).join('&');
         return this.doRequest(`${config.userServer}/user/info?${params}`);
     }
@@ -168,7 +171,7 @@ class UserService {
     /**
      * 调用 API 获取用户信息（按 phone/name）
      */
-    private async doFetchUserByQuery(query: { phone?: string; name?: string; limit?: number; offset?: number }): Promise<UserInfo[]> {
+    private async doFetchUserByQuery(query: { phone?: string; name?: string; limit?: number; offset?: number }): Promise<ApiTypes.user.UserInfo[]> {
         const params = new URLSearchParams();
         if (query.phone) params.append('phone', query.phone);
         if (query.name) params.append('name', query.name);
@@ -181,7 +184,7 @@ class UserService {
     /**
      * 通用 GET 请求（使用 mainRequest，自动处理 token 刷新）
      */
-    private async doRequest(url: string): Promise<UserInfo[]> {
+    private async doRequest(url: string): Promise<ApiTypes.user.UserInfo[]> {
         try {
             const response = await mainGet<any>(url);
             if (response.code === 200) {

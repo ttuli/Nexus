@@ -148,7 +148,7 @@ export function generateGroupSessionId(groupId: number): string {
     return `group_${groupId}`;
 }
 
-export function buildWsMessage(type: ImTypes.MessageType, content: any): { msg: ImTypes.WSMessage, clientId: string, localMsg: IChatMessage } {
+export function buildWsMessage(type: ImTypes.MessageType, content: any, targetId: number, targetType: ImTypes.TargetType): { msg: ImTypes.WSMessage, clientId: string, localMsg: IChatMessage } {
     const chatStore = useChatStore();
     const userStore = useUserStore();
     const clientId = ulid();
@@ -170,6 +170,8 @@ export function buildWsMessage(type: ImTypes.MessageType, content: any): { msg: 
         timestamp: Date.now(),
         version: config.wsMessageVersion,
         payload: new Uint8Array(),
+        route_target: targetId,
+        route_target_type: targetType,
     };
 
     let payload: Uint8Array = new Uint8Array();
@@ -242,12 +244,14 @@ export function buildVerifyWsMsg(type: ImTypes.MessageType, data:
     ImTypes.FriendRequest | 
     ImTypes.GroupApply | 
     ImTypes.Friend
-): { msg: ImTypes.WSMessage, clientId?: string } {
+,targetId: number, targetType: ImTypes.TargetType): { msg: ImTypes.WSMessage, clientId?: string } {
     const wsMsg: ImTypes.WSMessage = {
         type,
         timestamp: Date.now(),
         version: config.wsMessageVersion,
         payload: new Uint8Array(),
+        route_target: targetId,
+        route_target_type: targetType,
     };
 
     let payload: Uint8Array = new Uint8Array();
