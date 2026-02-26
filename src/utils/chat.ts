@@ -1,8 +1,55 @@
 import { ImTypes, IChatMessage, ILocalTextMessage, ILocalImageMessage, ILocalVideoMessage, ILocalFileMessage } from '@/types';
 import { config } from '@/config';
-import { useChatStore } from '@/store/chat';
+
 import { useUserStore } from '@/store/user';
 import { ulid } from 'ulid';
+
+/** imlocal:// 协议 Scheme，与主进程 fileCacheManager 中定义保持一致 */
+const IMLOCAL_SCHEME = 'imlocal';
+/** imcache:// 协议 Scheme，与主进程 fileCacheManager 中定义保持一致 */
+const IMCACHE_SCHEME = 'imcache';
+
+/**
+ * 将本地文件绝对路径转换为 imlocal:// 协议地址（渲染进程侧）
+ * 主进程会拦截此协议，用 nativeImage 缩放后返回图片 buffer，不写入磁盘缓存
+ * @param filePath 本地文件绝对路径（Electron File.path 字段）
+ * @param maxWidth 缩略图最大宽度，默认 400px
+ */
+export function toLocalPreviewUrl(filePath: string, maxWidth = 400): string {
+    // 使用 URL-safe Base64（浏览器原生 btoa 只支持 latin1，需转义 unicode）
+    const encoded = btoa(encodeURIComponent(filePath).replace(/%([0-9A-F]{2})/g, (_, p1) =>
+        String.fromCharCode(parseInt(p1, 16))
+    )).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    return `${IMLOCAL_SCHEME}://${encoded}?width=${maxWidth}`;
+}
+
+/**
+ * 将网络 OSS URL 转换为 imcache:// 协议地址（渲染进程侧）
+ * 主进程会拦截此协议，下载文件、存入磁盘缓存，并返回。
+ * @param url 网络图片地址
+ * @param width 图片推荐的渲染宽度
+ * @param height 图片推荐的渲染高度
+ */
+export function toNetworkPreviewUrl(url: string, width?: number, height?: number): string {
+    if (!url) return '';
+    // 如果已经是 imcache 协议了，就直接返回
+    if (url.startsWith(`${IMCACHE_SCHEME}://`)) return url;
+
+    // Base64Url 编码
+    const encoded = btoa(encodeURIComponent(url).replace(/%([0-9A-F]{2})/g, (_, p1) =>
+        String.fromCharCode(parseInt(p1, 16))
+    )).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+
+    let result = `${IMCACHE_SCHEME}://${encoded}`;
+    const params = new URLSearchParams();
+    if (width) params.append('width', width.toString());
+    if (height) params.append('height', height.toString());
+
+    const qs = params.toString();
+    if (qs) result += `?${qs}`;
+
+    return result;
+}
 
 /**
  * Convert WSMessage to IChatMessage (Local Message format)
@@ -148,16 +195,78 @@ export function generateGroupSessionId(groupId: number): string {
     return `group_${groupId}`;
 }
 
-export function buildWsMessage(type: ImTypes.MessageType, content: any, targetId: number, targetType: ImTypes.TargetType): { msg: ImTypes.WSMessage, clientId: string, localMsg: IChatMessage } {
-    const chatStore = useChatStore();
+/**
+ * 分离出从 sessionId 中获取目标 ID 的逻辑
+ * 供组件、store或工具函数统一使用
+ * @param sessionId 会话ID
+ * @param currentUserId 当前用户的 user_id（用于私聊判定对方是谁）
+ * @returns 对方的 user_id 或者群组的 group_id
+ */
+export function extractTargetIdFromSessionId(sessionId: string, currentUserId: number): number | null {
+    if (!sessionId) return null;
+    const parts = sessionId.split('_');
+    if (sessionId.startsWith('group_')) {
+        return parseInt(parts[1], 10);
+    } else if (sessionId.startsWith('private_') && parts.length >= 3) {
+        const uid1 = parseInt(parts[1], 10);
+        const uid2 = parseInt(parts[2], 10);
+        return uid1 === currentUserId ? uid2 : uid1;
+    }
+    return null;
+}
+
+// ─── Content types ─────────────────────────────────────────────────────────
+
+export interface ImageContent {
+    url: string;
+    thumbnailUrl?: string;
+    localPath?: string;
+    uploadProgress?: number;
+    width?: number;
+    height?: number;
+    size?: number;
+    format?: string;
+}
+
+export interface FileContent {
+    url: string;
+    localPath?: string;
+    uploadProgress?: number;
+    fileName?: string;
+    size?: number;
+    fileType?: ImTypes.FileType;
+}
+
+// ─── Return type ────────────────────────────────────────────────────────────
+
+export interface WsMessageResult<T extends IChatMessage = IChatMessage> {
+    msg: ImTypes.WSMessage;
+    clientId: string;
+    localMsg: T;
+}
+
+// ─── Shared base builder (private) ──────────────────────────────────────────
+
+function buildBase(type: ImTypes.MessageType, sessionId: string, existingClientId?: string) {
     const userStore = useUserStore();
-    const clientId = ulid();
+    const clientId = existingClientId ?? ulid();
+
+    let targetId: number;
+    let targetType: ImTypes.TargetType;
+    if (sessionId.startsWith('group_')) {
+        targetType = ImTypes.TargetType.GROUP;
+    } else {
+        targetType = ImTypes.TargetType.USER;
+    }
+
+    // 复用刚刚提取的方法
+    targetId = extractTargetIdFromSessionId(sessionId, userStore.getUserID()) || 0;
 
     const baseMsg: ImTypes.BaseMessage = {
         msg_id: '',
-        session_id: chatStore.currentSessionId,
+        session_id: sessionId,
         from_user_id: userStore.getUserID(),
-        target: chatStore.currentChatId || 0,
+        target: targetId,
         send_time: Date.now(),
         msg_seq: 0,
         status: ImTypes.MessageStatus.MESSAGE_STATUS_SENDING,
@@ -174,77 +283,171 @@ export function buildWsMessage(type: ImTypes.MessageType, content: any, targetId
         route_target_type: targetType,
     };
 
-    let payload: Uint8Array = new Uint8Array();
-    let localMsg: IChatMessage;
-
-    // Common fields for ILocalMessageBase
     const commonFields = {
         msgId: '',
-        sessionId: chatStore.currentSessionId,
+        sessionId,
         fromUserId: userStore.getUserID(),
         sendTime: baseMsg.send_time,
         seq: 0,
         status: ImTypes.MessageStatus.MESSAGE_STATUS_SENDING,
-        isRead: true, // Self-sent messages are read
-        clientId: baseMsg.client_id,
-        ext: undefined,
+        isRead: true,
+        clientId,
+        ext: undefined as undefined,
     };
 
-    switch (type) {
-        case ImTypes.MessageType.CHAT_TEXT:
-        case ImTypes.MessageType.GROUP_TEXT:
-            payload = ImTypes.TextMessage.encode({ base: baseMsg, content, at_list: [] }).finish();
-            localMsg = {
-                ...commonFields,
-                type,
-                content,
-                atList: []
-            } as ILocalTextMessage;
-            break;
-        case ImTypes.MessageType.CHAT_IMAGE:
-        case ImTypes.MessageType.GROUP_IMAGE:
-            payload = ImTypes.ImageMessage.encode({ base: baseMsg, url: content, thumbnail_url: '', width: 0, height: 0, size: 0, format: '' }).finish();
-            localMsg = {
-                ...commonFields,
-                type,
-                url: content,
-                width: 0, height: 0, size: 0, format: ''
-            } as ILocalImageMessage;
-            break;
-        case ImTypes.MessageType.CHAT_VIDEO:
-        case ImTypes.MessageType.GROUP_VIDEO:
-            payload = ImTypes.VideoMessage.encode({ base: baseMsg, url: content, thumbnail_url: '', duration: 0, width: 0, height: 0, size: 0, format: '' }).finish();
-            localMsg = {
-                ...commonFields,
-                type,
-                url: content,
-                duration: 0, width: 0, height: 0, size: 0, format: ''
-            } as ILocalVideoMessage;
-            break;
-        case ImTypes.MessageType.CHAT_FILE:
-        case ImTypes.MessageType.GROUP_FILE:
-            payload = ImTypes.FileMessage.encode({ base: baseMsg, url: content, file_name: '', size: 0, file_type: ImTypes.FileType.FILE_TYPE_UNSPECIFIED, md5: '' }).finish();
-            localMsg = {
-                ...commonFields,
-                type,
-                url: content,
-                fileName: '', size: 0, fileType: ImTypes.FileType.FILE_TYPE_UNSPECIFIED
-            } as ILocalFileMessage;
-            break;
-        default:
-            // Should not happen for handled types, but need a fallback or throw
-            throw new Error(`Unsupported message type: ${type}`);
-    }
-
-    wsMsg.payload = payload;
-    return { msg: wsMsg, clientId: baseMsg.client_id, localMsg };
+    return { clientId, baseMsg, wsMsg, commonFields };
 }
 
-export function buildVerifyWsMsg(type: ImTypes.MessageType, data: 
-    ImTypes.FriendRequest | 
-    ImTypes.GroupApply | 
+// ─── Per-type builders ───────────────────────────────────────────────────────
+
+/**
+ * 构建文本消息的 WS 包和占位本地消息
+ */
+export function buildTextWsMessage(
+    content: string,
+    sessionId: string
+): WsMessageResult<ILocalTextMessage> {
+    const isGroup = sessionId.startsWith('group_');
+    const type = isGroup ? ImTypes.MessageType.GROUP_TEXT : ImTypes.MessageType.CHAT_TEXT;
+    const { clientId, baseMsg, wsMsg, commonFields } = buildBase(type, sessionId);
+
+    wsMsg.payload = ImTypes.TextMessage.encode({ base: baseMsg, content, at_list: [] }).finish();
+    const localMsg: ILocalTextMessage = { ...commonFields, type, content, atList: [] };
+    return { msg: wsMsg, clientId, localMsg };
+}
+
+/**
+ * 构建图片消息的 WS 包和占位本地消息
+ * content.url 为空时表示占位消息（上传前），有值时表示结果消息（上传后）
+ */
+export function buildImageWsMessage(
+    content: ImageContent,
+    sessionId: string,
+    existingClientId?: string
+): WsMessageResult<ILocalImageMessage> {
+    const isGroup = sessionId.startsWith('group_');
+    const type = isGroup ? ImTypes.MessageType.GROUP_IMAGE : ImTypes.MessageType.CHAT_IMAGE;
+    const { clientId, baseMsg, wsMsg, commonFields } = buildBase(type, sessionId, existingClientId);
+
+    wsMsg.payload = ImTypes.ImageMessage.encode({
+        base: baseMsg,
+        url: content.url,
+        thumbnail_url: content.thumbnailUrl || '',
+        width: content.width || 0,
+        height: content.height || 0,
+        size: content.size || 0,
+        format: content.format || ''
+    }).finish();
+
+    const localMsg: ILocalImageMessage = {
+        ...commonFields,
+        type,
+        url: content.url,
+        localPath: content.localPath,
+        thumbnailUrl: content.thumbnailUrl,
+        uploadProgress: content.uploadProgress,
+        width: content.width || 0,
+        height: content.height || 0,
+        size: content.size || 0,
+        format: content.format || ''
+    };
+    return { msg: wsMsg, clientId, localMsg };
+}
+
+/**
+ * 仅构建图片占位本地消息（不含 WS payload），用于上传前立即塞入 store 显示预览
+ */
+export function buildImageLocalMsg(
+    content: ImageContent,
+    sessionId: string
+): { clientId: string; localMsg: ILocalImageMessage } {
+    const isGroup = sessionId.startsWith('group_');
+    const type = isGroup ? ImTypes.MessageType.GROUP_IMAGE : ImTypes.MessageType.CHAT_IMAGE;
+    const { clientId, commonFields } = buildBase(type, sessionId);
+
+    const localMsg: ILocalImageMessage = {
+        ...commonFields,
+        type,
+        url: content.url,
+        localPath: content.localPath,
+        thumbnailUrl: content.thumbnailUrl,
+        uploadProgress: content.uploadProgress,
+        width: content.width || 0,
+        height: content.height || 0,
+        size: content.size || 0,
+        format: content.format || ''
+    };
+    return { clientId, localMsg };
+}
+
+/**
+ * 根据已有的图片本地消息（clientId）和最终 OSS URL 构建 WS 发送载荷
+ * 用于上传完成后发送 WebSocket 消息
+ */
+export function buildImageWsPayload(
+    localMsg: ILocalImageMessage,
+    ossUrl: string,
+    sessionId: string
+): ImTypes.WSMessage {
+    const isGroup = sessionId.startsWith('group_');
+    const type = isGroup ? ImTypes.MessageType.GROUP_IMAGE : ImTypes.MessageType.CHAT_IMAGE;
+    const { baseMsg, wsMsg } = buildBase(type, sessionId, localMsg.clientId);
+
+    wsMsg.payload = ImTypes.ImageMessage.encode({
+        base: baseMsg,
+        url: ossUrl,
+        thumbnail_url: localMsg.thumbnailUrl || '',
+        width: localMsg.width || 0,
+        height: localMsg.height || 0,
+        size: localMsg.size || 0,
+        format: localMsg.format || ''
+    }).finish();
+
+    return wsMsg;
+}
+
+/**
+ * 构建文件消息的 WS 包和占位本地消息
+ * content.url 为空时表示占位消息（上传前），有值时表示结果消息（上传后）
+ */
+export function buildFileWsMessage(
+    content: FileContent,
+    sessionId: string,
+    existingClientId?: string
+): WsMessageResult<ILocalFileMessage> {
+    const isGroup = sessionId.startsWith('group_');
+    const type = isGroup ? ImTypes.MessageType.GROUP_FILE : ImTypes.MessageType.CHAT_FILE;
+    const { clientId, baseMsg, wsMsg, commonFields } = buildBase(type, sessionId, existingClientId);
+
+    wsMsg.payload = ImTypes.FileMessage.encode({
+        base: baseMsg,
+        url: content.url,
+        file_name: content.fileName || '',
+        size: content.size || 0,
+        file_type: content.fileType || ImTypes.FileType.FILE_TYPE_UNSPECIFIED,
+        md5: ''
+    }).finish();
+
+    const localMsg: ILocalFileMessage = {
+        ...commonFields,
+        type,
+        url: content.url,
+        localPath: content.localPath,
+        uploadProgress: content.uploadProgress,
+        fileName: content.fileName || '',
+        size: content.size || 0,
+        fileType: content.fileType || ImTypes.FileType.FILE_TYPE_UNSPECIFIED
+    };
+    return { msg: wsMsg, clientId, localMsg };
+}
+
+
+
+export function buildVerifyWsMsg(type: ImTypes.MessageType, data:
+    ImTypes.FriendRequest |
+    ImTypes.GroupApply |
     ImTypes.Friend
-,targetId: number, targetType: ImTypes.TargetType): { msg: ImTypes.WSMessage, clientId?: string } {
+    , targetId: number, targetType: ImTypes.TargetType): { msg: ImTypes.WSMessage, clientId?: string } {
     const wsMsg: ImTypes.WSMessage = {
         type,
         timestamp: Date.now(),

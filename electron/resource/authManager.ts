@@ -63,7 +63,7 @@ class AuthManager {
         remember: boolean = false
     ): Promise<{ success: boolean; userId?: number; error?: string }> {
         try {
-            const res = await mainPost(`${config.authServer}/auth/login`, {
+            const res = await mainPost<ApiTypes.auth.LoginResp>(`${config.authServer}/auth/login`, {
                 account: Number(account),
                 password,
                 device_id: this.deviceId,

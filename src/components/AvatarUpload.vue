@@ -20,8 +20,8 @@
               <button class="close-btn" @click="closePreview">×</button>
             </div>
             <div class="modal-body">
-              <div class="avatar-crop-container" ref="cropContainer" @mousedown="startDrag"
-                @touchstart.prevent="startDrag" @wheel.prevent="handleWheel">
+              <div class="avatar-crop-container" @mousedown="startDrag" @touchstart.prevent="startDrag"
+                @wheel.prevent="handleWheel">
                 <div class="crop-mask"></div>
                 <img ref="previewImage" :src="previewUrl" alt="头像预览" class="crop-image" :style="imageStyle"
                   @load="onImageLoad" />
@@ -56,9 +56,8 @@ import { ref, onUnmounted, computed } from 'vue'
 import Avatar from '@/components/Avatar.vue'
 import CusButton from '@/components/CusButton.vue'
 import { fileService } from '@/services/fileService'
-import { computeFileMd5 } from '@/utils/md5'
 import { ElMessage } from 'element-plus'
-import { ImTypes } from '@/types'
+import { ApiTypes } from '@/types'
 
 interface Props {
   uid: number
@@ -87,7 +86,6 @@ const previewUrl = ref('')
 const processing = ref(false)
 
 // Crop state
-const cropContainer = ref<HTMLElement>()
 const previewImage = ref<HTMLImageElement>()
 const scale = ref(1)
 const position = ref({ x: 0, y: 0 })
@@ -357,31 +355,11 @@ const confirmUpload = async () => {
     if (!blob) throw new Error('Failed to create blob')
 
     const croppedFile = new File([blob], selectedFile.value.name, { type: 'image/jpeg' })
-    const response = await fileService.getUploadSignature({ file_type: ImTypes.FileType.FILE_TYPE_AVATAR })
-    const md5 = await computeFileMd5(croppedFile)
-    const fileExt = selectedFile.value.name.split('.').pop() || 'jpeg' // Derive file extension
+    const url = await fileService.uploadFile(croppedFile, ApiTypes.file.FileType.FileTypeAvatar)
 
-    let formData = new FormData();
-    formData.append("success_action_status", "200");
-    formData.append("policy", response.data.policy);
-    formData.append("x-oss-signature", response.data.signature);
-    formData.append("x-oss-signature-version", "OSS4-HMAC-SHA256");
-    formData.append("x-oss-credential", response.data.x_oss_credential);
-    formData.append("x-oss-date", response.data.x_oss_date);
-    formData.append("key", response.data.dir + md5);
-    formData.append("x-oss-security-token", response.data.security_token);
-    formData.append("callback", response.data.callback);
-    formData.append("file", croppedFile);
-
-    await fetch(response.data.host, {
-      method: "POST",
-      body: formData
-    });
-
-    emit('success', response.data.host + '/' + response.data.dir + md5)
+    emit('success', url)
     closePreview()
   } catch (error) {
-    console.error('头像上传失败:', error)
     ElMessage.error('头像上传失败，请重试')
   } finally {
     uploading.value = false
@@ -468,7 +446,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: 20;
   -webkit-app-region: no-drag;
 }
 

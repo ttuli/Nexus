@@ -1,8 +1,8 @@
 import { friendService, groupService, userService } from "@/services";
 import { ImTypes } from '@/types';
 import { useUserStore } from "./user";
-// import { useGroupStore } from "./group";
 import { useChatStore } from "./chat";
+import { extractTargetIdFromSessionId } from '@/utils/chat';
 
 export async function initRelationStore() {
     const userStore = useUserStore()
@@ -24,19 +24,18 @@ export async function initRelationStore() {
     const groupIdsToFetch: number[] = [];
 
     chatStore.chatList.forEach((chat: ImTypes.Conversation) => {
+        const targetId = extractTargetIdFromSessionId(chat.conversation_id, userStore.getUserID());
         if (chat.type === ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE) {
-            Ids.push(chat.target_id)
+            if (targetId) Ids.push(targetId);
         } else if (chat.type === ImTypes.ConversationType.CONVERSATION_TYPE_GROUP) {
-            groupIdsToFetch.push(chat.target_id);
+            if (targetId) groupIdsToFetch.push(targetId);
         }
     })
-    let res = await userService.fetchByIds([...new Set(Ids)]);
-    console.log(res)
-    
+    await userService.fetchByIds([...new Set(Ids)]);
+
     const groupIds = await groupService.fetchUserGroupIds();
     groupIds.push(...groupIdsToFetch);
 
-    // console.log(groupIds);
     const grequests = await groupService.fetchPendingApplies()
     grequests.map((request: ImTypes.GroupApply) => {
         groupIds.push(request.group_id)

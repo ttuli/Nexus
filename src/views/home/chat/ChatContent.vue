@@ -35,7 +35,7 @@
 
             <!-- Input Area -->
             <div class="input-area" :style="{ height: inputHeight + 'px' }">
-                <ChatInput @send="handleSendMessage" />
+                <ChatInput @send="handleSendMessage" @sendImage="handleSendImage" @sendFile="handleSendFile" />
             </div>
         </div>
     </div>
@@ -48,7 +48,7 @@ import { useChatStore } from '@/store/chat';
 import { useUserStore } from '@/store/user';
 import { useGroupStore } from '@/store/group';
 import { storeToRefs } from 'pinia';
-import MessageBubble from './components/MessageBubble.vue';
+import MessageBubble from '@/views/home/chat/components/Bubble/MessageBubble.vue';
 import { IChatMessage, ILocalTextMessage } from '@/types/chatMessage';
 import { ImTypes } from '@/types';
 import ChatInput from './components/ChatInput.vue';
@@ -57,14 +57,13 @@ import type { MenuOption } from '@/components/ContextMenu.vue';
 import { ElMessage } from 'element-plus';
 
 import copyIcon from '@/assets/chat/copy.svg?url';
-import { buildWsMessage } from '@/utils/chat';
 import { websocketService } from '@/services';
 
 
 const chatStore = useChatStore();
 const userStore = useUserStore();
 const groupStore = useGroupStore();
-const { currentChatType, currentSessionId, messages, isLoading, hasMore } = storeToRefs(chatStore);
+const { currentSessionId, messages, isLoading, hasMore } = storeToRefs(chatStore);
 
 // Sidebar Logic
 const sidebarVisible = ref(false);
@@ -122,11 +121,11 @@ const handleMenuSelect = async (option: MenuOption) => {
 // Computed
 const currentChat = computed(() => chatStore.currentChat);
 
+import { extractTargetIdFromSessionId } from '@/utils/chat';
+
 const title = computed(() => {
     if (!currentChat.value) return '';
-    const targetId = currentChat.value.target_id;
-    // targetId could be null/undefined in IConversation, but in practice for a valid chat it should be number.
-    // If it's undefined, we fallback to 0 or check if it exists.
+    const targetId = extractTargetIdFromSessionId(currentChat.value.conversation_id, userStore.getUserID());
     if (!targetId) return '';
 
     if (currentChat.value.type === ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE) {
@@ -158,40 +157,38 @@ const onLoad = () => {
 };
 
 // Auto scroll on first load or send
-watch(() => messages.value.length, (newLen, oldLen) => {
-    if (oldLen === 0 && newLen > 0) {
-        scrollToBottom();
-    }
+watch(messages, () => {
+    scrollToBottom();
 });
 
 // Watch chat change to scroll bottom
 watch(currentSessionId, () => {
     if (currentSessionId.value) {
         sidebarVisible.value = false;
-        // Store handles fetching, we just ensure scroll?
-        // Actually Vant List handle loading.
-        // We might want to scroll to bottom initially?
-        // Let's modify store to set "initial load" flag or just observe messages length change from 0 to N.
     }
 });
 
 const handleSendMessage = async (content: string) => {
-    const { msg, clientId, localMsg } = buildWsMessage(currentChatType.value === ImTypes.ConversationType.CONVERSATION_TYPE_GROUP ?
-        ImTypes.MessageType.GROUP_TEXT : ImTypes.MessageType.CHAT_TEXT,
-        content);
-
-    // Optimistically add to list
-    chatStore.addMessage(localMsg);
-
-    const result = await websocketService.send(msg, clientId);
-    if (!result.success || !result.data.sent) {
-        // Update status to FAILED after a short delay
-        setTimeout(() => {
-            chatStore.updateMessageStatus(chatStore.currentSessionId, clientId, ImTypes.MessageStatus.MESSAGE_STATUS_FAILED);
-        }, 1000);
-        return;
-    }
+    await websocketService.sendText(content);
     scrollToBottom();
+};
+
+const handleSendImage = async (file: File) => {
+    try {
+        await websocketService.sendImage(file);
+        scrollToBottom();
+    } catch {
+        ElMessage.error('上传图片失败');
+    }
+};
+
+const handleSendFile = async (file: File) => {
+    try {
+        await websocketService.sendFile(file);
+        scrollToBottom();
+    } catch {
+        ElMessage.error('上传文件失败');
+    }
 };
 
 // Resizer Logic

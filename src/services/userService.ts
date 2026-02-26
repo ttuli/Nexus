@@ -1,4 +1,4 @@
-import { ImTypes } from '@/types';
+import { ApiTypes, ImTypes } from '@/types';
 /**
  * 用户服务
  * 处理用户信息的获取
@@ -69,7 +69,7 @@ class UserService {
     /**
      * 更新用户信息
      */
-    async updateUserInfo(changes: ImTypes.UserInfo): Promise<boolean> {
+    async updateUserInfo(changes: ApiTypes.user.UpdateInfoReq): Promise<boolean> {
         try {
             await updateUserInfo(changes)
             await cacheService.updateItems(UpdateAction.Update, ResourceType.USER, [{ ...changes }])

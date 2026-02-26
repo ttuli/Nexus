@@ -1557,10 +1557,10 @@ export interface Conversation {
   conversation_id: string;
   /** 会话类型 */
   type: ConversationType;
-  /** 目标ID (私聊=对方user_id, 群聊=group_id) */
-  target_id: number;
   /** 最后一条消息摘要文本 */
   last_content: string;
+  max_seq: number;
+  last_sender: number;
   /** 最后消息时间 */
   last_message_time: number;
   /** 未读消息数 */
@@ -4785,8 +4785,9 @@ function createBaseConversation(): Conversation {
   return {
     conversation_id: "",
     type: 0,
-    target_id: 0,
     last_content: "",
+    max_seq: 0,
+    last_sender: 0,
     last_message_time: 0,
     unread_count: 0,
     create_time: 0,
@@ -4805,32 +4806,35 @@ export const Conversation: MessageFns<Conversation> = {
     if (message.type !== 0) {
       writer.uint32(16).int32(message.type);
     }
-    if (message.target_id !== 0) {
-      writer.uint32(24).uint64(message.target_id);
-    }
     if (message.last_content !== "") {
-      writer.uint32(34).string(message.last_content);
+      writer.uint32(26).string(message.last_content);
+    }
+    if (message.max_seq !== 0) {
+      writer.uint32(32).int64(message.max_seq);
+    }
+    if (message.last_sender !== 0) {
+      writer.uint32(40).uint64(message.last_sender);
     }
     if (message.last_message_time !== 0) {
-      writer.uint32(40).int64(message.last_message_time);
+      writer.uint32(48).int64(message.last_message_time);
     }
     if (message.unread_count !== 0) {
-      writer.uint32(48).int64(message.unread_count);
+      writer.uint32(56).int64(message.unread_count);
     }
     if (message.create_time !== 0) {
-      writer.uint32(56).int64(message.create_time);
+      writer.uint32(64).int64(message.create_time);
     }
     if (message.update_time !== 0) {
-      writer.uint32(64).int64(message.update_time);
+      writer.uint32(72).int64(message.update_time);
     }
     if (message.is_top !== false) {
-      writer.uint32(72).bool(message.is_top);
+      writer.uint32(80).bool(message.is_top);
     }
     if (message.is_disturb !== false) {
-      writer.uint32(80).bool(message.is_disturb);
+      writer.uint32(88).bool(message.is_disturb);
     }
     if (message.last_msg_type !== 0) {
-      writer.uint32(88).int32(message.last_msg_type);
+      writer.uint32(96).int32(message.last_msg_type);
     }
     return writer;
   },
@@ -4859,19 +4863,19 @@ export const Conversation: MessageFns<Conversation> = {
           continue;
         }
         case 3: {
-          if (tag !== 24) {
-            break;
-          }
-
-          message.target_id = longToNumber(reader.uint64());
-          continue;
-        }
-        case 4: {
-          if (tag !== 34) {
+          if (tag !== 26) {
             break;
           }
 
           message.last_content = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.max_seq = longToNumber(reader.int64());
           continue;
         }
         case 5: {
@@ -4879,7 +4883,7 @@ export const Conversation: MessageFns<Conversation> = {
             break;
           }
 
-          message.last_message_time = longToNumber(reader.int64());
+          message.last_sender = longToNumber(reader.uint64());
           continue;
         }
         case 6: {
@@ -4887,7 +4891,7 @@ export const Conversation: MessageFns<Conversation> = {
             break;
           }
 
-          message.unread_count = longToNumber(reader.int64());
+          message.last_message_time = longToNumber(reader.int64());
           continue;
         }
         case 7: {
@@ -4895,7 +4899,7 @@ export const Conversation: MessageFns<Conversation> = {
             break;
           }
 
-          message.create_time = longToNumber(reader.int64());
+          message.unread_count = longToNumber(reader.int64());
           continue;
         }
         case 8: {
@@ -4903,7 +4907,7 @@ export const Conversation: MessageFns<Conversation> = {
             break;
           }
 
-          message.update_time = longToNumber(reader.int64());
+          message.create_time = longToNumber(reader.int64());
           continue;
         }
         case 9: {
@@ -4911,7 +4915,7 @@ export const Conversation: MessageFns<Conversation> = {
             break;
           }
 
-          message.is_top = reader.bool();
+          message.update_time = longToNumber(reader.int64());
           continue;
         }
         case 10: {
@@ -4919,11 +4923,19 @@ export const Conversation: MessageFns<Conversation> = {
             break;
           }
 
-          message.is_disturb = reader.bool();
+          message.is_top = reader.bool();
           continue;
         }
         case 11: {
           if (tag !== 88) {
+            break;
+          }
+
+          message.is_disturb = reader.bool();
+          continue;
+        }
+        case 12: {
+          if (tag !== 96) {
             break;
           }
 
@@ -4947,16 +4959,21 @@ export const Conversation: MessageFns<Conversation> = {
         ? globalThis.String(object.conversation_id)
         : "",
       type: isSet(object.type) ? conversationTypeFromJSON(object.type) : 0,
-      target_id: isSet(object.targetId)
-        ? globalThis.Number(object.targetId)
-        : isSet(object.target_id)
-        ? globalThis.Number(object.target_id)
-        : 0,
       last_content: isSet(object.lastContent)
         ? globalThis.String(object.lastContent)
         : isSet(object.last_content)
         ? globalThis.String(object.last_content)
         : "",
+      max_seq: isSet(object.maxSeq)
+        ? globalThis.Number(object.maxSeq)
+        : isSet(object.max_seq)
+        ? globalThis.Number(object.max_seq)
+        : 0,
+      last_sender: isSet(object.lastSender)
+        ? globalThis.Number(object.lastSender)
+        : isSet(object.last_sender)
+        ? globalThis.Number(object.last_sender)
+        : 0,
       last_message_time: isSet(object.lastMessageTime)
         ? globalThis.Number(object.lastMessageTime)
         : isSet(object.last_message_time)
@@ -5003,11 +5020,14 @@ export const Conversation: MessageFns<Conversation> = {
     if (message.type !== 0) {
       obj.type = conversationTypeToJSON(message.type);
     }
-    if (message.target_id !== 0) {
-      obj.targetId = Math.round(message.target_id);
-    }
     if (message.last_content !== "") {
       obj.lastContent = message.last_content;
+    }
+    if (message.max_seq !== 0) {
+      obj.maxSeq = Math.round(message.max_seq);
+    }
+    if (message.last_sender !== 0) {
+      obj.lastSender = Math.round(message.last_sender);
     }
     if (message.last_message_time !== 0) {
       obj.lastMessageTime = Math.round(message.last_message_time);
@@ -5040,8 +5060,9 @@ export const Conversation: MessageFns<Conversation> = {
     const message = createBaseConversation();
     message.conversation_id = object.conversation_id ?? "";
     message.type = object.type ?? 0;
-    message.target_id = object.target_id ?? 0;
     message.last_content = object.last_content ?? "";
+    message.max_seq = object.max_seq ?? 0;
+    message.last_sender = object.last_sender ?? 0;
     message.last_message_time = object.last_message_time ?? 0;
     message.unread_count = object.unread_count ?? 0;
     message.create_time = object.create_time ?? 0;

@@ -50,6 +50,9 @@ const router = createRouter({
                             components: {
                                 list: () => import('@/views/home/contact/components/ContactSidebar.vue'),
                                 default: () => import('@/views/home/contact/ValidationMessages.vue')
+                            },
+                            meta: {
+                                preload: true
                             }
                         },
                         {

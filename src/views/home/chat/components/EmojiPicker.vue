@@ -1,15 +1,17 @@
 <template>
     <div v-if="visible" class="emoji-picker-overlay" @click.self="$emit('close')">
         <div class="emoji-picker-container" :style="positionStyle">
-            <EmojiPicker :native="true" @select="onSelect" :group-names="groupNames" :static-texts="staticTexts" />
+            <div class="emoji-list">
+                <span v-for="(emoji, index) in emojiList" :key="index" class="emoji-item" @click="onSelect(emoji)">
+                    {{ emoji }}
+                </span>
+            </div>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import EmojiPicker from 'vue3-emoji-picker';
-import 'vue3-emoji-picker/css';
 
 const props = defineProps<{
     visible: boolean;
@@ -18,29 +20,26 @@ const props = defineProps<{
 
 const emit = defineEmits(['select', 'close']);
 
-// Localization
-const groupNames = {
-    "smileys_people": "表情与人物",
-    "animals_nature": "动物与自然",
-    "food_drink": "食物与饮料",
-    "activities": "活动",
-    "travel_places": "旅行与地点",
-    "objects": "物品",
-    "symbols": "符号",
-    "flags": "旗帜",
-    "recent": "最近使用",
-    "search": "搜索结果"
-};
-
-const staticTexts = {
-    placeholder: "搜索表情...",
-    skinTone: "肤色"
-};
+// A lightweight list of frequently used emojis
+const emojiList = [
+    "😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "🥰",
+    "😘", "😗", "😙", "😚", "😋", "😛", "😝", "😜", "🤪", "🤨", "🧐", "🤓", "😎", "🤩", "🥳", "😏",
+    "😒", "😞", "😔", "😟", "😕", "🙁", "☹️", "😣", "😖", "😫", "😩", "🥺", "😢", "😭", "😤", "😠",
+    "😡", "🤬", "🤯", "😳", "🥵", "🥶", "😱", "😨", "😰", "😥", "😓", "🤗", "🤔", "🤭", "🤫", "🤥",
+    "😶", "😐", "😑", "😬", "🙄", "😯", "😦", "😧", "😮", "😲", "🥱", "😴", "🤤", "😪", "😵", "🤐",
+    "🥴", "🤢", "🤮", "🤧", "😷", "🤒", "🤕", "🤑", "🤠", "😈", "👿", "👹", "👺", "🤡", "💩", "👻",
+    "💀", "☠️", "👽", "👾", "🤖", "🎃", "😺", "😸", "😹", "😻", "😼", "😽", "🙀", "😿", "😾",
+    "👋", "🤚", "🖐️", "✋", "🖖", "👌", "🤏", "✌️", "🤞", "🤟", "🤘", "🤙", "👈", "👉", "👆", "🖕", "👇",
+    "☝️", "👍", "👎", "✊", "👊", "🤛", "🤜", "👏", "🙌", "👐", "🤲", "🤝", "🙏", "✍️", "💅", "🤳", "💪",
+    "🧠", "🫀", "🫁", "🦷", "🦴", "👀", "👁️", "👅", "👄", "💋", "🩸",
+    "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "💔", "❣️", "💕", "💞", "💓", "💗",
+    "💖", "💘", "💝", "💟",
+    "🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐻‍❄️", "🐨", "🐯", "🦁", "🐮", "🐷", "🐸", "🐵"
+];
 
 const positionStyle = computed(() => {
     if (!props.triggerRect) return {};
 
-    // Position above the trigger, aligned left
     const left = props.triggerRect.left;
     const bottom = window.innerHeight - props.triggerRect.top + 10;
 
@@ -52,12 +51,14 @@ const positionStyle = computed(() => {
     };
 });
 
-const onSelect = (emoji: any) => {
-    emit('select', emoji.i);
+const onSelect = (emoji: string) => {
+    emit('select', emoji);
 };
 </script>
 
 <style scoped lang="scss">
+@use "@/style/_constant.scss" as *;
+
 .emoji-picker-overlay {
     position: fixed;
     top: 0;
@@ -68,13 +69,58 @@ const onSelect = (emoji: any) => {
 }
 
 .emoji-picker-container {
-    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 12px;
+    width: 320px;
+    height: 260px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    border: 1px solid $color-border;
+    overflow-y: auto;
 
-    :deep(.v3-emoji-picker) {
-        --ep-color-bg: #ffffff;
-        --ep-color-border: #e4e7ed;
-        border-radius: 8px;
-        height: 350px;
+    /* Elegant smooth scrolling */
+    scroll-behavior: smooth;
+
+    /* Custom lightweight scrollbar */
+    &::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-color: rgba(0, 0, 0, 0.15);
+        border-radius: 3px;
+
+        &:hover {
+            background-color: rgba(0, 0, 0, 0.25);
+        }
+    }
+
+    .emoji-list {
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        gap: 6px;
+
+        .emoji-item {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px; // Slightly larger for clarity
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease-out;
+            user-select: none;
+
+            &:hover {
+                background-color: $bg-hover;
+                transform: scale(1.15);
+            }
+
+            &:active {
+                transform: scale(0.95);
+            }
+        }
     }
 }
 </style>

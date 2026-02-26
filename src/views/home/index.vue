@@ -35,10 +35,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import SideBar from './components/SideBar.vue';
-import { windowService, ipcService, cacheService, websocketService } from '@/services';
+import { windowService, ipcService, websocketService } from '@/services';
 import { signalWindowReady } from '@/utils/windowReady';
 import { useUserStore } from '@/store/user';
 import { useChatStore } from '@/store/chat';
@@ -46,7 +46,7 @@ import FilterColumn from '@/components/FilterColumn.vue';
 import CreateGroup from '@/components/CreateGroup.vue';
 import { createWindow } from '@/utils/window';
 import { groupService } from '@/services'
-import { ResourceType, UpdateAction, IpcChannels } from '@/types';
+import { IpcChannels, ApiTypes } from '@/types';
 import { initRelationStore } from '@/store/init';
 import { ElMessage } from 'element-plus';
 import GlobalLoading from '@/components/GlobalLoading/GlobalLoading';
@@ -90,16 +90,16 @@ const createGroupVisible = ref(false);
 
 const handleCreateGroup = async (data: { name: string; userIds: number[] }) => {
     GlobalLoading.show("创建中...")
-    let group = await groupService.createGroup({
-        name: data.name,
-        avatar: '',
-        memberIds: data.userIds
-    } as any)
-    if (group.data) {
-        cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_JOINED, [group.data])
+    try {
+        await groupService.createGroup({
+            name: data.name,
+            avatar: '',
+            member_ids: data.userIds
+        } as ApiTypes.group.CreateGroupReq)
+        ElMessage.success('创建成功')
+    } finally {
+        GlobalLoading.close()
     }
-    GlobalLoading.close()
-    ElMessage.success('创建成功')
 }
 
 const handleMenuSelect = (key: string) => {
@@ -118,9 +118,7 @@ onMounted(async () => {
     chatStore.loadFromStorage(userStore.getUserID());
     import('@/views/home/contact/components/ContactSidebar.vue')
 
-    nextTick(() =>setTimeout(() => {
-        signalWindowReady()
-    }, 200))
+    signalWindowReady()
     await initRelationStore()
     await websocketService.connect()
 });

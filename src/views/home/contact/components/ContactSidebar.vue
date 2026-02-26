@@ -29,7 +29,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 
 defineOptions({ name: 'ContactSidebar' });
@@ -55,7 +55,6 @@ const pendingCount = computed(() => {
 });
 
 watch(pendingCount, (newVal, oldVal) => {
-    console.log(newVal, oldVal)
     if (newVal > (oldVal || 0)) {
         windowService.playNotificationSound(NotifySoundType.Request);
     }

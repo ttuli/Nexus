@@ -64,3 +64,13 @@ export async function readMessage(data: ApiTypes.message.ReadMessageReq) {
     })
     return res.data
 }
+
+// 获取离线后的活跃列表
+export async function getUserActiveConversation(params: ApiTypes.message.GetUserActiveConversationsReq) {
+    const res = await instance<ApiResponse<ApiTypes.message.GetUserActiveConversationsResp>>({
+        method: 'get',
+        url: config.messageServer + '/conversations/user/active',
+        params
+    })
+    return res.data
+}

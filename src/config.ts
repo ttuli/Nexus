@@ -22,5 +22,13 @@ export const config = {
     /** WS消息版本 */
     wsMessageVersion: 1,
 
-    maxChatListCount: 40
+    maxChatListCount: 40,
+
+    message: {
+        image: {
+            max_width: 250,
+            max_height: 300,
+            min_size: 60
+        }
+    }
 };

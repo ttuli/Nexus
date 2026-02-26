@@ -11,11 +11,12 @@
                 <div class="info-section">
                     <div class="avatar-wrapper">
                         <span class="text-xs text-gray-400 bg-gray-100 dark:bg-gray-700 px-1 rounded">
-                            {{ chat.type === ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE ? 'User' : 'ImTypes.GroupInfo' }}
+                            {{ chat.type === ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE ? 'User' :
+                                'ImTypes.GroupInfo' }}
                         </span>
                     </div>
                     <div class="name">{{ name }}</div>
-                    <div class="id">ID: {{ chat.target_id }}</div>
+                    <div class="id">ID: {{ getTargetId(chat) }}</div>
                 </div>
                 <!-- Placeholder for more info -->
                 <div class="detail-group">
@@ -38,11 +39,16 @@ import { computed } from 'vue';
 import { useUserStore } from '@/store/user';
 import { useGroupStore } from '@/store/group';
 import { ImTypes } from '@/types';
+import { extractTargetIdFromSessionId } from '@/utils/chat';
 
 const props = defineProps<{
     visible: boolean;
     chat: ImTypes.Conversation | null;
 }>();
+
+const getTargetId = (chat: ImTypes.Conversation) => {
+    return extractTargetIdFromSessionId(chat.conversation_id, userStore.getUserID());
+}
 
 defineEmits(['close']);
 
@@ -54,11 +60,12 @@ const title = computed(() => {
 });
 
 const name = computed(() => {
-    if (!props.chat || !props.chat.target_id) return '';
-    const targetId = props.chat.target_id;
+    if (!props.chat || !props.chat.conversation_id) return '';
+    const targetId = getTargetId(props.chat);
+    if (!targetId) return '';
     // Get friend/group info if needed
     if (props.chat.type === ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE) {
-        const friend = userStore.getFriend(props.chat.target_id);
+        const friend = userStore.getFriend(targetId);
         const user = userStore.getUser(targetId);
         return friend?.remark || user?.user_name || `用户${targetId}`;
     } else {

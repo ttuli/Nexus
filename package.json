@@ -29,7 +29,6 @@
     "vant": "^4.9.22",
     "vue": "^3.4.21",
     "vue-router": "^4.6.3",
-    "vue3-emoji-picker": "^1.1.8",
     "ws": "^8.19.0"
   },
   "devDependencies": {

@@ -15,6 +15,8 @@ import { useUserStore } from '@/store/user'
 import { updateGroup, setMemberNickname, joinGroup, createGroup, leaveGroup, handleGroupApply as apiHandleGroupApply } from '@/apis/group'
 import { ApiTypes } from '@/types'
 import cacheService from './cacheService'
+import { useChatStore } from '@/store/chat';
+import { generateGroupSessionId } from '@/utils/chat';
 
 class GroupService {
     /**
@@ -105,7 +107,7 @@ class GroupService {
     async updateGroup(data: { group: ImTypes.GroupInfo; name?: string; avatar?: string }): Promise<boolean> {
         try {
             await updateGroup({
-                groupId: data.group.id,
+                group_id: data.group.id,
                 name: data.name || '',
                 avatar: data.avatar || '',
                 notice: data.group.notice // Preserving notice if it exists in group object, though not passed in data args explicitly? 
@@ -113,7 +115,7 @@ class GroupService {
                 // Proto `UpdateGroupReq` has `notice`.
                 // Existing code didn't update notice.
                 // Keep it safe: undefined fields are optional in proto req (though my proto def has them as optional/string)
-            } as any)
+            } as ApiTypes.group.UpdateGroupReq)
             if (data.name) data.group.name = data.name
             if (data.avatar) data.group.avatar = data.avatar
 
@@ -131,7 +133,7 @@ class GroupService {
      */
     async setMemberNickname(groupId: number, nickname: string): Promise<boolean> {
         try {
-            await setMemberNickname({ groupId: groupId, nickname } as any)
+            await setMemberNickname({ group_id: groupId, nickname } as ApiTypes.group.SetMemberNicknameReq)
             const userStore = useUserStore()
             const groupStore = useGroupStore()
             let members = groupStore.getGroupMembers(groupId)
@@ -169,7 +171,11 @@ class GroupService {
      * 创建群组
      */
     async createGroup(data: ApiTypes.group.CreateGroupReq) {
-        return createGroup(data)
+        let result = await createGroup(data)
+        if (result.data) {
+            cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_JOINED, [result.data.data])
+            useChatStore().addChat(generateGroupSessionId(result.data.data?.id || 0))
+        }
     }
 
     /**

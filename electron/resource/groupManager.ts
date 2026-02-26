@@ -177,7 +177,7 @@ class GroupService {
         this.pendingUserGroups.set(key, { promise, resolve: resolvePromise!, reject: rejectPromise! });
 
         try {
-            const response = await mainGet<any>(`${config.groupServer}/group/list`);
+            const response = await mainGet<ApiTypes.group.GetUserGroupsResp>(`${config.groupServer}/group/list`);
             if (response.code === 200) {
                 const decoded = decodeMainResponse(response, ApiTypes.group.GetUserGroupsResp.decode);
                 const groupIds = decoded.data?.data ?? [];
@@ -216,7 +216,7 @@ class GroupService {
         this.pendingApplies.set(key, { promise, resolve: resolvePromise!, reject: rejectPromise! });
 
         try {
-            const response = await mainGet<any>(`${config.groupServer}/group/apply/pending`);
+            const response = await mainGet<ApiTypes.group.GetPendingAppliesResp>(`${config.groupServer}/group/apply/pending`);
             if (response.code === 200) {
                 const decoded = decodeMainResponse(response, ApiTypes.group.GetPendingAppliesResp.decode);
                 const resultApi = decoded.data?.data ?? [];
@@ -255,7 +255,7 @@ class GroupService {
 
     private async doFetchGroupMembers(groupId: number): Promise<ApiTypes.group.GroupMember[]> {
         try {
-            const response = await mainGet<any>(`${config.groupServer}/group/members?group_id=${groupId}`);
+            const response = await mainGet<ApiTypes.group.GetGroupMembersResp>(`${config.groupServer}/group/members?group_id=${groupId}`);
             if (response.code === 200) {
                 const decoded = decodeMainResponse(response, ApiTypes.group.GetGroupMembersResp.decode);
                 return decoded.data?.data ?? [];
@@ -270,7 +270,7 @@ class GroupService {
 
     private async doGroupRequest(url: string): Promise<ApiTypes.group.Group[]> {
         try {
-            const response = await mainGet<any>(url);
+            const response = await mainGet<ApiTypes.group.GetGroupResp>(url);
             if (response.code === 200) {
                 const decoded = decodeMainResponse(response, ApiTypes.group.GetGroupResp.decode);
                 return decoded.data?.data ?? [];

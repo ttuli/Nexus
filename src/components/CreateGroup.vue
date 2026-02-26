@@ -63,6 +63,7 @@ import ModalBackground from '@/components/ModalBackground/ModalBackground.vue';
 import { useChatStore } from '@/store/chat';
 import { useUserStore } from '@/store/user';
 import { userService } from '@/services';
+import { extractTargetIdFromSessionId } from '@/utils/chat';
 import { ImTypes } from '@/types'
 import DefaultAvatar from '@/assets/default.png?url';
 import CheckIcon from '@/assets/view/check.svg?url';
@@ -150,7 +151,7 @@ const loadData = async () => {
         // 2. Load Chat List Users (Private Chats)
         const privateChats = chatStore.chatList.filter(c => c.type === ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE);
         if (privateChats.length > 0) {
-            const ids = privateChats.map(c => c.target_id); // Fix: Use targetId for private chat user ID
+            const ids = privateChats.map(c => extractTargetIdFromSessionId(c.conversation_id, userStore.getUserID())).filter((id): id is number => id !== null); // Fix: Use targetId for private chat user ID
             // Ensure we have user info for these IDs
             const users = await userService.fetchByIds(ids);
             // Update relation store or local cache if needed, but here we just need to display.

@@ -1,6 +1,6 @@
 <template>
     <div class="avatar" @click="handleClick">
-        <img :src="getSrc()" alt="加载失败" class="avatar-img">
+        <img :src="getSrc()" alt="加载失败" class="avatar-img" @error="handleError">
     </div>
 </template>
 
@@ -68,11 +68,14 @@ const getSrc = () => {
     return toImcacheUrl(url);
 }
 
+const handleError = (e: Event) => {
+    const target = e.target as HTMLImageElement;
+    target.src = props.type === 'user' ? defaultImg : defaultGroupImg;
+}
+
 const handleClick = () => {
     if (!source.value) return;
 
-    // For now pass just this avatar as single item
-    // In future could pass context list
     createWindow('photoViewer', {
         urls: [source.value],
         index: 0

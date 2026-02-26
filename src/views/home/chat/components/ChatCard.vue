@@ -1,14 +1,14 @@
 <template>
-    <div class="chat-card" :class="{ active: props.isActive }" @click="handleClick">
+    <div class="chat-card" :class="{ active: props.isActive }" @click.capture.stop="handleClick">
         <div class="avatar-container">
-            <Avatar :uid="props.data.target_id"
+            <Avatar :uid="getTargetId(props.data)"
                 :type="props.data.type === ImTypes.ConversationType.CONVERSATION_TYPE_GROUP ? 'group' : 'user'" />
         </div>
         <div class="content-container">
             <div class="top-row">
                 <span class="name">{{ displayName }}</span>
                 <span class="time" v-if="props.data.last_content">{{ formatTime(props.data.last_message_time)
-                    }}</span>
+                }}</span>
             </div>
             <div class="bottom-row">
                 <span class="message">{{ props.data.last_content || '' }}</span>
@@ -31,18 +31,27 @@ interface Props {
 }
 const props = defineProps<Props>();
 
+import { extractTargetIdFromSessionId } from '@/utils/chat';
+
 const userStore = useUserStore();
 const groupStore = useGroupStore();
 
+const getTargetId = (chat: ImTypes.Conversation) => {
+    return extractTargetIdFromSessionId(chat.conversation_id, userStore.getUserID());
+}
+
 // 动态获取名称
 const displayName = computed(() => {
+    const targetId = getTargetId(props.data);
+    if (!targetId) return '';
+
     if (props.data.type === ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE) {
-        const user = userStore.getUser(props.data.target_id);
-        const friend = userStore.getFriend(props.data.target_id);
-        return friend?.remark || user?.user_name || `用户${props.data.target_id}`;
+        const user = userStore.getUser(targetId);
+        const friend = userStore.getFriend(targetId);
+        return friend?.remark || user?.user_name || `用户${targetId}`;
     } else {
-        const group = groupStore.getGroup(props.data.target_id);
-        return group?.name || `群组${props.data.target_id}`;
+        const group = groupStore.getGroup(targetId);
+        return group?.name || `群组${targetId}`;
     }
 });
 
@@ -103,6 +112,7 @@ const formatTime = (timestamp: number | null) => {
     .avatar-container {
         margin-right: 12px;
         flex-shrink: 0;
+        pointer-events: none;
     }
 
     .content-container {

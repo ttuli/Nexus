@@ -9,16 +9,21 @@
             </el-tooltip>
 
             <el-tooltip content="图片" placement="top" :show-after="500">
-                <div class="icon-wrapper">
+                <div class="icon-wrapper" @click="triggerImageSelect">
                     <img class="icon-btn" :src="picture">
                 </div>
             </el-tooltip>
 
             <el-tooltip content="文件" placement="top" :show-after="500">
-                <div class="icon-wrapper">
+                <div class="icon-wrapper" @click="triggerFileSelect">
                     <img class="icon-btn" :src="file">
                 </div>
             </el-tooltip>
+
+            <!-- Hidden inputs for file selection -->
+            <input type="file" ref="imageInputRef" accept=".jpg,.jpeg,.png,.gif,.bmp,.webp" style="display: none"
+                @change="handleImageSelect">
+            <input type="file" ref="fileInputRef" style="display: none" @change="handleFileSelect">
         </div>
 
         <EmojiPicker :visible="emojiPickerVisible" :trigger-rect="emojiTriggerRect" @select="onEmojiSelect"
@@ -41,6 +46,7 @@
 <script setup lang="ts">
 import { ref, nextTick } from 'vue';
 import EmojiPicker from './EmojiPicker.vue';
+import { ElMessage } from 'element-plus';
 
 import emoji from '@/assets/chat/emoji.svg?url';
 import picture from '@/assets/chat/picture.svg?url';
@@ -82,7 +88,45 @@ const onEmojiSelect = (emoji: string) => {
 
 const emit = defineEmits<{
     (e: 'send', content: string): void;
+    (e: 'sendImage', file: File): void;
+    (e: 'sendFile', file: File): void;
 }>();
+
+const imageInputRef = ref<HTMLInputElement | null>(null);
+const fileInputRef = ref<HTMLInputElement | null>(null);
+
+const triggerImageSelect = () => {
+    imageInputRef.value?.click();
+};
+
+const triggerFileSelect = () => {
+    fileInputRef.value?.click();
+};
+
+const ALLOWED_IMAGE_EXTS = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'];
+
+const handleImageSelect = (event: Event) => {
+    const target = event.target as HTMLInputElement;
+    if (target.files && target.files.length > 0) {
+        const file = target.files[0];
+        const ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
+        if (!ALLOWED_IMAGE_EXTS.includes(ext)) {
+            ElMessage.error('仅支持 jpg、png、gif、bmp、webp 格式的图片');
+            target.value = '';
+            return;
+        }
+        emit('sendImage', file);
+    }
+    target.value = '';
+};
+
+const handleFileSelect = (event: Event) => {
+    const target = event.target as HTMLInputElement;
+    if (target.files && target.files.length > 0) {
+        emit('sendFile', target.files[0]);
+    }
+    target.value = '';
+};
 
 const handleSend = () => {
     const content = inputValue.value.trim();

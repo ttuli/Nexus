@@ -1,3 +1,0 @@
-﻿src/components/AvatarUpload.vue(362,11): error TS6133: 'fileExt' is declared but its value is never read.
-src/views/search/AddFriend.vue(98,19): error TS6133: 'IpcChannels' is declared but its value is never read.
-src/views/search/AddFriend.vue(107,84): error TS6133: 'windowService' is declared but its value is never read.

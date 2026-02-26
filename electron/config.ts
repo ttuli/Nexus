@@ -30,7 +30,7 @@ export const config = {
         dedupWindowMs: 5 * 60 * 1000, // 消息去重时间
         maxRetries: 3, // 最大重试次数
         checkIntervalMs: 1000, // 检查间隔
-        msgTimeoutMs: 10000, // 消息超时时间
+        msgTimeoutMs: 30000, // 消息超时时间
     },
 
     /** 缓存过期时间（毫秒），默认 3 天 */

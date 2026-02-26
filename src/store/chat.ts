@@ -4,6 +4,7 @@ import { ImTypes } from '@/types';
 import { IChatMessage } from '@/types/chatMessage';
 import { chatService } from '@/services';
 import { config } from '@/config';
+import { extractTargetIdFromSessionId } from '@/utils/chat';
 
 export const useChatStore = defineStore('chat', {
     state: () => ({
@@ -23,18 +24,11 @@ export const useChatStore = defineStore('chat', {
          */
         addChat(sessionId: string) {
             let type: ImTypes.ConversationType;
-            let targetId: number;
 
             if (sessionId.startsWith('group_')) {
                 type = ImTypes.ConversationType.CONVERSATION_TYPE_GROUP;
-                targetId = parseInt(sessionId.split('_')[1], 10);
             } else {
                 type = ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE;
-                const parts = sessionId.split('_');
-                const uid1 = parseInt(parts[1], 10);
-                const uid2 = parseInt(parts[2], 10);
-                const myId = useUserStore().getUserID();
-                targetId = (uid1 === myId) ? uid2 : uid1;
             }
 
             const existingIndex = this.chatList.findIndex(
@@ -48,7 +42,8 @@ export const useChatStore = defineStore('chat', {
             } else {
                 // 不存在，添加新聊天
                 const newChat: ImTypes.Conversation = {
-                    target_id: targetId,
+                    max_seq: 0,
+                    last_sender: 0,
                     type,
                     conversation_id: sessionId,
                     last_content: '',
@@ -79,7 +74,12 @@ export const useChatStore = defineStore('chat', {
             }
 
             const currentChat = this.chatList.find((c) => c.conversation_id === sessionId) || null;
-            this.currentChatId = currentChat?.target_id ?? null;
+            if (!currentChat) {
+                this.currentChatId = null;
+            } else {
+                const userStore = useUserStore();
+                this.currentChatId = extractTargetIdFromSessionId(sessionId, userStore.getUserID());
+            }
             this.currentChatType = currentChat?.type ?? null;
 
             const oldSessionId = this.currentSessionId;
@@ -138,11 +138,22 @@ export const useChatStore = defineStore('chat', {
             if (msgIndex !== -1) {
                 this.messages[msgIndex].status = status;
                 this.messages[msgIndex].sendTime = timestamp;
-                void chatService.updateMessageStatus(sessionId, clientId, status).catch((e) => {
-                    console.error('[ChatStore] Failed to persist message status', e);
-                });
-            } else {
+            }
+            // 无论是否在内存中，都同步更新本地数据库
+            void chatService.updateMessageStatus(sessionId, clientId, status).catch((e) => {
+                console.error('[ChatStore] Failed to persist message status', e);
+            });
+        },
 
+        /**
+         * 更新消息上传进度（图片/文件消息上传时使用）
+         * @param clientId 客户端消息ID
+         * @param progress 进度 0-100，undefined 表示上传完成
+         */
+        updateMessageProgress(clientId: string, progress: number | undefined) {
+            const msg = this.messages.find(m => m.clientId === clientId) as any;
+            if (msg !== undefined) {
+                msg.uploadProgress = progress;
             }
         },
 
@@ -160,8 +171,8 @@ export const useChatStore = defineStore('chat', {
         /**
          * 移除聊天
          */
-        removeChat(id: number, type: ImTypes.ConversationType) {
-            const index = this.chatList.findIndex((c) => c.target_id === id && c.type === type);
+        removeChat(sessionId: string) {
+            const index = this.chatList.findIndex((c) => c.conversation_id === sessionId);
             if (index !== -1) {
                 this.chatList.splice(index, 1);
             }
@@ -180,7 +191,6 @@ export const useChatStore = defineStore('chat', {
                     // 恢复时需要注意类型
                     this.chatList = (data.chatList || []).map((c: any) => ({
                         ...c,
-                        // target_id should already be number in JSON
                         type: c.type || ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE, // Assuming fallback
                         last_message_time: c.last_message_time || 0,
                         unread_count: c.unread_count || 0,

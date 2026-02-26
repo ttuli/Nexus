@@ -7,7 +7,46 @@
 /* eslint-disable */
 import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
 
-export const protobufPackage = "types.file";
+export const protobufPackage = "types";
+
+export enum FileType {
+  FileTypeAvatar = 0,
+  FileTypeChatImage = 1,
+  FileTypeChatFile = 2,
+  UNRECOGNIZED = -1,
+}
+
+export function fileTypeFromJSON(object: any): FileType {
+  switch (object) {
+    case 0:
+    case "FileTypeAvatar":
+      return FileType.FileTypeAvatar;
+    case 1:
+    case "FileTypeChatImage":
+      return FileType.FileTypeChatImage;
+    case 2:
+    case "FileTypeChatFile":
+      return FileType.FileTypeChatFile;
+    case -1:
+    case "UNRECOGNIZED":
+    default:
+      return FileType.UNRECOGNIZED;
+  }
+}
+
+export function fileTypeToJSON(object: FileType): string {
+  switch (object) {
+    case FileType.FileTypeAvatar:
+      return "FileTypeAvatar";
+    case FileType.FileTypeChatImage:
+      return "FileTypeChatImage";
+    case FileType.FileTypeChatFile:
+      return "FileTypeChatFile";
+    case FileType.UNRECOGNIZED:
+    default:
+      return "UNRECOGNIZED";
+  }
+}
 
 export interface PolicyToken {
   /** @gotags: json:"policy" */
@@ -40,24 +79,24 @@ export interface CallbackParam {
 }
 
 export interface CallbackData {
-  /** @gotags: form:"id" */
+  /** @gotags: form:"id,optional" json:"id,optional" */
   id: number;
-  /** @gotags: form:"file_type" */
+  /** @gotags: form:"file_type,optional" json:"file_type,optional" */
   file_type: number;
-  /** @gotags: form:"width" */
+  /** @gotags: form:"width,optional" json:"width,optional" */
   width: number;
-  /** @gotags: form:"height" */
+  /** @gotags: form:"height,optional" json:"height,optional" */
   height: number;
-  /** @gotags: form:"size" */
+  /** @gotags: form:"size,optional" json:"size,optional" */
   size: number;
-  /** @gotags: form:"file_name" */
+  /** @gotags: form:"file_name,optional" json:"file_name,optional" */
   file_name: string;
-  /** @gotags: form:"mime_type" */
+  /** @gotags: form:"mime_type,optional" json:"mime_type,optional" */
   mime_type: string;
 }
 
 export interface GetPostSignatureReq {
-  /** @gotags: form:"file_type" */
+  /** @gotags: form:"file_type,optional" json:"file_type,optional" */
   file_type: number;
 }
 

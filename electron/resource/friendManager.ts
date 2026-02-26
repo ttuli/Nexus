@@ -63,7 +63,7 @@ class FriendService {
 
     private async doFetchFriendList(): Promise<FriendInfo[]> {
         try {
-            const response = await mainGet<any>(`${config.userServer}/user/friend/list`);
+            const response = await mainGet<ApiTypes.user.GetFriendsResp>(`${config.userServer}/user/friend/list`);
             if (response.code === 200) {
                 const decoded = decodeMainResponse(response, ApiTypes.user.GetFriendsResp.decode);
                 return decoded.data?.data ?? [];
@@ -78,7 +78,7 @@ class FriendService {
 
     private async doFetchPendingRequests(): Promise<FriendRequest[]> {
         try {
-            const response = await mainGet<any>(`${config.userServer}/user/friend/apply/pending`);
+            const response = await mainGet<ApiTypes.user.GetPendingFriendAppliesResp>(`${config.userServer}/user/friend/apply/pending`);
             if (response.code === 200) {
                 const decoded = decodeMainResponse(response, ApiTypes.user.GetPendingFriendAppliesResp.decode);
                 return decoded.data?.data ?? [];

@@ -20,14 +20,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue';
+import { computed, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useUserStore } from '@/store/user';
 import { useGroupStore } from '@/store/group';
 
-import ChatIcon from '@/assets/view/message.svg?url';
-import ContactsIcon from '@/assets/input/input_name.svg?url';
-import SettingIcon from '@/assets/view/setting.svg?url';
+import ChatIcon from '@/assets/view/message.svg';
+import ContactsIcon from '@/assets/input/input_name.svg';
+import SettingIcon from '@/assets/view/setting.svg';
 import { createWindow } from '@/utils/window';
 import { windowService } from '@/services';
 import { NotifySoundType } from '@/services/windowService';

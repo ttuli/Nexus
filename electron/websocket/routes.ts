@@ -129,15 +129,27 @@ const handleErrorMessage: MessageHandler = async (message: WsMessage) => {
  */
 export const wsRouteTable: Record<number, MessageHandler> = {
     [ImTypes.MessageType.CHAT_TEXT]: handleChatMessage,
+    [ImTypes.MessageType.CHAT_IMAGE]: handleChatMessage,
+    [ImTypes.MessageType.CHAT_FILE]: handleChatMessage,
+    [ImTypes.MessageType.CHAT_VIDEO]: handleChatMessage,
+    [ImTypes.MessageType.CHAT_AUDIO]: handleChatMessage,
+    [ImTypes.MessageType.GROUP_IMAGE]: handleChatMessage,
+    [ImTypes.MessageType.GROUP_FILE]: handleChatMessage,
+    [ImTypes.MessageType.GROUP_VIDEO]: handleChatMessage,
+    [ImTypes.MessageType.GROUP_AUDIO]: handleChatMessage,
+    [ImTypes.MessageType.GROUP_TEXT]: handleChatMessage,
+
+
     [ImTypes.MessageType.FRIEND_REQUEST]: handleNotification,
     [ImTypes.MessageType.FRIEND_ADD]: handleNotification,
     [ImTypes.MessageType.GROUP_REQUEST]: handleNotification,
     [ImTypes.MessageType.GROUP_JOIN]: handleNotification,
     [ImTypes.MessageType.GROUP_INVITE]: handleNotification,
+
+    
     [ImTypes.MessageType.MSG_ACK]: handleMsgAck,
 
 
-    [ImTypes.MessageType.GROUP_TEXT]: handleChatMessage,
     [ImTypes.MessageType.MSG_RECALL]: handleMessageRecall,
     [ImTypes.MessageType.USER_OFFLINE]: handleOfflineNotify,
     [ImTypes.MessageType.ERROR]: handleErrorMessage,

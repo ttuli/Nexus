@@ -186,7 +186,7 @@ class UserService {
      */
     private async doRequest(url: string): Promise<ApiTypes.user.UserInfo[]> {
         try {
-            const response = await mainGet<any>(url);
+            const response = await mainGet<ApiTypes.user.GetUserInfoResp>(url);
             if (response.code === 200) {
                 const decoded = decodeMainResponse(response, ApiTypes.user.GetUserInfoResp.decode);
                 return decoded.data?.data ?? [];

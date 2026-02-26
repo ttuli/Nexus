@@ -2,6 +2,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
+import { nativeImage } from 'electron';
 import { storage } from '../utils/storage';
 
 /**
@@ -17,6 +18,7 @@ import { storage } from '../utils/storage';
  */
 
 export const IMCACHE_SCHEME = 'imcache';
+export const IMLOCAL_SCHEME = 'imlocal';
 
 class FileCacheManager {
     private cacheDir: string = '';
@@ -73,6 +75,55 @@ class FileCacheManager {
         // 本地没有，触发异步下载，本次请求返回 null 让前端 fallback 到网络图
         this.prefetch(originalUrl);
         return null;
+    }
+
+    /**
+     * 处理渲染进程对 imlocal:// 协议的请求
+     * 解析本地图片地址，缩放，并生成缓存返回
+     */
+    public handleLocalRequest(protocolUrl: string, defaultMaxWidth: number = 250): { buffer?: Uint8Array, cachePath?: string, status?: number } {
+        // 手动解析 URL，避免 new URL() 把 hostname 小写化（会破坏 base64 编码）
+        const withoutScheme = protocolUrl.replace(`${IMLOCAL_SCHEME}://`, '');
+        const [encodedPart, queryString] = withoutScheme.split('?');
+        const encoded = encodedPart.replace(/-/g, '+').replace(/_/g, '/');
+
+        let filePath: string;
+        try {
+            filePath = decodeURIComponent(atob(encoded).split('').map((c) =>
+                '%' + c.charCodeAt(0).toString(16).padStart(2, '0')).join(''));
+        } catch {
+            return { status: 400 };
+        }
+
+        const params = new URLSearchParams(queryString || '');
+        const maxWidth = parseInt(params.get('width') ?? defaultMaxWidth.toString(), 10);
+
+        // 生成本地缓存路径
+        const cacheKey = `imlocal_${filePath}_${maxWidth}`;
+        const cachePath = this.getLocalPath(cacheKey);
+
+        // 如果已经裁剪并缓存过，直接返回缓存的文件路径
+        if (fs.existsSync(cachePath)) {
+            return { cachePath };
+        }
+
+        try {
+            const img = nativeImage.createFromPath(filePath);
+            if (img.isEmpty()) return { status: 404 };
+            const size = img.getSize();
+            // 等比缩放：只在原图宽度超出时才缩，避免放大模糊
+            const targetWidth = Math.min(maxWidth, size.width);
+            const resized = img.resize({ width: targetWidth });
+            const buffer = resized.toJPEG(85);
+
+            // 存入本地缓存
+            fs.writeFileSync(cachePath, buffer);
+
+            return { buffer: new Uint8Array(buffer), cachePath };
+        } catch (e) {
+            console.error('[FileCacheManager] Failed to serve local image:', filePath, e);
+            return { status: 500 };
+        }
     }
 
     /**

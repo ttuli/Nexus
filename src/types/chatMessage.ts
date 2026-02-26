@@ -35,7 +35,9 @@ export interface ILocalTextMessage extends ILocalMessageBase {
  */
 export interface ILocalImageMessage extends ILocalMessageBase {
     type: MessageType.CHAT_IMAGE | MessageType.GROUP_IMAGE;
-    url: string;
+    url: string;            // OSS 网络地址（上传完成后填充）
+    localPath?: string;     // 本地文件路径（发送时预览用）
+    uploadProgress?: number; // 上传进度 0-100，上传完成后 undefined
     thumbnailUrl?: string;
     width: number;
     height: number;
@@ -62,7 +64,9 @@ export interface ILocalVideoMessage extends ILocalMessageBase {
  */
 export interface ILocalFileMessage extends ILocalMessageBase {
     type: MessageType.CHAT_FILE | MessageType.GROUP_FILE;
-    url: string;
+    url: string;            // OSS 网络地址（上传完成后填充）
+    localPath?: string;     // 本地文件路径（发送时预览用）
+    uploadProgress?: number; // 上传进度 0-100，上传完成后 undefined
     fileName: string;
     size: number;
     fileType: FileType;

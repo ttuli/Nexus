@@ -12,8 +12,12 @@
 
             <!-- New wrapper for bubble and status -->
             <div class="bubble-row" :class="{ 'is-self': isSelf }">
-                <div class="bubble" @contextmenu.prevent="handleContextMenu">
-                    <div class="text">{{ messageContent }}</div>
+                <div class="bubble" :class="{ 'is-image': isImageMessage }" @contextmenu.prevent="handleContextMenu">
+                    <!-- Text / File Messages -->
+                    <div class="text" v-if="!isImageMessage">{{ messageContent }}</div>
+
+                    <!-- Image Messages -->
+                    <ImageMessageBubble v-else :message="(message as ILocalImageMessage)" />
                 </div>
 
                 <!-- Status Indicators (Only for self messages) -->
@@ -33,9 +37,10 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useUserStore } from '@/store/user';
+import ImageMessageBubble from './ImageMessageBubble.vue';
 
 // Replace MessageItem definition with IChatMessage import
-import { IChatMessage, ILocalTextMessage, ILocalFileMessage } from '@/types/chatMessage';
+import { IChatMessage, ILocalTextMessage, ILocalFileMessage, ILocalImageMessage } from '@/types/chatMessage';
 import { ImTypes } from '@/types';
 
 // Rename MessageType/Status to avoid conflict if needed, or just use types.MessageType
@@ -57,15 +62,16 @@ const senderName = computed(() => {
     return friend?.remark || user?.user_name || `用户${props.message.fromUserId}`;
 });
 
-// Helper to get message content based on type
+const isImageMessage = computed(() => {
+    return props.message.type === MessageType.CHAT_IMAGE || props.message.type === MessageType.GROUP_IMAGE;
+});
+
+// Helper to get message content based on type (for non-image messages)
 const messageContent = computed(() => {
     switch (props.message.type) {
         case MessageType.CHAT_TEXT:
         case MessageType.GROUP_TEXT:
             return (props.message as ILocalTextMessage).content;
-        case MessageType.CHAT_IMAGE:
-        case MessageType.GROUP_IMAGE:
-            return '[图片]'; // Placeholder for now as original code didn't handle mixed types explicitly in template
         case MessageType.CHAT_VIDEO:
         case MessageType.GROUP_VIDEO:
             return '[视频]';
@@ -212,6 +218,12 @@ const formatTime = (timestamp: number) => {
             font-size: 14px;
             color: $color-text-primary;
             transition: all 0.2s;
+
+            &.is-image {
+                padding: 0; // 图片气泡不需要 padding
+                background-color: transparent; // 图片气泡不需要背景色
+                box-shadow: none; // 阴影移交到 ImageMessageBubble 内层
+            }
 
             &:hover {
                 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);

@@ -109,9 +109,9 @@
 import { computed, onMounted, ref } from 'vue';
 import { useUserStore } from '@/store/user';
 
-import { ImTypes } from '@/types';
+import { ImTypes, ResourceType, UpdateAction } from '@/types';
 import { ElMessage } from 'element-plus';
-import { userService } from '@/services';
+import { cacheService, userService } from '@/services';
 import { signalWindowReady } from '@/utils/windowReady';
 
 const userStore = useUserStore();
@@ -152,7 +152,7 @@ const handleAvatarSuccess = async (url: string) => {
         return;
     }
     try {
-        await userService.updateUserInfo({ ...userInfo.value, avatar: url });
+        await cacheService.updateItems(UpdateAction.Update, ResourceType.USER, [{ ...userInfo.value, avatar: url }]);
         await userService.cacheLoginAccount(userStore.getUserID());
         ElMessage.success('头像更新成功');
     } catch (error) {
