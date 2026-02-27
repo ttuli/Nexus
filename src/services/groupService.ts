@@ -90,8 +90,11 @@ class GroupService {
      */
     async fetchPendingApplies(): Promise<ImTypes.GroupApply[]> {
         const result = await ipcService.invoke<ImTypes.GroupApply[]>(IpcChannels.GROUP_FETCH_PENDING_APPLIES)
-
+        const groupStore = useGroupStore()
         if (result.success && result.data) {
+            result.data.forEach((apply: ImTypes.GroupApply) => {
+                groupStore.groupRequestMap.set(apply.id, apply)
+            })
             return result.data
         }
 

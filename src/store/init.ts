@@ -37,6 +37,7 @@ export async function initRelationStore() {
     groupIds.push(...groupIdsToFetch);
 
     const grequests = await groupService.fetchPendingApplies()
+    console.log(grequests)
     grequests.map((request: ImTypes.GroupApply) => {
         groupIds.push(request.group_id)
     })
