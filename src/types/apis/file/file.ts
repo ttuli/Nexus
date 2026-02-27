@@ -100,6 +100,20 @@ export interface GetPostSignatureReq {
   file_type: number;
 }
 
+export interface GetAccessUrlReq {
+  /** @gotags: form:"file_key,optional" json:"file_key,optional" */
+  file_key: string;
+  /** @gotags: form:"file_type,optional" json:"file_type,optional" */
+  file_type: FileType;
+  /** @gotags: form:"oss_process,optional" json:"oss_process,optional" */
+  oss_process: string;
+}
+
+export interface GetAccessUrlResp {
+  /** @gotags: json:"access_url" */
+  access_url: string;
+}
+
 function createBasePolicyToken(): PolicyToken {
   return {
     policy: "",
@@ -634,6 +648,174 @@ export const GetPostSignatureReq: MessageFns<GetPostSignatureReq> = {
   fromPartial<I extends Exact<DeepPartial<GetPostSignatureReq>, I>>(object: I): GetPostSignatureReq {
     const message = createBaseGetPostSignatureReq();
     message.file_type = object.file_type ?? 0;
+    return message;
+  },
+};
+
+function createBaseGetAccessUrlReq(): GetAccessUrlReq {
+  return { file_key: "", file_type: 0, oss_process: "" };
+}
+
+export const GetAccessUrlReq: MessageFns<GetAccessUrlReq> = {
+  encode(message: GetAccessUrlReq, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.file_key !== "") {
+      writer.uint32(10).string(message.file_key);
+    }
+    if (message.file_type !== 0) {
+      writer.uint32(16).int32(message.file_type);
+    }
+    if (message.oss_process !== "") {
+      writer.uint32(26).string(message.oss_process);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetAccessUrlReq {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetAccessUrlReq();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.file_key = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.file_type = reader.int32() as any;
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.oss_process = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetAccessUrlReq {
+    return {
+      file_key: isSet(object.fileKey)
+        ? globalThis.String(object.fileKey)
+        : isSet(object.file_key)
+        ? globalThis.String(object.file_key)
+        : "",
+      file_type: isSet(object.fileType)
+        ? fileTypeFromJSON(object.fileType)
+        : isSet(object.file_type)
+        ? fileTypeFromJSON(object.file_type)
+        : 0,
+      oss_process: isSet(object.ossProcess)
+        ? globalThis.String(object.ossProcess)
+        : isSet(object.oss_process)
+        ? globalThis.String(object.oss_process)
+        : "",
+    };
+  },
+
+  toJSON(message: GetAccessUrlReq): unknown {
+    const obj: any = {};
+    if (message.file_key !== "") {
+      obj.fileKey = message.file_key;
+    }
+    if (message.file_type !== 0) {
+      obj.fileType = fileTypeToJSON(message.file_type);
+    }
+    if (message.oss_process !== "") {
+      obj.ossProcess = message.oss_process;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetAccessUrlReq>, I>>(base?: I): GetAccessUrlReq {
+    return GetAccessUrlReq.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetAccessUrlReq>, I>>(object: I): GetAccessUrlReq {
+    const message = createBaseGetAccessUrlReq();
+    message.file_key = object.file_key ?? "";
+    message.file_type = object.file_type ?? 0;
+    message.oss_process = object.oss_process ?? "";
+    return message;
+  },
+};
+
+function createBaseGetAccessUrlResp(): GetAccessUrlResp {
+  return { access_url: "" };
+}
+
+export const GetAccessUrlResp: MessageFns<GetAccessUrlResp> = {
+  encode(message: GetAccessUrlResp, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.access_url !== "") {
+      writer.uint32(10).string(message.access_url);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetAccessUrlResp {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetAccessUrlResp();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.access_url = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetAccessUrlResp {
+    return {
+      access_url: isSet(object.accessUrl)
+        ? globalThis.String(object.accessUrl)
+        : isSet(object.access_url)
+        ? globalThis.String(object.access_url)
+        : "",
+    };
+  },
+
+  toJSON(message: GetAccessUrlResp): unknown {
+    const obj: any = {};
+    if (message.access_url !== "") {
+      obj.accessUrl = message.access_url;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetAccessUrlResp>, I>>(base?: I): GetAccessUrlResp {
+    return GetAccessUrlResp.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetAccessUrlResp>, I>>(object: I): GetAccessUrlResp {
+    const message = createBaseGetAccessUrlResp();
+    message.access_url = object.access_url ?? "";
     return message;
   },
 };

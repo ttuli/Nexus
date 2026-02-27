@@ -28,10 +28,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { ILocalImageMessage } from '@/types/chatMessage';
 import { config } from '@/config';
 import { toNetworkPreviewUrl } from '@/utils/chat';
+import { ImTypes } from '@/types';
+import { fileService } from '@/services/fileService';
+import { chatService } from '@/services/chatService';
+import { createWindow } from '@/utils/window';
 
 interface Props {
     message: ILocalImageMessage;
@@ -40,25 +44,52 @@ interface Props {
 const props = defineProps<Props>();
 
 const isError = ref(false);
+const isLoading = ref(false);
+const errorRetryCount = ref(0);
 
 // 控制遮罩显示及动画退场的状态
 const isFinishing = computed(() => {
-    return props.message.uploadProgress === 100;
+    return props.message.uploadProgress === 100 || props.message.status !== ImTypes.MessageStatus.MESSAGE_STATUS_SENDING;
 })
 
-// 计算实际用来渲染的 URL：有本地路径优先用本地（发送方体验好），没有就用 OSS 的 thumbnailUrl，最后用原图 url
-const displayUrl = computed(() => {
-    const m = props.message;
-    if (m.localPath && m.localPath !== '') return m.localPath;
+// 实际渲染的 URL，响应式
+const displayUrl = ref('');
 
-    // 如果没有本地路径，就走 imcache 缓存加载网络大图（顺带传递原本记录的宽高校验或压缩）
-    
-    if (m.thumbnailUrl && m.thumbnailUrl !== '') {
-        return m.thumbnailUrl
+// 获取缩略图签名 URL 并缓存
+async function fetchThumbnail(msg: ILocalImageMessage) {
+    if (isLoading.value) return;
+    isLoading.value = true;
+    try {
+        const thumbUrl = await fileService.getImageThumbnailUrl(msg.url, msg.width, msg.height);
+        if (thumbUrl) {
+            // 用 imcache 协议包裹，触发主进程磁盘缓存
+            msg.thumbnailUrl = toNetworkPreviewUrl(thumbUrl, msg.width, msg.height);
+            displayUrl.value = msg.thumbnailUrl;
+            // 持久化到本地数据库
+            chatService.saveMessage(msg);
+        }
+    } catch (e) {
+        console.error('[ImageBubble] Failed to get thumbnail url:', e);
+    } finally {
+        isLoading.value = false;
     }
-    m.thumbnailUrl = toNetworkPreviewUrl(m.url, m.width, m.height);
-    return m.thumbnailUrl;
-});
+}
+
+// 监听消息变化，决定 displayUrl 来源
+watch(() => props.message, (msg) => {
+    if (msg.localPath && msg.localPath !== '') {
+        displayUrl.value = msg.localPath;
+        return;
+    }
+    if (msg.thumbnailUrl && msg.thumbnailUrl !== '') {
+        displayUrl.value = msg.thumbnailUrl;
+        return;
+    }
+    // 没有本地路径也没有缩略图 URL，异步获取
+    if (msg.url) {
+        fetchThumbnail(msg);
+    }
+}, { immediate: true });
 
 // 如果后端或者本地已经有了宽高，直接在图片还没加载时撑开占位符，避免气泡闪烁
 const wrapperStyle = computed(() => {
@@ -89,14 +120,44 @@ const wrapperStyle = computed(() => {
     };
 });
 
-const handleImageError = () => {
-    console.log("image-load-error")
+const handleImageError = async () => {
+    // 可能是签名 URL 过期导致 403，重试一次
+    if (errorRetryCount.value < 1 && props.message.url) {
+        errorRetryCount.value++;
+        // 清空旧的 thumbnailUrl 强制重新获取
+        props.message.thumbnailUrl = '';
+        await fetchThumbnail(props.message);
+        return;
+    }
+    console.error('[ImageBubble] image-load-error');
     isError.value = true;
 };
 
-const handleClick = () => {
+const handleClick = async () => {
+    if (isError.value || !isFinishing.value) return;
 
-}
+    try {
+        // 如果有本地路径，直接用本地路径打开原图
+        if (props.message.localPath) {
+            createWindow('photoViewer', {
+                urls: [props.message.localPath],
+                index: 0
+            });
+            return;
+        }
+
+        // 获取原图签名 URL 给 photoViewer
+        const fullUrl = await fileService.getImageUrl(props.message.url);
+        if (fullUrl) {
+            createWindow('photoViewer', {
+                urls: [fullUrl],
+                index: 0
+            });
+        }
+    } catch (e) {
+        console.error('[ImageBubble] Failed to open photo viewer:', e);
+    }
+};
 </script>
 
 <style scoped lang="scss">

@@ -12,3 +12,10 @@ export async function getUploadSignature(data: ApiTypes.file.GetPostSignatureReq
   })
   return decodeResponse(res.data, ApiTypes.file.PolicyToken.decode)
 }
+
+export async function getAcessUrl(data: ApiTypes.file.GetAccessUrlReq) {
+  let res = await instance.get<ApiResponse<ApiTypes.file.GetAccessUrlResp>>(config.fileServer + '/fileupload/getAccessUrl', {
+    params: data
+  })
+  return decodeResponse(res.data, ApiTypes.file.GetAccessUrlResp.decode)
+}

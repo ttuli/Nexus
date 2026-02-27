@@ -13,6 +13,9 @@ export const config = {
     /** Group 服务器地址 */
     groupServer: process.env.VITE_GROUP_SERVER || 'http://localhost:8022',
 
+    /** File 服务器地址 */
+    fileServer: process.env.VITE_FILE_SERVER || 'http://localhost:8023',
+
     wsConfig: {
         url: process.env.VITE_WS_SERVER || 'ws://localhost:8022/ws',
         reconnectIntervalMs: 1000,

@@ -1,6 +1,7 @@
-import { getUploadSignature } from '@/apis/file'
+import { getUploadSignature, getAcessUrl } from '@/apis/file'
 import { ApiTypes } from '@/types'
 import { computeFileMd5 } from '@/utils/md5'
+import { config } from '@/config'
 
 class FileService {
     /**
@@ -55,6 +56,67 @@ class FileService {
 
             xhr.send(formData);
         });
+    }
+
+    /**
+     * 从 OSS URL 中提取 file_key（去掉 host 及开头的 /）
+     */
+    private extractFileKey(url: string): string {
+        try {
+            const urlObj = new URL(url);
+            return urlObj.pathname.replace(/^\//, '');
+        } catch {
+            return url;
+        }
+    }
+
+    /**
+     * 获取带签名的缩略图 URL
+     * 会根据原始宽高和 config 中的限制计算合适的缩略尺寸，附加 oss_process 参数
+     */
+    async getImageThumbnailUrl(url: string, width: number, height: number): Promise<string> {
+        const fileKey = this.extractFileKey(url);
+
+        // 计算合适的缩略尺寸
+        let targetW = width || 0;
+        let targetH = height || 0;
+        if (targetW > 0 && targetH > 0) {
+            if (targetW > config.message.image.max_width || targetH > config.message.image.max_height) {
+                const ratio = Math.min(config.message.image.max_width / targetW, config.message.image.max_height / targetH);
+                targetW = Math.round(targetW * ratio);
+                targetH = Math.round(targetH * ratio);
+            }
+            targetW = Math.max(targetW, config.message.image.min_size);
+            targetH = Math.max(targetH, config.message.image.min_size);
+        }
+
+        let ossProcess = '';
+        if (targetW > 0 && targetH > 0) {
+            ossProcess = `image/resize,m_lfit,w_${targetW},h_${targetH}`;
+        }
+
+        const resp = await getAcessUrl({
+            file_key: fileKey,
+            file_type: ApiTypes.file.FileType.FileTypeChatImage,
+            oss_process: ossProcess
+        });
+
+        return resp.data?.access_url || '';
+    }
+
+    /**
+     * 获取带签名的原图 URL（无 oss_process，用于查看大图）
+     */
+    async getImageUrl(url: string): Promise<string> {
+        const fileKey = this.extractFileKey(url);
+
+        const resp = await getAcessUrl({
+            file_key: fileKey,
+            file_type: ApiTypes.file.FileType.FileTypeChatImage,
+            oss_process: ''
+        });
+
+        return resp.data?.access_url || '';
     }
 }
 
