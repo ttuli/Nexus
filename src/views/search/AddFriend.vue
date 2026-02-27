@@ -262,11 +262,11 @@ const confirmAddFriend = async () => {
                 ElMessage.success("发送好友申请成功");
             }
         } else if (targetGroup.value) {
-            let res = await groupService.joinGroup({
+            await groupService.joinGroup({
                 group_id: targetGroup.value.id,
                 message: applyMessage.value
             });
-            await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_APPLY, [res.data.data]);
+            
             ElMessage.success("发送入群申请成功");
         }
     } finally {

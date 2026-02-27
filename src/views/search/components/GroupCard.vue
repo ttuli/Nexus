@@ -23,6 +23,11 @@
                     已加入
                 </button>
             </template>
+            <template v-else-if="isApplying">
+                <button class="status-btn warning" disabled>
+                    等待验证
+                </button>
+            </template>
             <template v-else>
                 <button class="action-btn" @click="$emit('join', groupInfo)">
                     申请加入
@@ -36,6 +41,7 @@
 import { computed } from 'vue';
 import { ImTypes } from '@/types';
 import { useGroupStore } from '@/store/group';
+import { useUserStore } from '@/store/user';
 import Avatar from '@/components/Avatar.vue';
 
 const props = defineProps<{
@@ -48,7 +54,21 @@ defineEmits<{
 }>();
 
 const groupStore = useGroupStore();
+const userStore = useUserStore();
 const isJoined = computed(() => groupStore.isJoinedGroup(props.groupInfo.id));
+
+const isApplying = computed(() => {
+    for (const req of groupStore.groupRequestMap.values()) {
+        if (
+            req.group_id === props.groupInfo.id &&
+            req.sender_id === userStore.userID &&
+            req.status === ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_PENDING
+        ) {
+            return true;
+        }
+    }
+    return false;
+});
 
 const highlightKeyword = (text: string) => {
     if (!props.keyword || !text) return text;

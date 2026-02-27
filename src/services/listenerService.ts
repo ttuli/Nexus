@@ -229,6 +229,7 @@ class ListenerService {
                         if (group.length > 0) {
                             group[0].member_count++;
                             await cacheService.updateItems(UpdateAction.Update, ResourceType.GROUP, [group[0]])
+                            await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_JOINED, [group[0]])
                         }
                     }
                     if (router.currentRoute.value.name === 'ValidationMessages' && await windowService.isFocused() && userStore.currentValidationTab === 'group') {

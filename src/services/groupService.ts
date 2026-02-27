@@ -160,19 +160,15 @@ class GroupService {
      * 加入群组
      */
     async joinGroup(data: ApiTypes.group.JoinGroupReq) {
-        return joinGroup(data)
+        let res = await joinGroup(data)
+        await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_APPLY, [res.data.data]); 
     }
 
     /**
      * 创建群组
      */
     async createGroup(data: ApiTypes.group.CreateGroupReq) {
-        let result = await createGroup(data)
-        // if (result.data) {
-        //     // await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP, [result.data.data])
-        //     // await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_JOINED, [result.data.data])
-        //     useChatStore().addChat(generateGroupSessionId(result.data.data?.id || 0))
-        // }
+        return createGroup(data)
     }
 
     /**
