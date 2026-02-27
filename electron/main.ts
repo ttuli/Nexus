@@ -50,8 +50,10 @@ app.whenReady().then(() => {
   // 直接关闭登录窗口触发
   ipcMain.on(IpcChannels.QUIT, () => {
     resourceManager.setStoreRefreshToken(true);
-    windowManager.setExitting(true);
-    windowManager.closeAllWindows()
+    windowManager.closeAllWindows().finally(() => {
+      wsManager.disconnect();
+      app.quit();
+    })
   })
 
   ipcMain.on(IpcChannels.LOGOUT, () => {
@@ -62,15 +64,9 @@ app.whenReady().then(() => {
       })
     })
   })
-
-
 })
 
 app.on('window-all-closed', (e: Event) => {
-  if (windowManager.getExitting()) {
-    wsManager.disconnect()
-    app.quit();
-  } else {
-    e.preventDefault();
-  }
+  // 始终阻止 Electron 自动退出，由 closeAllWindows() Promise 链显式控制
+  e.preventDefault();
 });

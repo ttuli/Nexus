@@ -78,8 +78,9 @@ const managedGroups = computed<ImTypes.GroupInfo[]>(() => {
 });
 
 const joinedGroups = computed(() => {
-    // Excluding created and managed
-    return allGroups.value.filter(g => g.owner_id !== userStore.userID /* && !isAdmin */);
+    return Array.from(groupStore.joinedGroupIds)
+        .map(id => groupStore.groupMap.get(id))
+        .filter((g): g is ImTypes.GroupInfo => !!g && g.owner_id !== userStore.userID);
 });
 
 const isActive = (id: number) => {

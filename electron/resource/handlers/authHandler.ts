@@ -12,7 +12,7 @@ export function setupAuthHandlers(): void {
     ipcMain.handle(IpcChannels.AUTH_LOGIN, async (_event, data: { account: string; password: string; remember: boolean }) => {
         try {
             const result = await authManager.doLogin(data.account, data.password, data.remember);
-            if (result.success && result.userId) {
+            if (result.success && result.userId && data.remember) {
                 userService.cacheLoginAccount(result.userId, data.account).then(() => {
                     if (tokenManager.getStoreRefreshToken()) {
                         storage.set(StorageKeys.REFRESH_TOKEN, tokenManager.getRefreshToken())

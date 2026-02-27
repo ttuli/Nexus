@@ -96,7 +96,7 @@ export const useGroupStore = defineStore('group', {
             let maxTime = 0
             for (const req of this.groupRequestMap.values()) {
                 const reqTime = Number(req.request_time)
-                if (reqTime > maxTime) {
+                if (reqTime >= maxTime) {
                     maxTime = reqTime
                 }
             }

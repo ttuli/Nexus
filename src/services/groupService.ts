@@ -41,9 +41,10 @@ class GroupService {
         const result = await ipcService.invoke<number[]>(IpcChannels.GROUP_FETCH_USER_GROUPS)
 
         if (result.success && result.data) {
-
             const groupStore = useGroupStore()
+            console.log(result.data.length, result.data, groupStore.joinedGroupIds.size)
             result.data.forEach((id: number) => groupStore.joinedGroupIds.add(id))
+            console.log(result.data.length, result.data, groupStore.joinedGroupIds.size)
             return result.data
         }
 
@@ -164,7 +165,7 @@ class GroupService {
      */
     async joinGroup(data: ApiTypes.group.JoinGroupReq) {
         let res = await joinGroup(data)
-        await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_APPLY, [res.data.data]); 
+        await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_APPLY, [res.data.data]);
     }
 
     /**

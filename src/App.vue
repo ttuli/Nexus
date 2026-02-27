@@ -4,6 +4,7 @@ import CusDialog from './components/CusDialog/CusDialog'
 import { useUserStore } from './store/user'
 import { ipcService, windowService, tokenService, listenerService, LogoutType } from '@/services'
 import { IpcChannels } from '@/types'
+import { useGroupStore } from './store/group'
 
 const isAppMounted = ref(false)
 
@@ -39,6 +40,7 @@ onMounted(() => {
         tokenService.getAllInfo().then((data) => {
             if (data.success && data.token) {
                 useUserStore().setToken(data.token)
+                useGroupStore().initLastReadTime(useUserStore().userID)
             }
         }).finally(() => {
             isAppMounted.value = true

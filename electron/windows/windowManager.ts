@@ -15,20 +15,11 @@ const __dirname = path.dirname(__filename);
 class WindowManager {
   private windows: Map<string, ManagedWindow> = new Map();
   private trayManager: TrayManager | null = null;
-  private exitting = false;
   // Map of webContentsId -> showWindow callback for pending ready signals
   private pendingReadyWindows: Map<number, () => void> = new Map();
 
   constructor() {
     this.setupIpcHandlers();
-  }
-
-  public setExitting(exitting: boolean) {
-    this.exitting = exitting;
-  }
-
-  public getExitting(): boolean {
-    return this.exitting;
   }
 
   /**
@@ -55,9 +46,9 @@ class WindowManager {
               }, 200);
             },
             onQuit: () => {
-              if (this.exitting) return;
-              this.exitting = true;
-              this.closeAllWindows();
+              this.closeAllWindows().finally(() => {
+                app.quit();
+              });
             }
           });
         }
@@ -490,15 +481,13 @@ class WindowManager {
 
       Promise.all([...closePromises, logoutPromise]).then(() => {
         clearTimeout(timeout);
+        resourceManager.cleanout();
+        this.windows.clear();
+        this.trayManager?.destroy();
+        this.trayManager = null;
         resolve();
       });
-    }).finally(() => {
-      // 清理资源（在 API 调用完成后）
-      resourceManager.cleanout();
-      this.windows.clear();
-      this.trayManager?.destroy();
-      this.trayManager = null;
-    });
+    })
   }
 
   /**
