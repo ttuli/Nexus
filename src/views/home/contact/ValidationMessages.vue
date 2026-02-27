@@ -89,6 +89,7 @@ import { friendService } from '@/services'
 import GlobalLoading from '@/components/GlobalLoading/GlobalLoading';
 import { convertApplySrc2FriendSrc, generateSessionId } from '@/utils/chat';
 import { useChatStore } from '@/store/chat';
+import { ElMessage } from 'element-plus';
 
 const type = ref<'friend' | 'group'>('friend');
 const userStore = useUserStore();
@@ -230,6 +231,7 @@ const handleGroupReq = async (req: ImTypes.GroupApply, actionType: 'accept' | 'r
             result: status,
             reject_reason: '',
         });
+        ElMessage.success("处理成功")
     } finally {
         GlobalLoading.close();
     }

@@ -15,8 +15,6 @@ import { useUserStore } from '@/store/user'
 import { updateGroup, setMemberNickname, joinGroup, createGroup, leaveGroup, handleGroupApply as apiHandleGroupApply } from '@/apis/group'
 import { ApiTypes } from '@/types'
 import cacheService from './cacheService'
-import { useChatStore } from '@/store/chat';
-import { generateGroupSessionId } from '@/utils/chat';
 
 class GroupService {
     /**
@@ -42,9 +40,7 @@ class GroupService {
 
         if (result.success && result.data) {
             const groupStore = useGroupStore()
-            console.log(result.data.length, result.data, groupStore.joinedGroupIds.size)
             result.data.forEach((id: number) => groupStore.joinedGroupIds.add(id))
-            console.log(result.data.length, result.data, groupStore.joinedGroupIds.size)
             return result.data
         }
 
@@ -187,7 +183,9 @@ class GroupService {
      */
     async handleGroupApply(data: ApiTypes.group.HandleGroupApplyReq) {
         try {
+            console.log(data)
             let res = await apiHandleGroupApply(data)
+            console.log(res)
             if (res.data.data) {
                 await cacheService.updateItems(UpdateAction.Update, ResourceType.GROUP_APPLY, [res.data.data])
                 if (res.data.data.status == ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_ACCEPTED) {

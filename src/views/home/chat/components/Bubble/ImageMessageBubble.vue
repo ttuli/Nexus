@@ -52,6 +52,7 @@ const displayUrl = computed(() => {
     if (m.localPath && m.localPath !== '') return m.localPath;
 
     // 如果没有本地路径，就走 imcache 缓存加载网络大图（顺带传递原本记录的宽高校验或压缩）
+    
     if (m.thumbnailUrl && m.thumbnailUrl !== '') {
         return m.thumbnailUrl
     }
