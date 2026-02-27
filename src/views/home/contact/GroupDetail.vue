@@ -118,7 +118,7 @@ onMounted(async () => {
     if (!groupId.value) return;
 
     await groupService.fetchByIds([groupId.value]);
-    await groupService.fetchGroupMembers(groupId.value);
+    await groupService.fetchGroupMembers(groupId.value, true);
 });
 
 const toChat = () => {

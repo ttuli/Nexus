@@ -26,9 +26,9 @@ export function setupGroupHandlers(): void {
         }
     });
 
-    ipcMain.handle(IpcChannels.GROUP_FETCH_MEMBERS, async (_event, groupId: number) => {
+    ipcMain.handle(IpcChannels.GROUP_FETCH_MEMBERS, async (_event, groupId: number, forceUpdate: boolean = false) => {
         try {
-            const data = await groupService.fetchGroupMembers(groupId);
+            const data = await groupService.fetchGroupMembers(groupId, forceUpdate);
             return { success: true, data };
         } catch (error) {
             console.error('Failed to fetch group members:', error);

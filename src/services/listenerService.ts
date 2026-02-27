@@ -10,10 +10,11 @@ import { useGroupStore } from '@/store/group'
 import { ResourceType, IpcChannels, UpdateAction, ImTypes } from '@/types'
 import { ElMessage } from 'element-plus'
 import { useChatStore } from '@/store/chat'
-import { convertApplySrc2FriendSrc, convertWSMessageToIChatMessage, generateSessionId } from '@/utils/chat'
+import { convertApplySrc2FriendSrc, convertWSMessageToIChatMessage, generateGroupSessionId, generateSessionId } from '@/utils/chat'
 import windowService from './windowService'
 import cacheService from './cacheService'
 import router from '@/router/router'
+import groupService from './groupService'
 
 type ResourceHandler = (items: any[]) => void
 
@@ -223,10 +224,32 @@ class ListenerService {
                 case ImTypes.MessageType.GROUP_REQUEST:
                     const groupRequest = ImTypes.GroupApply.decode(data.payload.payload)
                     await cacheService.updateItems(UpdateAction.Update, ResourceType.GROUP_APPLY, [groupRequest])
-
+                    if (groupRequest.status === ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_ACCEPTED) {
+                        let group = await groupService.fetchByIds([groupRequest.group_id])
+                        if (group.length > 0) {
+                            group[0].member_count++;
+                            await cacheService.updateItems(UpdateAction.Update, ResourceType.GROUP, [group[0]])
+                        }
+                    }
                     if (router.currentRoute.value.name === 'ValidationMessages' && await windowService.isFocused() && userStore.currentValidationTab === 'group') {
                         groupStore.updateLastReadGroupRequestTime(userStore.userID)
                     }
+                    chatStore.addChat(generateGroupSessionId(groupRequest.group_id))
+                    break;
+                case ImTypes.MessageType.GROUP_CREATE:
+                    const groupNotification = ImTypes.GroupNotification.decode(data.payload.payload)
+                    await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP, [groupNotification.group_info])
+                    await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_JOINED, [groupNotification.group_info])
+                    chatStore.addChat(generateGroupSessionId(groupNotification.group_id))
+                    break;
+                case ImTypes.MessageType.GROUP_JOIN:
+                    const groupJoinNotification = ImTypes.GroupNotification.decode(data.payload.payload)
+                    let group = await groupService.fetchByIds([groupJoinNotification.group_id])
+                    if (group.length > 0) {
+                        group[0].member_count++;
+                        await cacheService.updateItems(UpdateAction.Update, ResourceType.GROUP, [group[0]])
+                    }
+                    chatStore.addChat(generateGroupSessionId(groupJoinNotification.group_id))
                     break;
                 default:
                     break;

@@ -71,11 +71,9 @@ class GroupService {
     /**
      * 获取群成员列表（通过 IPC 调用主进程）
      * @param groupId 群组 ID
-     * @param limit 返回数量限制，默认 100
-     * @param offset 偏移量，默认 0
      */
-    async fetchGroupMembers(groupId: number): Promise<ImTypes.GroupMember[]> {
-        const result = await ipcService.invoke<ImTypes.GroupMember[]>(IpcChannels.GROUP_FETCH_MEMBERS, groupId)
+    async fetchGroupMembers(groupId: number, forceUpdate: boolean = false): Promise<ImTypes.GroupMember[]> {
+        const result = await ipcService.invoke<ImTypes.GroupMember[]>(IpcChannels.GROUP_FETCH_MEMBERS, groupId, forceUpdate)
 
         if (result.success && result.data) {
             const groupStore = useGroupStore()
@@ -187,7 +185,21 @@ class GroupService {
      * 处理群申请
      */
     async handleGroupApply(data: ApiTypes.group.HandleGroupApplyReq) {
-        return apiHandleGroupApply(data)
+        try {
+            let res = await apiHandleGroupApply(data)
+            if (res.data.data) {
+                await cacheService.updateItems(UpdateAction.Update, ResourceType.GROUP_APPLY, [res.data.data])
+                if (res.data.data.status == ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_ACCEPTED) {
+                    let group = await groupService.fetchByIds([res.data.data.group_id])
+                    if (group.length > 0) {
+                        group[0].member_count++;
+                        await cacheService.updateItems(UpdateAction.Update, ResourceType.GROUP, [group[0]])
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('[GroupService] handleGroupApply failed:', e)
+        }
     }
 }
 

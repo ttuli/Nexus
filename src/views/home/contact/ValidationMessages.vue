@@ -225,13 +225,11 @@ const handleGroupReq = async (req: ImTypes.GroupApply, actionType: 'accept' | 'r
     const status: ImTypes.GroupApplyStatus = actionType === 'accept' ? ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_ACCEPTED : ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_REJECTED;
     try {
         GlobalLoading.show();
-        let res = await groupService.handleGroupApply({
+        await groupService.handleGroupApply({
             apply_id: req.id,
             result: status,
             reject_reason: '',
         });
-
-        await cacheService.updateItems(UpdateAction.Update, ResourceType.GROUP_APPLY, [res.data.data])
     } finally {
         GlobalLoading.close();
     }
