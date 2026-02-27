@@ -168,10 +168,11 @@ class GroupService {
      */
     async createGroup(data: ApiTypes.group.CreateGroupReq) {
         let result = await createGroup(data)
-        if (result.data) {
-            cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_JOINED, [result.data.data])
-            useChatStore().addChat(generateGroupSessionId(result.data.data?.id || 0))
-        }
+        // if (result.data) {
+        //     // await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP, [result.data.data])
+        //     // await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_JOINED, [result.data.data])
+        //     useChatStore().addChat(generateGroupSessionId(result.data.data?.id || 0))
+        // }
     }
 
     /**

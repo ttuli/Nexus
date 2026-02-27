@@ -145,8 +145,9 @@ export const wsRouteTable: Record<number, MessageHandler> = {
     [ImTypes.MessageType.GROUP_REQUEST]: handleNotification,
     [ImTypes.MessageType.GROUP_JOIN]: handleNotification,
     [ImTypes.MessageType.GROUP_INVITE]: handleNotification,
+    [ImTypes.MessageType.GROUP_CREATE]: handleNotification,
 
-    
+
     [ImTypes.MessageType.MSG_ACK]: handleMsgAck,
 
 
