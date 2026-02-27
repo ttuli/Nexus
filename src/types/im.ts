@@ -1485,7 +1485,7 @@ export interface GroupInfo {
   /** 群公告 */
   notice: string;
   /** 加群方式 */
-  join_type: number;
+  join_type: JoinType;
   /** 成员数量 */
   member_count: number;
   /** 创建时间 */
@@ -4069,7 +4069,7 @@ export const GroupInfo: MessageFns<GroupInfo> = {
             break;
           }
 
-          message.join_type = reader.int32();
+          message.join_type = reader.int32() as any;
           continue;
         }
         case 7: {
@@ -4117,9 +4117,9 @@ export const GroupInfo: MessageFns<GroupInfo> = {
       avatar: isSet(object.avatar) ? globalThis.String(object.avatar) : "",
       notice: isSet(object.notice) ? globalThis.String(object.notice) : "",
       join_type: isSet(object.joinType)
-        ? globalThis.Number(object.joinType)
+        ? joinTypeFromJSON(object.joinType)
         : isSet(object.join_type)
-        ? globalThis.Number(object.join_type)
+        ? joinTypeFromJSON(object.join_type)
         : 0,
       member_count: isSet(object.memberCount)
         ? globalThis.Number(object.memberCount)
@@ -4157,7 +4157,7 @@ export const GroupInfo: MessageFns<GroupInfo> = {
       obj.notice = message.notice;
     }
     if (message.join_type !== 0) {
-      obj.joinType = Math.round(message.join_type);
+      obj.joinType = joinTypeToJSON(message.join_type);
     }
     if (message.member_count !== 0) {
       obj.memberCount = Math.round(message.member_count);

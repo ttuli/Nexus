@@ -104,20 +104,18 @@ class GroupService {
     /**
      * 更新群组信息
      */
-    async updateGroup(data: { group: ImTypes.GroupInfo; name?: string; avatar?: string }): Promise<boolean> {
+    async updateGroup(data: { group: ImTypes.GroupInfo; name?: string; avatar?: string; join_type?: ImTypes.JoinType }): Promise<boolean> {
         try {
             await updateGroup({
                 group_id: data.group.id,
                 name: data.name || '',
                 avatar: data.avatar || '',
-                notice: data.group.notice // Preserving notice if it exists in group object, though not passed in data args explicitly? 
-                // The args are specific: group object, and optional name/avatar to update.
-                // Proto `UpdateGroupReq` has `notice`.
-                // Existing code didn't update notice.
-                // Keep it safe: undefined fields are optional in proto req (though my proto def has them as optional/string)
+                notice: data.group.notice,
+                join_type: data.join_type ?? data.group.join_type,
             } as ApiTypes.group.UpdateGroupReq)
             if (data.name) data.group.name = data.name
             if (data.avatar) data.group.avatar = data.avatar
+            if (data.join_type !== undefined) data.group.join_type = data.join_type
 
             await cacheService.updateItems(UpdateAction.Update, ResourceType.GROUP, [{ ...data.group }])
             return true

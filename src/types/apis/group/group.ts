@@ -129,6 +129,8 @@ export interface UpdateGroupReq {
   avatar: string;
   /** @gotags: json:"notice,optional" */
   notice: string;
+  /** @gotags: json:"join_type,optional" */
+  join_type: number;
 }
 
 /** JoinGroupReq */
@@ -1363,7 +1365,7 @@ export const GetGroupResp: MessageFns<GetGroupResp> = {
 };
 
 function createBaseUpdateGroupReq(): UpdateGroupReq {
-  return { group_id: 0, name: "", avatar: "", notice: "" };
+  return { group_id: 0, name: "", avatar: "", notice: "", join_type: 0 };
 }
 
 export const UpdateGroupReq: MessageFns<UpdateGroupReq> = {
@@ -1379,6 +1381,9 @@ export const UpdateGroupReq: MessageFns<UpdateGroupReq> = {
     }
     if (message.notice !== "") {
       writer.uint32(34).string(message.notice);
+    }
+    if (message.join_type !== 0) {
+      writer.uint32(40).int32(message.join_type);
     }
     return writer;
   },
@@ -1422,6 +1427,14 @@ export const UpdateGroupReq: MessageFns<UpdateGroupReq> = {
           message.notice = reader.string();
           continue;
         }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.join_type = reader.int32();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1441,6 +1454,11 @@ export const UpdateGroupReq: MessageFns<UpdateGroupReq> = {
       name: isSet(object.name) ? globalThis.String(object.name) : "",
       avatar: isSet(object.avatar) ? globalThis.String(object.avatar) : "",
       notice: isSet(object.notice) ? globalThis.String(object.notice) : "",
+      join_type: isSet(object.joinType)
+        ? globalThis.Number(object.joinType)
+        : isSet(object.join_type)
+        ? globalThis.Number(object.join_type)
+        : 0,
     };
   },
 
@@ -1458,6 +1476,9 @@ export const UpdateGroupReq: MessageFns<UpdateGroupReq> = {
     if (message.notice !== "") {
       obj.notice = message.notice;
     }
+    if (message.join_type !== 0) {
+      obj.joinType = Math.round(message.join_type);
+    }
     return obj;
   },
 
@@ -1470,6 +1491,7 @@ export const UpdateGroupReq: MessageFns<UpdateGroupReq> = {
     message.name = object.name ?? "";
     message.avatar = object.avatar ?? "";
     message.notice = object.notice ?? "";
+    message.join_type = object.join_type ?? 0;
     return message;
   },
 };

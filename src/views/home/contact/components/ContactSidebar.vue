@@ -54,12 +54,6 @@ const pendingCount = computed(() => {
     return userStore.unreadPendingRequestCount + groupStore.unreadPendingRequestCount;
 });
 
-watch(pendingCount, (newVal, oldVal) => {
-    if (newVal > (oldVal || 0)) {
-        windowService.playNotificationSound(NotifySoundType.Request);
-    }
-});
-
 const isValidationActive = computed(() => route.path.includes('/contact/validation'));
 
 const currentListComponent = computed(() => {
@@ -69,6 +63,15 @@ const currentListComponent = computed(() => {
 const goToValidation = () => {
     router.push('/home/contacts/validation');
 };
+
+watch(pendingCount, (newVal, oldVal) => {
+    if (newVal > (oldVal || 0)) {
+        if (isValidationActive.value) {
+            return;
+        }
+        windowService.playNotificationSound(NotifySoundType.Request);
+    }
+});
 </script>
 
 <style scoped lang="scss">

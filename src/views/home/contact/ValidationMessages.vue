@@ -95,16 +95,28 @@ const userStore = useUserStore();
 const groupStore = useGroupStore();
 const chatStore = useChatStore();
 
-const enterTimeFriend = ref(0);
-const enterTimeGroup = ref(0);
+const enterTimeFriend = ref(userStore.lastReadFriendRequestTime);
+const enterTimeGroup = ref(groupStore.lastReadGroupRequestTime);
+
+watch(() => userStore.lastReadFriendRequestTime, (_, oldVal) => {
+    if (oldVal !== undefined) {
+        enterTimeFriend.value = oldVal;
+    }
+});
+
+watch(() => groupStore.lastReadGroupRequestTime, (_, oldVal) => {
+    if (oldVal !== undefined) {
+        enterTimeGroup.value = oldVal;
+    }
+});
 
 // 当进入页面或者切换标签时清除对应的未读红点，并记录时间供闪烁特效使用
 watch(type, (newType) => {
+    // 记录当前的验证消息标签类型
+    userStore.currentValidationTab = newType;
     if (newType === 'friend') {
-        enterTimeFriend.value = userStore.lastReadFriendRequestTime;
         userStore.updateLastReadFriendRequestTime();
     } else if (newType === 'group') {
-        enterTimeGroup.value = groupStore.lastReadGroupRequestTime;
         groupStore.updateLastReadGroupRequestTime(userStore.userID);
     }
 }, { immediate: true });
@@ -202,6 +214,7 @@ const handleApply = async (req: ImTypes.FriendRequest, type: 'accept' | 'reject'
             } as ImTypes.Friend])
             chatStore.addChat(generateSessionId(req.from_user_id, userStore.getUserID()))
         }
+        userStore.updateLastReadFriendRequestTime()
     } finally {
         GlobalLoading.close();
     }

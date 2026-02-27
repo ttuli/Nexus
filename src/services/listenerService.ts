@@ -13,6 +13,7 @@ import { useChatStore } from '@/store/chat'
 import { convertApplySrc2FriendSrc, convertWSMessageToIChatMessage, generateSessionId } from '@/utils/chat'
 import windowService from './windowService'
 import cacheService from './cacheService'
+import router from '@/router/router'
 
 type ResourceHandler = (items: any[]) => void
 
@@ -151,7 +152,7 @@ class ListenerService {
     private initWsListener() {
         ipcService.on(IpcChannels.WS_MESSAGE, async (_event, data: { type: ImTypes.MessageType; payload: any }) => {
             const chatStore = useChatStore()
-        
+
             const chatMsg = convertWSMessageToIChatMessage(data.payload as ImTypes.WSMessage);
             if (!chatMsg) {
                 console.error('[ListenerService] Failed to convert WSMessage to IChatMessage');
@@ -191,6 +192,7 @@ class ListenerService {
         ipcService.on(IpcChannels.WS_NOTIFICATION, async (_event, data: { type: ImTypes.MessageType; payload: ImTypes.WSMessage }) => {
             const userStore = useUserStore()
             const chatStore = useChatStore()
+            const groupStore = useGroupStore()
             switch (data.type) {
                 case ImTypes.MessageType.FRIEND_REQUEST:
                     const friendRequest = ImTypes.FriendRequest.decode(data.payload.payload)
@@ -208,6 +210,10 @@ class ListenerService {
                         }])
                         chatStore.addChat(generateSessionId(friendRequest.from_user_id, friendRequest.to_user_id))
                     }
+
+                    if (router.currentRoute.value.name === 'ValidationMessages' && await windowService.isFocused() && userStore.currentValidationTab === 'friend') {
+                        userStore.updateLastReadFriendRequestTime()
+                    }
                     break;
                 case ImTypes.MessageType.FRIEND_ADD:
                     const friend = ImTypes.Friend.decode(data.payload.payload)
@@ -217,6 +223,10 @@ class ListenerService {
                 case ImTypes.MessageType.GROUP_REQUEST:
                     const groupRequest = ImTypes.GroupApply.decode(data.payload.payload)
                     await cacheService.updateItems(UpdateAction.Update, ResourceType.GROUP_APPLY, [groupRequest])
+
+                    if (router.currentRoute.value.name === 'ValidationMessages' && await windowService.isFocused() && userStore.currentValidationTab === 'group') {
+                        groupStore.updateLastReadGroupRequestTime(userStore.userID)
+                    }
                     break;
                 default:
                     break;

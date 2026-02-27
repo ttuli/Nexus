@@ -17,6 +17,7 @@ export const useUserStore = defineStore('user', {
     friendRequestUserIds: reactive(new Set<number>()),
 
     lastReadFriendRequestTime: 0,
+    currentValidationTab: '', // 当前 validation 页面的 active tab 标记
   }),
   actions: {
     // ==================== Auth ====================

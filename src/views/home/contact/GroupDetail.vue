@@ -41,6 +41,11 @@
                         <span class="value">{{ myNickname }}</span>
                         <span class="arrow">›</span>
                     </div>
+                    <div class="setting-item" @click="editJoinType" v-if="groupInfo.owner_id === userStore.userID">
+                        <span class="label">加群方式</span>
+                        <span class="value">{{ joinTypeLabel }}</span>
+                        <span class="arrow">›</span>
+                    </div>
                     <div class="setting-item">
                         <span class="label">消息免打扰</span>
                         <el-switch v-model="isMuted" @change="toggleMute" />
@@ -77,6 +82,7 @@ import CusDialog from '@/components/CusDialog/CusDialog';
 import { DialogResult } from '@/components/CusDialog/types';
 import { groupService } from '@/services';
 import CusInputDialog from '@/components/CusInputDialog';
+import { ImTypes } from '@/types';
 
 const route = useRoute();
 const router = useRouter();
@@ -97,6 +103,15 @@ const myNickname = computed(() => {
     const meInGroup = members.value.find(m => m.user_id === userStore.userID);
     const meUser = userStore.getUser(userStore.userID);
     return meInGroup?.nickname || meUser?.user_name || '我';
+});
+
+const joinTypeLabel = computed(() => {
+    if (!groupInfo.value) return '-';
+    switch (groupInfo.value.join_type) {
+        case ImTypes.JoinType.JOIN_TYPE_DIRECT: return '直接加入';
+        case ImTypes.JoinType.JOIN_TYPE_AFTER_APPROVAL: return '同意后加入';
+        default: return '同意后加入';
+    }
 });
 
 onMounted(async () => {
@@ -164,6 +179,35 @@ const editMyNickname = async () => {
         const success = await groupService.setMemberNickname(groupInfo.value.id, newNickname);
         if (success) {
             ElMessage.success('昵称修改成功');
+        } else {
+            ElMessage.error('修改失败');
+        }
+    }
+};
+
+const editJoinType = async () => {
+    if (!groupInfo.value) return;
+    if (groupInfo.value.owner_id !== userStore.userID) return;
+
+    const currentIsDirect = groupInfo.value.join_type === ImTypes.JoinType.JOIN_TYPE_DIRECT;
+    const res = await CusDialog.open({
+        title: '修改加群方式',
+        content: `当前加群方式为「${joinTypeLabel.value}」，是否切换为「${currentIsDirect ? '同意后加入' : '直接加入'}」？`,
+        showCancel: true,
+        confirmText: '切换',
+        cancelText: '取消',
+    });
+
+    if (res === DialogResult.Confirm) {
+        const newJoinType = currentIsDirect
+            ? ImTypes.JoinType.JOIN_TYPE_AFTER_APPROVAL
+            : ImTypes.JoinType.JOIN_TYPE_DIRECT;
+        const success = await groupService.updateGroup({
+            group: groupInfo.value,
+            join_type: newJoinType,
+        });
+        if (success) {
+            ElMessage.success('加群方式修改成功');
         } else {
             ElMessage.error('修改失败');
         }
