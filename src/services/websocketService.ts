@@ -167,14 +167,14 @@ class WebSocketService {
             }
 
             // 4. 构建最终 WS payload 并发送（复用同一个 clientId，保证 ACK 能匹配）
-            // const { msg: finalMsg } = buildFileWsMessage({ url: ossUrl, fileName: file.name, size: file.size }, sessionId, clientId)
-            // const result = await this.send(finalMsg, clientId)
-            // if (!result.success || !result.data?.sent) {
-            //     chatStore.updateMessageStatus(
-            //         sessionId, clientId,
-            //         ImTypes.MessageStatus.MESSAGE_STATUS_FAILED, Date.now()
-            //     )
-            // }
+            const { msg: finalMsg } = buildFileWsMessage({ url: ossUrl, fileName: file.name, size: file.size }, sessionId, clientId)
+            const result = await this.send(finalMsg, clientId)
+            if (!result.success || !result.data?.sent) {
+                chatStore.updateMessageStatus(
+                    sessionId, clientId,
+                    ImTypes.MessageStatus.MESSAGE_STATUS_FAILED, Date.now()
+                )
+            }
         } catch (e) {
             console.error('[WebSocketService] sendFile failed:', e)
             chatStore.updateMessageStatus(
