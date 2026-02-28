@@ -323,9 +323,9 @@ const openFile = async () => {
 
         .file-action-bar {
             border-top-color: rgba(255, 255, 255, 0.2);
+            background-color: white;
 
             .action-btn {
-                background-color: transparent;
                 color: #fff;
 
                 &.btn-cancel {
@@ -340,6 +340,7 @@ const openFile = async () => {
         padding: 12px;
         gap: 12px;
         align-items: flex-start;
+        background-color: white;
     }
 
     .file-icon-wrapper {
@@ -469,7 +470,7 @@ const openFile = async () => {
     }
 
     .file-action-bar {
-        // background-color: yellow;
+        background-color: white;
         border-top: 1px solid rgba(0, 0, 0, 0.05);
         padding: 0px 12px;
         display: flex;
