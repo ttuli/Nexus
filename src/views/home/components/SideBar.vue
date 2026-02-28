@@ -4,6 +4,7 @@
             <Avatar :uid="userStore.getUserID()" @click.capture.stop="openUserInfo" />
             <div class="nav-item" :class="{ active: activeRoute.includes('chat') }" @click="navigateTo('chat')">
                 <img :src="ChatIcon" alt="Chat" />
+                <div v-if="chatBadge > 0" class="badge">{{ chatBadge }}</div>
             </div>
             <div class="nav-item" :class="{ active: activeRoute.includes('contacts') }" @click="navigateTo('contacts')">
                 <img :src="ContactsIcon" alt="Contacts" />
@@ -24,6 +25,8 @@ import { computed, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useUserStore } from '@/store/user';
 import { useGroupStore } from '@/store/group';
+import { useAppStore } from '@/store/app';
+import { useChatStore } from '@/store/chat';
 
 import ChatIcon from '@/assets/view/message.svg';
 import ContactsIcon from '@/assets/input/input_name.svg';
@@ -31,20 +34,35 @@ import SettingIcon from '@/assets/view/setting.svg';
 import { createWindow } from '@/utils/window';
 import { windowService } from '@/services';
 import { NotifySoundType } from '@/services/windowService';
+import { CurrentRoute } from '@/types';
 
 const router = useRouter();
 const route = useRoute();
 const userStore = useUserStore();
+const appStore = useAppStore();
 
 const activeRoute = computed(() => route.path);
 
 const groupStore = useGroupStore();
+const chatStore = useChatStore();
 
 const contactBadge = computed(() => {
     return userStore.unreadPendingRequestCount + groupStore.unreadPendingRequestCount;
 });
 
+const chatBadge = computed(() => {
+    return chatStore.totalUnreadCount;
+});
+
 const navigateTo = (name: string) => {
+    switch (name) {
+        case 'chat':
+            appStore.currentRoute = CurrentRoute.Chat
+            break
+        case 'contacts':
+            appStore.currentRoute = CurrentRoute.Contacts
+            break
+    }
     router.push(`/home/${name}`);
 };
 const openSetting = () => {

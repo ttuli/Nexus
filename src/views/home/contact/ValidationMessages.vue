@@ -83,18 +83,20 @@ import { ref, computed, watch } from 'vue';
 
 import { useUserStore } from '@/store/user';
 import { useGroupStore } from '@/store/group';
-import { UpdateAction, ResourceType, ImTypes } from '@/types';
+import { UpdateAction, ResourceType, ImTypes, ValidationType } from '@/types';
 import { cacheService, groupService } from '@/services';
 import { friendService } from '@/services'
 import GlobalLoading from '@/components/GlobalLoading/GlobalLoading';
 import { convertApplySrc2FriendSrc, generateSessionId } from '@/utils/chat';
 import { useChatStore } from '@/store/chat';
+import { useAppStore } from '@/store/app';
 import { ElMessage } from 'element-plus';
 
 const type = ref<'friend' | 'group'>('friend');
 const userStore = useUserStore();
 const groupStore = useGroupStore();
 const chatStore = useChatStore();
+const appStore = useAppStore();
 
 const enterTimeFriend = ref(userStore.lastReadFriendRequestTime);
 const enterTimeGroup = ref(groupStore.lastReadGroupRequestTime);
@@ -114,10 +116,11 @@ watch(() => groupStore.lastReadGroupRequestTime, (_, oldVal) => {
 // 当进入页面或者切换标签时清除对应的未读红点，并记录时间供闪烁特效使用
 watch(type, (newType) => {
     // 记录当前的验证消息标签类型
-    userStore.currentValidationTab = newType;
     if (newType === 'friend') {
+        appStore.currentValidationTab = ValidationType.Friend
         userStore.updateLastReadFriendRequestTime();
     } else if (newType === 'group') {
+        appStore.currentValidationTab = ValidationType.Group
         groupStore.updateLastReadGroupRequestTime(userStore.userID);
     }
 }, { immediate: true });

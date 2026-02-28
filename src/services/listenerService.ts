@@ -7,13 +7,13 @@
 import { ipcService } from './ipcService'
 import { useUserStore } from '@/store/user'
 import { useGroupStore } from '@/store/group'
-import { ResourceType, IpcChannels, UpdateAction, ImTypes } from '@/types'
+import { useAppStore } from '@/store/app'
+import { ResourceType, IpcChannels, UpdateAction, ImTypes, ValidationType, CurrentRoute } from '@/types'
 import { ElMessage } from 'element-plus'
 import { useChatStore } from '@/store/chat'
 import { convertApplySrc2FriendSrc, convertWSMessageToIChatMessage, generateGroupSessionId, generateSessionId } from '@/utils/chat'
 import windowService from './windowService'
 import cacheService from './cacheService'
-import router from '@/router/router'
 import groupService from './groupService'
 
 type ResourceHandler = (items: any[]) => void
@@ -153,6 +153,7 @@ class ListenerService {
     private initWsListener() {
         ipcService.on(IpcChannels.WS_MESSAGE, async (_event, data: { type: ImTypes.MessageType; payload: any }) => {
             const chatStore = useChatStore()
+            const appStore = useAppStore()
 
             const chatMsg = convertWSMessageToIChatMessage(data.payload as ImTypes.WSMessage);
             if (!chatMsg) {
@@ -161,7 +162,7 @@ class ListenerService {
             }
 
             chatStore.addMessage(chatMsg);
-            if (chatMsg.sessionId !== chatStore.currentSessionId || !await windowService.isFocused()) {
+            if (chatMsg.sessionId !== chatStore.currentSessionId || !await windowService.isFocused() || appStore.currentRoute !== CurrentRoute.Chat) {
                 chatStore.incrementUnread(chatMsg.sessionId);
                 windowService.playNotificationSound();
             }
@@ -194,6 +195,7 @@ class ListenerService {
             const userStore = useUserStore()
             const chatStore = useChatStore()
             const groupStore = useGroupStore()
+            const appStore = useAppStore()
             switch (data.type) {
                 case ImTypes.MessageType.FRIEND_REQUEST:
                     const friendRequest = ImTypes.FriendRequest.decode(data.payload.payload)
@@ -212,7 +214,7 @@ class ListenerService {
                         chatStore.addChat(generateSessionId(friendRequest.from_user_id, friendRequest.to_user_id))
                     }
 
-                    if (router.currentRoute.value.name === 'ValidationMessages' && await windowService.isFocused() && userStore.currentValidationTab === 'friend') {
+                    if (appStore.currentRoute === CurrentRoute.Contacts && await windowService.isFocused() && appStore.currentValidationTab === ValidationType.Friend) {
                         userStore.updateLastReadFriendRequestTime()
                     }
                     break;
@@ -232,7 +234,7 @@ class ListenerService {
                             await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_JOINED, [group[0]])
                         }
                     }
-                    if (router.currentRoute.value.name === 'ValidationMessages' && await windowService.isFocused() && userStore.currentValidationTab === 'group') {
+                    if (appStore.currentRoute === CurrentRoute.Contacts && await windowService.isFocused() && appStore.currentValidationTab === ValidationType.Group) {
                         groupStore.updateLastReadGroupRequestTime(userStore.userID)
                     }
                     chatStore.addChat(generateGroupSessionId(groupRequest.group_id))

@@ -12,6 +12,7 @@
 
 <script setup lang="ts">
 import { storeToRefs } from 'pinia';
+import { onMounted, onActivated } from 'vue';
 
 defineOptions({ name: 'ChatList' });
 import { useRouter } from 'vue-router';
@@ -26,6 +27,20 @@ const onChatClick = (sessionId: string) => {
     store.setCurrentChat(sessionId);
     router.push({ path: '/home/chat' });
 };
+
+const clearCurrentUnread = () => {
+    if (currentSessionId.value) {
+        store.clearUnread(currentSessionId.value);
+    }
+};
+
+onMounted(() => {
+    clearCurrentUnread();
+});
+
+onActivated(() => {
+    clearCurrentUnread();
+});
 </script>
 
 <style scoped lang="scss">

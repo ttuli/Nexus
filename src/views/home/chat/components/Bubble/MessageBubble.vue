@@ -13,11 +13,15 @@
             <!-- New wrapper for bubble and status -->
             <div class="bubble-row" :class="{ 'is-self': isSelf }">
                 <div class="bubble" :class="{ 'is-image': isImageMessage }" @contextmenu.prevent="handleContextMenu">
-                    <!-- Text / File Messages -->
-                    <div class="text" v-if="!isImageMessage">{{ messageContent }}</div>
+                    <!-- Text Messages -->
+                    <div class="text" v-if="!isImageMessage && !isFileMessage">{{ messageContent }}</div>
 
                     <!-- Image Messages -->
-                    <ImageMessageBubble v-else :message="(message as ILocalImageMessage)" />
+                    <ImageMessageBubble v-else-if="isImageMessage" :message="(message as ILocalImageMessage)" />
+
+                    <!-- File Messages -->
+                    <FileMessageBubble v-else-if="isFileMessage" :message="(message as ILocalFileMessage)"
+                        :isSelf="isSelf" />
                 </div>
 
                 <!-- Status Indicators (Only for self messages) -->
@@ -38,6 +42,7 @@
 import { computed } from 'vue';
 import { useUserStore } from '@/store/user';
 import ImageMessageBubble from './ImageMessageBubble.vue';
+import FileMessageBubble from './FileMessageBubble.vue';
 
 // Replace MessageItem definition with IChatMessage import
 import { IChatMessage, ILocalTextMessage, ILocalFileMessage, ILocalImageMessage } from '@/types/chatMessage';
@@ -66,7 +71,11 @@ const isImageMessage = computed(() => {
     return props.message.type === MessageType.CHAT_IMAGE || props.message.type === MessageType.GROUP_IMAGE;
 });
 
-// Helper to get message content based on type (for non-image messages)
+const isFileMessage = computed(() => {
+    return props.message.type === MessageType.CHAT_FILE || props.message.type === MessageType.GROUP_FILE;
+});
+
+// Helper to get message content based on type (for non-image, non-file messages)
 const messageContent = computed(() => {
     switch (props.message.type) {
         case MessageType.CHAT_TEXT:

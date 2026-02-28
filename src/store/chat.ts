@@ -326,5 +326,13 @@ export const useChatStore = defineStore('chat', {
                 (c) => c.conversation_id === state.currentSessionId
             ) || null;
         },
+        /**
+         * 获取所有聊天的未读消息总数
+         */
+        totalUnreadCount: (state) => {
+            return state.chatList.reduce((acc, current) => {
+                return acc + (current.unread_count || 0);
+            }, 0);
+        }
     },
 });

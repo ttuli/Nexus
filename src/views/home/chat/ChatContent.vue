@@ -15,8 +15,11 @@
                 <van-list v-model:loading="isLoading" :finished="!hasMore" finished-text="" direction="up"
                     @load="onLoad">
                     <template v-if="messages.length > 0">
-                        <MessageBubble v-for="msg in messages" :key="msg.msgId" :message="msg"
-                            :is-self="isSelf(msg.fromUserId)" @contextmenu="handleMessageContextMenu" />
+                        <transition-group name="msg-fade" appear>
+                            <MessageBubble v-for="msg in messages" :key="msg.msgId" :message="msg"
+                                :is-self="isSelf(msg.fromUserId)" @contextmenu="handleMessageContextMenu"
+                                :class="{ 'is-self': isSelf(msg.fromUserId) }" />
+                        </transition-group>
                     </template>
                     <div v-else class="empty-messages">
                         开始聊天吧~
@@ -159,7 +162,7 @@ const onLoad = () => {
 // Auto scroll on first load or send
 watch(messages, () => {
     scrollToBottom();
-});
+}, { deep: true });
 
 // Watch chat change to scroll bottom
 watch(currentSessionId, () => {
@@ -170,13 +173,11 @@ watch(currentSessionId, () => {
 
 const handleSendMessage = async (content: string) => {
     await websocketService.sendText(content);
-    scrollToBottom();
 };
 
 const handleSendImage = async (file: File) => {
     try {
         await websocketService.sendImage(file);
-        scrollToBottom();
     } catch {
         ElMessage.error('上传图片失败');
     }
@@ -185,7 +186,6 @@ const handleSendImage = async (file: File) => {
 const handleSendFile = async (file: File) => {
     try {
         await websocketService.sendFile(file);
-        scrollToBottom();
     } catch {
         ElMessage.error('上传文件失败');
     }
@@ -291,6 +291,30 @@ const startResize = (e: MouseEvent) => {
                 justify-content: center;
                 color: $color-text-placeholder;
                 font-size: 14px;
+            }
+
+            /* 消息入场/离场动画 */
+            .msg-fade-enter-active,
+            .msg-fade-leave-active {
+                transition: all 0.3s ease-out;
+            }
+
+            /* 默认状态 (左侧消息：别人发来的) */
+            .msg-fade-enter-from,
+            .msg-fade-leave-to {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+
+            /* 自己的消息状态 (右侧消息) */
+            .msg-fade-enter-from.is-self,
+            .msg-fade-leave-to.is-self {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+
+            .msg-fade-leave-active {
+                position: absolute;
             }
         }
 

@@ -1,5 +1,5 @@
 import { ImTypes } from '@/types';
-import { defineStore } from 'pinia'
+import { defineStore } from 'pinia';
 import { jwtDecode } from "jwt-decode";
 import { TokenPayload } from '@/types'
 import { reactive } from 'vue'
@@ -17,7 +17,6 @@ export const useUserStore = defineStore('user', {
     friendRequestUserIds: reactive(new Set<number>()),
 
     lastReadFriendRequestTime: 0,
-    currentValidationTab: '', // 当前 validation 页面的 active tab 标记
   }),
   actions: {
     // ==================== Auth ====================

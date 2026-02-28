@@ -4,7 +4,6 @@ import { ILocalImageMessage, ILocalFileMessage } from '@/types/chatMessage'
 import { buildTextWsMessage, buildImageLocalMsg, buildImageWsPayload, buildFileWsMessage, toLocalPreviewUrl } from '@/utils/chat'
 import { useChatStore } from '@/store/chat'
 import { fileService } from './fileService'
-import { ulid } from 'ulid'
 
 /**
  * WebSocket 连接状态

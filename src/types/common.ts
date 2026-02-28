@@ -19,3 +19,13 @@ export enum UpdateAction {
   Update = 2,
   Delete = 3,
 }
+
+export enum CurrentRoute {
+  Chat = 1,
+  Contacts = 2,
+}
+
+export enum ValidationType {
+  Friend = 1,
+  Group = 2,
+}

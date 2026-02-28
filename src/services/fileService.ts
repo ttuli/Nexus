@@ -118,6 +118,21 @@ class FileService {
 
         return resp.data?.access_url || '';
     }
+
+    /**
+     * 获取带签名的文件下载 URL
+     */
+    async getFileUrl(url: string): Promise<string> {
+        const fileKey = this.extractFileKey(url);
+
+        const resp = await getAcessUrl({
+            file_key: fileKey,
+            file_type: ApiTypes.file.FileType.FileTypeChatFile,
+            oss_process: ''
+        });
+
+        return resp.data?.access_url || '';
+    }
 }
 
 export const fileService = new FileService()
