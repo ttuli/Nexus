@@ -12,7 +12,8 @@
 
             <!-- New wrapper for bubble and status -->
             <div class="bubble-row" :class="{ 'is-self': isSelf }">
-                <div class="bubble" :class="{ 'is-image': isImageMessage }" @contextmenu.prevent="handleContextMenu">
+                <div class="bubble" :class="{ 'is-image': isImageMessage, 'is-file': isFileMessage }"
+                    @contextmenu.prevent="handleContextMenu">
                     <!-- Text Messages -->
                     <div class="text" v-if="!isImageMessage && !isFileMessage">{{ messageContent }}</div>
 
@@ -228,10 +229,11 @@ const formatTime = (timestamp: number) => {
             color: $color-text-primary;
             transition: all 0.2s;
 
-            &.is-image {
-                padding: 0; // 图片气泡不需要 padding
-                background-color: transparent; // 图片气泡不需要背景色
-                box-shadow: none; // 阴影移交到 ImageMessageBubble 内层
+            &.is-image,
+            &.is-file {
+                padding: 0; // 图片或文件气泡不需要外层 padding
+                background-color: transparent; // 图片或文件气泡不需要外层背景色
+                box-shadow: none; // 阴影移交到内层
             }
 
             &:hover {

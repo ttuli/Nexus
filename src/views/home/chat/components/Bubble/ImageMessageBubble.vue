@@ -36,6 +36,7 @@ import { ImTypes } from '@/types';
 import { fileService } from '@/services/fileService';
 import { chatService } from '@/services/chatService';
 import { createWindow } from '@/utils/window';
+import { ElMessage } from 'element-plus';
 
 interface Props {
     message: ILocalImageMessage;
@@ -148,13 +149,16 @@ const handleClick = async () => {
 
         // 获取原图签名 URL 给 photoViewer
         const fullUrl = await fileService.getImageUrl(props.message.url);
-        if (fullUrl) {
+        if (fullUrl !== '') {
             createWindow('photoViewer', {
                 urls: [fullUrl],
                 index: 0
             });
+        } else {
+            ElMessage.error('图片已过期或被清理')
         }
     } catch (e) {
+        ElMessage.error('图片已过期或被清理')
         console.error('[ImageBubble] Failed to open photo viewer:', e);
     }
 };

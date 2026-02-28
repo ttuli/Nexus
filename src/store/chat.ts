@@ -158,6 +158,22 @@ export const useChatStore = defineStore('chat', {
         },
 
         /**
+         * 更新文件消息的本地路径（下载完成后使用）
+         */
+        updateFileLocalPath(sessionId: string, clientId: string, msgId: string, localPath: string) {
+            const msg = this.messages.find(m =>
+                (clientId && m.clientId === clientId) ||
+                (msgId && m.msgId === msgId)
+            ) as any;
+            if (msg) {
+                msg.localPath = localPath;
+            }
+            void chatService.updateMessageLocalPath(sessionId, clientId, msgId, localPath).catch((e) => {
+                console.error('[ChatStore] Failed to persist localPath', e);
+            });
+        },
+
+        /**
          * 增加未读数
          */
         incrementUnread(sessionId: string) {

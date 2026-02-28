@@ -355,7 +355,8 @@ const confirmUpload = async () => {
     if (!blob) throw new Error('Failed to create blob')
 
     const croppedFile = new File([blob], selectedFile.value.name, { type: 'image/jpeg' })
-    const url = await fileService.uploadFile(croppedFile, ApiTypes.file.FileType.FileTypeAvatar)
+    const { promise } = fileService.uploadFile(croppedFile, ApiTypes.file.FileType.FileTypeAvatar)
+    const url = await promise;
 
     emit('success', url)
     closePreview()

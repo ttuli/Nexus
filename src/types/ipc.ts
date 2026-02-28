@@ -106,6 +106,11 @@ export const IpcChannels = {
     // 设置相关
     SETTINGS_GET_STORAGE_PATH: 'settings:get-storage-path',
     SETTINGS_SELECT_STORAGE_PATH: 'settings:select-storage-path',
+
+    // 系统操作相关
+    SYSTEM_SHOW_IN_FOLDER: 'system:show-in-folder',
+    SYSTEM_FILE_EXISTS: 'system:file-exists',
+    SYSTEM_DOWNLOAD_FILE: 'system:download-file',
 } as const
 
 export type IpcChannel = typeof IpcChannels[keyof typeof IpcChannels]

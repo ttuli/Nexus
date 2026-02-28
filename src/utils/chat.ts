@@ -174,6 +174,34 @@ export function convertWSMessageToIChatMessage(wsMsg: ImTypes.WSMessage): IChatM
 }
 
 /**
+ * 检查文件消息的 localPath 是否实际存在，不存在则清空
+ * 适用于接收到新消息时的处理（也适用于发送方查证本地文件是否仍存在）
+ */
+export function checkAndClearInvalidLocalPath(
+    chatMsg: IChatMessage,
+    fileService: { checkLocalFileExists(path: string): Promise<boolean> },
+    updateLocalPath: (sessionId: string, clientId: string, msgId: string, localPath: string) => void
+) {
+    const isFileMsgType = (
+        chatMsg.type === ImTypes.MessageType.CHAT_FILE ||
+        chatMsg.type === ImTypes.MessageType.GROUP_FILE
+    );
+    if (!isFileMsgType) return;
+
+    const fileMsg = chatMsg as any;
+    if (!fileMsg.localPath) return;
+
+    // 漂浮异步检查，不阻塞主流程
+    void (async () => {
+        const exists = await fileService.checkLocalFileExists(fileMsg.localPath);
+        if (!exists) {
+            updateLocalPath(chatMsg.sessionId, chatMsg.clientId || '', chatMsg.msgId, '');
+        }
+    })();
+}
+
+
+/**
  * 生成单聊会话ID
  * 规则: smaller_uid_larger_uid
  * @param uid1 用户ID 1

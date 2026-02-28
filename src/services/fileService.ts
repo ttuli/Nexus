@@ -14,48 +14,67 @@ class FileService {
     /**
      * 上传文件到文件服务器
      */
-    async uploadFile(file: File, fileType: ApiTypes.file.FileType, onProgress?: (progress: number) => void): Promise<string> {
-        const response = await this.getUploadSignature({ file_type: Number(fileType) })
-        const md5 = await computeFileMd5(file)
-        const key = response.data.dir + md5
+    uploadFile(
+        file: File,
+        fileType: ApiTypes.file.FileType,
+        onProgress?: (progress: number) => void
+    ): { promise: Promise<string>, abort: () => void } {
+        let abortController = new AbortController();
 
-        let formData = new FormData();
-        formData.append("success_action_status", "200");
-        formData.append("policy", response.data.policy);
-        formData.append("x-oss-signature", response.data.signature);
-        formData.append("x-oss-signature-version", "OSS4-HMAC-SHA256");
-        formData.append("x-oss-credential", response.data.x_oss_credential);
-        formData.append("x-oss-date", response.data.x_oss_date);
-        formData.append("key", key);
-        formData.append("x-oss-security-token", response.data.security_token);
-        formData.append("callback", response.data.callback);
-        formData.append("file", file);
+        const promise = (async () => {
+            const response = await this.getUploadSignature({ file_type: Number(fileType) })
+            const md5 = await computeFileMd5(file)
+            const key = response.data.dir + md5
 
-        return new Promise((resolve, reject) => {
-            const xhr = new XMLHttpRequest();
-            xhr.open('POST', response.data.host);
+            let formData = new FormData();
+            formData.append("success_action_status", "200");
+            formData.append("policy", response.data.policy);
+            formData.append("x-oss-signature", response.data.signature);
+            formData.append("x-oss-signature-version", "OSS4-HMAC-SHA256");
+            formData.append("x-oss-credential", response.data.x_oss_credential);
+            formData.append("x-oss-date", response.data.x_oss_date);
+            formData.append("key", key);
+            formData.append("x-oss-security-token", response.data.security_token);
+            formData.append("callback", response.data.callback);
+            formData.append("file", file);
 
-            if (onProgress) {
-                xhr.upload.onprogress = (event) => {
-                    if (event.lengthComputable) {
-                        const percentComplete = Math.round((event.loaded / event.total) * 100);
-                        onProgress(percentComplete);
+            return new Promise<string>((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', response.data.host);
+
+                // 监听取消信号
+                abortController.signal.addEventListener('abort', () => {
+                    xhr.abort();
+                    reject(new DOMException('Upload aborted', 'AbortError'));
+                });
+
+                if (onProgress) {
+                    xhr.upload.onprogress = (event) => {
+                        if (event.lengthComputable) {
+                            const percentComplete = Math.round((event.loaded / event.total) * 100);
+                            onProgress(percentComplete);
+                        }
+                    };
+                }
+
+                xhr.onload = () => {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        resolve(response.data.host + '/' + key);
+                    } else {
+                        reject(new Error(`Upload failed with status: ${xhr.status}`));
                     }
                 };
-            }
 
-            xhr.onload = () => {
-                if (xhr.status >= 200 && xhr.status < 300) {
-                    resolve(response.data.host + '/' + key);
-                } else {
-                    reject(new Error(`Upload failed with status: ${xhr.status}`));
-                }
-            };
+                xhr.onerror = () => reject(new Error('Upload failed network error'));
 
-            xhr.onerror = () => reject(new Error('Upload failed network error'));
+                xhr.send(formData);
+            });
+        })();
 
-            xhr.send(formData);
-        });
+        return {
+            promise,
+            abort: () => abortController.abort()
+        };
     }
 
     /**
@@ -116,7 +135,19 @@ class FileService {
             oss_process: ''
         });
 
-        return resp.data?.access_url || '';
+        const accessUrl = resp.data?.access_url || '';
+        if (accessUrl) {
+            try {
+                const checkRes = await fetch(accessUrl, { method: 'HEAD' });
+                if (checkRes.status === 404) {
+                    return '';
+                }
+            } catch (error) {
+                // Ignore fetch errors, fallback to returning the url
+                console.warn('Failed to check accessUrl status:', error);
+            }
+        }
+        return accessUrl;
     }
 
     /**
@@ -132,6 +163,65 @@ class FileService {
         });
 
         return resp.data?.access_url || '';
+    }
+
+    /**
+     * 检查文件是否存在于本地
+     */
+    async checkLocalFileExists(localPath: string): Promise<boolean> {
+        if (!localPath) return false;
+        try {
+            const { ipcService } = await import('./ipcService');
+            const { IpcChannels } = await import('@/types/ipc');
+            const res = await ipcService.invoke(IpcChannels.SYSTEM_FILE_EXISTS, localPath);
+            return res?.success && res?.data === true;
+        } catch {
+            return false;
+        }
+    }
+
+    /**
+     * 下载文件到本地
+     * @param url OSS 文件资源 URL
+     * @param fileName 文件名 (includes extension)
+     * @param onProgress 进度回调 0-100
+     * @returns 保存到本地的绝对路径
+     */
+    async downloadFile(url: string, fileName: string, onProgress?: (progress: number) => void): Promise<string> {
+        const { ipcService } = await import('./ipcService');
+        const { IpcChannels } = await import('@/types/ipc');
+
+        // 获取带签名的下载 URL
+        const downloadUrl = await this.getFileUrl(url);
+        if (!downloadUrl) throw new Error('无法获取文件下载地址');
+
+        // 过滤文件名中的非法字符
+        const sanitizedFileName = fileName.replace(/[\\/:*?"<>|]/g, '_');
+
+        // 设置进度监听 (unique 渠道)
+        const progressChannel = onProgress ? `file-download-progress-${Date.now()}` : undefined;
+        if (progressChannel && onProgress) {
+            ipcService.on(progressChannel as any, (_evt: any, percent: number) => {
+                onProgress(percent);
+            });
+        }
+
+        try {
+            const res = await ipcService.invoke(IpcChannels.SYSTEM_DOWNLOAD_FILE, {
+                url: downloadUrl,
+                fileName: sanitizedFileName,
+                onProgressChannel: progressChannel
+            });
+
+            if (!res?.success) {
+                throw new Error(res?.error || '下载失败');
+            }
+            return res.data as string;
+        } finally {
+            if (progressChannel) {
+                ipcService.off(progressChannel as any);
+            }
+        }
     }
 }
 

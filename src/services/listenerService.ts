@@ -11,10 +11,11 @@ import { useAppStore } from '@/store/app'
 import { ResourceType, IpcChannels, UpdateAction, ImTypes, ValidationType, CurrentRoute } from '@/types'
 import { ElMessage } from 'element-plus'
 import { useChatStore } from '@/store/chat'
-import { convertApplySrc2FriendSrc, convertWSMessageToIChatMessage, generateGroupSessionId, generateSessionId } from '@/utils/chat'
+import { convertApplySrc2FriendSrc, convertWSMessageToIChatMessage, generateGroupSessionId, generateSessionId, checkAndClearInvalidLocalPath } from '@/utils/chat'
 import windowService from './windowService'
 import cacheService from './cacheService'
 import groupService from './groupService'
+import { fileService } from './fileService'
 
 type ResourceHandler = (items: any[]) => void
 
@@ -162,6 +163,11 @@ class ListenerService {
             }
 
             chatStore.addMessage(chatMsg);
+
+            // 检查文件消息的 localPath 是否本地实际存在
+            checkAndClearInvalidLocalPath(chatMsg, fileService, (sessionId, clientId, msgId, localPath) => {
+                chatStore.updateFileLocalPath(sessionId, clientId, msgId, localPath);
+            });
             if (chatMsg.sessionId !== chatStore.currentSessionId || !await windowService.isFocused() || appStore.currentRoute !== CurrentRoute.Chat) {
                 chatStore.incrementUnread(chatMsg.sessionId);
                 windowService.playNotificationSound();

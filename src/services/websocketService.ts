@@ -4,6 +4,7 @@ import { ILocalImageMessage, ILocalFileMessage } from '@/types/chatMessage'
 import { buildTextWsMessage, buildImageLocalMsg, buildImageWsPayload, buildFileWsMessage, toLocalPreviewUrl } from '@/utils/chat'
 import { useChatStore } from '@/store/chat'
 import { fileService } from './fileService'
+import { chatService } from './chatService'
 
 /**
  * WebSocket 连接状态
@@ -23,6 +24,8 @@ export interface WebSocketStateResponse extends IpcResponse {
 }
 
 class WebSocketService {
+    // 存储上传任务的取消函数
+    private uploadAbortControllers: Map<string, () => void> = new Map();
     /**
      * 连接 WebSocket
      */
@@ -84,15 +87,24 @@ class WebSocketService {
 
         try {
             // 3. 上传到 OSS，实时更新进度
-            const ossUrl = await fileService.uploadFile(
+            const { promise, abort } = fileService.uploadFile(
                 file,
                 ApiTypes.file.FileType.FileTypeChatImage,
                 (progress) => chatStore.updateMessageProgress(clientId, progress)
             )
+            this.uploadAbortControllers.set(clientId, abort);
 
-            // 4. 更新 store 中占位消息的 OSS URL，清除进度
+            const ossUrl = await promise;
+            this.uploadAbortControllers.delete(clientId);
+
+            // 4. 更新 store 中占位消息的 OSS URL，并持久化到 DB
             const storedMsg = chatStore.messages.find(m => m.clientId === clientId) as ILocalImageMessage | undefined
-            if (storedMsg) storedMsg.url = ossUrl
+            if (storedMsg) {
+                storedMsg.url = ossUrl
+                void chatService.saveMessage(storedMsg).catch(e =>
+                    console.error('[WebSocketService] Failed to persist image ossUrl:', e)
+                )
+            }
 
             // 5. 用 buildImageWsPayload 直接从已有本地消息拼装 WS 载荷，不再重复所有内容
             const finalMsg = buildImageWsPayload(localMsg, ossUrl, sessionId)
@@ -110,6 +122,7 @@ class WebSocketService {
                 ImTypes.MessageStatus.MESSAGE_STATUS_FAILED, Date.now()
             )
             chatStore.updateMessageProgress(clientId, undefined)
+            this.uploadAbortControllers.delete(clientId);
         }
     }
 
@@ -124,6 +137,7 @@ class WebSocketService {
         // 1. 通过 buildWsMessage 统一构建占位消息
         const { clientId, localMsg } = buildFileWsMessage({
             url: '',
+            localPath: file.path,
             uploadProgress: 0,
             fileName: file.name,
             size: file.size,
@@ -132,32 +146,59 @@ class WebSocketService {
 
         try {
             // 2. 上传到 OSS，实时更新进度
-            const ossUrl = await fileService.uploadFile(
+            const { promise, abort } = fileService.uploadFile(
                 file,
                 ApiTypes.file.FileType.FileTypeChatFile,
                 (progress) => chatStore.updateMessageProgress(clientId, progress)
             )
+            this.uploadAbortControllers.set(clientId, abort);
 
-            // 3. 上传完成，清除进度 + 填写 OSS URL
-            chatStore.updateMessageProgress(clientId, undefined)
+            const ossUrl = await promise;
+            this.uploadAbortControllers.delete(clientId);
+
             const msgIndex = chatStore.messages.findIndex(m => m.clientId === clientId)
             if (msgIndex !== -1) {
-                (chatStore.messages[msgIndex] as ILocalFileMessage).url = ossUrl
+                const storedMsg = chatStore.messages[msgIndex] as ILocalFileMessage;
+                storedMsg.url = ossUrl
+                // 持久化 URL 到 DB
+                void chatService.saveMessage(storedMsg).catch(e =>
+                    console.error('[WebSocketService] Failed to persist file ossUrl:', e)
+                )
             }
 
             // 4. 构建最终 WS payload 并发送（复用同一个 clientId，保证 ACK 能匹配）
-            const { msg: finalMsg } = buildFileWsMessage({ url: ossUrl, fileName: file.name, size: file.size }, sessionId, clientId)
-            const result = await this.send(finalMsg, clientId)
-            if (!result.success || !result.data?.sent) {
-                chatStore.updateMessageStatus(
-                    sessionId, clientId,
-                    ImTypes.MessageStatus.MESSAGE_STATUS_FAILED, Date.now()
-                )
-            }
+            // const { msg: finalMsg } = buildFileWsMessage({ url: ossUrl, fileName: file.name, size: file.size }, sessionId, clientId)
+            // const result = await this.send(finalMsg, clientId)
+            // if (!result.success || !result.data?.sent) {
+            //     chatStore.updateMessageStatus(
+            //         sessionId, clientId,
+            //         ImTypes.MessageStatus.MESSAGE_STATUS_FAILED, Date.now()
+            //     )
+            // }
         } catch (e) {
             console.error('[WebSocketService] sendFile failed:', e)
             chatStore.updateMessageStatus(
                 sessionId, clientId,
+                ImTypes.MessageStatus.MESSAGE_STATUS_FAILED, Date.now()
+            )
+            chatStore.updateMessageProgress(clientId, undefined)
+            this.uploadAbortControllers.delete(clientId);
+        }
+    }
+
+    /**
+     * 取消上传
+     * @param clientId 消息的 clientId
+     */
+    cancelUpload(clientId: string): void {
+        const abort = this.uploadAbortControllers.get(clientId);
+        if (abort) {
+            abort();
+            this.uploadAbortControllers.delete(clientId);
+
+            const chatStore = useChatStore()
+            chatStore.updateMessageStatus(
+                chatStore.currentSessionId, clientId,
                 ImTypes.MessageStatus.MESSAGE_STATUS_FAILED, Date.now()
             )
             chatStore.updateMessageProgress(clientId, undefined)

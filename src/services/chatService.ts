@@ -441,6 +441,40 @@ class ChatService {
         }
         return remote.filter(item => this.normalizeNumber(item.sendTime) < beforeTime);
     }
+    /**
+     * 更新文件消息的本地路径 (localPath)
+     */
+    async updateMessageLocalPath(sessionId: string, clientId: string, msgId: string, localPath: string): Promise<void> {
+        if (!sessionId || (!clientId && !msgId)) return;
+
+        const db = await this.openDB();
+        const tx = db.transaction(this.storeName, 'readwrite');
+        const store = tx.objectStore(this.storeName);
+
+        const tryUpdate = async (idxName: 'session_clientId' | 'session_msgId', idxKey: [string, string]) => {
+            const idx = store.index(idxName);
+            const cursorReq = idx.openCursor(IDBKeyRange.only(idxKey));
+            const cursor = await this.requestToPromise(cursorReq);
+            if (!cursor) return false;
+            const row = (cursor as IDBCursorWithValue).value as ChatMessageRecord;
+            (row.message as any).localPath = localPath;
+            row.updatedAt = Date.now();
+            await this.requestToPromise(store.put(row));
+            return true;
+        };
+
+        try {
+            if (clientId) {
+                await tryUpdate('session_clientId', [sessionId, clientId]);
+            } else if (msgId) {
+                await tryUpdate('session_msgId', [sessionId, msgId]);
+            }
+            await this.txDone(tx);
+        } catch (error) {
+            try { tx.abort(); } catch { }
+            throw error;
+        }
+    }
 }
 
 export const chatService = new ChatService();
