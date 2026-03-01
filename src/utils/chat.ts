@@ -162,11 +162,7 @@ export function convertWSMessageToIChatMessage(wsMsg: ImTypes.WSMessage): IChatM
             ...commonFields,
             type: wsMsg.type,
             url: contentObj.url || '',
-            fileName: contentObj.fileName || '', // proto definition for FileMessage might be file_name?
-            // Checking FileMessage needed. Assuming file_name based on snake_case pattern.
-            // Let's assume file_name since ts-proto usually outputs snake_case.
-            // But contentObj is any here.
-            // Wait, I should verify FileMessage fields.
+            fileName: contentObj.file_name || '',  // ts-proto \u89e3\u7801\u540e\u5b57\u6bb5\u4e3a snake_case
             size: contentObj.size || 0,
         } as ILocalFileMessage;
     }
