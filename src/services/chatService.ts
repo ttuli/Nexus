@@ -487,7 +487,7 @@ class ChatService {
         switch (groupNotification.op_type) {
             case ImTypes.GroupOperationType.GROUP_OP_CREATE:
                 await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP, [groupNotification.group_info])
-                await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_JOINED, [groupNotification.group_info])
+                await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_JOINED, [groupNotification.group_id])
                 break;
             case ImTypes.GroupOperationType.GROUP_OP_DISMISS:
                 break;

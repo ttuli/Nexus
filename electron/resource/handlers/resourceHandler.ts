@@ -39,18 +39,27 @@ export function setupResourceHandlers(): void {
         try {
             if (action === UpdateAction.Delete) {
                 items.forEach(item => {
-                    const idKey = type === ResourceType.USER ? 'user_id' :
-                        type === ResourceType.GROUP ? 'id' :
-                            type === ResourceType.GROUP_JOINED ? 'id' :
+                    if (type === ResourceType.GROUP_JOINED) {
+                        if (Array.isArray(item)) {
+                            item.forEach(id => cacheManager.deleteItem(type, id));
+                        }
+                    } else {
+                        const idKey = type === ResourceType.USER ? 'user_id' :
+                            type === ResourceType.GROUP ? 'id' :
                                 type === ResourceType.FRIEND ? 'friend_id' :
                                     type === ResourceType.FRIEND_REQUEST ? 'request_id' : 'id';
-                    cacheManager.deleteItem(type, item[idKey]);
+                        cacheManager.deleteItem(type, item[idKey]);
+                    }
                 });
             } else {
                 cacheManager.setItems(type, items);
             }
             // Broadcast to all renderers with action
-            cacheManager.broadcastUpdate(type, items.map(item => ({ action, ...item })));
+            if (type === ResourceType.GROUP_JOINED) {
+                cacheManager.broadcastUpdate(type, items.map(item => ({ action, data: item })));
+            } else {
+                cacheManager.broadcastUpdate(type, items.map(item => ({ action, ...item })));
+            }
             return { success: true };
         } catch (error) {
             console.error(`Failed to update ${type}:`, error);

@@ -95,11 +95,15 @@ class ListenerService {
 
             [ResourceType.GROUP_JOINED, (items) => {
                 items.forEach((item: any) => {
-                    const { action, ...group } = item
-                    if (action === UpdateAction.Delete) {
-                        groupStore.deleteGroup(group.id)
-                    } else {
-                        groupStore.addJoinedGroup(group.id)
+                    const { action, data } = item
+                    if (Array.isArray(data)) {
+                        data.forEach((id: number) => {
+                            if (action === UpdateAction.Delete) {
+                                groupStore.deleteGroup(id)
+                            } else {
+                                groupStore.addJoinedGroup(id)
+                            }
+                        })
                     }
                 })
             }],
@@ -237,7 +241,7 @@ class ListenerService {
                         if (group.length > 0) {
                             group[0].member_count++;
                             await cacheService.updateItems(UpdateAction.Update, ResourceType.GROUP, [group[0]])
-                            await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_JOINED, [group[0]])
+                            await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_JOINED, [group[0].id])
                         }
                     }
                     if (appStore.currentRoute === CurrentRoute.Contacts && await windowService.isFocused() && appStore.currentValidationTab === ValidationType.Group) {

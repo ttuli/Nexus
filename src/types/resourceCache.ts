@@ -29,19 +29,17 @@ export interface ResourceTypeMap {
     [ResourceType.GROUP]: ImTypes.GroupInfo;
     [ResourceType.FRIEND]: ImTypes.Friend;
     [ResourceType.FRIEND_REQUEST]: ImTypes.FriendRequest;
-    [ResourceType.GROUP_JOINED]: ImTypes.GroupInfo;
     [ResourceType.GROUP_APPLY]: ImTypes.GroupApply;
     [ResourceType.GROUP_MEMBER]: GroupMembersWrapper;
 }
 
 // 资源 ID 字段名映射
-export const ResourceIdKeyMap: Record<ResourceType, string> = {
+export const ResourceIdKeyMap: Partial<Record<ResourceType, string>> = {
     [ResourceType.USER]: 'user_id',
     [ResourceType.GROUP]: 'id',
     [ResourceType.FRIEND]: 'friend_id',
     [ResourceType.FRIEND_REQUEST]: 'id',
     [ResourceType.AUTH]: 'user_id',  // Auth 广播使用 user_id
-    [ResourceType.GROUP_JOINED]: 'id',
     [ResourceType.GROUP_APPLY]: 'id',
     [ResourceType.GROUP_MEMBER]: 'group_id',
 };
