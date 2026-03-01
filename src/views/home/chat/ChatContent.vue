@@ -16,9 +16,17 @@
                     @load="onLoad">
                     <template v-if="messages.length > 0">
                         <transition-group name="msg-fade" appear>
-                            <MessageBubble v-for="msg in messages" :key="msg.msgId" :message="msg"
-                                :is-self="isSelf(msg.fromUserId)" @contextmenu="handleMessageContextMenu"
-                                :class="{ 'is-self': isSelf(msg.fromUserId) }" />
+                            <template v-for="msg in messages" :key="msg.msgId">
+                                <!-- 系统 / 群通知消息气泡 -->
+                                <SystemMessageBubble v-if="isSystemMessage(msg.type)" 
+                                    :message="(msg as any)" />
+                                <!-- 普通用户聊天气泡 -->
+                                <MessageBubble v-else 
+                                    :message="msg"
+                                    :is-self="isSelf(msg.fromUserId)" 
+                                    @contextmenu="handleMessageContextMenu"
+                                    :class="{ 'is-self': isSelf(msg.fromUserId) }" />
+                            </template>
                         </transition-group>
                     </template>
                     <div v-else class="empty-messages">
@@ -52,6 +60,7 @@ import { useUserStore } from '@/store/user';
 import { useGroupStore } from '@/store/group';
 import { storeToRefs } from 'pinia';
 import MessageBubble from '@/views/home/chat/components/Bubble/MessageBubble.vue';
+import SystemMessageBubble from '@/views/home/chat/components/Bubble/SystemMessageBubble.vue';
 import { IChatMessage, ILocalTextMessage } from '@/types/chatMessage';
 import { ImTypes } from '@/types';
 import ChatInput from './components/ChatInput.vue';
@@ -88,6 +97,22 @@ const menuX = ref(0);
 const menuY = ref(0);
 const contextMenuTarget = ref<IChatMessage | null>(null);
 const MessageType = ImTypes.MessageType;
+
+const isSystemMessage = (type: ImTypes.MessageType) => {
+    switch (type) {
+        case MessageType.GROUP_CREATE:
+        case MessageType.GROUP_DISMISS:
+        case MessageType.GROUP_JOIN:
+        case MessageType.GROUP_LEAVE:
+        case MessageType.GROUP_KICK:
+        case MessageType.GROUP_INVITE:
+        case MessageType.GROUP_INFO_UPDATE:
+        case MessageType.MSG_RECALL:
+            return true;
+        default:
+            return false;
+    }
+};
 
 const menuOptions: MenuOption[] = [
     { label: '复制', key: 'copy', icon: copyIcon }

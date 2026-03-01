@@ -81,18 +81,15 @@ class CacheManager {
      * 设置单个资源（更新缓存）
      */
     public setItem<T extends Record<string, any>>(type: ResourceType, item: T): void {
-        // GROUP_JOINED: 将 group id 加入用户群组列表，并同步缓存到 GROUP
+        // GROUP_JOINED: 仅维护用户已加入群组 ID 列表，群组详情由 GROUP 类型独立管理
         if (type === ResourceType.GROUP_JOINED) {
             const idKey = ResourceIdKeyMap[type];
-            const id = item[idKey] as number;
-            if (!this.userGroupIds.includes(id)) {
-                this.userGroupIds.push(id);
-            }
-            // 同时缓存群组详情到 GROUP 类型
-            const groupCache = this.caches.get(ResourceType.GROUP);
-            if (groupCache) {
-                groupCache.set(id, { data: item, lastUpdated: Date.now() });
-            }
+            const ids = Array.isArray(item) ? (item as any[]).map(i => i[idKey] as number) : [item[idKey] as number];
+            ids.forEach(id => {
+                if (!this.userGroupIds.includes(id)) {
+                    this.userGroupIds.push(id);
+                }
+            });
             return;
         }
 

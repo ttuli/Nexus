@@ -16,6 +16,7 @@ import windowService from './windowService'
 import cacheService from './cacheService'
 import groupService from './groupService'
 import { fileService } from './fileService'
+import { chatService } from './chatService'
 
 type ResourceHandler = (items: any[]) => void
 
@@ -98,7 +99,6 @@ class ListenerService {
                     if (action === UpdateAction.Delete) {
                         groupStore.deleteGroup(group.id)
                     } else {
-                        groupStore.setGroup(group)
                         groupStore.addJoinedGroup(group.id)
                     }
                 })
@@ -245,20 +245,8 @@ class ListenerService {
                     }
                     chatStore.addChat(generateGroupSessionId(groupRequest.group_id))
                     break;
-                case ImTypes.MessageType.GROUP_CREATE:
-                    const groupNotification = ImTypes.GroupNotification.decode(data.payload.payload)
-                    await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP, [groupNotification.group_info])
-                    await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_JOINED, [groupNotification.group_info])
-                    chatStore.addChat(generateGroupSessionId(groupNotification.group_id))
-                    break;
-                case ImTypes.MessageType.GROUP_JOIN:
-                    const groupJoinNotification = ImTypes.GroupNotification.decode(data.payload.payload)
-                    let group = await groupService.fetchByIds([groupJoinNotification.group_id])
-                    if (group.length > 0) {
-                        group[0].member_count++;
-                        await cacheService.updateItems(UpdateAction.Update, ResourceType.GROUP, [group[0]])
-                    }
-                    chatStore.addChat(generateGroupSessionId(groupJoinNotification.group_id))
+                case ImTypes.MessageType.GROUP_OP_NOTIFICATION:
+                    chatService.handleGroupNotification(data.payload)
                     break;
                 default:
                     break;

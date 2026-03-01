@@ -111,7 +111,9 @@ class GroupService {
                 notice: data.group.notice,
                 join_type: data.join_type ?? data.group.join_type,
             } as ApiTypes.group.UpdateGroupReq)
-            if (data.name) data.group.name = data.name
+            if (data.name) {
+                data.group.name = data.name
+            }
             if (data.avatar) data.group.avatar = data.avatar
             if (data.join_type !== undefined) data.group.join_type = data.join_type
 

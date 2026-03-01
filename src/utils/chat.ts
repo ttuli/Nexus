@@ -1,8 +1,10 @@
-import { ImTypes, IChatMessage, ILocalTextMessage, ILocalImageMessage, ILocalVideoMessage, ILocalFileMessage } from '@/types';
+import { ImTypes, IChatMessage, ILocalTextMessage, ILocalImageMessage, ILocalVideoMessage, ILocalFileMessage, ILocalGroupNotificationMessage, UpdateAction, ResourceType } from '@/types';
 import { config } from '@/config';
 
 import { useUserStore } from '@/store/user';
 import { ulid } from 'ulid';
+import { useChatStore } from '@/store/chat';
+import { cacheService, groupService } from '@/services';
 
 /** imlocal:// 协议 Scheme，与主进程 fileCacheManager 中定义保持一致 */
 const IMLOCAL_SCHEME = 'imlocal';
@@ -166,10 +168,17 @@ export function convertWSMessageToIChatMessage(wsMsg: ImTypes.WSMessage): IChatM
             // But contentObj is any here.
             // Wait, I should verify FileMessage fields.
             size: contentObj.size || 0,
-            fileType: (contentObj.fileType as ImTypes.FileType) || ImTypes.FileType.FILE_TYPE_UNSPECIFIED
         } as ILocalFileMessage;
     }
 
+    return null;
+}
+
+export function convertNotificationToChatMessage(notification: ImTypes.GroupNotification): IChatMessage | null {
+    // const chatMsg: ILocalGroupNotificationMessage = {
+    //     type: notification.op_type,
+        
+    // }
     return null;
 }
 
@@ -262,7 +271,6 @@ export interface FileContent {
     uploadProgress?: number;
     fileName?: string;
     size?: number;
-    fileType?: ImTypes.FileType;
 }
 
 // ─── Return type ────────────────────────────────────────────────────────────
@@ -452,7 +460,6 @@ export function buildFileWsMessage(
         url: content.url,
         file_name: content.fileName || '',
         size: content.size || 0,
-        file_type: content.fileType || ImTypes.FileType.FILE_TYPE_UNSPECIFIED,
         md5: ''
     }).finish();
 
@@ -464,7 +471,6 @@ export function buildFileWsMessage(
         uploadProgress: content.uploadProgress,
         fileName: content.fileName || '',
         size: content.size || 0,
-        fileType: content.fileType || ImTypes.FileType.FILE_TYPE_UNSPECIFIED
     };
     return { msg: wsMsg, clientId, localMsg };
 }
@@ -523,3 +529,4 @@ export function convertApplySrc2FriendSrc(src: ImTypes.ApplySource): ImTypes.Fri
             return ImTypes.FriendSource.FRIEND_SOURCE_UNSPECIFIED;
     }
 }
+

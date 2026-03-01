@@ -1,4 +1,4 @@
-import { MessageType, MessageStatus, AtInfo, FileType } from './im';
+import { MessageType, MessageStatus, AtInfo, GroupOperationType } from './im';
 
 /**
  * 基础消息结构 (本地扁平化)
@@ -69,7 +69,25 @@ export interface ILocalFileMessage extends ILocalMessageBase {
     uploadProgress?: number; // 上传进度 0-100，上传完成后 undefined
     fileName: string;
     size: number;
-    fileType: FileType;
+}
+
+/**
+ * 群组通知消息 (系统级提示)
+ */
+export interface ILocalGroupNotificationMessage extends ILocalMessageBase {
+    type:
+    | GroupOperationType.GROUP_OP_CREATE
+    | GroupOperationType.GROUP_OP_DISMISS
+    | GroupOperationType.GROUP_OP_JOIN
+    | GroupOperationType.GROUP_OP_LEAVE
+    | GroupOperationType.GROUP_OP_KICK
+    | GroupOperationType.GROUP_OP_INVITE
+    | GroupOperationType.GROUP_OP_INFO_UPDATE_NAME
+    | GroupOperationType.GROUP_OP_UPDATE_INFO;
+    opType: GroupOperationType;
+    groupId: number;
+    targetIds: number[];
+    reason?: string;
 }
 
 /**
@@ -79,7 +97,8 @@ export type IChatMessage =
     | ILocalTextMessage
     | ILocalImageMessage
     | ILocalVideoMessage
-    | ILocalFileMessage;
+    | ILocalFileMessage
+    | ILocalGroupNotificationMessage;
 // 未来可扩展其他类型
 
 /**

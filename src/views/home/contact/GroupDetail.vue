@@ -7,8 +7,14 @@
                 <!-- Header Info -->
                 <div class="info-card">
                     <div class="header-row">
-                        <Avatar :uid="groupInfo.id" type="group" :width="'80px'" :height="'80px'"
-                            class="group-avatar" />
+                        <template v-if="groupInfo.owner_id === userStore.userID">
+                            <AvatarUpload :uid="groupInfo.id" :type="'group'" class="group-avatar"
+                                style="width: 80px; height: 80px;" @success="handleAvatarSuccess" />
+                        </template>
+                        <template v-else>
+                            <Avatar :uid="groupInfo.id" type="group" :width="'80px'" :height="'80px'"
+                                class="group-avatar" />
+                        </template>
                         <div class="text-info">
                             <div class="main-info">
                                 <h2 class="group-name">{{ groupInfo.name }}</h2>
@@ -70,6 +76,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import Avatar from '@/components/Avatar.vue';
+import AvatarUpload from '@/components/AvatarUpload.vue';
 import CusButton from '@/components/CusButton.vue';
 import GroupMemberGrid from './components/GroupMemberGrid.vue';
 import { useUserStore } from '@/store/user';
@@ -211,6 +218,19 @@ const editJoinType = async () => {
         } else {
             ElMessage.error('修改失败');
         }
+    }
+};
+
+const handleAvatarSuccess = async (url: string) => {
+    if (!groupInfo.value) return;
+    const success = await groupService.updateGroup({
+        group: groupInfo.value,
+        avatar: url
+    });
+    if (success) {
+        ElMessage.success('群头像修改成功');
+    } else {
+        ElMessage.error('群头像修改失败');
     }
 };
 

@@ -1,7 +1,11 @@
 import { getHistory } from '@/apis/message';
-import { ApiTypes, PartialExcept } from '@/types';
-import { FileType, MessageStatus, MessageType } from '@/types/im';
+import { ApiTypes, ImTypes, PartialExcept, ResourceType, UpdateAction } from '@/types';
+import { MessageStatus, MessageType } from '@/types/im';
 import { IChatMessage } from '@/types/chatMessage';
+import { useChatStore } from '@/store/chat';
+import { generateGroupSessionId } from '@/utils/chat';
+import cacheService from './cacheService';
+import groupService from './groupService';
 
 interface ChatMessageRecord {
     pk: string;
@@ -203,7 +207,6 @@ class ChatService {
         }
 
         if (type === MessageType.CHAT_FILE || type === MessageType.GROUP_FILE) {
-            const extraFileType = this.normalizeNumber(extra.file_type ?? extra.fileType);
             return {
                 ...common,
                 type,
@@ -214,7 +217,6 @@ class ChatService {
                         ? extra.fileName
                         : message.content || '',
                 size: this.normalizeNumber(extra.size),
-                fileType: extraFileType || FileType.FILE_TYPE_UNSPECIFIED,
             };
         }
 
@@ -474,6 +476,44 @@ class ChatService {
             try { tx.abort(); } catch { }
             throw error;
         }
+    }
+
+    async handleGroupNotification(wsMsg: ImTypes.WSMessage) {
+        const chatStore = useChatStore()
+        const groupNotification = ImTypes.GroupNotification.decode(wsMsg.payload)
+        const session = generateGroupSessionId(groupNotification.group_id)
+        chatStore.addChat(session)
+
+        switch (groupNotification.op_type) {
+            case ImTypes.GroupOperationType.GROUP_OP_CREATE:
+                await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP, [groupNotification.group_info])
+                await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_JOINED, [groupNotification.group_info])
+                break;
+            case ImTypes.GroupOperationType.GROUP_OP_DISMISS:
+                break;
+            case ImTypes.GroupOperationType.GROUP_OP_JOIN:
+                let group = await groupService.fetchByIds([groupNotification.group_id])
+                if (group.length > 0) {
+                    group[0].member_count++;
+                    await cacheService.updateItems(UpdateAction.Update, ResourceType.GROUP, [group[0]])
+                }
+                break;
+            case ImTypes.GroupOperationType.GROUP_OP_LEAVE:
+                break;
+            case ImTypes.GroupOperationType.GROUP_OP_KICK:
+                break;
+            case ImTypes.GroupOperationType.GROUP_OP_INVITE:
+                break;
+            case ImTypes.GroupOperationType.GROUP_OP_UPDATE_INFO:
+                break;
+            case ImTypes.GroupOperationType.GROUP_OP_MUTE:
+                break;
+            case ImTypes.GroupOperationType.GROUP_OP_UNMUTE:
+                break;
+            case ImTypes.GroupOperationType.UNRECOGNIZED:
+                break;
+        }
+
     }
 }
 

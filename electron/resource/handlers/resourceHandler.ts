@@ -47,14 +47,7 @@ export function setupResourceHandlers(): void {
                     cacheManager.deleteItem(type, item[idKey]);
                 });
             } else {
-                if (type === ResourceType.GROUP_JOINED) {
-                    // 加入群组：将群组加入用户群组列表
-                    items.forEach(item => {
-                        cacheManager.setItem(ResourceType.GROUP_JOINED, item);
-                    });
-                } else {
-                    cacheManager.setItems(type, items);
-                }
+                cacheManager.setItems(type, items);
             }
             // Broadcast to all renderers with action
             cacheManager.broadcastUpdate(type, items.map(item => ({ action, ...item })));

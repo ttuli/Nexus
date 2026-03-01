@@ -70,14 +70,8 @@ enum MessageType {
   USER_TYPING = 402;              // 正在输入
   USER_STATUS_CHANGE = 403;       // 状态变更
   
-  // 群组操作 500-599
-  GROUP_CREATE = 500;             // 创建群组
-  GROUP_DISMISS = 501;            // 解散群组
-  GROUP_JOIN = 502;               // 加入群组
-  GROUP_LEAVE = 503;              // 离开群组
-  GROUP_KICK = 504;               // 踢出群组
-  GROUP_INVITE = 505;             // 邀请入群
-  GROUP_INFO_UPDATE = 506;        // 群信息更新
+  // 群组操作
+  GROUP_OP_NOTIFICATION = 500;    // 群操作通知
   
   // 通知类 600-699
   NOTIFICATION = 600;             // 系统通知
@@ -172,16 +166,9 @@ message FileMessage {
   string url = 2;                 // 文件URL
   string file_name = 3;           // 文件名
   int64 size = 4;                 // 文件大小
-  FileType file_type = 5;           // 文件类型
   string md5 = 6;                 // 文件MD5
 }
 
-enum FileType {
-  FILE_TYPE_UNSPECIFIED = 0;
-  FILE_TYPE_AVATAR = 1;           // 头像
-  FILE_TYPE_CHAT_IMAGE = 2;       // 聊天图片
-  FILE_TYPE_CHAT_FILE = 3;        // 聊天文件
-}
 
 // 位置消息
 message LocationMessage {
@@ -334,6 +321,8 @@ enum GroupOperationType {
   GROUP_OP_UPDATE_INFO = 6;       // 更新信息
   GROUP_OP_MUTE = 7;              // 禁言
   GROUP_OP_UNMUTE = 8;            // 取消禁言
+  GROUP_OP_INFO_UPDATE_NAME = 9;  // 群名称更新
+  GROUP_OP_INFO_UPDATE_NOTICE = 10; // 群公告更新
 }
 
 message Conversation {

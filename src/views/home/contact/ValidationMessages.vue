@@ -98,18 +98,25 @@ const groupStore = useGroupStore();
 const chatStore = useChatStore();
 const appStore = useAppStore();
 
-const enterTimeFriend = ref(userStore.lastReadFriendRequestTime);
-const enterTimeGroup = ref(groupStore.lastReadGroupRequestTime);
+const enterTimeFriend = ref(0);
+const enterTimeGroup = ref(0);
 
-watch(() => userStore.lastReadFriendRequestTime, (_, oldVal) => {
-    if (oldVal !== undefined) {
-        enterTimeFriend.value = oldVal;
+userStore.$onAction(({ name, store }) => {
+    if (name === 'updateLastReadFriendRequestTime') {
+        const oldVal = store.lastReadFriendRequestTime;
+        if (oldVal !== undefined) {
+            enterTimeFriend.value = oldVal;
+        }
     }
 });
 
-watch(() => groupStore.lastReadGroupRequestTime, (_, oldVal) => {
-    if (oldVal !== undefined) {
-        enterTimeGroup.value = oldVal;
+groupStore.$onAction(({ name, store }) => {
+    if (name === 'updateLastReadGroupRequestTime') {
+        const oldVal = store.lastReadGroupRequestTime;
+        if (oldVal !== undefined) {
+            enterTimeGroup.value = oldVal;
+        }
+        console.log("Group oldVal:", oldVal);
     }
 });
 
