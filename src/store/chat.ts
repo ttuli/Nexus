@@ -330,11 +330,9 @@ export const useChatStore = defineStore('chat', {
             }
 
             this.updateLastMessage(message.sessionId, lastContent);
-            if (message.type !== ImTypes.MessageType.GROUP_OP_NOTIFICATION) {
-                void chatService.saveMessage(message).catch((e) => {
-                    console.error('[ChatStore] Failed to persist message', e);
-                });
-            }
+            void chatService.saveMessage(message).catch((e) => {
+                console.error('[ChatStore] Failed to persist message', e);
+            });
         },
     },
     getters: {

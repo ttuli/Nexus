@@ -15,6 +15,10 @@ import { useUserStore } from '@/store/user'
 import { updateGroup, setMemberNickname, joinGroup, createGroup, leaveGroup, handleGroupApply as apiHandleGroupApply, dismissGroup } from '@/apis/group'
 import { ApiTypes } from '@/types'
 import cacheService from './cacheService'
+import { useChatStore } from '@/store/chat'
+import { generateGroupSessionId } from '@/utils/chat'
+import { MessageType, MessageStatus } from '@/types/im'
+import { IChatMessage } from '@/types/chatMessage'
 
 class GroupService {
     /**
@@ -174,8 +178,28 @@ class GroupService {
     async createGroup(data: ApiTypes.group.CreateGroupReq) {
         let res = await createGroup(data)
         if (res.data.data) {
-            cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP, [res.data.data as unknown as ImTypes.GroupInfo])
-            cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_JOINED, [res.data.data.id])
+            const groupInfo = res.data.data as unknown as ImTypes.GroupInfo
+            await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP, [groupInfo])
+            await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_JOINED, [groupInfo.id])
+
+            // Add session and initial system message
+            const chatStore = useChatStore()
+            const userStore = useUserStore()
+            const sessionId = generateGroupSessionId(groupInfo.id)
+            chatStore.addChat(sessionId)
+
+            const message: IChatMessage = {
+                msgId: `local_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+                sessionId,
+                fromUserId: userStore.userID,
+                sendTime: Date.now(),
+                seq: 0,
+                status: MessageStatus.MESSAGE_STATUS_UNSPECIFIED,
+                isRead: true,
+                type: MessageType.GROUP_OP_NOTIFICATION,
+                content: `你邀请了${data.member_ids.length}位用户加入了群聊`,
+            }
+            chatStore.addMessage(message)
         }
         return res
     }

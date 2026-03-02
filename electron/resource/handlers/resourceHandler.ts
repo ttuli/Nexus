@@ -63,7 +63,7 @@ export function setupResourceHandlers(): void {
             }
             // Broadcast to all renderers with action
             if (type === ResourceType.GROUP_JOINED) {
-                cacheManager.broadcastUpdate(type, items.map(item => ({ action, data: item })));
+                cacheManager.broadcastUpdate(type, [{ action, data: items }]);
             } else {
                 cacheManager.broadcastUpdate(type, items.map(item => ({ action, ...item })));
             }

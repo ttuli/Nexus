@@ -1,4 +1,4 @@
-import { getHistory } from '@/apis/message';
+import { getHistory, getUserActiveConversation } from '@/apis/message';
 import { ApiTypes, ImTypes, PartialExcept, ResourceType, UpdateAction } from '@/types';
 import { MessageStatus, MessageType } from '@/types/im';
 import { IChatMessage } from '@/types/chatMessage';
@@ -490,7 +490,6 @@ class ChatService {
             case ImTypes.GroupOperationType.GROUP_OP_CREATE:
                 if (groupNotification.group_info) {
                     await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP, [groupNotification.group_info as unknown as ImTypes.GroupInfo])
-                    console.log(groupNotification.group_info)
                     await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_JOINED, [groupNotification.group_info.id])
                 }
                 chatStore.incrementUnread(groupNotification.session_id)
@@ -520,7 +519,13 @@ class ChatService {
             case ImTypes.GroupOperationType.UNRECOGNIZED:
                 break;
         }
+    }
 
+    async getOfflineActiveSessions(data: ApiTypes.message.GetUserActiveConversationsReq) {
+        let res = await getUserActiveConversation(data)
+        if (res.code === 200) {
+
+        }
     }
 }
 
