@@ -102,7 +102,7 @@ onMounted(() => {
             background-color: red;
         }
 
-        &:active {
+        &:hover:active {
             background-color: #cc0000; // red 变暗 10%
         }
     }
@@ -112,7 +112,7 @@ onMounted(() => {
             background-color: rgba(163, 163, 163, 0.305);
         }
 
-        &:active {
+        &:hover:active {
             background-color: rgba(140, 140, 140, 0.305); // 变暗 10%
         }
     }
@@ -122,7 +122,7 @@ onMounted(() => {
             background-color: rgba(163, 163, 163, 0.305);
         }
 
-        &:active {
+        &:hover:active {
             background-color: rgba(140, 140, 140, 0.305); // 变暗 10%
         }
     }
@@ -141,7 +141,7 @@ onMounted(() => {
             background-color: rgba(255, 255, 255, 0.1);
         }
 
-        &:active {
+        &:hover:active {
             background-color: rgba(255, 255, 255, 0.2);
         }
     }

@@ -1,10 +1,8 @@
-import { ImTypes, IChatMessage, ILocalTextMessage, ILocalImageMessage, ILocalVideoMessage, ILocalFileMessage, ILocalGroupNotificationMessage, UpdateAction, ResourceType } from '@/types';
+import { ImTypes, IChatMessage, ILocalTextMessage, ILocalImageMessage, ILocalVideoMessage, ILocalFileMessage, ILocalSystemMessage } from '@/types';
 import { config } from '@/config';
 
 import { useUserStore } from '@/store/user';
 import { ulid } from 'ulid';
-import { useChatStore } from '@/store/chat';
-import { cacheService, groupService } from '@/services';
 
 /** imlocal:// 协议 Scheme，与主进程 fileCacheManager 中定义保持一致 */
 const IMLOCAL_SCHEME = 'imlocal';
@@ -170,12 +168,24 @@ export function convertWSMessageToIChatMessage(wsMsg: ImTypes.WSMessage): IChatM
     return null;
 }
 
-export function convertNotificationToChatMessage(notification: ImTypes.GroupNotification): IChatMessage | null {
-    // const chatMsg: ILocalGroupNotificationMessage = {
-    //     type: notification.op_type,
-        
-    // }
-    return null;
+export function convertNotificationToChatMessage(notification: ImTypes.GroupNotification): IChatMessage {
+    const chatMsg: ILocalSystemMessage = {
+        type: ImTypes.MessageType.GROUP_OP_NOTIFICATION,
+        opType: notification.op_type,
+        groupId: notification.group_id,
+        targetIds: notification.target_ids,
+        reason: notification.reason,
+
+        msgId: notification.msg_id,
+        sessionId: notification.session_id,
+        sendTime: notification.op_time,
+        fromUserId: notification.operator_id,
+        seq: 0,
+        status: ImTypes.MessageStatus.MESSAGE_STATUS_UNSPECIFIED,
+        isRead: false,
+        clientId: '',
+    }
+    return chatMsg;
 }
 
 /**

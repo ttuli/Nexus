@@ -309,6 +309,10 @@ message GroupNotification {
   int64 op_time = 5;              // 操作时间
   string reason = 6;              // 操作原因
   GroupInfo group_info = 7;       // 群组信息
+
+  // 基础字段
+  string msg_id = 8;              // 消息ID
+  string session_id = 9;          // 会话ID
 }
 
 enum GroupOperationType {

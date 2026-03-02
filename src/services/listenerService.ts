@@ -99,7 +99,7 @@ class ListenerService {
                     if (Array.isArray(data)) {
                         data.forEach((id: number) => {
                             if (action === UpdateAction.Delete) {
-                                groupStore.deleteGroup(id)
+                                groupStore.removeJoinedGroup(id)
                             } else {
                                 groupStore.addJoinedGroup(id)
                             }

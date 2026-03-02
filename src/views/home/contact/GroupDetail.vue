@@ -89,7 +89,7 @@ import CusDialog from '@/components/CusDialog/CusDialog';
 import { DialogResult } from '@/components/CusDialog/types';
 import { groupService } from '@/services';
 import CusInputDialog from '@/components/CusInputDialog';
-import { ImTypes } from '@/types';
+import { ApiTypes, ImTypes } from '@/types';
 
 const route = useRoute();
 const router = useRouter();
@@ -248,7 +248,7 @@ const confirmQuit = async () => {
 
         } else if (res === DialogResult.Cancel) {
             // Dissolve
-            // await groupService.dissolveGroup(groupId.value);
+            await groupService.dismissGroup({ group_id: groupInfo.value.id } as ApiTypes.group.DismissGroupReq);
             ElMessage.info('解散群聊功能暂未实现');
         }
         return;

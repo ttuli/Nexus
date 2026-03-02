@@ -24,6 +24,13 @@ export function setupResourceHandlers(): void {
                 // IDs here are groupIds
                 const membersWrapper = await groupService.fetchGroupMembersByIds(ids, forceUpdate);
                 return { success: true, items: membersWrapper, missingIds: [] };
+            } else if (type === ResourceType.GROUP_JOINED) {
+                if (forceUpdate) {
+                    let ids = await groupService.fetchUserGroupIds();
+                    return { success: true, items: ids, missingIds: [] };
+                }
+                const groupIds = cacheManager.getUserGroupIds();
+                return { success: true, items: groupIds, missingIds: [] };
             }
 
             // For other types, just return from cache
@@ -52,7 +59,11 @@ export function setupResourceHandlers(): void {
                     }
                 });
             } else {
-                cacheManager.setItems(type, items);
+                if (type === ResourceType.GROUP_JOINED) {
+                    cacheManager.setItems(type, items);
+                } else {
+                    cacheManager.setItems(type, items);
+                }
             }
             // Broadcast to all renderers with action
             if (type === ResourceType.GROUP_JOINED) {

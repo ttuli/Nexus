@@ -98,20 +98,13 @@ const menuY = ref(0);
 const contextMenuTarget = ref<IChatMessage | null>(null);
 const MessageType = ImTypes.MessageType;
 
-const isSystemMessage = (type: ImTypes.MessageType) => {
-    switch (type) {
-        case MessageType.GROUP_CREATE:
-        case MessageType.GROUP_DISMISS:
-        case MessageType.GROUP_JOIN:
-        case MessageType.GROUP_LEAVE:
-        case MessageType.GROUP_KICK:
-        case MessageType.GROUP_INVITE:
-        case MessageType.GROUP_INFO_UPDATE:
-        case MessageType.MSG_RECALL:
-            return true;
-        default:
-            return false;
-    }
+const isSystemMessage = (type: number) => {
+    const sysTypes = [
+        MessageType.MSG_RECALL,
+        MessageType.GROUP_OP_NOTIFICATION,
+        MessageType.NOTIFICATION
+    ];
+    return sysTypes.includes(type);
 };
 
 const menuOptions: MenuOption[] = [

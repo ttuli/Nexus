@@ -5,13 +5,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
-import { ILocalGroupNotificationMessage } from '@/types/chatMessage';
+import { computed, onMounted } from 'vue';
+import { ILocalSystemMessage } from '@/types/chatMessage';
 import { ImTypes } from '@/types';
 import { useUserStore } from '@/store/user';
+import { userService } from '@/services';
 
 interface Props {
-    message: ILocalGroupNotificationMessage;
+    message: ILocalSystemMessage;
 }
 
 const props = defineProps<Props>();
@@ -26,28 +27,66 @@ const getUserName = (userId: number) => {
     return user?.user_name || `用户${userId}`;
 };
 
-const systemMessageText = computed(() => {
-    const { opType, fromUserId, targetIds = [], reason } = props.message;
-    const operatorName = getUserName(fromUserId);
+onMounted(async () => {
+    const { fromUserId, targetIds = [] } = props.message;
+    const idsToFetch: number[] = [];
     
+    if (fromUserId && fromUserId !== userStore.userID && !userStore.getUser(fromUserId)) {
+        idsToFetch.push(fromUserId);
+    }
+    
+    for (const id of targetIds) {
+        if (id && id !== userStore.userID && !userStore.getUser(id)) {
+            idsToFetch.push(id);
+        }
+    }
+
+    const uniqueIds = Array.from(new Set(idsToFetch));
+    if (uniqueIds.length > 0) {
+        try {
+            await userService.fetchByIds(uniqueIds);
+        } catch (error) {
+            console.error('Failed to fetch user info for system message bubble:', error);
+        }
+    }
+});
+
+const systemMessageText = computed(() => {
+    if (props.message.content) {
+        return props.message.content;
+    }
+
+    const { opType, fromUserId, targetIds = [], reason, sessionId } = props.message;
+    const operatorName = getUserName(fromUserId);
+    const isSelf = fromUserId === userStore.userID;
+    
+    if (props.message.type === ImTypes.MessageType.MSG_RECALL) {
+        // 群聊
+        if (sessionId && sessionId.startsWith('group_')) {
+            return `${operatorName} 撤回了一条消息`;
+        } else {
+            // 私聊
+            return isSelf ? '你撤回了一条消息' : '对方撤回了一条消息';
+        }
+    }
+
     // We try to name the first target if available
     const firstTargetName = targetIds.length > 0 ? getUserName(targetIds[0]) : '';
-    const multipleTargetsSuffix = targetIds.length > 1 ? `等 ${targetIds.length} 人` : '';
-    const targetsDesc = `${firstTargetName}${multipleTargetsSuffix}`;
+    const targetsDesc = targetIds.length > 1 ? `${firstTargetName}等` : firstTargetName;
 
     switch (opType) {
         case ImTypes.GroupOperationType.GROUP_OP_CREATE:
-            return `${operatorName} 创建了群组`;
+            return `${operatorName} 邀请 ${targetsDesc} 加入了群聊`;
         case ImTypes.GroupOperationType.GROUP_OP_DISMISS:
             return `${operatorName} 解散了群组`;
         case ImTypes.GroupOperationType.GROUP_OP_JOIN:
-            return `${operatorName} 加入了群组`;
+            return `${operatorName} 加入了群聊`;
         case ImTypes.GroupOperationType.GROUP_OP_LEAVE:
-            return `${operatorName} 退出了群组`;
+            return `${operatorName} 退出了群聊`;
         case ImTypes.GroupOperationType.GROUP_OP_KICK:
-            return `${targetsDesc} 被 ${operatorName} 移出群组${reason ? ' (' + reason + ')' : ''}`;
+            return `${targetsDesc} 被 ${operatorName} 移出群聊${reason ? ' (' + reason + ')' : ''}`;
         case ImTypes.GroupOperationType.GROUP_OP_INVITE:
-            return `${operatorName} 邀请 ${targetsDesc} 加入群组`;
+            return `${operatorName} 邀请 ${targetsDesc} 加入了群聊`;
         case ImTypes.GroupOperationType.GROUP_OP_UPDATE_INFO:
             return `${operatorName} 修改了群信息`;
         case ImTypes.GroupOperationType.GROUP_OP_MUTE:

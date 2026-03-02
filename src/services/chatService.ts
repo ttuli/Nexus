@@ -3,7 +3,7 @@ import { ApiTypes, ImTypes, PartialExcept, ResourceType, UpdateAction } from '@/
 import { MessageStatus, MessageType } from '@/types/im';
 import { IChatMessage } from '@/types/chatMessage';
 import { useChatStore } from '@/store/chat';
-import { generateGroupSessionId } from '@/utils/chat';
+import { convertNotificationToChatMessage, generateGroupSessionId } from '@/utils/chat';
 import cacheService from './cacheService';
 import groupService from './groupService';
 
@@ -481,13 +481,15 @@ class ChatService {
     async handleGroupNotification(wsMsg: ImTypes.WSMessage) {
         const chatStore = useChatStore()
         const groupNotification = ImTypes.GroupNotification.decode(wsMsg.payload)
-        const session = generateGroupSessionId(groupNotification.group_id)
-        chatStore.addChat(session)
+        chatStore.addChat(groupNotification.session_id)
+        const msg = convertNotificationToChatMessage(groupNotification)
+        chatStore.addMessage(msg)
 
         switch (groupNotification.op_type) {
             case ImTypes.GroupOperationType.GROUP_OP_CREATE:
                 await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP, [groupNotification.group_info])
                 await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_JOINED, [groupNotification.group_id])
+                
                 break;
             case ImTypes.GroupOperationType.GROUP_OP_DISMISS:
                 break;

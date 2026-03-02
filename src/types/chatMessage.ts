@@ -60,6 +60,17 @@ export interface ILocalVideoMessage extends ILocalMessageBase {
 }
 
 /**
+ * 音频消息
+ */
+export interface ILocalAudioMessage extends ILocalMessageBase {
+    type: MessageType.CHAT_AUDIO | MessageType.GROUP_AUDIO;
+    url: string;
+    duration: number;
+    size?: number;
+    format?: string;
+}
+
+/**
  * 文件消息
  */
 export interface ILocalFileMessage extends ILocalMessageBase {
@@ -72,21 +83,21 @@ export interface ILocalFileMessage extends ILocalMessageBase {
 }
 
 /**
- * 群组通知消息 (系统级提示)
+ * 系统消息 (用于群组通知、消息撤回等系统级提示)
  */
-export interface ILocalGroupNotificationMessage extends ILocalMessageBase {
+export interface ILocalSystemMessage extends ILocalMessageBase {
     type:
-    | GroupOperationType.GROUP_OP_CREATE
-    | GroupOperationType.GROUP_OP_DISMISS
-    | GroupOperationType.GROUP_OP_JOIN
-    | GroupOperationType.GROUP_OP_LEAVE
-    | GroupOperationType.GROUP_OP_KICK
-    | GroupOperationType.GROUP_OP_INVITE
-    | GroupOperationType.GROUP_OP_INFO_UPDATE_NAME
-    | GroupOperationType.GROUP_OP_UPDATE_INFO;
-    opType: GroupOperationType;
-    groupId: number;
-    targetIds: number[];
+    | MessageType.MSG_RECALL
+    | MessageType.GROUP_OP_NOTIFICATION
+    | MessageType.NOTIFICATION;
+
+    // 可能包含直接显示的文本 (如撤回消息时的 "xxx撤回了一条消息")
+    content?: string;
+
+    // 群组操作相关字段
+    opType?: GroupOperationType;
+    groupId?: number;
+    targetIds?: number[];
     reason?: string;
 }
 
@@ -97,8 +108,9 @@ export type IChatMessage =
     | ILocalTextMessage
     | ILocalImageMessage
     | ILocalVideoMessage
+    | ILocalAudioMessage
     | ILocalFileMessage
-    | ILocalGroupNotificationMessage;
+    | ILocalSystemMessage;
 // 未来可扩展其他类型
 
 /**
