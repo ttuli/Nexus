@@ -3,9 +3,10 @@ import { ApiTypes, ImTypes, PartialExcept, ResourceType, UpdateAction } from '@/
 import { MessageStatus, MessageType } from '@/types/im';
 import { IChatMessage } from '@/types/chatMessage';
 import { useChatStore } from '@/store/chat';
-import { convertNotificationToChatMessage, generateGroupSessionId } from '@/utils/chat';
+import { convertNotificationToChatMessage } from '@/utils/chat';
 import cacheService from './cacheService';
 import groupService from './groupService';
+import windowService from './windowService';
 
 interface ChatMessageRecord {
     pk: string;
@@ -487,9 +488,13 @@ class ChatService {
 
         switch (groupNotification.op_type) {
             case ImTypes.GroupOperationType.GROUP_OP_CREATE:
-                await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP, [groupNotification.group_info])
-                await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_JOINED, [groupNotification.group_id])
-                
+                if (groupNotification.group_info) {
+                    await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP, [groupNotification.group_info as unknown as ImTypes.GroupInfo])
+                    console.log(groupNotification.group_info)
+                    await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_JOINED, [groupNotification.group_info.id])
+                }
+                chatStore.incrementUnread(groupNotification.session_id)
+                windowService.playNotificationSound()
                 break;
             case ImTypes.GroupOperationType.GROUP_OP_DISMISS:
                 break;

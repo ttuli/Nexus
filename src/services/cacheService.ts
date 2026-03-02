@@ -5,6 +5,7 @@
 
 import { ipcService } from './ipcService'
 import { ResourceType, UpdateAction, IpcChannels } from '@/types'
+import type { ResourceTypeMap } from '@/types/resourceCache'
 
 class CacheService {
     /**
@@ -13,7 +14,7 @@ class CacheService {
      * @param type 资源类型
      * @param items 要更新的资源项
      */
-    async updateItems<T>(action: UpdateAction, type: ResourceType, items: T[]): Promise<boolean> {
+    async updateItems<K extends ResourceType>(action: UpdateAction, type: K, items: ResourceTypeMap[K][]): Promise<boolean> {
         const result = await ipcService.invoke(IpcChannels.RESOURCE_UPDATE, action, type, items)
         return result.success
     }

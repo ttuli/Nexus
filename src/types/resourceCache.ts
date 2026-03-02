@@ -31,6 +31,8 @@ export interface ResourceTypeMap {
     [ResourceType.FRIEND_REQUEST]: ImTypes.FriendRequest;
     [ResourceType.GROUP_APPLY]: ImTypes.GroupApply;
     [ResourceType.GROUP_MEMBER]: GroupMembersWrapper;
+    [ResourceType.GROUP_JOINED]: number;
+    [ResourceType.AUTH]: any;
 }
 
 // 资源 ID 字段名映射

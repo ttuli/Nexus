@@ -163,7 +163,9 @@ class GroupService {
      */
     async joinGroup(data: ApiTypes.group.JoinGroupReq) {
         let res = await joinGroup(data)
-        await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_APPLY, [res.data.data]);
+        if (res.data.data) {
+            await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_APPLY, [res.data.data as unknown as ImTypes.GroupApply]);
+        }
     }
 
     /**
@@ -172,8 +174,8 @@ class GroupService {
     async createGroup(data: ApiTypes.group.CreateGroupReq) {
         let res = await createGroup(data)
         if (res.data.data) {
-            cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP, [res.data.data])
-            cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_MEMBER, [res.data.data.id])
+            cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP, [res.data.data as unknown as ImTypes.GroupInfo])
+            cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_JOINED, [res.data.data.id])
         }
         return res
     }

@@ -201,7 +201,9 @@ const handleApply = async (req: ImTypes.FriendRequest, type: 'accept' | 'reject'
         });
 
         // Cache update is handled by listenerService
-        await cacheService.updateItems(UpdateAction.Update, ResourceType.FRIEND_REQUEST, [res.data.data])
+        if (res.data.data) {
+            await cacheService.updateItems(UpdateAction.Update, ResourceType.FRIEND_REQUEST, [res.data.data as ImTypes.FriendRequest])
+        }
         if (status === ImTypes.ApplyStatus.APPLY_STATUS_AGREED) {
             let source: ImTypes.ApplySource;
             if (req.source === ImTypes.ApplySource.APPLY_SOURCE_SEARCH_ACCOUNT ||

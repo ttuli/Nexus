@@ -59,11 +59,7 @@ export function setupResourceHandlers(): void {
                     }
                 });
             } else {
-                if (type === ResourceType.GROUP_JOINED) {
-                    cacheManager.setItems(type, items);
-                } else {
-                    cacheManager.setItems(type, items);
-                }
+                cacheManager.setItems(type, items);
             }
             // Broadcast to all renderers with action
             if (type === ResourceType.GROUP_JOINED) {

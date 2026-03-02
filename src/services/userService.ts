@@ -72,7 +72,9 @@ class UserService {
     async updateUserInfo(changes: ApiTypes.user.UpdateInfoReq): Promise<boolean> {
         try {
             await updateUserInfo(changes)
-            await cacheService.updateItems(UpdateAction.Update, ResourceType.USER, [{ ...changes }])
+            const userStore = useUserStore()
+            const currentUser = userStore.getUser(userStore.userID)
+            await cacheService.updateItems(UpdateAction.Update, ResourceType.USER, [{ ...currentUser, ...changes } as ImTypes.UserInfo])
             return true
 
         } catch (e) {
