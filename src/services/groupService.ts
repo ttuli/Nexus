@@ -20,8 +20,8 @@ class GroupService {
     /**
      * 批量获取群组信息（缓存到主进程）
      */
-    async fetchByIds(groupIds: number[]): Promise<ImTypes.GroupInfo[]> {
-        const result = await ipcService.invoke<{ items?: ImTypes.GroupInfo[] }>(IpcChannels.RESOURCE_GET, ResourceType.GROUP, groupIds)
+    async fetchByIds(groupIds: number[], forceUpdate: boolean = false): Promise<ImTypes.GroupInfo[]> {
+        const result = await ipcService.invoke<{ items?: ImTypes.GroupInfo[] }>(IpcChannels.RESOURCE_GET, ResourceType.GROUP, groupIds, forceUpdate)
         if (result.success) {
             const groups = (result.data as any)?.items ?? (result as any).items ?? []
             const groupStore = useGroupStore()

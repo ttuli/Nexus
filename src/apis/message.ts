@@ -74,3 +74,13 @@ export async function getUserActiveConversation(params: ApiTypes.message.GetUser
     })
     return res.data
 }
+
+// 撤回消息
+export async function recallMessage(data: ApiTypes.message.RecallMessageReq) {
+    const res = await instance<ApiResponse<null>>({
+        method: 'post',
+        url: config.messageServer + '/message/recall',
+        data
+    })
+    return res.data
+}

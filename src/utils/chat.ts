@@ -536,3 +536,62 @@ export function convertApplySrc2FriendSrc(src: ImTypes.ApplySource): ImTypes.Fri
     }
 }
 
+/**
+ * 格式化系统消息内容
+ */
+export function formatSystemMessage(message: ILocalSystemMessage): string {
+    const userStore = useUserStore();
+
+    // 内部帮助函数：获取用户名
+    const getUserName = (userId: number) => {
+        if (!userId) return '';
+        if (userId === userStore.userID) return '你';
+        const friend = userStore.getFriend(userId);
+        if (friend?.remark) return friend.remark;
+        const user = userStore.getUser(userId);
+        return user?.user_name || `用户${userId}`;
+    };
+
+    if (message.content) {
+        return message.content;
+    }
+
+    const { opType, fromUserId, targetIds = [], reason, sessionId } = message;
+    const operatorName = getUserName(fromUserId);
+    const isSelf = fromUserId === userStore.userID;
+
+    if (message.type === ImTypes.MessageType.MSG_RECALL) {
+        if (sessionId && sessionId.startsWith('group_')) {
+            return `${operatorName} 撤回了一条消息`;
+        } else {
+            return isSelf ? '你撤回了一条消息' : '对方撤回了一条消息';
+        }
+    }
+
+    const firstTargetName = targetIds.length > 0 ? getUserName(targetIds[0]) : '';
+    const targetsDesc = targetIds.length > 1 ? `${firstTargetName}等` : firstTargetName;
+
+    switch (opType) {
+        case ImTypes.GroupOperationType.GROUP_OP_CREATE:
+            return `${operatorName} 邀请 ${targetsDesc} 加入了群聊`;
+        case ImTypes.GroupOperationType.GROUP_OP_DISMISS:
+            return `${operatorName} 解散了群组`;
+        case ImTypes.GroupOperationType.GROUP_OP_JOIN:
+            return `${operatorName} 加入了群聊`;
+        case ImTypes.GroupOperationType.GROUP_OP_LEAVE:
+            return `${operatorName} 退出了群聊`;
+        case ImTypes.GroupOperationType.GROUP_OP_KICK:
+            return `${targetsDesc} 被 ${operatorName} 移出群聊${reason ? ' (' + reason + ')' : ''}`;
+        case ImTypes.GroupOperationType.GROUP_OP_INVITE:
+            return `${operatorName} 邀请 ${targetsDesc} 加入了群聊`;
+        case ImTypes.GroupOperationType.GROUP_OP_UPDATE_INFO:
+            return `${operatorName} 修改了群信息`;
+        case ImTypes.GroupOperationType.GROUP_OP_MUTE:
+            return `${operatorName} 禁言了 ${targetsDesc}${reason ? ' (' + reason + ')' : ''}`;
+        case ImTypes.GroupOperationType.GROUP_OP_UNMUTE:
+            return `${operatorName} 解除了 ${targetsDesc} 的禁言`;
+        default:
+            return '系统消息';
+    }
+}
+

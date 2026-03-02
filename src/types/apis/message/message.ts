@@ -117,6 +117,13 @@ export interface GetUserActiveConversationsResp {
   conversations: Conversation[];
 }
 
+export interface RecallMessageReq {
+  /** @gotags: json:"msg_id" */
+  msg_id: string;
+  /** @gotags: json:"session_id" */
+  session_id: string;
+}
+
 function createBaseMessage(): Message {
   return {
     msg_id: "",
@@ -1298,6 +1305,90 @@ export const GetUserActiveConversationsResp: MessageFns<GetUserActiveConversatio
   ): GetUserActiveConversationsResp {
     const message = createBaseGetUserActiveConversationsResp();
     message.conversations = object.conversations?.map((e) => Conversation.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseRecallMessageReq(): RecallMessageReq {
+  return { msg_id: "", session_id: "" };
+}
+
+export const RecallMessageReq: MessageFns<RecallMessageReq> = {
+  encode(message: RecallMessageReq, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.msg_id !== "") {
+      writer.uint32(10).string(message.msg_id);
+    }
+    if (message.session_id !== "") {
+      writer.uint32(18).string(message.session_id);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RecallMessageReq {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRecallMessageReq();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.msg_id = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.session_id = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RecallMessageReq {
+    return {
+      msg_id: isSet(object.msgId)
+        ? globalThis.String(object.msgId)
+        : isSet(object.msg_id)
+        ? globalThis.String(object.msg_id)
+        : "",
+      session_id: isSet(object.sessionId)
+        ? globalThis.String(object.sessionId)
+        : isSet(object.session_id)
+        ? globalThis.String(object.session_id)
+        : "",
+    };
+  },
+
+  toJSON(message: RecallMessageReq): unknown {
+    const obj: any = {};
+    if (message.msg_id !== "") {
+      obj.msgId = message.msg_id;
+    }
+    if (message.session_id !== "") {
+      obj.sessionId = message.session_id;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RecallMessageReq>, I>>(base?: I): RecallMessageReq {
+    return RecallMessageReq.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RecallMessageReq>, I>>(object: I): RecallMessageReq {
+    const message = createBaseRecallMessageReq();
+    message.msg_id = object.msg_id ?? "";
+    message.session_id = object.session_id ?? "";
     return message;
   },
 };

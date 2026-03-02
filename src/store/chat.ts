@@ -1,10 +1,10 @@
 import { defineStore } from 'pinia';
 import { useUserStore } from './user';
 import { ImTypes } from '@/types';
-import { IChatMessage } from '@/types/chatMessage';
+import { IChatMessage, ILocalSystemMessage } from '@/types/chatMessage';
 import { chatService } from '@/services';
 import { config } from '@/config';
-import { extractTargetIdFromSessionId } from '@/utils/chat';
+import { extractTargetIdFromSessionId, formatSystemMessage } from '@/utils/chat';
 
 export const useChatStore = defineStore('chat', {
     state: () => ({
@@ -320,14 +320,21 @@ export const useChatStore = defineStore('chat', {
                 lastContent = '[视频]';
             } else if (message.type === ImTypes.MessageType.CHAT_AUDIO || message.type === ImTypes.MessageType.GROUP_AUDIO) {
                 lastContent = '[音频]';
+            } else if (
+                message.type === ImTypes.MessageType.GROUP_OP_NOTIFICATION ||
+                message.type === ImTypes.MessageType.MSG_RECALL
+            ) {
+                lastContent = formatSystemMessage(message as ILocalSystemMessage);
             } else {
                 lastContent = '[消息]';
             }
 
             this.updateLastMessage(message.sessionId, lastContent);
-            void chatService.saveMessage(message).catch((e) => {
-                console.error('[ChatStore] Failed to persist message', e);
-            });
+            if (message.type !== ImTypes.MessageType.GROUP_OP_NOTIFICATION) {
+                void chatService.saveMessage(message).catch((e) => {
+                    console.error('[ChatStore] Failed to persist message', e);
+                });
+            }
         },
     },
     getters: {

@@ -68,7 +68,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useUserStore } from '@/store/user';
 import { generateSessionId } from '@/utils/chat';
@@ -77,6 +77,7 @@ import MaleIcon from '@/assets/gender/male.svg';
 import FemaleIcon from '@/assets/gender/female.svg';
 import { ImTypes } from '@/types';
 import { ElMessage } from 'element-plus';
+import { userService } from '@/services';
 
 const route = useRoute();
 const router = useRouter();
@@ -86,7 +87,6 @@ const chatStore = useChatStore();
 const userId = computed(() => Number(route.query.uid));
 const userInfo = computed(() => userStore.getUser(userId.value));
 const friendInfo = computed(() => userStore.getFriend(userId.value));
-
 const displayName = computed(() => {
     return friendInfo.value?.remark || userInfo.value?.user_name || '用户';
 });
@@ -103,7 +103,6 @@ const handleCopy = async (text: string) => {
 };
 
 
-
 // ... (inside script setup)
 
 const sendMsg = () => {
@@ -111,6 +110,10 @@ const sendMsg = () => {
     chatStore.setCurrentChat(sessionId);
     router.push('/home/chat');
 };
+
+onMounted(() => {
+    userService.fetchByIds([userId.value],true);
+})
 </script>
 
 <style scoped lang="scss">

@@ -1,7 +1,7 @@
 <template>
   <div class="avatar-upload" :class="{ 'is-preview-open': previewVisible }" @click.capture.stop="onContainerClick"
     :title="title">
-    <Avatar :uid="uid" :width="'100%'" :height="'100%'" :radius="'50%'" />
+    <Avatar :uid="uid" :type="type" :width="'100%'" :height="'100%'" :radius="'50%'" />
     <div class="avatar-overlay">
       <svg viewBox="0 0 24 24" class="camera-icon">
         <path
@@ -63,6 +63,7 @@ interface Props {
   uid: number
   title?: string
   maxSize?: number // MB
+  type?: 'user' | 'group'
 }
 
 interface Emits {

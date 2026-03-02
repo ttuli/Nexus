@@ -8,7 +8,7 @@
                 <div class="info-card">
                     <div class="header-row">
                         <template v-if="groupInfo.owner_id === userStore.userID">
-                            <AvatarUpload :uid="groupInfo.id" :type="'group'" class="group-avatar"
+                            <AvatarUpload :uid="groupInfo.id" type="group" class="group-avatar"
                                 style="width: 80px; height: 80px;" @success="handleAvatarSuccess" />
                         </template>
                         <template v-else>
@@ -124,7 +124,7 @@ const joinTypeLabel = computed(() => {
 onMounted(async () => {
     if (!groupId.value) return;
 
-    await groupService.fetchByIds([groupId.value]);
+    await groupService.fetchByIds([groupId.value], true);
     await groupService.fetchGroupMembers(groupId.value, true);
 });
 
