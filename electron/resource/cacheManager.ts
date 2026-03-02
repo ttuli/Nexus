@@ -83,14 +83,12 @@ class CacheManager {
     public setItem<T extends Record<string, any>>(type: ResourceType, item: T): void {
         // GROUP_JOINED: 仅维护用户已加入群组 ID 列表，群组详情由 GROUP 类型独立管理
         if (type === ResourceType.GROUP_JOINED) {
-            if (Array.isArray(item)) {
-                item.forEach(i => {
-                    if (!this.userGroupIds.includes(i)) {
-                        this.userGroupIds.push(i);
-                    }
-                });
+            if (typeof item === 'number') {
+                if (!this.userGroupIds.includes(item)) {
+                    this.userGroupIds.push(item);
+                }
             } else {
-                console.error('GROUP_JOINED must be an array');
+                console.error('GROUP_JOINED must be a number');
             }
             return;
         }

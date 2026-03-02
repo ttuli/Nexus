@@ -170,7 +170,12 @@ class GroupService {
      * 创建群组
      */
     async createGroup(data: ApiTypes.group.CreateGroupReq) {
-        return createGroup(data)
+        let res = await createGroup(data)
+        if (res.data.data) {
+            cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP, [res.data.data])
+            cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_MEMBER, [res.data.data.id])
+        }
+        return res
     }
 
     /**
