@@ -18,12 +18,9 @@
                         <transition-group name="msg-fade" appear>
                             <template v-for="msg in messages" :key="msg.msgId">
                                 <!-- 系统 / 群通知消息气泡 -->
-                                <SystemMessageBubble v-if="isSystemMessage(msg.type)" 
-                                    :message="(msg as any)" />
+                                <SystemMessageBubble v-if="isSystemMessage(msg.type)" :message="(msg as any)" />
                                 <!-- 普通用户聊天气泡 -->
-                                <MessageBubble v-else 
-                                    :message="msg"
-                                    :is-self="isSelf(msg.fromUserId)" 
+                                <MessageBubble v-else :message="msg" :is-self="isSelf(msg.fromUserId)"
                                     @contextmenu="handleMessageContextMenu"
                                     :class="{ 'is-self': isSelf(msg.fromUserId) }" />
                             </template>
@@ -64,7 +61,7 @@ import SystemMessageBubble from '@/views/home/chat/components/Bubble/SystemMessa
 import { IChatMessage, ILocalTextMessage } from '@/types/chatMessage';
 import { ImTypes } from '@/types';
 import ChatInput from './components/ChatInput.vue';
-import ChatSidebar from './components/ChatSidebar.vue';
+import ChatSidebar from './components/sidebar/index.vue';
 import type { MenuOption } from '@/components/ContextMenu.vue';
 import { ElMessage } from 'element-plus';
 
