@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package types.auth;
+package types;
 
 option go_package = "./;types";
 
@@ -28,6 +28,8 @@ message LoginResp {
 message LogoutReq {
   // @gotags: json:"remove_rt"
   bool remove_rt = 1;
+  // @gotags: json:"platform"
+  string platform = 2;
 }
 
 // RegisterReq

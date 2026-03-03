@@ -7,7 +7,7 @@
 /* eslint-disable */
 import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
 
-export const protobufPackage = "types.auth";
+export const protobufPackage = "types";
 
 /** LoginReq */
 export interface LoginReq {
@@ -33,6 +33,8 @@ export interface LoginResp {
 export interface LogoutReq {
   /** @gotags: json:"remove_rt" */
   remove_rt: boolean;
+  /** @gotags: json:"platform" */
+  platform: string;
 }
 
 /** RegisterReq */
@@ -274,13 +276,16 @@ export const LoginResp: MessageFns<LoginResp> = {
 };
 
 function createBaseLogoutReq(): LogoutReq {
-  return { remove_rt: false };
+  return { remove_rt: false, platform: "" };
 }
 
 export const LogoutReq: MessageFns<LogoutReq> = {
   encode(message: LogoutReq, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.remove_rt !== false) {
       writer.uint32(8).bool(message.remove_rt);
+    }
+    if (message.platform !== "") {
+      writer.uint32(18).string(message.platform);
     }
     return writer;
   },
@@ -300,6 +305,14 @@ export const LogoutReq: MessageFns<LogoutReq> = {
           message.remove_rt = reader.bool();
           continue;
         }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.platform = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -316,6 +329,7 @@ export const LogoutReq: MessageFns<LogoutReq> = {
         : isSet(object.remove_rt)
         ? globalThis.Boolean(object.remove_rt)
         : false,
+      platform: isSet(object.platform) ? globalThis.String(object.platform) : "",
     };
   },
 
@@ -323,6 +337,9 @@ export const LogoutReq: MessageFns<LogoutReq> = {
     const obj: any = {};
     if (message.remove_rt !== false) {
       obj.removeRt = message.remove_rt;
+    }
+    if (message.platform !== "") {
+      obj.platform = message.platform;
     }
     return obj;
   },
@@ -333,6 +350,7 @@ export const LogoutReq: MessageFns<LogoutReq> = {
   fromPartial<I extends Exact<DeepPartial<LogoutReq>, I>>(object: I): LogoutReq {
     const message = createBaseLogoutReq();
     message.remove_rt = object.remove_rt ?? false;
+    message.platform = object.platform ?? "";
     return message;
   },
 };
