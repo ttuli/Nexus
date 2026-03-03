@@ -82,6 +82,7 @@ body,
     height: 100%;
     left: 0;
     top: 0;
+    border-radius: 8px;
 
     &>* {
         position: absolute;
