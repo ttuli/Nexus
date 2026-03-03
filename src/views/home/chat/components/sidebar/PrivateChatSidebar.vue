@@ -1,27 +1,20 @@
 <template>
     <div class="private-sidebar">
-        <div class="sidebar-header">
-            <span>好友信息</span>
-            <div class="close-btn" @click="$emit('close')">
-                <i class="icon-close">×</i>
-            </div>
-        </div>
-        <div class="sidebar-content scroll-bar-thin" v-if="friendInfo || userInfo">
-            <div class="info-section">
-                <div class="avatar-wrapper">
-                    <img :src="avatarParams" alt="Avatar" class="avatar-image" v-if="avatarParams" />
-                    <div v-else class="avatar-placeholder">
-                        <span class="text-xs text-gray-400 bg-gray-100 dark:bg-gray-700 px-1 rounded">User</span>
-                    </div>
-                </div>
-                <div class="name">{{ friendInfo?.remark || userInfo?.user_name || `用户${targetId}` }}</div>
-                <div class="id">ID: {{ targetId }}</div>
-            </div>
 
-            <div class="detail-group">
-                <div class="detail-item">
+        <div class="sidebar-content scroll-bar-thin" v-if="friendInfo || userInfo">
+            <div class="detail-group mt-15">
+                <div class="detail-item remark-item">
                     <span class="label">备注</span>
-                    <span class="value">{{ friendInfo?.remark || '暂无备注' }}</span>
+                    <div class="value-wrapper" v-if="!isEditingRemark">
+                        <span class="value">{{ friendInfo?.remark || '暂无备注' }}</span>
+                        <el-icon class="edit-icon" @click="startEditRemark" v-if="friendInfo">
+                            <Edit />
+                        </el-icon>
+                    </div>
+                    <div class="edit-wrapper" v-else>
+                        <el-input ref="remarkInputRef" v-model.trim="editRemarkValue" size="small" :maxlength="20"
+                            placeholder="请输入备注" @blur="handleSaveRemark" @keyup.enter="handleSaveRemark" />
+                    </div>
                 </div>
             </div>
 
@@ -45,15 +38,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch, nextTick } from 'vue';
 import { useUserStore } from '@/store/user';
 import { useChatStore } from '@/store/chat';
 import { ImTypes } from '@/types';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { updateConversation } from '@/apis/message';
-import { deleteFriend } from '@/apis/user';
-import { config } from '@/config';
+import { deleteFriend, updateFriendInfo } from '@/apis/user';
 import { extractTargetIdFromSessionId } from '@/utils/chat';
+import { Edit } from '@element-plus/icons-vue';
 
 const props = defineProps<{
     chat: ImTypes.Conversation;
@@ -69,11 +62,50 @@ const targetIdVal = computed(() => targetId.value || 0);
 const friendInfo = computed(() => userStore.getFriend(targetIdVal.value));
 const userInfo = computed(() => userStore.getUser(targetIdVal.value));
 
-const avatarParams = computed(() => {
-    let url = userInfo.value?.avatar;
-    if (!url) return '';
-    return url.startsWith('http') ? url : config.fileServer + url;
-});
+// Remark Editing Logic
+const isEditingRemark = ref(false);
+const editRemarkValue = ref('');
+const remarkInputRef = ref();
+
+const startEditRemark = () => {
+    editRemarkValue.value = friendInfo.value?.remark || '';
+    isEditingRemark.value = true;
+    nextTick(() => {
+        remarkInputRef.value?.focus();
+    });
+};
+
+const handleSaveRemark = async () => {
+    if (!isEditingRemark.value) return; // Prevent double trigger
+    isEditingRemark.value = false;
+
+    // Only save if changed
+    if (editRemarkValue.value === (friendInfo.value?.remark || '')) return;
+
+    if (!targetIdVal.value || !friendInfo.value) {
+        return;
+    }
+
+    try {
+        const res = await updateFriendInfo({
+            friend_id: targetIdVal.value,
+            remark: editRemarkValue.value,
+            blocked: friendInfo.value.blocked || false,
+            starred: friendInfo.value.starred || false
+        });
+
+        if (res.code === 200) {
+            ElMessage.success('备注修改成功');
+            // Update local store preserving reactivity and keeping other fields
+            const updatedFriend: ImTypes.Friend = { ...friendInfo.value, remark: editRemarkValue.value };
+            userStore.setFriend(updatedFriend);
+        } else {
+            ElMessage.error(res.message || '修改失败');
+        }
+    } catch (error) {
+        ElMessage.error('修改备注请求失败');
+    }
+};
 
 
 // Sync local toggle state with store
@@ -195,86 +227,13 @@ const confirmDeleteFriend = () => {
     display: flex;
     flex-direction: column;
 
-    .sidebar-header {
-        height: 50px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0 20px;
-        border-bottom: 1px solid $color-border;
-        font-weight: 600;
-        font-size: 16px;
-        color: $color-text-primary;
 
-        .close-btn {
-            cursor: pointer;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 4px;
-            color: $color-text-secondary;
-            transition: all 0.2s;
-
-            &:hover {
-                background-color: $bg-hover;
-                color: $color-text-primary;
-            }
-
-            .icon-close {
-                font-style: normal;
-                font-size: 18px;
-                line-height: 1;
-            }
-        }
-    }
 
     .sidebar-content {
         flex: 1;
         overflow-y: auto;
         padding: 20px;
-
-        .info-section {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-bottom: 30px;
-
-            .avatar-wrapper {
-                margin-bottom: 15px;
-
-                .avatar-image {
-                    width: 80px;
-                    height: 80px;
-                    border-radius: 12px;
-                    object-fit: cover;
-                }
-
-                .avatar-placeholder {
-                    width: 80px;
-                    height: 80px;
-                    background: #f0f2f5;
-                    border-radius: 12px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-            }
-
-            .name {
-                font-size: 18px;
-                font-weight: 600;
-                color: $color-text-primary;
-                margin-bottom: 5px;
-                text-align: center;
-            }
-
-            .id {
-                font-size: 12px;
-                color: $color-text-secondary;
-            }
-        }
+        padding-top: 2px;
 
         .mt-15 {
             margin-top: 15px;
@@ -299,6 +258,39 @@ const confirmDeleteFriend = () => {
 
                 &.action-toggle {
                     padding: 8px 10px;
+                }
+
+                &.remark-item {
+                    .value-wrapper {
+                        display: flex;
+                        align-items: center;
+                        justify-content: flex-end;
+                        flex: 1;
+                        gap: 8px;
+                        overflow: hidden;
+
+                        .edit-icon {
+                            cursor: pointer;
+                            color: $color-text-secondary;
+                            font-size: 14px;
+                            transition: color 0.2s;
+
+                            &:hover {
+                                color: var(--el-color-primary, $color-text-primary);
+                            }
+                        }
+                    }
+
+                    .edit-wrapper {
+                        flex: 1;
+                        display: flex;
+                        justify-content: flex-end;
+
+                        // Avoid input taking the full width pushing the label away completely
+                        .el-input {
+                            width: 150px;
+                        }
+                    }
                 }
 
                 .label {
