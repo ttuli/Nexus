@@ -1,12 +1,14 @@
 <template>
-    <div v-if="visible" class="context-menu" :style="{ top: y + 'px', left: x + 'px' }" @click.stop>
-        <div v-for="(option, index) in options" :key="index" class="menu-item" @click="handleSelect(option)">
-            <img v-if="option.icon" :src="option.icon" class="menu-icon" @error="handleImageError" />
-            <span class="menu-label">{{ option.label }}</span>
+    <Teleport to="body">
+        <!-- Overlay to close menu on outside click -->
+        <div v-if="visible" class="menu-overlay" @click="close"></div>
+        <div v-if="visible" class="context-menu" :style="{ top: y + 'px', left: x + 'px' }" @click.stop @mouseover.stop @mousemove.stop>
+            <div v-for="(option, index) in options" :key="index" class="menu-item" @click.capture.stop="handleSelect(option)">
+                <img v-if="option.icon" :src="option.icon" class="menu-icon" @error="handleImageError" />
+                <span class="menu-label">{{ option.label }}</span>
+            </div>
         </div>
-    </div>
-    <!-- Overlay to close menu on outside click -->
-    <div v-if="visible" class="menu-overlay" @click="close"></div>
+    </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -67,12 +69,13 @@ const handleImageError = (e: Event) => {
     position: fixed;
     z-index: 9999;
     background: white;
-    border-radius: 4px;
+    border-radius: 6px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
     padding: 4px 0;
     min-width: 100px;
     border: 1px solid $color-border;
     transform: v-bind("props.align === 'right' ? 'translateX(-100%)' : 'none'");
+    // pointer-events: none;
 }
 
 .menu-item {
@@ -87,6 +90,7 @@ const handleImageError = (e: Event) => {
 
     &:hover {
         background-color: $bg-hover;
+        // background-color: black;
     }
 
     .menu-icon {

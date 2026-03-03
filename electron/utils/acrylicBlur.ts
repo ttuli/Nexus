@@ -1,5 +1,6 @@
 import { BrowserWindow } from 'electron';
 import koffi from 'koffi';
+import os from 'os';
 
 // ==================== koffi 类型定义 ====================
 
@@ -44,6 +45,23 @@ const DwmExtendFrameIntoClientArea = dwmapi.func(
     'long __stdcall DwmExtendFrameIntoClientArea(intptr hwnd, MARGINS *pMarInset)'
 );
 
+// ==================== 操作系统版本检测 ====================
+
+/**
+ * 检测当前 Windows 版本信息
+ * - Win11 22H2+ (Build >= 22621): 支持 DWMWA_SYSTEMBACKDROP_TYPE（高性能）
+ * - Win11 (Build >= 22000): 支持 Mica，但不支持 DWMWA_SYSTEMBACKDROP_TYPE
+ * - Win10 1709+ (Build >= 16299): 仅支持 SetWindowCompositionAttribute
+ */
+function getWindowsBuild(): number {
+    const release = os.release(); // e.g. "10.0.22621"
+    const parts = release.split('.');
+    return parseInt(parts[2] || '0', 10);
+}
+
+const winBuild = getWindowsBuild();
+const isWin11_22H2 = winBuild >= 22621;  // 支持 DWMWA_SYSTEMBACKDROP_TYPE
+
 // ==================== 工具函数 ====================
 
 /**
@@ -58,11 +76,16 @@ function getHwnd(window: BrowserWindow): number | bigint {
 }
 
 /**
- * 使用 Win32 SetWindowCompositionAttribute API 启用亚克力模糊效果
- * 支持 Windows 10 RS3 (1709, Build 17763) 及以上版本
+ * 启用窗口背景模糊效果，自动选择最高性能的实现方式
+ *
+ * 策略：
+ * 1. Win11 22H2+ → DwmSetWindowAttribute(DWMWA_SYSTEMBACKDROP_TYPE = Acrylic)
+ *    由 DWM compositor 管理，不阻塞窗口线程，拖动完全流畅
+ * 2. 旧版 Windows → SetWindowCompositionAttribute(ACCENT_ENABLE_BLURBEHIND)
+ *    使用轻量级 blur 代替重量级 acrylic（去掉了昂贵的噪声纹理层）
  *
  * @param window - Electron BrowserWindow 实例
- * @param tintColor - 模糊色调，ABGR 格式的 uint32
+ * @param tintColor - 模糊色调，ABGR 格式的 uint32（仅 fallback 路径使用）
  */
 export function enableAcrylicBlur(
     window: BrowserWindow,
@@ -76,11 +99,29 @@ export function enableAcrylicBlur(
     try {
         const hwnd = getHwnd(window);
 
-        // 设置 ACCENT_ENABLE_ACRYLICBLURBEHIND
+        if (isWin11_22H2) {
+            // ─── 高性能路径: DWM System Backdrop ───
+            // DWMWA_SYSTEMBACKDROP_TYPE = 38
+            // DWM_SYSTEMBACKDROP_TYPE: 0=Auto, 1=None, 2=Mica, 3=Acrylic, 4=MicaAlt
+            const backdropType = Buffer.alloc(4);
+            backdropType.writeInt32LE(3); // Acrylic
+            const hr = DwmSetWindowAttribute(hwnd, 38, backdropType, 4);
+            console.log(`[AcrylicBlur] DWM SystemBackdrop (Acrylic) HRESULT: 0x${(hr >>> 0).toString(16)}`);
+            return hr === 0;
+        }
+
+        // ─── Fallback 路径: 使用轻量 BlurBehind 代替 AcrylicBlurBehind ───
+        // AccentState 3 = ACCENT_ENABLE_BLURBEHIND (轻量，无噪声纹理)
+        // AccentState 4 = ACCENT_ENABLE_ACRYLICBLURBEHIND (重量，每帧计算噪声)
+        // BlurBehind 没有噪声纹理层，视觉上更透明，需要提高 alpha 补偿
+        const alpha = (tintColor >>> 24) & 0xFF;
+        const boostedAlpha = Math.min(alpha + 0x77, 0xFF); // 提升约 26% 不透明度
+        const boostedTint = ((boostedAlpha << 24) | (tintColor & 0x00FFFFFF)) >>> 0;
+
         const policy = {
-            AccentState: 4,     // ACCENT_ENABLE_ACRYLICBLURBEHIND
+            AccentState: 3,     // ACCENT_ENABLE_BLURBEHIND（比 4 轻量很多）
             AccentFlags: 2,     // ACCENT_FLAG_DRAW_ALL
-            GradientColor: tintColor,
+            GradientColor: boostedTint,
             AnimationId: 0,
         };
 
@@ -91,35 +132,32 @@ export function enableAcrylicBlur(
         };
 
         const result = SetWindowCompositionAttribute(hwnd, data);
-        console.log(`[AcrylicBlur] SetWindowCompositionAttribute result: ${result}`);
+        console.log(`[AcrylicBlur] SetWindowCompositionAttribute (BlurBehind) result: ${result}`);
         return result;
     } catch (error) {
-        console.error('[AcrylicBlur] Failed to enable acrylic blur:', error);
+        console.error('[AcrylicBlur] Failed to enable backdrop blur:', error);
         return false;
     }
 }
 
 /**
- * 恢复 Windows 11 的圆角和阴影效果
+ * 恢复窗口装饰效果（阴影 + 圆角）
  * transparent: true 会移除 DWM 窗口边框，此函数通过 DWM API 手动恢复
- * 在 Windows 10 上调用会静默失败（无副作用）
+ *
+ * - Win10 & Win11: 通过 DwmExtendFrameIntoClientArea 恢复窗口阴影
+ * - Win11 (Build >= 22000): 额外恢复圆角效果
  *
  * @param window - Electron BrowserWindow 实例
  */
-export function restoreWin11RoundedCorners(window: BrowserWindow): void {
+export function restoreWindowDecorations(window: BrowserWindow): void {
     if (process.platform !== 'win32') return;
 
     try {
         const hwnd = getHwnd(window);
 
-        // DWMWA_WINDOW_CORNER_PREFERENCE = 33
-        // DWMWCP_ROUND = 2 (圆角)
-        const cornerPref = Buffer.alloc(4);
-        cornerPref.writeInt32LE(2);
-        const cornerResult = DwmSetWindowAttribute(hwnd, 33, cornerPref, 4);
-        console.log(`[AcrylicBlur] DwmSetWindowAttribute (corner) HRESULT: 0x${(cornerResult >>> 0).toString(16)}`);
-
-        // 扩展 DWM 帧到客户端区域以恢复窗口阴影
+        // ─── 阴影恢复 (Win10 + Win11) ───
+        // 扩展 DWM 帧到客户端区域，margins 全部设为 -1 表示整个窗口区域
+        // 这会让 DWM 为窗口绘制阴影，即使 transparent: true
         const margins = {
             cxLeftWidth: -1,
             cxRightWidth: -1,
@@ -127,8 +165,18 @@ export function restoreWin11RoundedCorners(window: BrowserWindow): void {
             cyBottomHeight: -1,
         };
         const marginResult = DwmExtendFrameIntoClientArea(hwnd, margins);
-        console.log(`[AcrylicBlur] DwmExtendFrameIntoClientArea HRESULT: 0x${(marginResult >>> 0).toString(16)}`);
+        console.log(`[AcrylicBlur] DwmExtendFrameIntoClientArea (shadow) HRESULT: 0x${(marginResult >>> 0).toString(16)}`);
+
+        // ─── 圆角恢复 (仅 Win11, Build >= 22000) ───
+        if (winBuild >= 22000) {
+            // DWMWA_WINDOW_CORNER_PREFERENCE = 33
+            // DWMWCP_ROUND = 2 (圆角)
+            const cornerPref = Buffer.alloc(4);
+            cornerPref.writeInt32LE(2);
+            const cornerResult = DwmSetWindowAttribute(hwnd, 33, cornerPref, 4);
+            console.log(`[AcrylicBlur] DwmSetWindowAttribute (corner) HRESULT: 0x${(cornerResult >>> 0).toString(16)}`);
+        }
     } catch (error) {
-        console.error('[AcrylicBlur] Failed to restore Win11 rounded corners:', error);
+        console.error('[AcrylicBlur] Failed to restore window decorations:', error);
     }
 }

@@ -65,6 +65,10 @@ const handleMouseDown = () => {
 const handleMouseMove = (e: MouseEvent) => {
     if (!isResizing.value) return;
 
+    // 鼠标在 context-menu 上时不处理 resize，避免冲突
+    const target = e.target as HTMLElement;
+    if (target.closest('.context-menu')) return;
+
     // Limits
     const minWidth = 200;
     const maxWidth = 300;

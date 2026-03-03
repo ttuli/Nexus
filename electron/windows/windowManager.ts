@@ -8,7 +8,7 @@ import { resourceManager } from '../resource';
 import { TrayManager } from './trayManager';
 import { IpcChannels } from '../../src/types';
 import { config } from '../config';
-import { enableAcrylicBlur, restoreWin11RoundedCorners } from '../utils/acrylicBlur';
+import { enableAcrylicBlur, restoreWindowDecorations } from '../utils/acrylicBlur';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -188,7 +188,7 @@ class WindowManager {
         // tintColor: ABGR 格式, 0x66ECECEC = rgba(236,236,236,0.4)
         enableAcrylicBlur(window, 0x66ECECEC);
         // 恢复 Win11 圆角和阴影 (transparent: true 会移除它们)
-        restoreWin11RoundedCorners(window);
+        restoreWindowDecorations(window);
       }
 
       // 设置事件监听器

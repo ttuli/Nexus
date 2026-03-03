@@ -27,3 +27,4 @@ dist-electron
 .env
 package-lock.json
 doc
+release
