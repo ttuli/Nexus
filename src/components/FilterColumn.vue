@@ -100,6 +100,7 @@ const handleMenuSelect = (option: MenuOption) => {
                 height: 16px;
                 opacity: 0.5;
                 margin-right: $spacing-xs;
+                pointer-events: none;
             }
 
             .search-input {
@@ -137,6 +138,7 @@ const handleMenuSelect = (option: MenuOption) => {
                 height: 18px;
                 opacity: 0.6;
                 transition: transform $transition-base;
+                pointer-events: none;
             }
 
             &:hover {

@@ -138,7 +138,7 @@ onUnmounted(async () => {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: #ffffff;
+    background: transparent;
     user-select: none; // Prevent selection during drag
 
     .left-pane {

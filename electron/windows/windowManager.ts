@@ -136,6 +136,8 @@ class WindowManager {
         modal = false,
         frame = true,
         parent,
+        transparent = false,
+        backgroundColor = '#00000000',
         webPreferences = {},
       } = config;
 
@@ -162,6 +164,9 @@ class WindowManager {
         resizable,
         maximizable,
         frame,
+        backgroundColor,
+        transparent,
+        opacity: 1,
         icon: path.join(process.env.VITE_PUBLIC || __dirname, 'icon.png'),
         modal,
         title: app.getName(),

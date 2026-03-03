@@ -64,6 +64,16 @@ onUnmounted(() => {
     </div>
 </template>
 
+<style lang="scss">
+html,
+body,
+#app {
+    background: transparent !important;
+    margin: 0;
+    padding: 0;
+}
+</style>
+
 <style lang="scss" scoped>
 .container {
     -webkit-app-region: drag;

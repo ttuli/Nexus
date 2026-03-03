@@ -83,13 +83,18 @@ watch(contactBadge, (newVal, oldVal) => {
 .sidebar {
     width: 60px;
     flex-shrink: 0;
-    background-color: #f5f5f5; // Replace with variable if available
+    // Glassmorphism effect
+    // background-color: black;
+    background-color: rgba(236, 236, 236, 0.6);
+    // background: transparent;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     align-items: center;
     padding: 20px 0;
-    border-right: 1px solid #e0e0e0;
+    border-right: 1px solid rgba(255, 255, 255, 0.3);
     z-index: 2;
 
     .top-section,

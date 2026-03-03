@@ -78,6 +78,9 @@ let configs: Map<string, WindowConfig> = new Map([
             height: 830,
             minWidth: 750,
             minHeight: 430,
+            transparent: true,
+            // opacity: 0.6,
+            backgroundColor: '#00000000',
         }
     ],
     [

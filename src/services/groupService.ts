@@ -19,6 +19,7 @@ import { useChatStore } from '@/store/chat'
 import { generateGroupSessionId } from '@/utils/chat'
 import { MessageType, MessageStatus } from '@/types/im'
 import { IChatMessage } from '@/types/chatMessage'
+import { useRouter } from 'vue-router'
 
 class GroupService {
     /**
@@ -200,6 +201,13 @@ class GroupService {
                 content: `你邀请了${data.member_ids.length}位用户加入了群聊`,
             }
             chatStore.addMessage(message)
+
+            // Navigate to the chat page if currently under /home
+            const router = useRouter()
+            if (router.currentRoute.value.path.startsWith('/home')) {
+                router.push('/home/chat')
+                chatStore.setCurrentChat(sessionId)
+            }
         }
         return res
     }
