@@ -26,6 +26,29 @@ class FileService {
             const md5 = await computeFileMd5(file)
             const key = response.data.dir + md5
 
+            // 1. 发起请求前，检测是否有这个文件
+            try {
+                const accessUrlResp = await getAcessUrl({
+                    file_key: key,
+                    file_type: fileType,
+                    oss_process: '',
+                    method: ApiTypes.file.GetMethod.MethodHead
+                });
+
+                if (accessUrlResp.data?.access_url) {
+                    const checkRes = await fetch(accessUrlResp.data.access_url, { method: 'HEAD' });
+                    // 如果返回 200，说明文件已存在
+                    if (checkRes.status === 200) {
+                        if (onProgress) {
+                            onProgress(100);
+                        }
+                        return response.data.host + '/' + key;
+                    }
+                }
+            } catch (error) {
+                console.warn('[FileService] Failed to check if file exists, proceeding with upload:', error);
+            }
+
             let formData = new FormData();
             formData.append("success_action_status", "200");
             formData.append("policy", response.data.policy);
@@ -117,7 +140,8 @@ class FileService {
         const resp = await getAcessUrl({
             file_key: fileKey,
             file_type: ApiTypes.file.FileType.FileTypeChatImage,
-            oss_process: ossProcess
+            oss_process: ossProcess,
+            method: ApiTypes.file.GetMethod.MethodGet
         });
 
         return resp.data?.access_url || '';
@@ -132,7 +156,8 @@ class FileService {
         const resp = await getAcessUrl({
             file_key: fileKey,
             file_type: ApiTypes.file.FileType.FileTypeChatImage,
-            oss_process: ''
+            oss_process: '',
+            method: ApiTypes.file.GetMethod.MethodGet
         });
 
         const accessUrl = resp.data?.access_url || '';
@@ -153,13 +178,14 @@ class FileService {
     /**
      * 获取带签名的文件下载 URL
      */
-    async getFileUrl(url: string): Promise<string> {
+    async getFileUrl(url: string, oss_process?: string): Promise<string> {
         const fileKey = this.extractFileKey(url);
 
         const resp = await getAcessUrl({
             file_key: fileKey,
             file_type: ApiTypes.file.FileType.FileTypeChatFile,
-            oss_process: ''
+            oss_process: oss_process || '',
+            method: ApiTypes.file.GetMethod.MethodGet
         });
 
         return resp.data?.access_url || '';

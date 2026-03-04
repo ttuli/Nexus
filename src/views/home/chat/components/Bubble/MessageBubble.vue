@@ -12,17 +12,20 @@
 
             <!-- New wrapper for bubble and status -->
             <div class="bubble-row" :class="{ 'is-self': isSelf }">
-                <div class="bubble" :class="{ 'is-image': isImageMessage, 'is-file': isFileMessage }"
+                <div class="bubble" :class="{ 'is-image': isImageMessage, 'is-video': isVideoMessage, 'is-file': isFileMessage }"
                     @contextmenu.prevent="handleContextMenu">
-                    <!-- Text Messages -->
-                    <div class="text" v-if="!isImageMessage && !isFileMessage">{{ messageContent }}</div>
-
                     <!-- Image Messages -->
-                    <ImageMessageBubble v-else-if="isImageMessage" :message="(message as ILocalImageMessage)" />
+                    <ImageMessageBubble v-if="isImageMessage" :message="(message as ILocalImageMessage)" />
+
+                    <!-- Video Messages -->
+                    <VideoMessageBubble v-else-if="isVideoMessage" :message="(message as ILocalVideoMessage)" />
 
                     <!-- File Messages -->
                     <FileMessageBubble v-else-if="isFileMessage" :message="(message as ILocalFileMessage)"
                         :isSelf="isSelf" />
+                    
+                    <!-- Text & Fallback Messages -->
+                    <div class="text" v-else>{{ messageContent }}</div>
                 </div>
 
                 <!-- Status Indicators (Only for self messages) -->
@@ -44,9 +47,10 @@ import { computed } from 'vue';
 import { useUserStore } from '@/store/user';
 import ImageMessageBubble from './ImageMessageBubble.vue';
 import FileMessageBubble from './FileMessageBubble.vue';
+import VideoMessageBubble from './VideoMessageBubble.vue';
 
 // Replace MessageItem definition with IChatMessage import
-import { IChatMessage, ILocalTextMessage, ILocalFileMessage, ILocalImageMessage } from '@/types/chatMessage';
+import { IChatMessage, ILocalTextMessage, ILocalFileMessage, ILocalImageMessage, ILocalVideoMessage } from '@/types/chatMessage';
 import { ImTypes } from '@/types';
 
 // Rename MessageType/Status to avoid conflict if needed, or just use types.MessageType
@@ -70,6 +74,10 @@ const senderName = computed(() => {
 
 const isImageMessage = computed(() => {
     return props.message.type === MessageType.CHAT_IMAGE || props.message.type === MessageType.GROUP_IMAGE;
+});
+
+const isVideoMessage = computed(() => {
+    return props.message.type === MessageType.CHAT_VIDEO || props.message.type === MessageType.GROUP_VIDEO;
 });
 
 const isFileMessage = computed(() => {
@@ -230,9 +238,10 @@ const formatTime = (timestamp: number) => {
             transition: all 0.2s;
 
             &.is-image,
+            &.is-video,
             &.is-file {
-                padding: 0; // 图片或文件气泡不需要外层 padding
-                background-color: transparent; // 图片或文件气泡不需要外层背景色
+                padding: 0; // 图片、视频或文件气泡不需要外层 padding
+                background-color: transparent; // 图片、视频或文件气泡不需要外层背景色
                 box-shadow: none; // 阴影移交到内层
             }
 

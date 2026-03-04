@@ -48,6 +48,39 @@ export function fileTypeToJSON(object: FileType): string {
   }
 }
 
+export enum GetMethod {
+  MethodGet = 0,
+  MethodHead = 1,
+  UNRECOGNIZED = -1,
+}
+
+export function getMethodFromJSON(object: any): GetMethod {
+  switch (object) {
+    case 0:
+    case "MethodGet":
+      return GetMethod.MethodGet;
+    case 1:
+    case "MethodHead":
+      return GetMethod.MethodHead;
+    case -1:
+    case "UNRECOGNIZED":
+    default:
+      return GetMethod.UNRECOGNIZED;
+  }
+}
+
+export function getMethodToJSON(object: GetMethod): string {
+  switch (object) {
+    case GetMethod.MethodGet:
+      return "MethodGet";
+    case GetMethod.MethodHead:
+      return "MethodHead";
+    case GetMethod.UNRECOGNIZED:
+    default:
+      return "UNRECOGNIZED";
+  }
+}
+
 export interface PolicyToken {
   /** @gotags: json:"policy" */
   policy: string;
@@ -107,6 +140,8 @@ export interface GetAccessUrlReq {
   file_type: FileType;
   /** @gotags: form:"oss_process,optional" json:"oss_process,optional" */
   oss_process: string;
+  /** @gotags: form:"method,optional" json:"method,optional" */
+  method: GetMethod;
 }
 
 export interface GetAccessUrlResp {
@@ -653,7 +688,7 @@ export const GetPostSignatureReq: MessageFns<GetPostSignatureReq> = {
 };
 
 function createBaseGetAccessUrlReq(): GetAccessUrlReq {
-  return { file_key: "", file_type: 0, oss_process: "" };
+  return { file_key: "", file_type: 0, oss_process: "", method: 0 };
 }
 
 export const GetAccessUrlReq: MessageFns<GetAccessUrlReq> = {
@@ -666,6 +701,9 @@ export const GetAccessUrlReq: MessageFns<GetAccessUrlReq> = {
     }
     if (message.oss_process !== "") {
       writer.uint32(26).string(message.oss_process);
+    }
+    if (message.method !== 0) {
+      writer.uint32(32).int32(message.method);
     }
     return writer;
   },
@@ -701,6 +739,14 @@ export const GetAccessUrlReq: MessageFns<GetAccessUrlReq> = {
           message.oss_process = reader.string();
           continue;
         }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.method = reader.int32() as any;
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -727,6 +773,7 @@ export const GetAccessUrlReq: MessageFns<GetAccessUrlReq> = {
         : isSet(object.oss_process)
         ? globalThis.String(object.oss_process)
         : "",
+      method: isSet(object.method) ? getMethodFromJSON(object.method) : 0,
     };
   },
 
@@ -741,6 +788,9 @@ export const GetAccessUrlReq: MessageFns<GetAccessUrlReq> = {
     if (message.oss_process !== "") {
       obj.ossProcess = message.oss_process;
     }
+    if (message.method !== 0) {
+      obj.method = getMethodToJSON(message.method);
+    }
     return obj;
   },
 
@@ -752,6 +802,7 @@ export const GetAccessUrlReq: MessageFns<GetAccessUrlReq> = {
     message.file_key = object.file_key ?? "";
     message.file_type = object.file_type ?? 0;
     message.oss_process = object.oss_process ?? "";
+    message.method = object.method ?? 0;
     return message;
   },
 };

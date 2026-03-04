@@ -51,6 +51,8 @@ export interface ILocalImageMessage extends ILocalMessageBase {
 export interface ILocalVideoMessage extends ILocalMessageBase {
     type: MessageType.CHAT_VIDEO | MessageType.GROUP_VIDEO;
     url: string;
+    localPath?: string;      // 本地文件路径（发送时预览用）
+    uploadProgress?: number; // 上传进度 0-100，上传完成后 undefined
     thumbnailUrl?: string;
     duration: number;
     width: number;
@@ -65,6 +67,8 @@ export interface ILocalVideoMessage extends ILocalMessageBase {
 export interface ILocalAudioMessage extends ILocalMessageBase {
     type: MessageType.CHAT_AUDIO | MessageType.GROUP_AUDIO;
     url: string;
+    localPath?: string;      // 本地文件路径（发送时预览用）
+    uploadProgress?: number; // 上传进度 0-100，上传完成后 undefined
     duration: number;
     size?: number;
     format?: string;

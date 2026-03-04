@@ -1178,6 +1178,8 @@ export interface WSMessage {
   type: MessageType;
   /** 具体消息内容(根据type解析) */
   payload: Uint8Array;
+  /** 发送者ID */
+  sender_id: number;
   /** 协议版本号 */
   version: number;
 }
@@ -1703,7 +1705,15 @@ export const ApiResponse: MessageFns<ApiResponse> = {
 };
 
 function createBaseWSMessage(): WSMessage {
-  return { route_target: 0, route_target_type: 0, timestamp: 0, type: 0, payload: new Uint8Array(0), version: 0 };
+  return {
+    route_target: 0,
+    route_target_type: 0,
+    timestamp: 0,
+    type: 0,
+    payload: new Uint8Array(0),
+    sender_id: 0,
+    version: 0,
+  };
 }
 
 export const WSMessage: MessageFns<WSMessage> = {
@@ -1723,8 +1733,11 @@ export const WSMessage: MessageFns<WSMessage> = {
     if (message.payload.length !== 0) {
       writer.uint32(42).bytes(message.payload);
     }
+    if (message.sender_id !== 0) {
+      writer.uint32(48).uint64(message.sender_id);
+    }
     if (message.version !== 0) {
-      writer.uint32(48).int32(message.version);
+      writer.uint32(56).int32(message.version);
     }
     return writer;
   },
@@ -1781,6 +1794,14 @@ export const WSMessage: MessageFns<WSMessage> = {
             break;
           }
 
+          message.sender_id = longToNumber(reader.uint64());
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
           message.version = reader.int32();
           continue;
         }
@@ -1808,6 +1829,11 @@ export const WSMessage: MessageFns<WSMessage> = {
       timestamp: isSet(object.timestamp) ? globalThis.Number(object.timestamp) : 0,
       type: isSet(object.type) ? messageTypeFromJSON(object.type) : 0,
       payload: isSet(object.payload) ? bytesFromBase64(object.payload) : new Uint8Array(0),
+      sender_id: isSet(object.senderId)
+        ? globalThis.Number(object.senderId)
+        : isSet(object.sender_id)
+        ? globalThis.Number(object.sender_id)
+        : 0,
       version: isSet(object.version) ? globalThis.Number(object.version) : 0,
     };
   },
@@ -1829,6 +1855,9 @@ export const WSMessage: MessageFns<WSMessage> = {
     if (message.payload.length !== 0) {
       obj.payload = base64FromBytes(message.payload);
     }
+    if (message.sender_id !== 0) {
+      obj.senderId = Math.round(message.sender_id);
+    }
     if (message.version !== 0) {
       obj.version = Math.round(message.version);
     }
@@ -1845,6 +1874,7 @@ export const WSMessage: MessageFns<WSMessage> = {
     message.timestamp = object.timestamp ?? 0;
     message.type = object.type ?? 0;
     message.payload = object.payload ?? new Uint8Array(0);
+    message.sender_id = object.sender_id ?? 0;
     message.version = object.version ?? 0;
     return message;
   },

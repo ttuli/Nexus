@@ -1,22 +1,6 @@
 <template>
     <div class="group-sidebar">
-        <div class="sidebar-header">
-            <span>群聊信息</span>
-            <div class="close-btn" @click="$emit('close')">
-                <i class="icon-close">×</i>
-            </div>
-        </div>
         <div class="sidebar-content scroll-bar-thin" v-if="groupInfo">
-            <div class="info-section">
-                <div class="avatar-wrapper">
-                    <img :src="avatarParams" alt="Avatar" class="avatar-image" v-if="avatarParams" />
-                    <div v-else class="avatar-placeholder">
-                        <span class="text-xs text-gray-400 bg-gray-100 dark:bg-gray-700 px-1 rounded">Group</span>
-                    </div>
-                </div>
-                <div class="name">{{ groupInfo.name || `群聊${targetId}` }}</div>
-                <div class="id">群号: {{ targetId }}</div>
-            </div>
 
             <!-- 群成员列表 -->
             <GroupMembersCard :members="groupMembers" :max-display="14" :can-invite="true" @view-all="viewAllMembers"
@@ -238,86 +222,10 @@ const inviteMembers = () => {
     display: flex;
     flex-direction: column;
 
-    .sidebar-header {
-        height: 50px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0 20px;
-        border-bottom: 1px solid $color-border;
-        font-weight: 600;
-        font-size: 16px;
-        color: $color-text-primary;
-
-        .close-btn {
-            cursor: pointer;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 4px;
-            color: $color-text-secondary;
-            transition: all 0.2s;
-
-            &:hover {
-                background-color: $bg-hover;
-                color: $color-text-primary;
-            }
-
-            .icon-close {
-                font-style: normal;
-                font-size: 18px;
-                line-height: 1;
-            }
-        }
-    }
-
     .sidebar-content {
         flex: 1;
         overflow-y: auto;
         padding: 20px;
-
-        .info-section {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-bottom: 20px;
-
-            .avatar-wrapper {
-                margin-bottom: 15px;
-
-                .avatar-image {
-                    width: 80px;
-                    height: 80px;
-                    border-radius: 12px;
-                    object-fit: cover;
-                }
-
-                .avatar-placeholder {
-                    width: 80px;
-                    height: 80px;
-                    background: #f0f2f5;
-                    border-radius: 12px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-            }
-
-            .name {
-                font-size: 18px;
-                font-weight: 600;
-                color: $color-text-primary;
-                margin-bottom: 5px;
-                text-align: center;
-            }
-
-            .id {
-                font-size: 12px;
-                color: $color-text-secondary;
-            }
-        }
 
         .mt-15 {
             margin-top: 15px;

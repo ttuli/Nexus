@@ -76,6 +76,11 @@ onMounted(() => {
         transform: translate(-50%, -50%);
         font-size: 16px;
         color: $color-text-primary;
+        max-width: 40%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        text-align: center;
     }
 
     button {

@@ -187,7 +187,8 @@ class WindowManager {
       if (key === 'home') {
         // tintColor: ABGR 格式, 0x66ECECEC = rgba(236,236,236,0.4)
         enableAcrylicBlur(window, 0x66ECECEC);
-        // 恢复 Win11 圆角和阴影 (transparent: true 会移除它们)
+        // Win11: transparent: true 会移除圆角和阴影，需要通过 DWM API 恢复
+        // Win10: transparent: false，DWM 自动绘制阴影，无需额外处理
         restoreWindowDecorations(window);
       }
 

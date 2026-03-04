@@ -200,9 +200,13 @@ const handleSendImage = async (file: File) => {
 
 const handleSendFile = async (file: File) => {
     try {
-        await websocketService.sendFile(file);
+        if (file.type.startsWith('video/')) {
+            await websocketService.sendVideo(file);
+        } else {
+            await websocketService.sendFile(file);
+        }
     } catch {
-        ElMessage.error('上传文件失败');
+        ElMessage.error(file.type.startsWith('video/') ? '上传视频失败' : '上传文件失败');
     }
 };
 

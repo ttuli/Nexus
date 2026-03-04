@@ -1,7 +1,7 @@
 import { ipcService } from './ipcService'
 import { IpcChannels, IpcResponse, ImTypes, ApiTypes } from '../types'
-import { ILocalImageMessage, ILocalFileMessage } from '@/types/chatMessage'
-import { buildTextWsMessage, buildImageLocalMsg, buildImageWsPayload, buildFileWsMessage, toLocalPreviewUrl } from '@/utils/chat'
+import { ILocalImageMessage, ILocalFileMessage, ILocalVideoMessage } from '@/types/chatMessage'
+import { buildTextWsMessage, buildImageLocalMsg, buildImageWsPayload, buildFileWsMessage, buildVideoWsMessage, toLocalPreviewUrl, extractVideoFrame } from '@/utils/chat'
 import { useChatStore } from '@/store/chat'
 import { fileService } from './fileService'
 import { chatService } from './chatService'
@@ -177,6 +177,80 @@ class WebSocketService {
             }
         } catch (e) {
             console.error('[WebSocketService] sendFile failed:', e)
+            chatStore.updateMessageStatus(
+                sessionId, clientId,
+                ImTypes.MessageStatus.MESSAGE_STATUS_FAILED, Date.now()
+            )
+            chatStore.updateMessageProgress(clientId, undefined)
+            this.uploadAbortControllers.delete(clientId);
+        }
+    }
+
+    /**
+     * 发送视频消息
+     * 流程：先展示占位消息（带进度），上传 OSS 完成后再发 WS 消息
+     */
+    async sendVideo(file: File): Promise<void> {
+        const chatStore = useChatStore()
+        const sessionId = chatStore.currentSessionId
+
+        // 提取视频首帧、尺寸和时长
+        const videoMeta = await extractVideoFrame(file);
+
+        // 1. 构建占位消息并入展示
+        const { clientId, localMsg } = buildVideoWsMessage({
+            url: '',
+            localPath: file.path,
+            thumbnailUrl: videoMeta.thumbnailUrl,
+            width: videoMeta.width,
+            height: videoMeta.height,
+            duration: videoMeta.duration,
+            uploadProgress: 0,
+            size: file.size,
+            format: file.type,
+        }, sessionId)
+        chatStore.addMessage(localMsg)
+
+        try {
+            // 2. 上传到 OSS，实时更新进度
+            const { promise, abort } = fileService.uploadFile(
+                file,
+                ApiTypes.file.FileType.FileTypeChatFile,
+                (progress) => chatStore.updateMessageProgress(clientId, progress)
+            )
+            this.uploadAbortControllers.set(clientId, abort);
+
+            const ossUrl = await promise;
+            this.uploadAbortControllers.delete(clientId);
+
+            // 3. 更新 store 中占位消息的 OSS URL 并持久化
+            const storedMsg = chatStore.messages.find(m => m.clientId === clientId) as ILocalVideoMessage | undefined
+            if (storedMsg) {
+                storedMsg.url = ossUrl
+                void chatService.saveMessage(storedMsg).catch(e =>
+                    console.error('[WebSocketService] Failed to persist video ossUrl:', e)
+                )
+            }
+
+            // 4. 构建最终 WS payload 并发送
+            const { msg: finalMsg } = buildVideoWsMessage({
+                url: ossUrl,
+                size: file.size,
+                format: file.type,
+                width: videoMeta.width,
+                height: videoMeta.height,
+                duration: videoMeta.duration,
+                thumbnailUrl: '', // 最终发送不包含 Base64 缩略图
+            }, sessionId, clientId)
+            const result = await this.send(finalMsg, clientId)
+            if (!result.success || !result.data?.sent) {
+                chatStore.updateMessageStatus(
+                    sessionId, clientId,
+                    ImTypes.MessageStatus.MESSAGE_STATUS_FAILED, Date.now()
+                )
+            }
+        } catch (e) {
+            console.error('[WebSocketService] sendVideo failed:', e)
             chatStore.updateMessageStatus(
                 sessionId, clientId,
                 ImTypes.MessageStatus.MESSAGE_STATUS_FAILED, Date.now()

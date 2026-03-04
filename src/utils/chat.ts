@@ -1,4 +1,4 @@
-import { ImTypes, IChatMessage, ILocalTextMessage, ILocalImageMessage, ILocalVideoMessage, ILocalFileMessage, ILocalSystemMessage } from '@/types';
+import { ImTypes, IChatMessage, ILocalTextMessage, ILocalImageMessage, ILocalVideoMessage, ILocalAudioMessage, ILocalFileMessage, ILocalSystemMessage } from '@/types';
 import { config } from '@/config';
 
 import { useUserStore } from '@/store/user';
@@ -94,6 +94,13 @@ export function convertWSMessageToIChatMessage(wsMsg: ImTypes.WSMessage): IChatM
                 contentObj = fileMsg;
                 break;
             }
+            case ImTypes.MessageType.CHAT_AUDIO:
+            case ImTypes.MessageType.GROUP_AUDIO: {
+                const audioMsg = ImTypes.AudioMessage.decode(wsMsg.payload);
+                base = audioMsg.base;
+                contentObj = audioMsg;
+                break;
+            }
             default:
                 return null;
         }
@@ -160,9 +167,20 @@ export function convertWSMessageToIChatMessage(wsMsg: ImTypes.WSMessage): IChatM
             ...commonFields,
             type: wsMsg.type,
             url: contentObj.url || '',
-            fileName: contentObj.file_name || '',  // ts-proto \u89e3\u7801\u540e\u5b57\u6bb5\u4e3a snake_case
+            fileName: contentObj.file_name || '',  // ts-proto 解码后字段为 snake_case
             size: contentObj.size || 0,
         } as ILocalFileMessage;
+    }
+
+    if (wsMsg.type === ImTypes.MessageType.CHAT_AUDIO || wsMsg.type === ImTypes.MessageType.GROUP_AUDIO) {
+        return {
+            ...commonFields,
+            type: wsMsg.type,
+            url: contentObj.url || '',
+            duration: contentObj.duration || 0,
+            size: contentObj.size || 0,
+            format: contentObj.format || '',
+        } as ILocalAudioMessage;
     }
 
     return null;
@@ -279,6 +297,27 @@ export interface FileContent {
     size?: number;
 }
 
+export interface AudioContent {
+    url: string;
+    localPath?: string;  // 本地文件路径（发送时预览用）
+    uploadProgress?: number;
+    duration?: number;   // 时长（秒），发送时若获取不到填 0
+    size?: number;
+    format?: string;     // 音频 MIME 类型，如 audio/mp3
+}
+
+export interface VideoContent {
+    url: string;
+    localPath?: string;
+    uploadProgress?: number;
+    thumbnailUrl?: string;
+    duration?: number;
+    width?: number;
+    height?: number;
+    size?: number;
+    format?: string;
+}
+
 // ─── Return type ────────────────────────────────────────────────────────────
 
 export interface WsMessageResult<T extends IChatMessage = IChatMessage> {
@@ -321,6 +360,7 @@ function buildBase(type: ImTypes.MessageType, sessionId: string, existingClientI
         timestamp: Date.now(),
         version: config.wsMessageVersion,
         payload: new Uint8Array(),
+        sender_id: 0,
         route_target: targetId,
         route_target_type: targetType,
     };
@@ -483,6 +523,80 @@ export function buildFileWsMessage(
 
 
 
+/**
+ * 构建音频消息的 WS 包和占位本地消息
+ * content.url 为空时表示占位消息（上传前），有值时表示结果消息（上传后）
+ */
+export function buildAudioWsMessage(
+    content: AudioContent,
+    sessionId: string,
+    existingClientId?: string
+): WsMessageResult<ILocalAudioMessage> {
+    const isGroup = sessionId.startsWith('group_');
+    const type = isGroup ? ImTypes.MessageType.GROUP_AUDIO : ImTypes.MessageType.CHAT_AUDIO;
+    const { clientId, baseMsg, wsMsg, commonFields } = buildBase(type, sessionId, existingClientId);
+
+    wsMsg.payload = ImTypes.AudioMessage.encode({
+        base: baseMsg,
+        url: content.url,
+        duration: content.duration || 0,
+        size: content.size || 0,
+        format: content.format || '',
+        is_read: false,
+    }).finish();
+
+    const localMsg: ILocalAudioMessage = {
+        ...commonFields,
+        type,
+        url: content.url,
+        localPath: content.localPath,
+        uploadProgress: content.uploadProgress,
+        duration: content.duration || 0,
+        size: content.size || 0,
+        format: content.format || '',
+    };
+    return { msg: wsMsg, clientId, localMsg };
+}
+
+/**
+ * 构建视频消息的 WS 包和占位本地消息
+ */
+export function buildVideoWsMessage(
+    content: VideoContent,
+    sessionId: string,
+    existingClientId?: string
+): WsMessageResult<ILocalVideoMessage> {
+    const isGroup = sessionId.startsWith('group_');
+    const type = isGroup ? ImTypes.MessageType.GROUP_VIDEO : ImTypes.MessageType.CHAT_VIDEO;
+    const { clientId, baseMsg, wsMsg, commonFields } = buildBase(type, sessionId, existingClientId);
+
+    wsMsg.payload = ImTypes.VideoMessage.encode({
+        base: baseMsg,
+        url: content.url,
+        thumbnail_url: content.thumbnailUrl || '',
+        duration: content.duration || 0,
+        width: content.width || 0,
+        height: content.height || 0,
+        size: content.size || 0,
+        format: content.format || '',
+    }).finish();
+
+    const localMsg: ILocalVideoMessage = {
+        ...commonFields,
+        type,
+        url: content.url,
+        localPath: content.localPath,
+        uploadProgress: content.uploadProgress,
+        thumbnailUrl: content.thumbnailUrl,
+        duration: content.duration || 0,
+        width: content.width || 0,
+        height: content.height || 0,
+        size: content.size || 0,
+        format: content.format || '',
+    };
+    return { msg: wsMsg, clientId, localMsg };
+}
+
 export function buildVerifyWsMsg(type: ImTypes.MessageType, data:
     ImTypes.FriendRequest |
     ImTypes.GroupApply |
@@ -493,6 +607,7 @@ export function buildVerifyWsMsg(type: ImTypes.MessageType, data:
         timestamp: Date.now(),
         version: config.wsMessageVersion,
         payload: new Uint8Array(),
+        sender_id: 0,
         route_target: targetId,
         route_target_type: targetType,
     };
@@ -595,3 +710,51 @@ export function formatSystemMessage(message: ILocalSystemMessage): string {
     }
 }
 
+/**
+ * 提取视频第一帧作为 Base64 封面，并获取宽高和时长
+ */
+export function extractVideoFrame(file: File): Promise<{ thumbnailUrl: string, width: number, height: number, duration: number }> {
+    return new Promise((resolve) => {
+        const video = document.createElement('video');
+        video.autoplay = true;
+        video.muted = true;
+        const url = URL.createObjectURL(file);
+
+        video.addEventListener('loadeddata', () => {
+            video.currentTime = Math.min(0.1, video.duration || 0);
+        }, { once: true });
+
+        video.addEventListener('seeked', () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const thumbnailUrl = canvas.toDataURL('image/jpeg', 0.8);
+
+            const videoWidth = video.videoWidth;
+            const videoHeight = video.videoHeight;
+            const duration = video.duration > 0 ? Math.floor(video.duration) : 0;
+
+            // 必须在 revoke 之前切断底层 video 元素的引用，防止浏览器继续去下已被销毁的 blob 块报错
+            video.removeAttribute('src');
+            video.load();
+            URL.revokeObjectURL(url);
+            resolve({
+                thumbnailUrl,
+                width: videoWidth,
+                height: videoHeight,
+                duration
+            });
+        }, { once: true });
+
+        video.addEventListener('error', () => {
+            video.removeAttribute('src');
+            video.load();
+            URL.revokeObjectURL(url);
+            resolve({ thumbnailUrl: '', width: 0, height: 0, duration: 0 });
+        }, { once: true });
+
+        video.src = url;
+    });
+}

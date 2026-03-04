@@ -45,6 +45,7 @@ const DwmExtendFrameIntoClientArea = dwmapi.func(
     'long __stdcall DwmExtendFrameIntoClientArea(intptr hwnd, MARGINS *pMarInset)'
 );
 
+
 // ==================== 操作系统版本检测 ====================
 
 /**
@@ -155,9 +156,9 @@ export function restoreWindowDecorations(window: BrowserWindow): void {
     try {
         const hwnd = getHwnd(window);
 
-        // ─── 阴影恢复 (Win10 + Win11) ───
-        // 扩展 DWM 帧到客户端区域，margins 全部设为 -1 表示整个窗口区域
-        // 这会让 DWM 为窗口绘制阴影，即使 transparent: true
+        // ─── 阴影恢复 ───
+        // Win10: transparent: false → DWM 本身就会绘制阴影，此调用为双重保险
+        // Win11: transparent: true 移除了 DWM 边框，需要通过此调用恢复阴影
         const margins = {
             cxLeftWidth: -1,
             cxRightWidth: -1,
