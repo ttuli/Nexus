@@ -1,3 +1,4 @@
+import { fail } from 'assert';
 import { BrowserWindow } from 'electron'
 import os from 'os'
 
@@ -87,12 +88,7 @@ let configs: Map<string, WindowConfig> = new Map([
             height: 830,
             minWidth: 750,
             minHeight: 430,
-            // Win10: transparent 不需要开启，SetWindowCompositionAttribute
-            //        在 DWM 合成器层面直接替换窗口背景为模糊效果，
-            //        不依赖 WS_EX_LAYERED；且关闭后 DWM 能正常绘制阴影。
-            // Win11: DwmSetWindowAttribute(SYSTEMBACKDROP_TYPE) 把亚克力画在窗口表面之后，
-            //        需要窗口表面透明才能看到，所以必须 transparent: true。
-            transparent: isWin11,
+            transparent: false,
             backgroundColor: '#00000000',
             backgroundMaterial: 'acrylic',
         }

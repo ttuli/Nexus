@@ -187,9 +187,7 @@ class WindowManager {
       if (key === 'home') {
         // tintColor: ABGR 格式, 0x66ECECEC = rgba(236,236,236,0.4)
         enableAcrylicBlur(window, 0x66ECECEC);
-        // Win11: transparent: true 会移除圆角和阴影，需要通过 DWM API 恢复
-        // Win10: transparent: false，DWM 自动绘制阴影，无需额外处理
-        restoreWindowDecorations(window);
+        // restoreWindowDecorations(window);
       }
 
       // 设置事件监听器
@@ -289,6 +287,7 @@ class WindowManager {
     const onUnmaximize = () => {
       if (this.isValidWindow(window)) {
         window.webContents.send(IpcChannels.WINDOW_STATE, 'unmaximize');
+        restoreWindowDecorations(window);
       }
     };
 
@@ -301,6 +300,7 @@ class WindowManager {
     const onRestore = () => {
       if (this.isValidWindow(window)) {
         window.webContents.send(IpcChannels.WINDOW_STATE, 'restored');
+        restoreWindowDecorations(window);
       }
     };
 
