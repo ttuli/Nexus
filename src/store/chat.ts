@@ -329,7 +329,13 @@ export const useChatStore = defineStore('chat', {
                 lastContent = '[消息]';
             }
 
+            this.chatList.forEach(chat => {
+                if (chat.conversation_id === message.sessionId) {
+                    chat.max_seq = message.seq;
+                }
+            })
             this.updateLastMessage(message.sessionId, lastContent);
+
             void chatService.saveMessage(message).catch((e) => {
                 console.error('[ChatStore] Failed to persist message', e);
             });
