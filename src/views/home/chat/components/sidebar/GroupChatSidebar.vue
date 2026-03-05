@@ -25,10 +25,10 @@
             </div>
 
             <div class="actions-section">
-                <el-button class="action-btn" plain @click="clearChatData">清除聊天记录</el-button>
-                <el-button class="action-btn" type="danger" plain @click="confirmQuitGroup">
+                <CusButton class="action-btn" type="normal" :show-icon="false" @click="clearChatData">清除聊天记录</CusButton>
+                <CusButton class="action-btn danger-btn" :show-icon="false" @click="confirmQuitGroup">
                     {{ isOwner ? '解散该群' : '退出群聊' }}
-                </el-button>
+                </CusButton>
             </div>
         </div>
     </div>
@@ -36,6 +36,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch, onMounted } from 'vue';
+import CusButton from '@/components/CusButton.vue';
 import { useUserStore } from '@/store/user';
 import { useChatStore } from '@/store/chat';
 import { useGroupStore } from '@/store/group';
@@ -215,6 +216,7 @@ const inviteMembers = () => {
 </script>
 
 <style scoped lang="scss">
+@use "sass:color";
 @use "@/style/constant.scss" as *;
 
 .group-sidebar {
@@ -301,6 +303,15 @@ const inviteMembers = () => {
                 margin-left: 0;
             }
         }
+    }
+}
+
+:deep(.danger-btn) {
+    background-color: $color-error !important;
+    color: white !important;
+
+    &:hover {
+        background-color: color.adjust($color-error, $lightness: -10%) !important;
     }
 }
 </style>

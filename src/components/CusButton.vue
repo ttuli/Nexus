@@ -45,16 +45,18 @@ const handleClick = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
-  height: 48px;
-  border-radius: 14px;
-  border: none;
-  font-size: 16px;
-  font-weight: 600;
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
   outline: none;
+  box-sizing: border-box;
 
   .button-text {
     flex: 1;
@@ -62,30 +64,35 @@ const handleClick = () => {
   }
 
   .icon-arrow {
-    font-size: 18px;
-    margin-right: 4px;
+    font-size: 16px;
   }
 
   &:hover:not(:disabled) {
-    box-shadow: 0 8px 20px rgba(27, 27, 27, 0.148);
-    transform: translateY(-2px);
+    opacity: 0.85;
   }
 
   &:active:not(:disabled) {
-    transform: translateY(0);
+    transform: scale(0.98);
   }
 
-  // --- Primary 风格 (图片中的蓝色) ---
+  // --- Primary 风格 ---
   &.primary {
-    background: #3c72f6;
+    background: var(--el-color-primary, #409eff);
     color: #ffffff;
   }
 
-  // --- Normal 风格 (图片底部的浅灰色文字链接风格) ---
+  // --- Normal 风格 ---
   &.normal {
     background: #ffffff;
-    color: #667eea;
-    font-size: 14px;
+    color: var(--el-text-color-regular, #606266);
+    border-color: var(--el-border-color, #dcdfe6);
+
+    &:hover:not(:disabled) {
+      color: var(--el-color-primary, #409eff);
+      border-color: var(--el-color-primary-light-5, #c6e2ff);
+      background: var(--el-color-primary-light-9, #ecf5ff);
+      opacity: 1;
+    }
   }
 
   // --- Loading 状态 ---
@@ -100,7 +107,7 @@ const handleClick = () => {
       span {
         width: 6px;
         height: 6px;
-        background: white;
+        background: currentColor;
         border-radius: 50%;
         animation: pulse 1.4s infinite;
 

@@ -30,8 +30,9 @@
             </div>
 
             <div class="actions-section">
-                <el-button class="action-btn" plain @click="clearChatData">清除聊天记录</el-button>
-                <el-button class="action-btn" type="danger" plain @click="confirmDeleteFriend">删除好友</el-button>
+                <CusButton class="action-btn" type="primary" :show-icon="false" @click="clearChatData">清除聊天记录</CusButton>
+                <CusButton class="action-btn danger-btn" :show-icon="false" @click="confirmDeleteFriend">删除好友
+                </CusButton>
             </div>
         </div>
     </div>
@@ -39,6 +40,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch, nextTick } from 'vue';
+import CusButton from '@/components/CusButton.vue';
 import { useUserStore } from '@/store/user';
 import { useChatStore } from '@/store/chat';
 import { ImTypes } from '@/types';
@@ -220,6 +222,7 @@ const confirmDeleteFriend = () => {
 </script>
 
 <style scoped lang="scss">
+@use "sass:color";
 @use "@/style/constant.scss" as *;
 
 .private-sidebar {
@@ -313,13 +316,23 @@ const confirmDeleteFriend = () => {
             margin-top: 30px;
             display: flex;
             flex-direction: column;
+            justify-content: center;
+            align-items: center;
             gap: 12px;
 
             .action-btn {
-                width: 100%;
                 margin-left: 0;
             }
         }
+    }
+}
+
+:deep(.danger-btn) {
+    background-color: $color-error !important;
+    color: white !important;
+
+    &:hover {
+        background-color: color.adjust($color-error, $lightness: -10%) !important;
     }
 }
 </style>

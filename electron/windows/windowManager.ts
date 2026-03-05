@@ -280,12 +280,20 @@ class WindowManager {
     // 窗口状态变化监听
     const onMaximize = () => {
       if (this.isValidWindow(window) && resizable) {
+        if (key === 'home') {
+          // 最大化时替换底色为亮灰色（或替换为您想要的其他十六进制颜色，如 #FFFFFF）
+          window.setBackgroundColor('#f3f3f3');
+        }
         window.webContents.send(IpcChannels.WINDOW_STATE, 'maximized');
       }
     };
 
     const onUnmaximize = () => {
       if (this.isValidWindow(window)) {
+        if (key === 'home') {
+          // 还原时重置回透明，让 DWM 继续绘制亚克力特效
+          window.setBackgroundColor('#00000000');
+        }
         window.webContents.send(IpcChannels.WINDOW_STATE, 'unmaximize');
         restoreWindowDecorations(window);
       }
@@ -299,6 +307,9 @@ class WindowManager {
 
     const onRestore = () => {
       if (this.isValidWindow(window)) {
+        if (key === 'home') {
+          window.setBackgroundColor('#00000000');
+        }
         window.webContents.send(IpcChannels.WINDOW_STATE, 'restored');
         restoreWindowDecorations(window);
       }
