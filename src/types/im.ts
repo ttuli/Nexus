@@ -145,10 +145,8 @@ export enum MessageType {
   FRIEND_ADD = 602,
   /** GROUP_REQUEST - 群请求 */
   GROUP_REQUEST = 603,
-  /** APPLY_ACCEPT - 接受申请 */
-  APPLY_ACCEPT = 604,
-  /** APPLY_REJECT - 拒绝申请 */
-  APPLY_REJECT = 605,
+  /** UPDATE_SESSION - 内部消费消息 */
+  UPDATE_SESSION = 700,
   /** ERROR - 错误响应 900-999 */
   ERROR = 900,
   UNRECOGNIZED = -1,
@@ -240,12 +238,9 @@ export function messageTypeFromJSON(object: any): MessageType {
     case 603:
     case "GROUP_REQUEST":
       return MessageType.GROUP_REQUEST;
-    case 604:
-    case "APPLY_ACCEPT":
-      return MessageType.APPLY_ACCEPT;
-    case 605:
-    case "APPLY_REJECT":
-      return MessageType.APPLY_REJECT;
+    case 700:
+    case "UPDATE_SESSION":
+      return MessageType.UPDATE_SESSION;
     case 900:
     case "ERROR":
       return MessageType.ERROR;
@@ -314,10 +309,8 @@ export function messageTypeToJSON(object: MessageType): string {
       return "FRIEND_ADD";
     case MessageType.GROUP_REQUEST:
       return "GROUP_REQUEST";
-    case MessageType.APPLY_ACCEPT:
-      return "APPLY_ACCEPT";
-    case MessageType.APPLY_REJECT:
-      return "APPLY_REJECT";
+    case MessageType.UPDATE_SESSION:
+      return "UPDATE_SESSION";
     case MessageType.ERROR:
       return "ERROR";
     case MessageType.UNRECOGNIZED:
@@ -1184,6 +1177,16 @@ export interface WSMessage {
   version: number;
 }
 
+export interface UpdateSession {
+  target_type: TargetType;
+  target_id: number;
+  session_id: string;
+  max_seq: number;
+  update_time: number;
+  sender: number;
+  last_content: string;
+}
+
 /** 基础消息信息 */
 export interface BaseMessage {
   /** 消息ID */
@@ -1876,6 +1879,186 @@ export const WSMessage: MessageFns<WSMessage> = {
     message.payload = object.payload ?? new Uint8Array(0);
     message.sender_id = object.sender_id ?? 0;
     message.version = object.version ?? 0;
+    return message;
+  },
+};
+
+function createBaseUpdateSession(): UpdateSession {
+  return { target_type: 0, target_id: 0, session_id: "", max_seq: 0, update_time: 0, sender: 0, last_content: "" };
+}
+
+export const UpdateSession: MessageFns<UpdateSession> = {
+  encode(message: UpdateSession, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.target_type !== 0) {
+      writer.uint32(8).int32(message.target_type);
+    }
+    if (message.target_id !== 0) {
+      writer.uint32(16).uint64(message.target_id);
+    }
+    if (message.session_id !== "") {
+      writer.uint32(26).string(message.session_id);
+    }
+    if (message.max_seq !== 0) {
+      writer.uint32(32).int64(message.max_seq);
+    }
+    if (message.update_time !== 0) {
+      writer.uint32(40).int64(message.update_time);
+    }
+    if (message.sender !== 0) {
+      writer.uint32(48).uint64(message.sender);
+    }
+    if (message.last_content !== "") {
+      writer.uint32(58).string(message.last_content);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdateSession {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdateSession();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.target_type = reader.int32() as any;
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.target_id = longToNumber(reader.uint64());
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.session_id = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.max_seq = longToNumber(reader.int64());
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.update_time = longToNumber(reader.int64());
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.sender = longToNumber(reader.uint64());
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.last_content = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdateSession {
+    return {
+      target_type: isSet(object.targetType)
+        ? targetTypeFromJSON(object.targetType)
+        : isSet(object.target_type)
+        ? targetTypeFromJSON(object.target_type)
+        : 0,
+      target_id: isSet(object.targetId)
+        ? globalThis.Number(object.targetId)
+        : isSet(object.target_id)
+        ? globalThis.Number(object.target_id)
+        : 0,
+      session_id: isSet(object.sessionId)
+        ? globalThis.String(object.sessionId)
+        : isSet(object.session_id)
+        ? globalThis.String(object.session_id)
+        : "",
+      max_seq: isSet(object.maxSeq)
+        ? globalThis.Number(object.maxSeq)
+        : isSet(object.max_seq)
+        ? globalThis.Number(object.max_seq)
+        : 0,
+      update_time: isSet(object.updateTime)
+        ? globalThis.Number(object.updateTime)
+        : isSet(object.update_time)
+        ? globalThis.Number(object.update_time)
+        : 0,
+      sender: isSet(object.sender) ? globalThis.Number(object.sender) : 0,
+      last_content: isSet(object.lastContent)
+        ? globalThis.String(object.lastContent)
+        : isSet(object.last_content)
+        ? globalThis.String(object.last_content)
+        : "",
+    };
+  },
+
+  toJSON(message: UpdateSession): unknown {
+    const obj: any = {};
+    if (message.target_type !== 0) {
+      obj.targetType = targetTypeToJSON(message.target_type);
+    }
+    if (message.target_id !== 0) {
+      obj.targetId = Math.round(message.target_id);
+    }
+    if (message.session_id !== "") {
+      obj.sessionId = message.session_id;
+    }
+    if (message.max_seq !== 0) {
+      obj.maxSeq = Math.round(message.max_seq);
+    }
+    if (message.update_time !== 0) {
+      obj.updateTime = Math.round(message.update_time);
+    }
+    if (message.sender !== 0) {
+      obj.sender = Math.round(message.sender);
+    }
+    if (message.last_content !== "") {
+      obj.lastContent = message.last_content;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdateSession>, I>>(base?: I): UpdateSession {
+    return UpdateSession.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdateSession>, I>>(object: I): UpdateSession {
+    const message = createBaseUpdateSession();
+    message.target_type = object.target_type ?? 0;
+    message.target_id = object.target_id ?? 0;
+    message.session_id = object.session_id ?? "";
+    message.max_seq = object.max_seq ?? 0;
+    message.update_time = object.update_time ?? 0;
+    message.sender = object.sender ?? 0;
+    message.last_content = object.last_content ?? "";
     return message;
   },
 };

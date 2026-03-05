@@ -291,7 +291,6 @@ class WindowManager {
     const onUnmaximize = () => {
       if (this.isValidWindow(window)) {
         if (key === 'home') {
-          // 还原时重置回透明，让 DWM 继续绘制亚克力特效
           window.setBackgroundColor('#00000000');
         }
         window.webContents.send(IpcChannels.WINDOW_STATE, 'unmaximize');

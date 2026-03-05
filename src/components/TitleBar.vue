@@ -68,6 +68,7 @@ onMounted(() => {
     justify-content: flex-end;
     pointer-events: none;
     background-color: transparent;
+    -webkit-app-region: drag;
 
     .title-content {
         position: absolute;

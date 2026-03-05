@@ -168,6 +168,7 @@ export function restoreWindowDecorations(window: BrowserWindow): void {
         const marginResult = DwmExtendFrameIntoClientArea(hwnd, margins);
         console.log(`[AcrylicBlur] DwmExtendFrameIntoClientArea (Win11) HRESULT: 0x${(marginResult >>> 0).toString(16)}`);
 
+        console.log(winBuild)
         // ─── 圆角恢复 (仅 Win11, Build >= 22000) ───
         if (winBuild >= 22000) {
             // DWMWA_WINDOW_CORNER_PREFERENCE = 33

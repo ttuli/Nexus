@@ -19,7 +19,7 @@
 
         <!-- Right Pane -->
         <div class="right-pane">
-            <TitleBar :needMax="true" :onClose="closeWindow" class="title-bar" />
+            
             <div class="content-container">
                 <router-view v-slot="{ Component }">
                     <keep-alive include="BlankPage">
@@ -27,6 +27,7 @@
                     </keep-alive>
                 </router-view>
             </div>
+            <TitleBar :needMax="true" :onClose="closeWindow" class="title-bar" />
         </div>
 
         <!-- Create ImTypes.GroupInfo Modal -->
@@ -189,8 +190,10 @@ onUnmounted(async () => {
 
         .title-bar {
             background-color: transparent;
+            height: 35px;
             flex-shrink: 0;
             z-index: 1;
+            
         }
 
         .content-container {

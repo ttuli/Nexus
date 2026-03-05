@@ -22,10 +22,12 @@ defineOptions({ name: 'BlankPage' })
     width: 100%;
     background-color: #f7f7f7;
     color: $color-text-placeholder;
+    -webkit-app-region: no-drag;
 
     .icon {
         width: 200px;
         height: 200px;
+        pointer-events: none;
     }
 }
 </style>
