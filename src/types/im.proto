@@ -80,6 +80,7 @@ enum MessageType {
   USER_OFFLINE = 401;             // 用户下线
   USER_TYPING = 402;              // 正在输入
   USER_STATUS_CHANGE = 403;       // 状态变更
+  USER_KICKOFF = 404;             // 用户被踢
   
   // 群组操作
   GROUP_OP_NOTIFICATION = 500;    // 群操作通知
@@ -256,6 +257,12 @@ message TypingStatus {
   string conversation_id = 2;     // 会话ID
   bool is_typing = 3;             // 是否正在输入
   int64 timestamp = 4;            // 时间戳
+}
+
+message UserKickoff {
+  uint64 user_id = 1;             // 用户ID
+  string reason = 2;              // 踢出原因
+  int64 timestamp = 3;            // 时间戳
 }
 
 // ==================== 群组操作 ====================

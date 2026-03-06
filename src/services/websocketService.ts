@@ -1,7 +1,7 @@
 import { ipcService } from './ipcService'
 import { IpcChannels, IpcResponse, ImTypes, ApiTypes } from '../types'
 import { ILocalImageMessage, ILocalFileMessage, ILocalVideoMessage } from '@/types/chatMessage'
-import { buildTextWsMessage, buildImageLocalMsg, buildImageWsPayload, buildFileWsMessage, buildVideoWsMessage, toLocalPreviewUrl, extractVideoFrame } from '@/utils/chat'
+import { buildTextWsMessage, buildImageLocalMsg, buildImageWsPayload, buildFileWsMessage, buildVideoWsMessage, extractVideoFrame, toLocalPreviewUrl } from '@/utils/chat'
 import { useChatStore } from '@/store/chat'
 import { fileService } from './fileService'
 import { chatService } from './chatService'
@@ -76,12 +76,13 @@ class WebSocketService {
         // 2. 初始化占位消息（仅需本地消息，不需要 WS payload）
         const { clientId, localMsg } = buildImageLocalMsg({
             url: '',
-            localPath: toLocalPreviewUrl(file.path),
+            localPath: file.path,
             uploadProgress: 0,
             width: imgWidth,
             height: imgHeight,
             size: file.size,
             format: file.type,
+            thumbnailUrl: toLocalPreviewUrl(file.path),
         }, sessionId)
         chatStore.addMessage(localMsg)
 
@@ -106,8 +107,11 @@ class WebSocketService {
                 )
             }
 
+            let localMsg_copy = { ...localMsg }
+            localMsg_copy.localPath = undefined
+            localMsg_copy.thumbnailUrl = undefined
             // 5. 用 buildImageWsPayload 直接从已有本地消息拼装 WS 载荷，不再重复所有内容
-            const finalMsg = buildImageWsPayload(localMsg, ossUrl, sessionId)
+            const finalMsg = buildImageWsPayload(localMsg_copy, ossUrl, sessionId)
             const result = await this.send(finalMsg, clientId)
             if (!result.success || !result.data?.sent) {
                 chatStore.updateMessageStatus(

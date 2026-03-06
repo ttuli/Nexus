@@ -96,7 +96,7 @@ class AuthManager {
         try {
             await mainPost(`${config.authServer}/auth/logout`, {
                 remove_rt: !tokenManager.getStoreRefreshToken(),
-                platform: this.platform,
+                device_id: this.deviceId,
             } as ApiTypes.auth.LogoutReq);
         } catch (error) {
             console.error('[AuthManager] Logout request error:', error);

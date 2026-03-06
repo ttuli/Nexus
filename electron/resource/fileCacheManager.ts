@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as crypto from 'crypto';
 import { nativeImage } from 'electron';
 import { storage } from '../utils/storage';
+import { config } from '../config';
 
 /**
  * 本地文件缓存管理器
@@ -19,6 +20,7 @@ import { storage } from '../utils/storage';
 
 export const IMCACHE_SCHEME = 'imcache';
 export const IMLOCAL_SCHEME = 'imlocal';
+export const IMLOCALRAW_SCHEME = 'imlocalraw';
 
 class FileCacheManager {
     private cacheDir: string = '';
@@ -81,7 +83,7 @@ class FileCacheManager {
      * 处理渲染进程对 imlocal:// 协议的请求
      * 解析本地图片地址，缩放，并生成缓存返回
      */
-    public handleLocalRequest(protocolUrl: string, defaultMaxWidth: number = 250): { buffer?: Uint8Array, cachePath?: string, status?: number } {
+    public handleLocalRequest(protocolUrl: string, defaultMaxWidth: number = config.FileCacheManagerConfig.maxWidth): { buffer?: Uint8Array, cachePath?: string, status?: number } {
         // 手动解析 URL，避免 new URL() 把 hostname 小写化（会破坏 base64 编码）
         const withoutScheme = protocolUrl.replace(`${IMLOCAL_SCHEME}://`, '');
         const [encodedPart, queryString] = withoutScheme.split('?');
@@ -124,6 +126,27 @@ class FileCacheManager {
             console.error('[FileCacheManager] Failed to serve local image:', filePath, e);
             return { status: 500 };
         }
+    }
+
+    /**
+     * 处理 imlocalraw:// 协议：原样返回本地文件，不裁剪不缩放
+     */
+    public handleLocalRequestRaw(protocolUrl: string): { filePath?: string; status?: number } {
+        const withoutScheme = protocolUrl.replace(`${IMLOCALRAW_SCHEME}://`, '');
+        const encodedPart = withoutScheme.split('?')[0].replace(/-/g, '+').replace(/_/g, '/');
+
+        let filePath: string;
+        try {
+            filePath = decodeURIComponent(atob(encodedPart).split('').map((c) =>
+                '%' + c.charCodeAt(0).toString(16).padStart(2, '0')).join(''));
+        } catch {
+            return { status: 400 };
+        }
+
+        if (!fs.existsSync(filePath)) {
+            return { status: 404 };
+        }
+        return { filePath };
     }
 
     /**

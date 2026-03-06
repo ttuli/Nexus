@@ -25,6 +25,10 @@ export const config = {
 
     },
 
+    FileCacheManagerConfig: {
+        maxWidth: 280,
+    },
+
     windowConfig: {
         showTimeoutMs: 5000,
     },

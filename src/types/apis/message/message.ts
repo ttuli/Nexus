@@ -41,6 +41,8 @@ export interface Conversation {
   max_seq: number;
   create_time: number;
   update_time: number;
+  last_content: string;
+  last_sender: number;
 }
 
 /** UserConversation */
@@ -385,7 +387,15 @@ export const Message: MessageFns<Message> = {
 };
 
 function createBaseConversation(): Conversation {
-  return { conversation_id: "", conversation_type: 0, max_seq: 0, create_time: 0, update_time: 0 };
+  return {
+    conversation_id: "",
+    conversation_type: 0,
+    max_seq: 0,
+    create_time: 0,
+    update_time: 0,
+    last_content: "",
+    last_sender: 0,
+  };
 }
 
 export const Conversation: MessageFns<Conversation> = {
@@ -404,6 +414,12 @@ export const Conversation: MessageFns<Conversation> = {
     }
     if (message.update_time !== 0) {
       writer.uint32(40).int64(message.update_time);
+    }
+    if (message.last_content !== "") {
+      writer.uint32(50).string(message.last_content);
+    }
+    if (message.last_sender !== 0) {
+      writer.uint32(56).uint64(message.last_sender);
     }
     return writer;
   },
@@ -455,6 +471,22 @@ export const Conversation: MessageFns<Conversation> = {
           message.update_time = longToNumber(reader.int64());
           continue;
         }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.last_content = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.last_sender = longToNumber(reader.uint64());
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -491,6 +523,16 @@ export const Conversation: MessageFns<Conversation> = {
         : isSet(object.update_time)
         ? globalThis.Number(object.update_time)
         : 0,
+      last_content: isSet(object.lastContent)
+        ? globalThis.String(object.lastContent)
+        : isSet(object.last_content)
+        ? globalThis.String(object.last_content)
+        : "",
+      last_sender: isSet(object.lastSender)
+        ? globalThis.Number(object.lastSender)
+        : isSet(object.last_sender)
+        ? globalThis.Number(object.last_sender)
+        : 0,
     };
   },
 
@@ -511,6 +553,12 @@ export const Conversation: MessageFns<Conversation> = {
     if (message.update_time !== 0) {
       obj.updateTime = Math.round(message.update_time);
     }
+    if (message.last_content !== "") {
+      obj.lastContent = message.last_content;
+    }
+    if (message.last_sender !== 0) {
+      obj.lastSender = Math.round(message.last_sender);
+    }
     return obj;
   },
 
@@ -524,6 +572,8 @@ export const Conversation: MessageFns<Conversation> = {
     message.max_seq = object.max_seq ?? 0;
     message.create_time = object.create_time ?? 0;
     message.update_time = object.update_time ?? 0;
+    message.last_content = object.last_content ?? "";
+    message.last_sender = object.last_sender ?? 0;
     return message;
   },
 };

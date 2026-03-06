@@ -69,10 +69,10 @@ export async function readMessage(data: ApiTypes.message.ReadMessageReq) {
 export async function getUserActiveConversation(params: ApiTypes.message.GetUserActiveConversationsReq) {
     const res = await instance<ApiResponse<ApiTypes.message.GetUserActiveConversationsResp>>({
         method: 'get',
-        url: config.messageServer + '/conversations/user/active',
+        url: config.messageServer + '/message/conversations/user/active',
         params
     })
-    return res.data
+    return decodeResponse(res.data, ApiTypes.message.GetUserActiveConversationsResp.decode)
 }
 
 // 撤回消息

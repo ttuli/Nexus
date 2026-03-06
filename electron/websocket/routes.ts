@@ -1,7 +1,7 @@
 import { WsMessage } from './serializer/MessageSerializer';
 import { messageRouter, MessageHandler } from './MessageRouter';
 import { windowManager } from '../windows/windowManager';
-import { IpcChannels, ImTypes } from '../../src/types';
+import { IpcChannels, ImTypes, LogoutType } from '../../src/types';
 
 import { messageQueue } from './MessageQueue';
 
@@ -56,6 +56,12 @@ const handleMsgAck: MessageHandler = async (message: WsMessage) => {
  */
 const handleNotification: MessageHandler = async (message: WsMessage) => {
     try {
+        if (message.type === ImTypes.MessageType.USER_KICKOFF) {
+            windowManager.broadcastMessage(IpcChannels.LOGOUT_REMIND, {
+                type: LogoutType.KICKED,
+            });
+            return
+        }
         windowManager.broadcastMessage(IpcChannels.WS_NOTIFICATION, {
             type: message.type,
             payload: message,
@@ -144,6 +150,7 @@ export const wsRouteTable: Record<number, MessageHandler> = {
     [ImTypes.MessageType.FRIEND_ADD]: handleNotification,
     [ImTypes.MessageType.GROUP_REQUEST]: handleNotification,
     [ImTypes.MessageType.GROUP_OP_NOTIFICATION]: handleNotification,
+    [ImTypes.MessageType.USER_KICKOFF]: handleNotification,
 
 
     [ImTypes.MessageType.MSG_ACK]: handleMsgAck,

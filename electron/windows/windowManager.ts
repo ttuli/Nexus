@@ -183,15 +183,13 @@ class WindowManager {
         },
       });
 
-      // 对 home 窗口启用原生亚克力模糊效果 (Windows 10+)
-      if (key === 'home') {
-        // tintColor: ABGR 格式, 0x66ECECEC = rgba(236,236,236,0.4)
-        enableAcrylicBlur(window, 0x66ECECEC);
-        // restoreWindowDecorations(window);
+      // 启用原生亚克力模糊效果
+      if (config.acrylicColor !== undefined) {
+        enableAcrylicBlur(window, config.acrylicColor);
       }
 
       // 设置事件监听器
-      const cleanup = this.setupWindowListeners(window, key, resizable);
+      const cleanup = this.setupWindowListeners(window, config);
 
       // 记录窗口
       this.windows.set(key, {
@@ -238,9 +236,10 @@ class WindowManager {
    */
   private setupWindowListeners(
     window: BrowserWindow,
-    key: string,
-    resizable: boolean
+    windowConfig: WindowConfig
   ): () => void {
+    const key = windowConfig.key;
+    const resizable = windowConfig.resizable !== false;
     // 在窗口销毁前保存 webContents.id
     const webContentsId = window.webContents.id;
 
@@ -280,9 +279,8 @@ class WindowManager {
     // 窗口状态变化监听
     const onMaximize = () => {
       if (this.isValidWindow(window) && resizable) {
-        if (key === 'home') {
-          // 最大化时替换底色为亮灰色（或替换为您想要的其他十六进制颜色，如 #FFFFFF）
-          window.setBackgroundColor('#f3f3f3');
+        if (windowConfig.maximizeBackgroundColor) {
+          window.setBackgroundColor(windowConfig.maximizeBackgroundColor);
         }
         window.webContents.send(IpcChannels.WINDOW_STATE, 'maximized');
       }
@@ -290,8 +288,8 @@ class WindowManager {
 
     const onUnmaximize = () => {
       if (this.isValidWindow(window)) {
-        if (key === 'home') {
-          window.setBackgroundColor('#00000000');
+        if (windowConfig.maximizeBackgroundColor) {
+          window.setBackgroundColor(windowConfig.backgroundColor || '#00000000');
         }
         window.webContents.send(IpcChannels.WINDOW_STATE, 'unmaximize');
         restoreWindowDecorations(window);
@@ -306,8 +304,8 @@ class WindowManager {
 
     const onRestore = () => {
       if (this.isValidWindow(window)) {
-        if (key === 'home') {
-          window.setBackgroundColor('#00000000');
+        if (windowConfig.maximizeBackgroundColor) {
+          window.setBackgroundColor(windowConfig.backgroundColor || '#00000000');
         }
         window.webContents.send(IpcChannels.WINDOW_STATE, 'restored');
         restoreWindowDecorations(window);

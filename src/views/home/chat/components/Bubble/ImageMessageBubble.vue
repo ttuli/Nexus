@@ -31,7 +31,7 @@
 import { ref, computed, watch } from 'vue';
 import { ILocalImageMessage } from '@/types/chatMessage';
 import { config } from '@/config';
-import { toNetworkPreviewUrl } from '@/utils/chat';
+import { toLocalPreviewUrlRaw, toNetworkPreviewUrl } from '@/utils/chat';
 import { ImTypes } from '@/types';
 import { fileService } from '@/services/fileService';
 import { chatService } from '@/services/chatService';
@@ -78,12 +78,12 @@ async function fetchThumbnail(msg: ILocalImageMessage) {
 
 // 监听消息变化，决定 displayUrl 来源
 watch(() => props.message, (msg) => {
-    if (msg.localPath && msg.localPath !== '') {
-        displayUrl.value = msg.localPath;
-        return;
-    }
     if (msg.thumbnailUrl && msg.thumbnailUrl !== '') {
         displayUrl.value = msg.thumbnailUrl;
+        return;
+    }
+    if (msg.localPath && msg.localPath !== '') {
+        displayUrl.value = toLocalPreviewUrlRaw(msg.localPath);
         return;
     }
     // 没有本地路径也没有缩略图 URL，异步获取
@@ -141,7 +141,7 @@ const handleClick = async () => {
         // 如果有本地路径，直接用本地路径打开原图
         if (props.message.localPath) {
             createWindow('photoViewer', {
-                urls: [props.message.localPath],
+                urls: [toLocalPreviewUrlRaw(props.message.localPath)],
                 index: 0
             });
             return;

@@ -48,9 +48,10 @@ import CreateGroup from '@/components/CreateGroup.vue';
 import { createWindow } from '@/utils/window';
 import { groupService } from '@/services'
 import { IpcChannels, ApiTypes } from '@/types';
-import { initRelationStore } from '@/store/init';
+import { initRelationStore, storeOfflineTimestamp } from '@/store/init';
 import { ElMessage } from 'element-plus';
 import GlobalLoading from '@/components/GlobalLoading/GlobalLoading';
+import messageService from '@/services/messageService';
 
 const router = useRouter();
 const userStore = useUserStore()
@@ -124,10 +125,12 @@ onMounted(async () => {
     import('@/views/home/contact/components/ContactSidebar.vue')
 
     signalWindowReady()
+    messageService.getOfflineActiveSessions()
+    websocketService.connect()
     await initRelationStore()
-    await websocketService.connect()
 });
 onUnmounted(async () => {
+    storeOfflineTimestamp()
     chatStore.saveToStorage(userStore.getUserID());
     ipcService.off(IpcChannels.ROUTE_NAVIGATE);
 });

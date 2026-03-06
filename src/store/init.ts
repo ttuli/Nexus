@@ -42,3 +42,11 @@ export async function initRelationStore() {
     })
     await groupService.fetchByIds([...new Set(groupIds)]);
 }
+
+export function storeOfflineTimestamp() {
+    localStorage.setItem('message_timestamp_' + useUserStore().getUserID(), Date.now().toString())
+}
+
+export function getOfflineTimestamp() {
+    return Number(localStorage.getItem('message_timestamp_' + useUserStore().getUserID()))
+}

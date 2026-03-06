@@ -135,6 +135,8 @@ export enum MessageType {
   USER_TYPING = 402,
   /** USER_STATUS_CHANGE - 状态变更 */
   USER_STATUS_CHANGE = 403,
+  /** USER_KICKOFF - 用户被踢 */
+  USER_KICKOFF = 404,
   /** GROUP_OP_NOTIFICATION - 群组操作 */
   GROUP_OP_NOTIFICATION = 500,
   /** NOTIFICATION - 通知类 600-699 */
@@ -223,6 +225,9 @@ export function messageTypeFromJSON(object: any): MessageType {
     case 403:
     case "USER_STATUS_CHANGE":
       return MessageType.USER_STATUS_CHANGE;
+    case 404:
+    case "USER_KICKOFF":
+      return MessageType.USER_KICKOFF;
     case 500:
     case "GROUP_OP_NOTIFICATION":
       return MessageType.GROUP_OP_NOTIFICATION;
@@ -299,6 +304,8 @@ export function messageTypeToJSON(object: MessageType): string {
       return "USER_TYPING";
     case MessageType.USER_STATUS_CHANGE:
       return "USER_STATUS_CHANGE";
+    case MessageType.USER_KICKOFF:
+      return "USER_KICKOFF";
     case MessageType.GROUP_OP_NOTIFICATION:
       return "GROUP_OP_NOTIFICATION";
     case MessageType.NOTIFICATION:
@@ -1395,6 +1402,15 @@ export interface TypingStatus {
   conversation_id: string;
   /** 是否正在输入 */
   is_typing: boolean;
+  /** 时间戳 */
+  timestamp: number;
+}
+
+export interface UserKickoff {
+  /** 用户ID */
+  user_id: number;
+  /** 踢出原因 */
+  reason: string;
   /** 时间戳 */
   timestamp: number;
 }
@@ -4087,6 +4103,102 @@ export const TypingStatus: MessageFns<TypingStatus> = {
     message.user_id = object.user_id ?? 0;
     message.conversation_id = object.conversation_id ?? "";
     message.is_typing = object.is_typing ?? false;
+    message.timestamp = object.timestamp ?? 0;
+    return message;
+  },
+};
+
+function createBaseUserKickoff(): UserKickoff {
+  return { user_id: 0, reason: "", timestamp: 0 };
+}
+
+export const UserKickoff: MessageFns<UserKickoff> = {
+  encode(message: UserKickoff, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.user_id !== 0) {
+      writer.uint32(8).uint64(message.user_id);
+    }
+    if (message.reason !== "") {
+      writer.uint32(18).string(message.reason);
+    }
+    if (message.timestamp !== 0) {
+      writer.uint32(24).int64(message.timestamp);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UserKickoff {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUserKickoff();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.user_id = longToNumber(reader.uint64());
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.reason = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.timestamp = longToNumber(reader.int64());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UserKickoff {
+    return {
+      user_id: isSet(object.userId)
+        ? globalThis.Number(object.userId)
+        : isSet(object.user_id)
+        ? globalThis.Number(object.user_id)
+        : 0,
+      reason: isSet(object.reason) ? globalThis.String(object.reason) : "",
+      timestamp: isSet(object.timestamp) ? globalThis.Number(object.timestamp) : 0,
+    };
+  },
+
+  toJSON(message: UserKickoff): unknown {
+    const obj: any = {};
+    if (message.user_id !== 0) {
+      obj.userId = Math.round(message.user_id);
+    }
+    if (message.reason !== "") {
+      obj.reason = message.reason;
+    }
+    if (message.timestamp !== 0) {
+      obj.timestamp = Math.round(message.timestamp);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UserKickoff>, I>>(base?: I): UserKickoff {
+    return UserKickoff.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UserKickoff>, I>>(object: I): UserKickoff {
+    const message = createBaseUserKickoff();
+    message.user_id = object.user_id ?? 0;
+    message.reason = object.reason ?? "";
     message.timestamp = object.timestamp ?? 0;
     return message;
   },

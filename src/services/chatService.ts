@@ -224,6 +224,12 @@ class ChatService {
         return null;
     }
 
+    /**
+     * 与后端 FindByConversation 对齐：
+     * startSeq/endSeq 负数表示无界；非负表示闭区间边界。
+     * 向旧消息拉取：startSeq=-1, endSeq=upper → DESC
+     * 首次拉取：startSeq=-1, endSeq=-1 → DESC，取最新 limit 条
+     */
     private async fetchHistoryFromApi(
         sessionId: string,
         pageSize: number,
@@ -234,14 +240,10 @@ class ChatService {
             limit: pageSize,
         };
 
-        const startSeq = this.normalizeNumber(range?.startSeq);
-        const endSeq = this.normalizeNumber(range?.endSeq);
-        if (startSeq > 0) {
-            params.start_seq = startSeq;
-        }
-        if (endSeq > 0) {
-            params.end_seq = endSeq;
-        }
+        const startSeq = range?.startSeq !== undefined ? this.normalizeNumber(range.startSeq) : -1;
+        const endSeq = range?.endSeq !== undefined ? this.normalizeNumber(range.endSeq) : -1;
+        params.start_seq = startSeq;
+        params.end_seq = endSeq;
 
         const resp = await getHistory(params);
         const list: ApiTypes.message.Message[] = Array.isArray(resp.data?.list) ? resp.data.list : [];
@@ -249,12 +251,12 @@ class ChatService {
             .map((item: ApiTypes.message.Message) => this.mapApiMessage(item))
             .filter((item: IChatMessage | null): item is IChatMessage => item !== null);
 
-        if (startSeq > 0 || endSeq > 0) {
+        if (startSeq >= 0 || endSeq >= 0) {
             messages = messages.filter((item) => {
                 const seq = this.normalizeNumber(item.seq);
                 if (seq <= 0) return true;
-                if (startSeq > 0 && seq < startSeq) return false;
-                if (endSeq > 0 && seq > endSeq) return false;
+                if (startSeq >= 0 && seq < startSeq) return false;
+                if (endSeq >= 0 && seq > endSeq) return false;
                 return true;
             });
         }
@@ -390,14 +392,6 @@ class ChatService {
         const upper = beforeTime !== undefined ? beforeTime - 1 : Number.MAX_SAFE_INTEGER;
         if (upper < 0) return [];
 
-        // If we already have local messages but the oldest one has no seq,
-        // fallback to server history API (seq-based cursor source).
-        if (cursor !== undefined && beforeSeq === undefined) {
-            const remote = await this.fetchHistoryFromApi(sessionId, pageSize);
-            if (beforeTime === undefined) return remote;
-            return remote.filter(item => this.normalizeNumber(item.sendTime) < beforeTime);
-        }
-
         const db = await this.openDB();
 
         const local = await new Promise<IChatMessage[]>((resolve, reject) => {
@@ -431,14 +425,12 @@ class ChatService {
             return local;
         }
 
-        const endSeq = beforeSeq !== undefined && beforeSeq > 0 ? beforeSeq - 1 : undefined;
-        const startSeq = endSeq !== undefined && endSeq > 0
-            ? Math.max(1, endSeq - pageSize + 1)
-            : undefined;
+        // 远程 API：与后端 FindByConversation 一致，负数表示无界
+        // 向旧消息拉取：startSeq=-1, endSeq=beforeSeq-1 → DESC
+        // 首次拉取：startSeq=-1, endSeq=-1 → DESC，取最新 limit 条
+        const endSeq = beforeSeq !== undefined && beforeSeq > 0 ? beforeSeq - 1 : -1;
+        const startSeq = -1;
         const remote = await this.fetchHistoryFromApi(sessionId, pageSize, { startSeq, endSeq });
-        if (endSeq !== undefined && endSeq > 0) {
-            return remote;
-        }
         if (beforeTime === undefined) {
             return remote;
         }

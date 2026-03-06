@@ -13,6 +13,7 @@ export enum NotifySoundType {
 }
 
 class WindowService {
+    private notifyAudio: HTMLAudioElement | null = null
     /**
      * 创建新窗口
      */
@@ -84,9 +85,13 @@ class WindowService {
      * 播放提示音
      */
     playNotificationSound(type: NotifySoundType = NotifySoundType.Message): void {
-        const audio = new Audio(`/audio/notify_${type}.wav`);
-        audio.play().catch(e => console.error('Failed to play notification sound:', e));
-        ipcService.send(IpcChannels.WINDOW_FLASH_FRAME);
+        if (this.notifyAudio) {
+            this.notifyAudio.pause()
+            this.notifyAudio.currentTime = 0
+        }
+        this.notifyAudio = new Audio(`/audio/notify_${type}.wav`)
+        this.notifyAudio.play().catch(e => console.error('Failed to play notification sound:', e))
+        ipcService.send(IpcChannels.WINDOW_FLASH_FRAME)
     }
 }
 

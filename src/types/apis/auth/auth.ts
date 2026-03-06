@@ -33,8 +33,8 @@ export interface LoginResp {
 export interface LogoutReq {
   /** @gotags: json:"remove_rt" */
   remove_rt: boolean;
-  /** @gotags: json:"platform" */
-  platform: string;
+  /** @gotags: json:"device_id" */
+  device_id: string;
 }
 
 /** RegisterReq */
@@ -276,7 +276,7 @@ export const LoginResp: MessageFns<LoginResp> = {
 };
 
 function createBaseLogoutReq(): LogoutReq {
-  return { remove_rt: false, platform: "" };
+  return { remove_rt: false, device_id: "" };
 }
 
 export const LogoutReq: MessageFns<LogoutReq> = {
@@ -284,8 +284,8 @@ export const LogoutReq: MessageFns<LogoutReq> = {
     if (message.remove_rt !== false) {
       writer.uint32(8).bool(message.remove_rt);
     }
-    if (message.platform !== "") {
-      writer.uint32(18).string(message.platform);
+    if (message.device_id !== "") {
+      writer.uint32(18).string(message.device_id);
     }
     return writer;
   },
@@ -310,7 +310,7 @@ export const LogoutReq: MessageFns<LogoutReq> = {
             break;
           }
 
-          message.platform = reader.string();
+          message.device_id = reader.string();
           continue;
         }
       }
@@ -329,7 +329,11 @@ export const LogoutReq: MessageFns<LogoutReq> = {
         : isSet(object.remove_rt)
         ? globalThis.Boolean(object.remove_rt)
         : false,
-      platform: isSet(object.platform) ? globalThis.String(object.platform) : "",
+      device_id: isSet(object.deviceId)
+        ? globalThis.String(object.deviceId)
+        : isSet(object.device_id)
+        ? globalThis.String(object.device_id)
+        : "",
     };
   },
 
@@ -338,8 +342,8 @@ export const LogoutReq: MessageFns<LogoutReq> = {
     if (message.remove_rt !== false) {
       obj.removeRt = message.remove_rt;
     }
-    if (message.platform !== "") {
-      obj.platform = message.platform;
+    if (message.device_id !== "") {
+      obj.deviceId = message.device_id;
     }
     return obj;
   },
@@ -350,7 +354,7 @@ export const LogoutReq: MessageFns<LogoutReq> = {
   fromPartial<I extends Exact<DeepPartial<LogoutReq>, I>>(object: I): LogoutReq {
     const message = createBaseLogoutReq();
     message.remove_rt = object.remove_rt ?? false;
-    message.platform = object.platform ?? "";
+    message.device_id = object.device_id ?? "";
     return message;
   },
 };

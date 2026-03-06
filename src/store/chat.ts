@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia';
 import { useUserStore } from './user';
-import { ImTypes } from '@/types';
+import { ApiTypes, ImTypes } from '@/types';
 import { IChatMessage, ILocalSystemMessage } from '@/types/chatMessage';
-import { chatService } from '@/services';
+import { chatService, windowService } from '@/services';
 import { config } from '@/config';
 import { extractTargetIdFromSessionId, formatSystemMessage } from '@/utils/chat';
 
@@ -18,6 +18,31 @@ export const useChatStore = defineStore('chat', {
         pageSize: 20
     }),
     actions: {
+        /**
+         * 根据服务端会话数据更新聊天列表
+         * 已存在：更新 max_seq / update_time，累加未读增量
+         * 不存在：新建条目，未读数 = max_seq（本地无基线）
+         */
+        upsertConversation(conversation: ApiTypes.message.Conversation) {
+            this.addChat(conversation.conversation_id)
+            const existing = this.chatList.find(
+                c => c.conversation_id === conversation.conversation_id
+            );
+
+            if (existing) {
+                const delta = Math.max(0, conversation.max_seq - existing.max_seq);
+                if (delta > 0) {
+                    windowService.playNotificationSound()
+                }
+                existing.unread_count = (existing.unread_count || 0) + delta;
+                existing.max_seq = conversation.max_seq;
+                existing.update_time = conversation.update_time;
+                existing.last_content = conversation.last_content;
+                existing.last_message_time = conversation.update_time;
+                existing.last_sender = conversation.last_sender;
+            }
+        },
+
         /**
          * 添加或置顶聊天
          * 如果已存在则移到第一位，如果不存在则添加到第一位
@@ -265,6 +290,11 @@ export const useChatStore = defineStore('chat', {
                             .filter((seq) => Number.isFinite(seq) && seq > 0);
                         if (knownSeqs.length > 0) {
                             cursorSeq = Math.min(...knownSeqs);
+                        } else {
+                            const cur = this.chatList.find(c => c.conversation_id === this.currentSessionId);
+                            if (cur && (cur.max_seq ?? 0) > 0) {
+                                cursorSeq = cur.max_seq;
+                            }
                         }
                     }
                 }

@@ -1,5 +1,5 @@
 import { protocol, net } from 'electron'
-import { fileCacheManager, IMCACHE_SCHEME, IMLOCAL_SCHEME } from '../resource/fileCacheManager'
+import { fileCacheManager, IMCACHE_SCHEME, IMLOCAL_SCHEME, IMLOCALRAW_SCHEME } from '../resource/fileCacheManager'
 
 export function registerProtocols() {
     // 注册 imcache:// 自定义协议：将网络图片请求映射到本地磁盘缓存
@@ -21,7 +21,7 @@ export function registerProtocols() {
 
     // 注册 imlocal:// 自定义协议：将本地文件路径裁剪缩放后返回给渲染进程
     protocol.handle(IMLOCAL_SCHEME, (request) => {
-        const result = fileCacheManager.handleLocalRequest(request.url, 250); // 宽度默认设为 250
+        const result = fileCacheManager.handleLocalRequest(request.url); // 宽度默认设为 250
 
         if (result.status) {
             return new Response(null, { status: result.status });
@@ -40,6 +40,18 @@ export function registerProtocols() {
             return net.fetch('file://' + result.cachePath);
         }
 
+        return new Response(null, { status: 500 });
+    });
+
+    // 注册 imlocalraw:// 自定义协议：原样返回本地图片，不裁剪不缩放
+    protocol.handle(IMLOCALRAW_SCHEME, (request) => {
+        const result = fileCacheManager.handleLocalRequestRaw(request.url);
+        if (result.status) {
+            return new Response(null, { status: result.status });
+        }
+        if (result.filePath) {
+            return net.fetch('file://' + result.filePath);
+        }
         return new Response(null, { status: 500 });
     });
 }

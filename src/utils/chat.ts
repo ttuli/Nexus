@@ -6,8 +6,20 @@ import { ulid } from 'ulid';
 
 /** imlocal:// 协议 Scheme，与主进程 fileCacheManager 中定义保持一致 */
 const IMLOCAL_SCHEME = 'imlocal';
+/** imlocalraw:// 协议 Scheme，原样返回本地图片不裁剪 */
+const IMLOCALRAW_SCHEME = 'imlocalraw';
 /** imcache:// 协议 Scheme，与主进程 fileCacheManager 中定义保持一致 */
 const IMCACHE_SCHEME = 'imcache';
+
+/**
+ * 将本地文件绝对路径转换为 imlocalraw:// 协议地址（原样返回，不裁剪）
+ */
+export function toLocalPreviewUrlRaw(filePath: string): string {
+    const encoded = btoa(encodeURIComponent(filePath).replace(/%([0-9A-F]{2})/g, (_, p1) =>
+        String.fromCharCode(parseInt(p1, 16))
+    )).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    return `${IMLOCALRAW_SCHEME}://${encoded}`;
+}
 
 /**
  * 将本地文件绝对路径转换为 imlocal:// 协议地址（渲染进程侧）
