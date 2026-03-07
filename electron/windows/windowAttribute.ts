@@ -92,11 +92,9 @@ let configs: Map<string, WindowConfig> = new Map([
             height: 830,
             minWidth: 750,
             minHeight: 430,
-            transparent: false,
             backgroundColor: '#00000000',
-            backgroundMaterial: 'acrylic',
+            backgroundMaterial: 'mica',
             acrylicColor: 0x66ECECEC,
-            maximizeBackgroundColor: '#f3f3f3',
         }
     ],
     [

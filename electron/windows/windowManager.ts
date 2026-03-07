@@ -166,9 +166,9 @@ class WindowManager {
         resizable,
         maximizable,
         frame,
+        backgroundMaterial,
         backgroundColor,
         transparent,
-        backgroundMaterial,
         opacity: 1,
         icon: path.join(process.env.VITE_PUBLIC || __dirname, 'icon.png'),
         modal,
@@ -183,8 +183,8 @@ class WindowManager {
         },
       });
 
-      // 启用原生亚克力模糊效果
-      if (config.acrylicColor !== undefined) {
+      // 启用亚克力模糊
+      if (config.acrylicColor) {
         enableAcrylicBlur(window, config.acrylicColor);
       }
 
@@ -279,20 +279,14 @@ class WindowManager {
     // 窗口状态变化监听
     const onMaximize = () => {
       if (this.isValidWindow(window) && resizable) {
-        if (windowConfig.maximizeBackgroundColor) {
-          window.setBackgroundColor(windowConfig.maximizeBackgroundColor);
-        }
         window.webContents.send(IpcChannels.WINDOW_STATE, 'maximized');
       }
     };
 
     const onUnmaximize = () => {
       if (this.isValidWindow(window)) {
-        if (windowConfig.maximizeBackgroundColor) {
-          window.setBackgroundColor(windowConfig.backgroundColor || '#00000000');
-        }
         window.webContents.send(IpcChannels.WINDOW_STATE, 'unmaximize');
-        restoreWindowDecorations(window);
+        // restoreWindowDecorations(window);
       }
     };
 
@@ -304,11 +298,8 @@ class WindowManager {
 
     const onRestore = () => {
       if (this.isValidWindow(window)) {
-        if (windowConfig.maximizeBackgroundColor) {
-          window.setBackgroundColor(windowConfig.backgroundColor || '#00000000');
-        }
         window.webContents.send(IpcChannels.WINDOW_STATE, 'restored');
-        restoreWindowDecorations(window);
+        // restoreWindowDecorations(window);
       }
     };
 
