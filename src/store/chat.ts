@@ -23,7 +23,7 @@ export const useChatStore = defineStore('chat', {
          * 已存在：更新 max_seq / update_time，累加未读增量
          * 不存在：新建条目，未读数 = max_seq（本地无基线）
          */
-        upsertConversation(conversation: ApiTypes.message.Conversation) {
+        upsertConversation(conversation: Omit<ApiTypes.message.Conversation, 'create_time' | 'conversation_type'> & Partial<Pick<ApiTypes.message.Conversation, 'create_time' | 'conversation_type'>>) {
             this.addChat(conversation.conversation_id)
             const existing = this.chatList.find(
                 c => c.conversation_id === conversation.conversation_id
@@ -364,7 +364,13 @@ export const useChatStore = defineStore('chat', {
                     chat.max_seq = message.seq;
                 }
             })
-            this.updateLastMessage(message.sessionId, lastContent);
+            this.upsertConversation({
+                conversation_id: message.sessionId,
+                max_seq: message.seq,
+                last_content: lastContent,
+                last_sender: message.fromUserId,
+                update_time: message.sendTime,
+            });
 
             void chatService.saveMessage(message).catch((e) => {
                 console.error('[ChatStore] Failed to persist message', e);
