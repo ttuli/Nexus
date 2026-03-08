@@ -280,13 +280,19 @@ class WindowManager {
     const onMaximize = () => {
       if (this.isValidWindow(window) && resizable) {
         window.webContents.send(IpcChannels.WINDOW_STATE, 'maximized');
+        if (windowConfig.maximizeBackgroundColor) {
+          window.setBackgroundColor(windowConfig.maximizeBackgroundColor);
+        }
       }
     };
 
     const onUnmaximize = () => {
       if (this.isValidWindow(window)) {
         window.webContents.send(IpcChannels.WINDOW_STATE, 'unmaximize');
-        // restoreWindowDecorations(window);
+        restoreWindowDecorations(window);
+        if (windowConfig.backgroundColor) {
+          window.setBackgroundColor(windowConfig.backgroundColor);
+        }
       }
     };
 
@@ -299,7 +305,10 @@ class WindowManager {
     const onRestore = () => {
       if (this.isValidWindow(window)) {
         window.webContents.send(IpcChannels.WINDOW_STATE, 'restored');
-        // restoreWindowDecorations(window);
+        restoreWindowDecorations(window);
+        if (windowConfig.backgroundColor && !window.isMaximized()) {
+          window.setBackgroundColor(windowConfig.backgroundColor);
+        }
       }
     };
 
