@@ -1,4 +1,4 @@
-import { ImTypes } from '@/types';
+import { CurrentRoute, ImTypes } from '@/types';
 /**
  * 群组服务
  * 处理群组信息的获取和管理
@@ -20,6 +20,7 @@ import { generateGroupSessionId } from '@/utils/chat'
 import { MessageType, MessageStatus } from '@/types/im'
 import { IChatMessage } from '@/types/chatMessage'
 import { useRouter } from 'vue-router'
+import { useAppStore } from '@/store/app';
 
 class GroupService {
     /**
@@ -203,9 +204,10 @@ class GroupService {
             chatStore.addMessage(message)
 
             // Navigate to the chat page if currently under /home
-            const router = useRouter()
-            if (router.currentRoute.value.path.startsWith('/home')) {
-                router.push('/home/chat')
+            const appStore = useAppStore()
+            if (appStore.currentRoute !== CurrentRoute.Chat) {
+                appStore.currentRoute = CurrentRoute.Chat
+                useRouter().push('/home/chat')
                 chatStore.setCurrentChat(sessionId)
             }
         }

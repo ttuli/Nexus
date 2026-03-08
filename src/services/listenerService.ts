@@ -150,7 +150,7 @@ class ListenerService {
                 console.error('[ListenerService] Failed to convert WSMessage to IChatMessage');
                 return;
             }
-
+            console.log('[ListenerService] Received WSMessage:', chatMsg);
             chatStore.addMessage(chatMsg);
 
             // 检查文件消息的 localPath 是否本地实际存在
@@ -232,6 +232,11 @@ class ListenerService {
                 }
                 case ImTypes.MessageType.GROUP_OP_NOTIFICATION: {
                     chatService.handleGroupNotification(data.payload)
+                    break;
+                }
+                case ImTypes.MessageType.MSG_OP_RECALL: {
+                    const msgRecall = ImTypes.MessageRecall.decode(data.payload.payload)
+                    chatStore.updateMessageStatus(msgRecall.conversation_id, msgRecall.msg_id, ImTypes.MessageStatus.MESSAGE_STATUS_RECALLED, msgRecall.recall_time)
                     break;
                 }
             }
