@@ -236,7 +236,7 @@ class ListenerService {
                 }
                 case ImTypes.MessageType.MSG_OP_RECALL: {
                     const msgRecall = ImTypes.MessageRecall.decode(data.payload.payload)
-                    chatStore.updateMessageStatus(msgRecall.conversation_id, msgRecall.msg_id, ImTypes.MessageStatus.MESSAGE_STATUS_RECALLED, msgRecall.recall_time)
+                    chatStore.updateMessageStatus(msgRecall.conversation_id, '', ImTypes.MessageStatus.MESSAGE_STATUS_RECALLED, msgRecall.recall_time, msgRecall.msg_id)
                     break;
                 }
             }

@@ -50,6 +50,8 @@ const rotation = ref(0);
 const position = ref({ x: 0, y: 0 });
 const isDragging = ref(false);
 const lastMousePos = ref({ x: 0, y: 0 });
+// true during wheel/drag: suppresses CSS transition to avoid tile-memory exhaustion
+const isContinuous = ref(false);
 
 // Refs
 const containerRef = ref<HTMLElement | null>(null);
@@ -67,28 +69,27 @@ const currentTitle = computed(() => {
 const imageStyle = computed(() => ({
     transform: `translate(${position.value.x}px, ${position.value.y}px) scale(${scale.value}) rotate(${rotation.value}deg)`,
     cursor: isDragging.value ? 'grabbing' : (scale.value > 1 ? 'grab' : 'default'),
-    transition: isDragging.value ? 'none' : 'transform 0.1s ease-out'
+    // Suppress transition during wheel/drag to avoid Chromium tile-memory exhaustion
+    transition: isContinuous.value ? 'none' : 'transform 0.15s ease-out'
 }));
 
 // Lifecycle
+let resizeTimer: ReturnType<typeof setTimeout> | null = null;
+const debouncedFitToWindow = () => {
+    if (resizeTimer) clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(fitToWindow, 100);
+};
+
 onMounted(() => {
-    // Get query params
-    // Expecting urls as JSON string and index
-    // In strict mode, we might need IPC to pass complex data, but router query is simple for now
     const queryUrls = route.query.urls as string;
     const queryIndex = route.query.index as string;
-
-    // Check if we received data from window creation
-    // Since simple route query has limits, we might use a listener if data is large
-    // For now, assuming simple URLs passed via window.data or router query
-    // We'll try to parse router query first
 
     if (queryUrls) {
         try {
             urls.value = JSON.parse(queryUrls);
         } catch (e) {
             console.error('Failed to parse urls', e);
-            urls.value = [queryUrls]; // Fallback as single string
+            urls.value = [queryUrls];
         }
     }
 
@@ -96,13 +97,13 @@ onMounted(() => {
         currentIndex.value = parseInt(queryIndex) || 0;
     }
 
-    // Capture global messages if implemented for data passing
-    window.addEventListener('resize', fitToWindow);
+    window.addEventListener('resize', debouncedFitToWindow);
     signalWindowReady();
 });
 
 onUnmounted(() => {
-    window.removeEventListener('resize', fitToWindow);
+    window.removeEventListener('resize', debouncedFitToWindow);
+    if (resizeTimer) clearTimeout(resizeTimer);
 });
 
 // Methods
@@ -141,56 +142,52 @@ const zoom = (delta: number) => {
     checkBoundary();
 };
 
+// requestAnimationFrame throttle for wheel zoom
+let rafPending = false;
+let pendingDelta = 0;
+
 const handleWheel = (e: WheelEvent) => {
-    const zoomFactor = -0.001 * e.deltaY;
-    const newScale = Math.max(0.1, Math.min(5, scale.value * (1 + zoomFactor)));
-    scale.value = newScale;
-    checkBoundary();
+    e.preventDefault();
+    pendingDelta += e.deltaY;
+    if (rafPending) return;
+    rafPending = true;
+    isContinuous.value = true;
+
+    requestAnimationFrame(() => {
+        const zoomFactor = -0.001 * pendingDelta;
+        const newScale = Math.max(0.1, Math.min(5, scale.value * (1 + zoomFactor)));
+        scale.value = newScale;
+        pendingDelta = 0;
+        rafPending = false;
+        checkBoundary();
+        // Re-enable transition after wheel stops (300ms idle)
+        clearTimeout(wheelEndTimer);
+        wheelEndTimer = setTimeout(() => { isContinuous.value = false; }, 300);
+    });
 };
+let wheelEndTimer: ReturnType<typeof setTimeout>;
 
 const checkBoundary = () => {
     if (!imgRef.value || !containerRef.value) return;
 
-    // Boundary logic check
-    // If image < container, center it (pos = 0)
-    // If image > container, clamp pos so image doesnt leave container edge empty
-
-    // This is complex with rotation. For MVP, we check non-rotated dimensions mainly
-    // Or simplified: if width * scale < containerWidth, x must be 0
-
     const containerW = containerRef.value.clientWidth;
     const containerH = containerRef.value.clientHeight;
-
-    // Get actual dimensions (ignoring rotation for simplicity in boundary check V1)
-    // A better approach transforms the rect
-
-    // getBoundingClientRect includes scale and transform
-
-    // Logic:
-    // If rect.width < containerW, center horizontally -> x = 0 (since we use translate from center if css is set that way, but here we use css center alignment + translate)
-    // Actually, simply:
-
-    // Ensure image center doesn't go too far?
-    // Let's implement the specific constraint requested:
-    // "出现了图片边缘就要贴紧容器边缘，不能让其脱离"
-
-    // This means usually:
-    // minX = containerW - currWidth
-    // maxX = 0
-    // (assuming top-left origin, but we usually have center origin for zoom)
-
-    // Since we use translate(x, y), it's relative to original center position.
-
     const currentW = imgRef.value.naturalWidth * scale.value;
     const currentH = imgRef.value.naturalHeight * scale.value;
+
+    // Early exit when image fits inside container
+    if (currentW <= containerW && currentH <= containerH) {
+        position.value.x = 0;
+        position.value.y = 0;
+        return;
+    }
 
     // X Axis
     if (currentW <= containerW) {
         position.value.x = 0;
     } else {
         const maxOffset = (currentW - containerW) / 2;
-        if (position.value.x > maxOffset) position.value.x = maxOffset;
-        if (position.value.x < -maxOffset) position.value.x = -maxOffset;
+        position.value.x = Math.max(-maxOffset, Math.min(maxOffset, position.value.x));
     }
 
     // Y Axis
@@ -198,16 +195,15 @@ const checkBoundary = () => {
         position.value.y = 0;
     } else {
         const maxOffset = (currentH - containerH) / 2;
-        if (position.value.y > maxOffset) position.value.y = maxOffset;
-        if (position.value.y < -maxOffset) position.value.y = -maxOffset;
+        position.value.y = Math.max(-maxOffset, Math.min(maxOffset, position.value.y));
     }
 };
 
 const handleMouseDown = (e: MouseEvent) => {
-    // Only drag if left click
     if (e.button !== 0) return;
 
     isDragging.value = true;
+    isContinuous.value = true;
     lastMousePos.value = { x: e.clientX, y: e.clientY };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -230,6 +226,7 @@ const handleMouseMove = (e: MouseEvent) => {
 
 const handleMouseUp = () => {
     isDragging.value = false;
+    isContinuous.value = false;
     window.removeEventListener('mousemove', handleMouseMove);
     window.removeEventListener('mouseup', handleMouseUp);
 };

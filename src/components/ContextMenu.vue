@@ -4,7 +4,7 @@
         <div v-if="visible" class="menu-overlay" @click="close"></div>
         <div v-if="visible" class="context-menu" :style="{ top: y + 'px', left: x + 'px' }" @click.stop @mouseover.stop @mousemove.stop>
             <div v-for="(option, index) in options" :key="index" class="menu-item" @click.capture.stop="handleSelect(option)">
-                <img v-if="option.icon" :src="option.icon" class="menu-icon" @error="handleImageError" />
+                <span v-if="option.icon" class="menu-icon" v-html="option.icon" />
                 <span class="menu-label">{{ option.label }}</span>
             </div>
         </div>
@@ -57,9 +57,7 @@ const close = () => {
     emit('update:visible', false);
 };
 
-const handleImageError = (e: Event) => {
-    (e.target as HTMLElement).style.display = 'none';
-};
+
 </script>
 
 <style scoped lang="scss">
@@ -97,7 +95,15 @@ const handleImageError = (e: Event) => {
         width: 16px;
         height: 16px;
         margin-right: 8px;
-        object-fit: contain;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        :deep(svg) {
+            width: 100%;
+            height: 100%;
+        }
     }
 
     .menu-label {

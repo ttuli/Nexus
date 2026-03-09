@@ -3,7 +3,7 @@
         <!-- Validation Button Area -->
         <div class="validation-entry" @click="goToValidation" :class="{ active: isValidationActive }">
             <div class="icon-box">
-                <img :src="ValidationIcon" class="icon" />
+                <span v-html="ValidationIcon" class="icon" />
                 <div v-if="pendingCount > 0" class="badge">{{ pendingCount }}</div>
             </div>
             <div class="text">验证消息</div>
@@ -34,7 +34,7 @@ import { useRouter, useRoute } from 'vue-router';
 
 defineOptions({ name: 'ContactSidebar' });
 
-import ValidationIcon from '@/assets/menu/contacts.svg';
+import ValidationIcon from '@/assets/menu/contacts.svg?raw';
 import FriendList from './FriendList.vue';
 import GroupList from './GroupList.vue';
 

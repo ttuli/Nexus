@@ -35,7 +35,7 @@ import { toLocalPreviewUrlRaw, toNetworkPreviewUrl } from '@/utils/chat';
 import { ImTypes } from '@/types';
 import { fileService } from '@/services/fileService';
 import { chatService } from '@/services/chatService';
-import { createWindow } from '@/utils/window';
+import { openPhotoViewer } from '@/utils/window';
 import { ElMessage } from 'element-plus';
 
 interface Props {
@@ -138,22 +138,14 @@ const handleClick = async () => {
     if (isError.value || !isFinishing.value) return;
 
     try {
-        // 如果有本地路径，直接用本地路径打开原图
         if (props.message.localPath) {
-            createWindow('photoViewer', {
-                urls: [toLocalPreviewUrlRaw(props.message.localPath)],
-                index: 0
-            });
+            await openPhotoViewer([toLocalPreviewUrlRaw(props.message.localPath)], 0);
             return;
         }
 
-        // 获取原图签名 URL 给 photoViewer
         const fullUrl = await fileService.getImageUrl(props.message.url);
         if (fullUrl !== '') {
-            createWindow('photoViewer', {
-                urls: [fullUrl],
-                index: 0
-            });
+            await openPhotoViewer([fullUrl], 0);
         } else {
             ElMessage.error('图片已过期或被清理')
         }

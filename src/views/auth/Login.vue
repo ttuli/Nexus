@@ -137,7 +137,7 @@ const handleLogin = async () => {
     try {
         const res = await authService.login(form.value.account, form.value.password, form.value.rememberMe)
         if (res.success) {
-            windowService.createWindow({ key: 'home' })
+            windowService.createWindow('home')
             window.close()
         } else {
             ElMessage.error(res.error || '登录失败')
@@ -156,7 +156,7 @@ const handleAutoLogin = async () => {
     try {
         const res = await tokenService.requestTokenRefresh()
         if (res.success === true) {
-            windowService.createWindow({ key: 'home' })
+            windowService.createWindow('home')
             window.close()
         } else {
             ElMessage.error("登录失败")
@@ -179,7 +179,7 @@ const goToRegister = (): void => {
     if (isLoading.value) {
         return
     }
-    windowService.createWindow({ key: 'register' })
+    windowService.createWindow('register')
 }
 
 onMounted(async () => {

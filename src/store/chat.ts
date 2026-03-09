@@ -158,14 +158,17 @@ export const useChatStore = defineStore('chat', {
         /**
          * 更新消息状态
          */
-        updateMessageStatus(sessionId: string, clientId: string, status: ImTypes.MessageStatus, timestamp: number) {
-            const msgIndex = this.messages.findIndex(m => m.sessionId === sessionId && m.clientId === clientId);
+        updateMessageStatus(sessionId: string, clientId: string, status: ImTypes.MessageStatus, timestamp: number, msgId?: string) {
+            const msgIndex = this.messages.findIndex(m =>
+                m.sessionId === sessionId &&
+                ((clientId && m.clientId === clientId) || (msgId && m.msgId === msgId))
+            );
             if (msgIndex !== -1) {
                 this.messages[msgIndex].status = status;
                 this.messages[msgIndex].sendTime = timestamp;
             }
             // 无论是否在内存中，都同步更新本地数据库
-            void chatService.updateMessageStatus(sessionId, clientId, status).catch((e) => {
+            void chatService.updateMessageStatus(sessionId, clientId, status, msgId).catch((e) => {
                 console.error('[ChatStore] Failed to persist message status', e);
             });
         },

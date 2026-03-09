@@ -42,9 +42,6 @@ class WindowManager {
             onShowHome: () => this.showWindow('home'),
             onOpenSettings: () => {
               this.showWindow('home');
-              setTimeout(() => {
-                this.sendMessage('home', IpcChannels.ROUTE_NAVIGATE, '/home/settings');
-              }, 200);
             },
             onQuit: () => {
               this.closeAllWindows().finally(() => {
@@ -54,6 +51,12 @@ class WindowManager {
           });
         }
         this.trayManager.createTray();
+      }
+
+      // 合并 windowSize 到 wc（优先使用调用方传入的尺寸）
+      if (config.windowSize) {
+        wc.width = config.windowSize.width;
+        wc.height = config.windowSize.height;
       }
 
       // 合并数据

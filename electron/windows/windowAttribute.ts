@@ -1,14 +1,4 @@
-import { fail } from 'assert';
 import { BrowserWindow } from 'electron'
-import os from 'os'
-
-// 检测 Windows 版本
-const winBuild = (() => {
-    if (process.platform !== 'win32') return 0;
-    const parts = os.release().split('.');
-    return parseInt(parts[2] || '0', 10);
-})();
-const isWin11 = winBuild >= 22000;
 
 // 窗口状态接口（用于持久化）
 export interface WindowState {
@@ -38,6 +28,8 @@ export interface WindowConfig extends Electron.BrowserWindowConstructorOptions {
 export interface CreateWindowRequest {
     key: string;
     data?: Record<string, any>;
+    /** 可选：覆盖窗口默认宽高（像素，主进程屏幕坐标系） */
+    windowSize?: { width: number; height: number };
 }
 
 // 管理的窗口接口
@@ -175,6 +167,20 @@ let configs: Map<string, WindowConfig> = new Map([
             }
         }
     ],
+    [
+        'call',
+        {
+            key: 'call',
+            url: '/call',
+            modal: false,
+            frame: false,
+            resizable: true,
+            width: 400,
+            height: 600,
+            minWidth: 400,
+            minHeight: 600,
+        }
+    ]
 ])
 
 export default configs

@@ -4,7 +4,8 @@
         <div class="header">
             <span class="title">{{ title }}</span>
             <div class="actions">
-                <div class="icon-btn" @click="toggleSidebar">⋮</div>
+                <span v-html="phoneIcon" class="icon-btn phone" title="语音通话" @click="startCall"></span>
+                <div class="icon-btn" title="聊天信息" @click="toggleSidebar">⋮</div>
             </div>
         </div>
 
@@ -56,6 +57,7 @@ import { useChatStore } from '@/store/chat';
 import { useUserStore } from '@/store/user';
 import { useGroupStore } from '@/store/group';
 import { storeToRefs } from 'pinia';
+import { extractTargetIdFromSessionId } from '@/utils/chat';
 import MessageBubble from '@/views/home/chat/components/Bubble/MessageBubble.vue';
 import SystemMessageBubble from '@/views/home/chat/components/Bubble/SystemMessageBubble.vue';
 import { IChatMessage, ILocalTextMessage } from '@/types/chatMessage';
@@ -65,8 +67,9 @@ import ChatSidebar from './components/sidebar/index.vue';
 import type { MenuOption } from '@/components/ContextMenu.vue';
 import { ElMessage } from 'element-plus';
 
-import copyIcon from '@/assets/chat/copy.svg?url';
-import { websocketService } from '@/services';
+import copyIcon from '@/assets/chat/copy.svg?raw';
+import phoneIcon from '@/assets/call/phone.svg?raw';
+import { websocketService, windowService } from '@/services';
 
 
 const chatStore = useChatStore();
@@ -139,8 +142,6 @@ const handleMenuSelect = async (option: MenuOption) => {
 // Computed
 const currentChat = computed(() => chatStore.currentChat);
 
-import { extractTargetIdFromSessionId } from '@/utils/chat';
-
 const title = computed(() => {
     if (!currentChat.value) return '';
     const targetId = extractTargetIdFromSessionId(currentChat.value.conversation_id, userStore.getUserID());
@@ -210,6 +211,19 @@ const handleSendFile = async (file: File) => {
     }
 };
 
+const startCall = () => {
+    if (!currentChat.value) return;
+    const targetId = extractTargetIdFromSessionId(currentChat.value.conversation_id, userStore.getUserID());
+    const targetType = currentChat.value.type === ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE ? 'private' : 'group';
+    
+    if (targetId) {
+        windowService.createWindow('call', {
+            targetId: targetId,
+            targetType
+        });
+    }
+}
+
 // Resizer Logic
 const inputHeight = ref(200);
 const startResize = (e: MouseEvent) => {
@@ -268,6 +282,12 @@ const startResize = (e: MouseEvent) => {
 
         .actions {
             -webkit-app-region: no-drag;
+            display: flex;
+
+            .phone {
+                padding: 6px;
+                box-sizing: border-box;
+            }
 
             .icon-btn {
                 width: 32px;

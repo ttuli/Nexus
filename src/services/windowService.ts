@@ -9,16 +9,29 @@ export { LogoutType }
 
 export enum NotifySoundType {
     Message = 'msg',
-    Request = 'request',   
+    Request = 'request',
 }
+
+import { CallWindowConfig } from '@/types/window'
+
+type WindowConfigMap = {
+    'call': CallWindowConfig;
+    [key: string]: any;
+};
 
 class WindowService {
     private notifyAudio: HTMLAudioElement | null = null
     /**
      * 创建新窗口
      */
-    createWindow(config: { key: string;[key: string]: any }): void {
-        ipcService.send(IpcChannels.WINDOW_NEW, config)
+    createWindow<K extends keyof WindowConfigMap>(
+        key: K,
+        config?: WindowConfigMap[K]
+    ): void {
+        ipcService.send(IpcChannels.WINDOW_NEW, {
+            key,
+            data: config
+        })
     }
 
     /**

@@ -2,7 +2,7 @@ import { app, ipcMain } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { windowManager } from './windows/windowManager'
-import { resourceManager } from './resource'
+import { resourceManager, cacheManager } from './resource'
 import { registerProtocols } from './protocol'
 import { wsManager } from './websocket'
 import { IpcChannels } from '../src/types/ipc'
@@ -50,6 +50,7 @@ app.whenReady().then(() => {
   // 直接关闭登录窗口触发
   ipcMain.on(IpcChannels.QUIT, () => {
     resourceManager.setStoreRefreshToken(true);
+    cacheManager.flushToDisk();
     windowManager.closeAllWindows().finally(() => {
       wsManager.disconnect();
       app.quit();

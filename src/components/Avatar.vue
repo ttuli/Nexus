@@ -26,7 +26,7 @@ const props = withDefaults(
 
 import { onMounted, ref } from 'vue'
 import { userService, groupService } from '@/services'
-import { createWindow } from '@/utils/window'
+import { openPhotoViewer } from '@/utils/window'
 import { useUserStore } from '@/store/user';
 import { useGroupStore } from '@/store/group';
 
@@ -75,11 +75,7 @@ const handleError = (e: Event) => {
 
 const handleClick = () => {
     if (!source.value) return;
-
-    createWindow('photoViewer', {
-        urls: [source.value],
-        index: 0
-    });
+    openPhotoViewer([source.value], 0);
 }
 
 onMounted(async () => {

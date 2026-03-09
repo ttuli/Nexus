@@ -49,7 +49,7 @@ import { ILocalVideoMessage } from '@/types/chatMessage';
 import { config } from '@/config';
 import { ImTypes } from '@/types';
 import { fileService } from '@/services/fileService';
-import { createWindow } from '@/utils/window';
+import { openVideoViewer } from '@/utils/window';
 import { ElMessage } from 'element-plus';
 
 interface Props {
@@ -149,21 +149,17 @@ const handleClick = async () => {
 
     try {
         if (props.message.localPath) {
-            // 用 photoViewer 或独立的 videoPlayer 打开
-            // 因为没看到专门的 video viewer，暂时与图片共用或指定单独打开逻辑
-            createWindow('videoViewer', {
-                urls: [props.message.localPath],
-                index: 0
-            });
+            openVideoViewer(
+                props.message.localPath,
+                props.message.width,
+                props.message.height
+            );
             return;
         }
 
         const fullUrl = await fileService.getFileUrl(props.message.url);
         if (fullUrl !== '') {
-            createWindow('videoViewer', {
-                urls: [fullUrl],
-                index: 0
-            });
+            openVideoViewer(fullUrl, props.message.width, props.message.height);
         } else {
             ElMessage.error('视频已过期或无法访问');
         }

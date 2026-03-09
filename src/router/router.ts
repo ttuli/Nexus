@@ -99,6 +99,11 @@ const router = createRouter({
             path: '/videoViewer',
             name: '视频播放',
             component: () => import('@/views/viewer/video.vue')
+        },
+        {
+            path: '/call',
+            name: '通话',
+            component: () => import('@/views/call/CallWindow.vue')
         }
     ]
 })
