@@ -8,7 +8,8 @@ import { config } from '@/config';
  */
 export async function updateUserInfo(data: ApiTypes.user.UpdateInfoReq) {
   // UpdateInfoReq is a plain object now with snake_case keys
-  let res = await instance.put(config.userServer + '/user/info', data)
+  const reqData = ApiTypes.user.UpdateInfoReq.encode(data).finish()
+  let res = await instance.put(config.userServer + '/user/info', reqData)
   return res.data
 }
 // ==================== Friend APIs ====================
@@ -31,7 +32,8 @@ export async function getFriendList(params: { limit?: number, offset?: number } 
  * PUT /user/friend/update
  */
 export async function updateFriendInfo(data: ApiTypes.user.UpdateFriendReq) {
-  let res = await instance.put(config.userServer + '/user/friend/update', data)
+  const reqData = ApiTypes.user.UpdateFriendReq.encode(data).finish()
+  let res = await instance.put(config.userServer + '/user/friend/update', reqData)
   return res.data
 }
 
@@ -54,10 +56,11 @@ export async function deleteFriend(friend_id: number) {
  * POST /user/friend/create
  */
 export async function createFriend(data: ApiTypes.user.CreateFriendReq) {
+  const reqData = ApiTypes.user.CreateFriendReq.encode(data).finish()
   let res = await instance<ApiResponse<ApiTypes.user.CreateFriendResp>>({
     method: 'post',
     url: config.userServer + '/user/friend/create',
-    data
+    data: reqData
   })
   return decodeResponse(res.data, ApiTypes.user.CreateFriendResp.decode)
 }
@@ -69,10 +72,11 @@ export async function createFriend(data: ApiTypes.user.CreateFriendReq) {
  * POST /user/friend/apply/new
  */
 export async function applyFriend(data: ApiTypes.user.NewFriendApplyReq) {
+  const reqData = ApiTypes.user.NewFriendApplyReq.encode(data).finish()
   let res = await instance<ApiResponse<ApiTypes.user.NewFriendApplyResp>>({
     method: 'post',
     url: config.userServer + '/user/friend/apply/new',
-    data
+    data: reqData
   })
   return decodeResponse(res.data, ApiTypes.user.NewFriendApplyResp.decode)
 }
@@ -82,10 +86,11 @@ export async function applyFriend(data: ApiTypes.user.NewFriendApplyReq) {
  * PUT /user/friend/apply/handle
  */
 export async function handleFriendApply(data: ApiTypes.user.HandleFriendApplyReq) {
+  const reqData = ApiTypes.user.HandleFriendApplyReq.encode(data).finish()
   let res = await instance<ApiResponse<ApiTypes.user.HandleFriendApplyResp>>({
     method: 'put',
     url: config.userServer + '/user/friend/apply/handle',
-    data
+    data: reqData
   })
   return decodeResponse(res.data, ApiTypes.user.HandleFriendApplyResp.decode)
 }

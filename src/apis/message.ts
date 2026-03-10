@@ -11,10 +11,11 @@ import { config } from '@/config'
  * PUT /message/conversation
  */
 export async function updateConversation(data: ApiTypes.message.UpdateConversationReq) {
+    const reqData = ApiTypes.message.UpdateConversationReq.encode(data).finish()
     const res = await instance<ApiResponse<null>>({
         method: 'put',
         url: config.messageServer + '/message/conversation',
-        data
+        data: reqData
     })
     return res.data
 }
@@ -57,10 +58,11 @@ export async function getHistory(params: PartialExcept<ApiTypes.message.GetHisto
  * POST /message/read
  */
 export async function readMessage(data: ApiTypes.message.ReadMessageReq) {
+    const reqData = ApiTypes.message.ReadMessageReq.encode(data).finish()
     const res = await instance<ApiResponse<null>>({
         method: 'post',
         url: config.messageServer + '/message/read',
-        data
+        data: reqData
     })
     return res.data
 }
@@ -77,10 +79,11 @@ export async function getUserActiveConversation(params: ApiTypes.message.GetUser
 
 // 撤回消息
 export async function recallMessage(data: ApiTypes.message.RecallMessageReq) {
+    const reqData = ApiTypes.message.RecallMessageReq.encode(data).finish()
     const res = await instance<ApiResponse<null>>({
         method: 'post',
         url: config.messageServer + '/message/recall',
-        data
+        data: reqData
     })
     return res.data
 }

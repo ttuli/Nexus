@@ -219,6 +219,7 @@ const startCall = () => {
     if (targetId) {
         windowService.createWindow('call', {
             targetId: targetId,
+            fromId: userStore.getUserID(),
             targetType
         });
     }

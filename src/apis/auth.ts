@@ -6,7 +6,8 @@ import { config } from '@/config';
 
 export async function register(data: ApiTypes.auth.RegisterReq) {
   // data is already typed as RegisterReq (snake_case)
-  let res = await instance.post(config.authServer + '/auth/register', data)
+  const reqData = ApiTypes.auth.RegisterReq.encode(data).finish()
+  let res = await instance.post(config.authServer + '/auth/register', reqData)
   return decodeResponse(res.data, ApiTypes.auth.RegisterResp.decode)
 }
 
@@ -14,6 +15,7 @@ export async function sendCode(phone: string) {
   // GetAuthCodeReq
   const data: ApiTypes.auth.GetAuthCodeReq = { phone };
 
-  let res = await instance.post(config.authServer + '/auth/getAuthCode', data)
+  const reqData = ApiTypes.auth.GetAuthCodeReq.encode(data).finish()
+  let res = await instance.post(config.authServer + '/auth/getAuthCode', reqData)
   return decodeResponse(res.data, ApiTypes.auth.GetAuthCodeResp.decode)
 }

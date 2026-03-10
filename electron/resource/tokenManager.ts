@@ -129,18 +129,18 @@ class TokenManager {
         }
 
         return new Promise((resolve) => {
-            const postData = JSON.stringify({
+            const postData = ApiTypes.auth.RefreshReq.encode({
                 device_id: this.deviceId,
                 platform: this.platform,
                 refresh_token: '' //服务器会从Header获取，保留字段保证服务器能正确解析
-            });
+            }).finish();
 
             const request = net.request({
                 method: 'POST',
                 url: `${config.authServer}/auth/refresh`,
             });
 
-            request.setHeader('Content-Type', 'application/json');
+            request.setHeader('Content-Type', 'application/x-protobuf');
             request.setHeader('Accept', 'application/x-protobuf');
             request.setHeader('Authorization', `Bearer ${this.refreshToken}`);
 
@@ -195,7 +195,7 @@ class TokenManager {
                 resolve({ success: false, error: error.message });
             });
 
-            request.write(postData);
+            request.write(Buffer.from(postData));
             request.end();
         });
     }

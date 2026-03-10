@@ -20,7 +20,8 @@ import X from '@/assets/x.svg'
 import Max from '@/assets/Maximize1.svg'
 import UnMax from '@/assets/Maximize2.svg'
 import { onMounted, ref } from 'vue';
-import { windowService } from '@/services';
+import { windowService, ipcService } from '@/services';
+import { IpcChannels } from '@/types';
 
 const props = withDefaults(
     defineProps<{
@@ -38,7 +39,8 @@ const props = withDefaults(
         title: '',
         theme: 'light',
         onClose: () => {
-            window.close()
+            // Trigger the App.vue unmount logic locally bypassing main process
+            ipcService.emitLocal(IpcChannels.APP_QUIT)
         }
     }
 )

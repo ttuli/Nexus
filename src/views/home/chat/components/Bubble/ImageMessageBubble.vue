@@ -130,7 +130,6 @@ const handleImageError = async () => {
         await fetchThumbnail(props.message);
         return;
     }
-    console.error('[ImageBubble] image-load-error');
     isError.value = true;
 };
 
@@ -138,11 +137,10 @@ const handleClick = async () => {
     if (isError.value || !isFinishing.value) return;
 
     try {
-        if (props.message.localPath) {
+        if (props.message.localPath && await fileService.checkLocalFileExists(props.message.localPath)) {
             await openPhotoViewer([toLocalPreviewUrlRaw(props.message.localPath)], 0);
             return;
         }
-
         const fullUrl = await fileService.getImageUrl(props.message.url);
         if (fullUrl !== '') {
             await openPhotoViewer([fullUrl], 0);

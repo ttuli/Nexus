@@ -13,10 +13,11 @@ import { config } from '@/config';
  */
 export async function createGroup(data: ApiTypes.group.CreateGroupReq) {
     // CreateGroupReq matches interface
+    const reqData = ApiTypes.group.CreateGroupReq.encode(data).finish()
     const res = await instance<ApiResponse<ApiTypes.group.CreateGroupResp>>({
         method: 'post',
         url: config.groupServer + '/group/create',
-        data
+        data: reqData
     })
     return decodeResponse(res.data, ApiTypes.group.CreateGroupResp.decode)
 }
@@ -62,7 +63,8 @@ export async function getUserGroups(params: { page?: number; page_size?: number 
  * PUT /group/update
  */
 export async function updateGroup(data: ApiTypes.group.UpdateGroupReq) {
-    const res = await instance.put(config.groupServer + '/group/update', data)
+    const reqData = ApiTypes.group.UpdateGroupReq.encode(data).finish()
+    const res = await instance.put(config.groupServer + '/group/update', reqData)
     return res.data
 }
 
@@ -86,10 +88,11 @@ export async function dismissGroup(data: ApiTypes.group.DismissGroupReq) {
  * POST /group/apply/join
  */
 export async function joinGroup(data: ApiTypes.group.JoinGroupReq) {
+    const reqData = ApiTypes.group.JoinGroupReq.encode(data).finish()
     const res = await instance<ApiResponse<ApiTypes.group.JoinGroupResp>>({
         method: 'post',
         url: config.groupServer + '/group/apply/join',
-        data
+        data: reqData
     })
     return decodeResponse(res.data, ApiTypes.group.JoinGroupResp.decode)
 }
@@ -99,10 +102,11 @@ export async function joinGroup(data: ApiTypes.group.JoinGroupReq) {
  * PUT /group/apply/handle
  */
 export async function handleGroupApply(data: ApiTypes.group.HandleGroupApplyReq) {
+    const reqData = ApiTypes.group.HandleGroupApplyReq.encode(data).finish()
     const res = await instance<ApiResponse<ApiTypes.group.HandleGroupApplyResp>>({
         method: 'put',
         url: config.groupServer + '/group/apply/handle',
-        data
+        data: reqData
     })
     return decodeResponse(res.data, ApiTypes.group.HandleGroupApplyResp.decode)
 }
@@ -127,10 +131,11 @@ export async function getPendingGroupApplies(params: { page?: number; page_size?
  * POST /group/member/invite
  */
 export async function inviteMembers(data: ApiTypes.group.InviteMembersReq) {
+    const reqData = ApiTypes.group.InviteMembersReq.encode(data).finish()
     const res = await instance<ApiResponse<ApiTypes.group.InviteMembersResp>>({
         method: 'post',
         url: config.groupServer + '/group/member/invite',
-        data
+        data: reqData
     })
     return decodeResponse(res.data, ApiTypes.group.InviteMembersResp.decode)
 }
@@ -140,10 +145,11 @@ export async function inviteMembers(data: ApiTypes.group.InviteMembersReq) {
  * POST /group/member/leave
  */
 export async function leaveGroup(data: ApiTypes.group.LeaveGroupReq) {
+    const reqData = ApiTypes.group.LeaveGroupReq.encode(data).finish()
     const res = await instance<ApiResponse<null>>({
         method: 'post',
         url: config.groupServer + '/group/member/leave',
-        data
+        data: reqData
     })
     return res.data
 }
@@ -166,7 +172,8 @@ export async function removeMember(data: ApiTypes.group.RemoveMemberReq) {
  * PUT /group/member/role
  */
 export async function setMemberRole(data: ApiTypes.group.SetMemberRoleReq) {
-    const res = await instance.put(config.groupServer + '/group/member/role', data)
+    const reqData = ApiTypes.group.SetMemberRoleReq.encode(data).finish()
+    const res = await instance.put(config.groupServer + '/group/member/role', reqData)
     return res.data
 }
 
@@ -175,7 +182,8 @@ export async function setMemberRole(data: ApiTypes.group.SetMemberRoleReq) {
  * PUT /group/member/mute
  */
 export async function muteMember(data: ApiTypes.group.MuteMemberReq) {
-    const res = await instance.put(config.groupServer + '/group/member/mute', data)
+    const reqData = ApiTypes.group.MuteMemberReq.encode(data).finish()
+    const res = await instance.put(config.groupServer + '/group/member/mute', reqData)
     return res.data
 }
 
@@ -184,6 +192,7 @@ export async function muteMember(data: ApiTypes.group.MuteMemberReq) {
  * PUT /group/member/nickname
  */
 export async function setMemberNickname(data: ApiTypes.group.SetMemberNicknameReq) {
-    const res = await instance.put(config.groupServer + '/group/member/nickname', data)
+    const reqData = ApiTypes.group.SetMemberNicknameReq.encode(data).finish()
+    const res = await instance.put(config.groupServer + '/group/member/nickname', reqData)
     return res.data
 }

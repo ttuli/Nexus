@@ -26,6 +26,10 @@ instance.interceptors.request.use(
   (config) => {
     config.headers['Authorization'] = 'Bearer ' + useUserStore().getToken()
     config.headers['Accept'] = "application/x-protobuf"
+    config.headers['Content-Type'] = 'application/json'
+    if (config.data instanceof Uint8Array || config.data instanceof ArrayBuffer) {
+      config.headers['Content-Type'] = 'application/x-protobuf'
+    }
     return config
   },
   (error) => {

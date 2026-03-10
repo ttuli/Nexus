@@ -63,12 +63,13 @@ class AuthManager {
         remember: boolean = false
     ): Promise<{ success: boolean; userId?: number; error?: string }> {
         try {
-            const res = await mainPost<ApiTypes.auth.LoginResp>(`${config.authServer}/auth/login`, {
+            const loginReqData = ApiTypes.auth.LoginReq.encode({
                 account: Number(account),
                 password,
                 device_id: this.deviceId,
                 platform: this.platform,
-            }, { skipAuth: true });
+            }).finish()
+            const res = await mainPost<ApiTypes.auth.LoginResp>(`${config.authServer}/auth/login`, loginReqData, { skipAuth: true });
 
             if (res.code === 200) {
                 const decoded = decodeMainResponse(res, ApiTypes.auth.LoginResp.decode);
@@ -94,10 +95,11 @@ class AuthManager {
         if (!tokenManager.getToken()) return;
 
         try {
-            await mainPost(`${config.authServer}/auth/logout`, {
+            const logoutReqData = ApiTypes.auth.LogoutReq.encode({
                 remove_rt: !tokenManager.getStoreRefreshToken(),
                 device_id: this.deviceId,
-            } as ApiTypes.auth.LogoutReq);
+            }).finish()
+            await mainPost(`${config.authServer}/auth/logout`, logoutReqData);
         } catch (error) {
             console.error('[AuthManager] Logout request error:', error);
         }

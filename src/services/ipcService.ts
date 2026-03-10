@@ -58,6 +58,27 @@ class IpcService {
      */
     once(channel: string, callback: IpcCallback): void {
         window.ipcRenderer.once(channel, callback)
+
+        // 记录一下，为了后续 emitLocal 可以触发
+        const onceWrapper = (event: any, ...args: any[]) => {
+            callback(event, ...args)
+            this.off(channel)
+        }
+        if (!this.listeners.has(channel)) {
+            this.listeners.set(channel, [])
+        }
+        this.listeners.get(channel)!.push(onceWrapper)
+    }
+
+    /**
+     * 手动在本地触发一个事件，主要用于模拟来自主进程的事件
+     */
+    emitLocal(channel: string, ...args: any[]): void {
+        const callbacks = this.listeners.get(channel)
+        if (callbacks) {
+            // 需要克隆一份防止在遍历过程中被修改（比如 once 事件会 self remove）
+            [...callbacks].forEach(cb => cb({} as any, ...args))
+        }
     }
 
     /**

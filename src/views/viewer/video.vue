@@ -46,16 +46,15 @@ const currentTitle = computed(() => {
 });
 
 onMounted(() => {
-    const queryUrls = route.query.urls as string;
+    const queryUrl = route.query.url as string;
     const queryIndex = route.query.index as string;
-
-    if (queryUrls) {
-        try {
-            urls.value = JSON.parse(queryUrls);
-        } catch (e) {
-            urls.value = [queryUrls];
-        }
-    }
+    
+    // 如果直接传了 url 参数（兼容 openVideoViewer 的调用方式）
+    if (queryUrl) {
+        // 将单个 url 转为数组以复用后续逻辑
+        urls.value = [queryUrl];
+        currentIndex.value = 0;
+    } 
 
     if (queryIndex) {
         currentIndex.value = parseInt(queryIndex) || 0;

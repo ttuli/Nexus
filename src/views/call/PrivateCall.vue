@@ -43,18 +43,24 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch, onUnmounted } from 'vue';
 import Avatar from '@/components/Avatar.vue';
 import { useUserStore } from '@/store/user';
 import { userService } from '@/services';
 
 const userStore = useUserStore();
 const props = defineProps<{
+  fromId: number;
   targetId: number;
 }>();
 
+const isCalling = computed(() => {
+  return props.fromId === userStore.getUserID();
+})
 const isConnected = ref(false);
-const isIncoming = ref(false); // 是否是被叫方
+const isIncoming = computed(() => {
+  return userStore.getUserID() === props.targetId;
+}) // 是否是接收方
 const isMuted = ref(false);
 const isVideoEnabled = ref(true);
 const formattedDuration = ref('00:00');
@@ -83,18 +89,40 @@ const toggleVideo = () => {
 
 const hangup = () => {
     // TODO: 调用 callService 挂断
-    console.log('Hangup call');
 };
 
 const acceptCall = () => {
     // TODO: 调用 callService 接听
-    console.log('Accept call');
     isConnected.value = true;
 };
 
+let ringAudio: HTMLAudioElement | null = null;
+
+watch(isCalling, (newVal) => {
+  if (newVal) {
+    if (!ringAudio) {
+      ringAudio = new Audio('/phonering.wav');
+      ringAudio.loop = true;
+    }
+    ringAudio.play().catch(e => console.warn('Failed to play ring audio:', e));
+  } else {
+    if (ringAudio) {
+      ringAudio.pause();
+      ringAudio.currentTime = 0;
+    }
+  }
+});
+
 onMounted(async () => {
   userService.fetchByIds([props.targetId]);
-})
+});
+
+onUnmounted(() => {
+  if (ringAudio) {
+    ringAudio.pause();
+    ringAudio = null;
+  }
+});
 </script>
 
 <style scoped lang="scss">
@@ -130,7 +158,7 @@ onMounted(async () => {
 
       .video-placeholder {
         position: absolute;
-        top: 3%;
+        top: 8%;
         pointer-events: none;
         display: flex;
         flex-direction: column;

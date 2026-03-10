@@ -112,6 +112,27 @@ class FileService {
         }
     }
 
+    private async checkFileExists(fileKey: string, fileType: ApiTypes.file.FileType): Promise<boolean> {
+        const resp = await getAcessUrl({
+            file_key: fileKey,
+            file_type: fileType,
+            oss_process: '',
+            method: ApiTypes.file.GetMethod.MethodHead
+        });
+        const accessUrl = resp.data?.access_url || '';
+        if (accessUrl) {
+            try {
+                const checkRes = await fetch(accessUrl, { method: 'HEAD' });
+                if (checkRes.status === 404) {
+                    return false;
+                }
+            } catch (error) {
+                console.warn('Failed to check accessUrl status:', error);
+            }
+        }
+        return true;
+    }
+
     /**
      * 获取带签名的缩略图 URL
      * 会根据原始宽高和 config 中的限制计算合适的缩略尺寸，附加 oss_process 参数
@@ -137,6 +158,10 @@ class FileService {
             ossProcess = `image/resize,m_lfit,w_${targetW},h_${targetH}`;
         }
 
+        if (!(await this.checkFileExists(fileKey, ApiTypes.file.FileType.FileTypeChatImage))) {
+            return '';
+        }
+
         const resp = await getAcessUrl({
             file_key: fileKey,
             file_type: ApiTypes.file.FileType.FileTypeChatImage,
@@ -153,6 +178,10 @@ class FileService {
     async getImageUrl(url: string): Promise<string> {
         const fileKey = this.extractFileKey(url);
 
+        if (!(await this.checkFileExists(fileKey, ApiTypes.file.FileType.FileTypeChatImage))) {
+            return '';
+        }
+
         const resp = await getAcessUrl({
             file_key: fileKey,
             file_type: ApiTypes.file.FileType.FileTypeChatImage,
@@ -164,6 +193,7 @@ class FileService {
         if (accessUrl) {
             try {
                 const checkRes = await fetch(accessUrl, { method: 'HEAD' });
+                console.log(checkRes)
                 if (checkRes.status === 404) {
                     return '';
                 }
@@ -181,6 +211,9 @@ class FileService {
     async getFileUrl(url: string, oss_process?: string): Promise<string> {
         const fileKey = this.extractFileKey(url);
 
+        if (!(await this.checkFileExists(fileKey, ApiTypes.file.FileType.FileTypeChatFile))) {
+            return '';
+        }
         const resp = await getAcessUrl({
             file_key: fileKey,
             file_type: ApiTypes.file.FileType.FileTypeChatFile,

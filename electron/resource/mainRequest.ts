@@ -83,7 +83,11 @@ function executeRequest<T>(options: MainRequestOptions, token?: string): Promise
         }
 
         // 设置请求头
-        request.setHeader('Content-Type', 'application/json');
+        if (data instanceof Uint8Array || data instanceof ArrayBuffer) {
+            request.setHeader('Content-Type', 'application/x-protobuf');
+        } else {
+            request.setHeader('Content-Type', 'application/json');
+        }
         request.setHeader('Accept', 'application/x-protobuf');
 
         if (token && !options.skipAuth) {
@@ -147,7 +151,12 @@ function executeRequest<T>(options: MainRequestOptions, token?: string): Promise
 
         // 发送请求体（POST）
         if (method === 'POST' && data) {
-            request.write(JSON.stringify(data));
+            if (data instanceof Uint8Array || data instanceof ArrayBuffer) {
+                const bufferPayload = data instanceof ArrayBuffer ? new Uint8Array(data) : data;
+                request.write(Buffer.from(bufferPayload));
+            } else {
+                request.write(JSON.stringify(data));
+            }
         }
 
         request.end();

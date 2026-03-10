@@ -10,4 +10,5 @@ export enum LogoutType {
 export interface CallWindowConfig {
     targetId: number;
     targetType: 'private' | 'group';
+    fromId: number;
 }

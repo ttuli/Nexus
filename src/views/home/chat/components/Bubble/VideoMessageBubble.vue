@@ -148,12 +148,13 @@ const handleClick = async () => {
     if (isError.value || !isFinishing.value) return;
 
     try {
-        if (props.message.localPath) {
+        if (props.message.localPath && await fileService.checkLocalFileExists(props.message.localPath)) {
             openVideoViewer(
                 props.message.localPath,
                 props.message.width,
                 props.message.height
             );
+            console.log('localPath', props.message.localPath);
             return;
         }
 
