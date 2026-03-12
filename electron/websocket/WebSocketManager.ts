@@ -48,6 +48,7 @@ export class WebSocketManager extends EventEmitter {
     private heartbeatTimeoutTimer: NodeJS.Timeout | null = null;
     private initialized: boolean = false;
     private isRecovering401: boolean = false;
+    private isManualClose: boolean = false;
 
     constructor(config: WsManagerConfig = {}) {
         super();
@@ -82,6 +83,8 @@ export class WebSocketManager extends EventEmitter {
             return;
         }
 
+        this.isManualClose = false;
+
         if (this.state === ImTypes.ConnectionState.CONNECTED || this.state === ImTypes.ConnectionState.CONNECTING) {
             console.warn('[WebSocketManager] Already connected or connecting');
             return;
@@ -112,16 +115,9 @@ export class WebSocketManager extends EventEmitter {
      * Disconnect from WebSocket server
      */
     disconnect(): void {
+        this.isManualClose = true;
         this.clearTimers();
-
-        if (this.ws) {
-            this.ws.removeAllListeners();
-            if (this.ws.readyState === WebSocket.OPEN) {
-                this.ws.close(1000, 'Client disconnect');
-            }
-            this.ws = null;
-        }
-
+        this.closeWs();
         this.setState(ImTypes.ConnectionState.DISCONNECTED);
         this.reconnectAttempts = 0;
     }
@@ -170,6 +166,7 @@ export class WebSocketManager extends EventEmitter {
             this.setState(ImTypes.ConnectionState.CONNECTED);
             this.reconnectAttempts = 0;
             this.isRecovering401 = false;
+            this.isManualClose = false;
             this.startHeartbeat();
             this.flushPendingMessages();
         });
@@ -179,27 +176,26 @@ export class WebSocketManager extends EventEmitter {
         });
 
         this.ws.on('close', (code: number, reason: Buffer) => {
+            this.setState(ImTypes.ConnectionState.DISCONNECTED);
             console.log(`[WebSocketManager] Closed: ${code} - ${reason.toString()}`);
             this.handleDisconnect();
-        });
-
-        this.ws.on('error', (error: Error) => {
-            this.setState(ImTypes.ConnectionState.DISCONNECTED);
-            console.error('[WebSocketManager] Error:', error);
         });
 
         this.ws.on('pong', () => {
             this.handlePong();
         });
 
-        this.ws.on('unexpected-response', async (_request, response) => {
+        this.ws.on('unexpected-response', async (request, response) => {
+            // 手动终止请求，防止劫持此事件后导致的底层对象内存泄漏
+            request.abort();
+            
             console.error(`[WebSocketManager] Unexpected response: ${response.statusCode}`);
             if (response.statusCode === 401) {
 
                 if (this.isRecovering401) {
                     console.error('[WebSocketManager] Token refresh failed or still 401 after refresh');
-                    this.isRecovering401 = false;
-                    windowManager.broadcastMessage('logout', { type: LogoutType.LOGOUT });
+                    this.closeWs();
+                    windowManager.broadcastMessage(IpcChannels.LOGOUT_REMIND, { type: LogoutType.LOGOUT });
                     return;
                 }
 
@@ -209,14 +205,19 @@ export class WebSocketManager extends EventEmitter {
 
                 if (result.success) {
                     console.log('[WebSocketManager] Token refresh success, reconnecting...');
+                    this.clearTimers();
+                    this.closeWs();
+                    this.setState(ImTypes.ConnectionState.DISCONNECTED);
                     this.connect();
                 } else {
                     console.error('[WebSocketManager] Token refresh failed:', result.error);
                     this.isRecovering401 = false;
-                    windowManager.broadcastMessage('logout', { type: LogoutType.LOGOUT });
+                    this.closeWs();
+                    windowManager.broadcastMessage(IpcChannels.LOGOUT_REMIND, { type: LogoutType.LOGOUT });
                 }
+            } else {
+                this.handleDisconnect();
             }
-            this.handleDisconnect();
         });
     }
 
@@ -237,13 +238,30 @@ export class WebSocketManager extends EventEmitter {
 
     private handleDisconnect(): void {
         this.clearTimers();
+        this.closeWs();
         this.setState(ImTypes.ConnectionState.DISCONNECTED);
-        this.ws = null;
         this.scheduleReconnect();
+    }
+
+    /**
+     * 关闭并清理 WebSocket 实例
+     */
+    private closeWs(): void {
+        if (!this.ws) return;
+        this.isManualClose = true;
+        this.ws.removeAllListeners();
+        if (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING) {
+            this.ws.close();
+        }
+        this.ws = null;
     }
 
     private scheduleReconnect(): void {
         if (this.reconnectTimer) return;
+        if (this.isManualClose) {
+            console.log('[WebSocketManager] Intentional close, skipping reconnect');
+            return;
+        }
 
         this.setState(ImTypes.ConnectionState.RECONNECTING);
 
