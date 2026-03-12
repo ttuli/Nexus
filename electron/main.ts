@@ -59,7 +59,7 @@ app.whenReady().then(() => {
 
   ipcMain.on(IpcChannels.LOGOUT, () => {
     resourceManager.setStoreRefreshToken(false);
-    windowManager.closeAllWindows().finally(() => {
+    windowManager.closeAllWindows(false).finally(() => {
       windowManager.CreateWindow({
         key: 'login',
       })

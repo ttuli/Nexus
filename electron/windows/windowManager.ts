@@ -448,10 +448,10 @@ class WindowManager {
   /**
    * 关闭所有窗口（真正退出应用）
    */
-  public closeAllWindows(): Promise<void> {
+  public closeAllWindows(needLogout: boolean = true): Promise<void> {
 
     // 先调用退出登录 API（此时 token 还存在）
-    const logoutPromise = resourceManager.callLogoutApi();
+    const logoutPromise = needLogout ? resourceManager.callLogoutApi() : Promise.resolve();
 
     // 收集需要关闭的窗口
     const windowsToClose: ManagedWindow[] = [];
