@@ -1,6 +1,17 @@
 <template>
     <div class="main-container" :class="{ dark: props.theme === 'dark' }">
-        <span class="title-content">{{ props.title }}</span>
+        <div class="center-content">
+            <span class="title-content" v-if="props.title">{{ props.title }}</span>
+            <div class="connection-status" v-if="wsState !== ImTypes.ConnectionState.CONNECTED && wsState !== ImTypes.ConnectionState.UNRECOGNIZED">
+                <div class="status-item loading" v-if="wsState === ImTypes.ConnectionState.CONNECTING || wsState === ImTypes.ConnectionState.RECONNECTING">
+                    <span class="spinner"></span>
+                    <span class="text">连接中...</span>
+                </div>
+                <div class="status-item error" v-else>
+                    <span class="text">连接服务器失败</span>
+                </div>
+            </div>
+        </div>
         <button class="min-btn" @click="onMin" v-if="needMin">
             <img :src="Min"></img>
         </button>
@@ -19,9 +30,9 @@ import Min from '@/assets/Minimize2.svg'
 import X from '@/assets/x.svg'
 import Max from '@/assets/Maximize1.svg'
 import UnMax from '@/assets/Maximize2.svg'
-import { onMounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import { windowService, ipcService } from '@/services';
-import { IpcChannels } from '@/types';
+import { ImTypes, IpcChannels } from '@/types';
 
 const props = withDefaults(
     defineProps<{
@@ -45,6 +56,7 @@ const props = withDefaults(
     }
 )
 const isMax = ref(false)
+const wsState = ref(ImTypes.ConnectionState.UNRECOGNIZED)
 
 const onMin = () => {
     windowService.minimize()
@@ -57,6 +69,13 @@ onMounted(() => {
     windowService.onWindowState((state) => {
         isMax.value = state === 'maximized'
     })
+    ipcService.on(IpcChannels.WS_STATE_CHANGE, (e,state) => {
+        wsState.value = state
+        console.log(state)
+    })
+})
+onUnmounted(() => {
+    ipcService.off(IpcChannels.WS_STATE_CHANGE)
 })
 </script>
 
@@ -72,18 +91,67 @@ onMounted(() => {
     background-color: transparent;
     -webkit-app-region: drag;
 
-    .title-content {
+    .center-content {
         position: absolute;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        font-size: 16px;
-        color: $color-text-primary;
-        max-width: 40%;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        text-align: center;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        max-width: 50%;
+        pointer-events: none;
+        justify-content: center;
+
+        .title-content {
+            font-size: 16px;
+            color: $color-text-primary;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-width: 0;
+            flex-shrink: 1;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+
+            .status-item {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                padding: 2px 8px;
+                border-radius: 4px;
+                font-size: 12px;
+
+                &.loading {
+                    background-color: rgba(24, 144, 255, 0.1);
+                    color: #1890ff;
+
+                    .spinner {
+                        width: 12px;
+                        height: 12px;
+                        border: 2px solid #1890ff;
+                        border-top-color: transparent;
+                        border-radius: 50%;
+                        animation: spin 1s linear infinite;
+                    }
+                }
+
+                &.error {
+                    background-color: rgba(255, 77, 79, 0.1);
+                    color: #ff4d4f;
+                }
+            }
+        }
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
     }
 
     button {

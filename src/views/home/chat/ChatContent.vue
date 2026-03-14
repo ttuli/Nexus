@@ -4,6 +4,7 @@
         <div class="header">
             <span class="title">{{ title }}</span>
             <div class="actions">
+                <span v-html="aiIcon" class="icon-btn ai" title="AI助手" @click=""></span>
                 <span v-html="phoneIcon" class="icon-btn phone" title="语音通话" @click="startCall"></span>
                 <div class="icon-btn" title="聊天信息" @click="toggleSidebar">⋮</div>
             </div>
@@ -69,6 +70,7 @@ import { ElMessage } from 'element-plus';
 
 import copyIcon from '@/assets/chat/copy.svg?raw';
 import phoneIcon from '@/assets/call/phone.svg?raw';
+import aiIcon from '@/assets/chat/robot.svg?raw'
 import { websocketService, windowService } from '@/services';
 
 
@@ -286,6 +288,10 @@ const startResize = (e: MouseEvent) => {
             display: flex;
 
             .phone {
+                padding: 6px;
+                box-sizing: border-box;
+            }
+            .ai {
                 padding: 6px;
                 box-sizing: border-box;
             }

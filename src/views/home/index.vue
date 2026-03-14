@@ -190,13 +190,15 @@ onUnmounted(async () => {
         flex-direction: column;
         width: 100%;
         background-color: $bg-body;
+        position: relative;
 
         .title-bar {
+            position: absolute;
+            left: v-bind(leftWidth)px;
             background-color: transparent;
             height: 35px;
             flex-shrink: 0;
             z-index: 1;
-            
         }
 
         .content-container {

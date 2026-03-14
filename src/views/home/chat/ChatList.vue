@@ -74,7 +74,7 @@ const handleMenuSelect = (option: MenuOption) => {
             }
             break;
         case 'toggle_top':
-            // 待实现
+            store.setTopStatus(chat.conversation_id, !chat.is_top);
             break;
         case 'toggle_disturb':
             // 待实现

@@ -238,7 +238,6 @@ export class WebSocketManager extends EventEmitter {
 
     private handleDisconnect(): void {
         this.clearTimers();
-        this.closeWs();
         this.setState(ImTypes.ConnectionState.DISCONNECTED);
         this.scheduleReconnect();
     }
@@ -250,7 +249,7 @@ export class WebSocketManager extends EventEmitter {
         if (!this.ws) return;
         this.isManualClose = true;
         this.ws.removeAllListeners();
-        if (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING) {
+        if (this.ws.readyState === WebSocket.OPEN) {
             this.ws.close();
         }
         this.ws = null;
@@ -351,8 +350,6 @@ export class WebSocketManager extends EventEmitter {
     }
 
     private setState(newState: ImTypes.ConnectionState): void {
-        if (this.state === newState) return;
-
         this.state = newState;
         this.emit('stateChange', newState);
     }

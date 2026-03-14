@@ -2,11 +2,11 @@
     <div class="filter-column">
         <div class="search-wrapper">
             <div class="search-input-box">
-                <img :src="SearchIcon" class="search-icon" />
+                <span v-html="SearchIcon" class="search-icon" />
                 <input class="search-input" placeholder="搜索" />
             </div>
             <button class="add-btn" @click="toggleMenu" ref="addBtnRef">
-                <img :src="PlusIcon" class="add-icon" />
+                <span v-html="PlusIcon" class="add-icon" />
             </button>
         </div>
         <ContextMenu v-model:visible="menuVisible" :x="menuX" :y="menuY" :options="menuOptions" align="right"
@@ -17,8 +17,8 @@
 
 <script lang="ts" setup>
 import { ref } from 'vue';
-import SearchIcon from '@/assets/input/search.svg?url';
-import PlusIcon from '@/assets/input/plus.svg?url';
+import SearchIcon from '@/assets/input/search.svg?raw';
+import PlusIcon from '@/assets/input/plus.svg?raw';
 
 import ContextMenu, { MenuOption } from '@/components/ContextMenu.vue';
 const emit = defineEmits<{
@@ -65,7 +65,7 @@ const handleMenuSelect = (option: MenuOption) => {
     padding: 0 $spacing-md;
     box-sizing: border-box;
     background-color: $bg-card; // Ensure background matches the theme
-    z-index: 1;
+    z-index: 3;
     // border-bottom: 1px solid $color-border; // Optional: separate from list
 
     .search-wrapper {
@@ -101,6 +101,9 @@ const handleMenuSelect = (option: MenuOption) => {
                 opacity: 0.5;
                 margin-right: $spacing-xs;
                 pointer-events: none;
+                display: flex;
+                align-items: center;
+                justify-content: center;
             }
 
             .search-input {
@@ -139,6 +142,9 @@ const handleMenuSelect = (option: MenuOption) => {
                 opacity: 0.6;
                 transition: transform $transition-base;
                 pointer-events: none;
+                display: flex;
+                align-items: center;
+                justify-content: center;
             }
 
             &:hover {

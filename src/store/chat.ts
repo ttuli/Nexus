@@ -3,6 +3,7 @@ import { useUserStore } from './user';
 import { ApiTypes, ImTypes } from '@/types';
 import { IChatMessage, ILocalSystemMessage } from '@/types/chatMessage';
 import { chatService, windowService } from '@/services';
+import { updateConversation } from '@/apis/message';
 import { config } from '@/config';
 import { extractTargetIdFromSessionId, formatSystemMessage } from '@/utils/chat';
 
@@ -61,9 +62,8 @@ export const useChatStore = defineStore('chat', {
             );
 
             if (existingIndex !== -1) {
-                // 已存在，移到第一位
-                const [existing] = this.chatList.splice(existingIndex, 1);
-                this.chatList.unshift(existing);
+                // 已存在，什么都不做，可能需要更新时间
+                // 这里只处理添加逻辑，如果要有最新行为请通过 updateLastMessage 处理
             } else {
                 // 不存在，添加新聊天
                 const newChat: ImTypes.Conversation = {
@@ -81,6 +81,7 @@ export const useChatStore = defineStore('chat', {
                     last_msg_type: ImTypes.MessageType.UNKNOWN,
                 };
                 this.chatList.unshift(newChat);
+                this.sortChatList();
 
                 // 超过最大数量时，移除最后一个
                 if (this.chatList.length > config.maxChatListCount) {
@@ -146,12 +147,8 @@ export const useChatStore = defineStore('chat', {
                 chat.last_message_time = Date.now();
                 chat.update_time = Date.now();
 
-                // 移到第一位
-                const index = this.chatList.indexOf(chat);
-                if (index > 0) {
-                    this.chatList.splice(index, 1);
-                    this.chatList.unshift(chat);
-                }
+                // 重新排序
+                this.sortChatList();
             }
         },
 
@@ -223,6 +220,48 @@ export const useChatStore = defineStore('chat', {
         },
 
         /**
+         * 设置置顶状态
+         */
+        async setTopStatus(sessionId: string, isTop: boolean) {
+            const chat = this.chatList.find((c) => c.conversation_id === sessionId);
+            if (!chat) return;
+
+            // 乐观更新本地状态
+            const oldStatus = chat.is_top;
+            chat.is_top = isTop;
+            
+            // 重新排序，将置顶的放到前面，按时间倒序
+            this.sortChatList();
+
+            try {
+                // 异步更新到服务器
+                await updateConversation({
+                    conversation_id: sessionId,
+                    is_top: isTop ? 1 : 0
+                } as ApiTypes.message.UpdateConversationReq);
+            } catch (error) {
+                // 如果失败则回滚
+                console.error('[ChatStore] Failed to update top status', error);
+                chat.is_top = oldStatus;
+                this.sortChatList();
+            }
+        },
+
+        /**
+         * 对聊天列表排序 (置顶在前, 然后按最近消息时间排序)
+         */
+        sortChatList() {
+            this.chatList.sort((a, b) => {
+                if (a.is_top !== b.is_top) {
+                    return a.is_top ? -1 : 1;
+                }
+                const timeA = a.last_message_time || a.update_time || 0;
+                const timeB = b.last_message_time || b.update_time || 0;
+                return timeB - timeA;
+            });
+        },
+
+        /**
          * 从 localStorage 加载聊天列表
          * @param userId 用户 ID
          */
@@ -240,7 +279,10 @@ export const useChatStore = defineStore('chat', {
                         unread_count: c.unread_count || 0,
                         create_time: c.create_time || 0,
                         update_time: c.update_time || 0,
+                        is_top: c.is_top || false,
+                        is_disturb: c.is_disturb || false,
                     }));
+                    this.sortChatList();
                 } catch (e) {
                     console.error('[ChatStore] Failed to load from storage:', e);
                 }
@@ -374,6 +416,7 @@ export const useChatStore = defineStore('chat', {
                 last_sender: message.fromUserId,
                 update_time: message.sendTime,
             });
+            this.sortChatList();
 
             void chatService.saveMessage(message).catch((e) => {
                 console.error('[ChatStore] Failed to persist message', e);
