@@ -1,5 +1,6 @@
 <template>
-    <div class="chat-card" :class="{ active: props.isActive }" @click.capture.stop="handleClick">
+    <div class="chat-card" :class="{ active: props.isActive, 'is-top': props.data.is_top }"
+        @click.capture.stop="handleClick">
         <div class="avatar-container">
             <Avatar :uid="getTargetId(props.data)"
                 :type="props.data.type === ImTypes.ConversationType.CONVERSATION_TYPE_GROUP ? 'group' : 'user'" />
@@ -8,7 +9,7 @@
             <div class="top-row">
                 <span class="name">{{ displayName }}</span>
                 <span class="time" v-if="props.data.last_content">{{ formatTime(props.data.last_message_time)
-                }}</span>
+                    }}</span>
             </div>
             <div class="bottom-row">
                 <span class="message">{{ props.data.last_content || '' }}</span>
@@ -23,6 +24,7 @@ import { computed } from 'vue';
 import { ImTypes } from '@/types';
 import { useUserStore } from '@/store/user';
 import { useGroupStore } from '@/store/group';
+import { extractTargetIdFromSessionId } from '@/utils/chat';
 
 // Props
 interface Props {
@@ -30,8 +32,6 @@ interface Props {
     isActive?: boolean;
 }
 const props = defineProps<Props>();
-
-import { extractTargetIdFromSessionId } from '@/utils/chat';
 
 const userStore = useUserStore();
 const groupStore = useGroupStore();
@@ -100,6 +100,10 @@ const formatTime = (timestamp: number | null) => {
     transition: background-color 0.2s;
     height: 72px; // Fixed height for consistency
     box-sizing: border-box;
+
+    &.is-top {
+        background-color: $bg-body;
+    }
 
     &:hover {
         background-color: $bg-hover;
