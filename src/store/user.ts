@@ -80,7 +80,7 @@ export const useUserStore = defineStore('user', {
     updateLastReadFriendRequestTime() {
       let maxTime = 0
       for (const req of this.friendRequestMap.values()) {
-        const reqTime = Number(req.request_time)
+        const reqTime = Number(req.handle_time)
         if (reqTime > maxTime) {
           maxTime = reqTime
         }
@@ -152,14 +152,14 @@ export const useUserStore = defineStore('user', {
     }
   },
   getters: {
-    // 获取未读待处理的请求数量（接收者是我，且状态为 Pending，且ID大于上次读取ID）
+    // 获取未读待处理的请求数量
     unreadPendingRequestCount: (state) => {
       let count = 0;
       for (const req of state.friendRequestMap.values()) {
         if (req.from_user_id === state.userID && req.status === ImTypes.ApplyStatus.APPLY_STATUS_PENDING)
           continue;
 
-        if (req.request_time > state.lastReadFriendRequestTime) {
+        if (req.handle_time > state.lastReadFriendRequestTime) {
           count++;
         }
       }

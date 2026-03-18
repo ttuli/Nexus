@@ -443,6 +443,34 @@ class ChatService {
         }
         return remote.filter(item => this.normalizeNumber(item.sendTime) < beforeTime);
     }
+
+    /**
+     * Clear all messages in IndexedDB for a given session.
+     */
+    async clearMessagesBySessionId(sessionId: string): Promise<void> {
+        if (!sessionId) return;
+        const db = await this.openDB();
+        const tx = db.transaction(this.storeName, 'readwrite');
+        const store = tx.objectStore(this.storeName);
+        const idx = store.index('session_sendTime');
+
+        const range = IDBKeyRange.bound([sessionId, 0], [sessionId, Number.MAX_SAFE_INTEGER], false, false);
+        const req = idx.openCursor(range);
+
+        return new Promise((resolve, reject) => {
+            req.onsuccess = () => {
+                const cursor = req.result;
+                if (cursor) {
+                    cursor.delete();
+                    cursor.continue();
+                } else {
+                    resolve();
+                }
+            };
+            req.onerror = () => reject(req.error ?? new Error('Failed to clear messages'));
+            tx.onerror = () => reject(tx.error ?? new Error('Failed to complete clear transaction'));
+        });
+    }
     /**
      * 更新文件消息的本地路径 (localPath)
      */

@@ -4,7 +4,6 @@
         <div class="header">
             <span class="title">{{ title }}</span>
             <div class="actions">
-                <span v-html="aiIcon" class="icon-btn ai" title="AI助手" @click=""></span>
                 <span v-html="phoneIcon" class="icon-btn phone" title="语音通话" @click="startCall"></span>
                 <div class="icon-btn" title="聊天信息" @click="toggleSidebar">⋮</div>
             </div>
@@ -43,9 +42,13 @@
             <!-- Resize Handle -->
             <div class="resize-handle" @mousedown="startResize"></div>
 
+            <AiSuggestions :visible="aiSuggestionsVisible" @select="handleSelectSuggestion"
+                    @close="aiSuggestionsVisible = false" />
+
             <!-- Input Area -->
             <div class="input-area" :style="{ height: inputHeight + 'px' }">
-                <ChatInput @send="handleSendMessage" @sendImage="handleSendImage" @sendFile="handleSendFile" />
+                <ChatInput ref="chatInputRef" @send="handleSendMessage" @sendImage="handleSendImage"
+                    @sendFile="handleSendFile" @triggerAi="handleTriggerAi" />
             </div>
         </div>
     </div>
@@ -65,6 +68,7 @@ import { IChatMessage, ILocalTextMessage } from '@/types/chatMessage';
 import { ImTypes } from '@/types';
 import ChatInput from './components/ChatInput.vue';
 import ChatSidebar from './components/sidebar/index.vue';
+import AiSuggestions from './components/AiSuggestions.vue';
 import type { MenuOption } from '@/components/ContextMenu.vue';
 import { ElMessage } from 'element-plus';
 
@@ -139,8 +143,6 @@ const handleMenuSelect = async (option: MenuOption) => {
     }
 };
 
-
-
 // Computed
 const currentChat = computed(() => chatStore.currentChat);
 
@@ -213,18 +215,35 @@ const handleSendFile = async (file: File) => {
     }
 };
 
-const startCall = () => {
-    if (!currentChat.value) return;
-    const targetId = extractTargetIdFromSessionId(currentChat.value.conversation_id, userStore.getUserID());
-    const targetType = currentChat.value.type === ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE ? 'private' : 'group';
-    
-    if (targetId) {
-        windowService.createWindow('call', {
-            targetId: targetId,
-            fromId: userStore.getUserID(),
-            targetType
-        });
+const chatInputRef = ref<InstanceType<typeof ChatInput> | null>(null);
+
+const aiSuggestionsVisible = ref(false);
+
+const handleTriggerAi = () => {
+    aiSuggestionsVisible.value = !aiSuggestionsVisible.value;
+};
+
+const handleSelectSuggestion = (text: string) => {
+    if (chatInputRef.value) {
+        chatInputRef.value.insertText(text);
     }
+    aiSuggestionsVisible.value = false;
+};
+
+const startCall = () => {
+    ElMessage.warning('该功能暂未开放');
+    return;
+    // if (!currentChat.value) return;
+    // const targetId = extractTargetIdFromSessionId(currentChat.value.conversation_id, userStore.getUserID());
+    // const targetType = currentChat.value.type === ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE ? 'private' : 'group';
+
+    // if (targetId) {
+    //     windowService.createWindow('call', {
+    //         targetId: targetId,
+    //         fromId: userStore.getUserID(),
+    //         targetType
+    //     });
+    // }
 }
 
 // Resizer Logic
@@ -291,6 +310,7 @@ const startResize = (e: MouseEvent) => {
                 padding: 6px;
                 box-sizing: border-box;
             }
+
             .ai {
                 padding: 6px;
                 box-sizing: border-box;

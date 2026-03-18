@@ -20,6 +20,12 @@
                 </div>
             </el-tooltip>
 
+            <el-tooltip content="AI建议" placement="top" :show-after="500">
+                <div class="icon-wrapper" @click="emit('triggerAi')">
+                    <img class="icon-btn bulb" :src="bulb">
+                </div>
+            </el-tooltip>
+
             <!-- Hidden inputs for file selection -->
             <input type="file" ref="imageInputRef" accept=".jpg,.jpeg,.png,.gif,.bmp,.webp" style="display: none"
                 @change="handleImageSelect">
@@ -51,6 +57,7 @@ import { ElMessage } from 'element-plus';
 import emoji from '@/assets/chat/emoji.svg?url';
 import picture from '@/assets/chat/picture.svg?url';
 import file from '@/assets/chat/file.svg?url';
+import bulb from '@/assets/chat/bulb.svg?url';
 
 const inputValue = ref('');
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
@@ -90,6 +97,7 @@ const emit = defineEmits<{
     (e: 'send', content: string): void;
     (e: 'sendImage', file: File): void;
     (e: 'sendFile', file: File): void;
+    (e: 'triggerAi'): void;
 }>();
 
 const imageInputRef = ref<HTMLInputElement | null>(null);
@@ -139,6 +147,26 @@ const handleSend = () => {
 const handleNewLine = () => {
     inputValue.value += '\n';
 };
+
+const insertText = (text: string) => {
+    const textarea = textareaRef.value;
+    if (textarea) {
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        inputValue.value = inputValue.value.substring(0, start) + text + inputValue.value.substring(end);
+
+        nextTick(() => {
+            textarea.focus();
+            textarea.selectionStart = textarea.selectionEnd = start + text.length;
+        });
+    } else {
+        inputValue.value += text;
+    }
+};
+
+defineExpose({
+    insertText
+});
 </script>
 
 <style scoped lang="scss">
@@ -177,6 +205,9 @@ const handleNewLine = () => {
                 opacity: 1;
                 transform: scale(1.1);
             }
+        }
+        .bulb {
+            margin-top: -4px;
         }
     }
 

@@ -30,7 +30,8 @@
             </div>
 
             <div class="actions-section">
-                <CusButton class="action-btn" type="primary" :show-icon="false" @click="clearChatData">清除聊天记录</CusButton>
+                <CusButton class="action-btn" type="primary" :show-icon="false" @click="clearChatData">清除聊天记录
+                </CusButton>
                 <CusButton class="action-btn danger-btn" :show-icon="false" @click="confirmDeleteFriend">删除好友
                 </CusButton>
             </div>
@@ -41,14 +42,17 @@
 <script setup lang="ts">
 import { computed, ref, watch, nextTick } from 'vue';
 import CusButton from '@/components/CusButton.vue';
+import CusDialog from '@/components/CusDialog/CusDialog';
+import { DialogResult } from '@/components/CusDialog/types';
 import { useUserStore } from '@/store/user';
 import { useChatStore } from '@/store/chat';
 import { ImTypes } from '@/types';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessage } from 'element-plus';
 import { updateConversation } from '@/apis/message';
 import { deleteFriend, updateFriendInfo } from '@/apis/user';
 import { extractTargetIdFromSessionId } from '@/utils/chat';
 import { Edit } from '@element-plus/icons-vue';
+import { chatService } from '@/services';
 
 const props = defineProps<{
     chat: ImTypes.Conversation;
@@ -174,50 +178,54 @@ const handleUpdateDisturb = async (val: string | number | boolean) => {
     }
 };
 
-const clearChatData = () => {
-    ElMessageBox.confirm('确定要清除本地的聊天记录吗？这不会影响其他设备的数据。', '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-    }).then(async () => {
-        // Clear locally loaded messages
+const clearChatData = async () => {
+    const res = await CusDialog.open({
+        title: '提示',
+        content: '确定要清除本地的聊天记录吗？这不会影响其他设备的数据。',
+        showCancel: true,
+        confirmText: '确定',
+        cancelText: '取消',
+    });
+
+    if (res === DialogResult.Confirm) {
         if (chatStore.currentSessionId === props.chat.conversation_id) {
             chatStore.messages = [];
         }
 
-        // Remove from IndexedDB
-        // Here we just delete the indexeddb by trying to access local store via chatService
-        // Assuming we openDB and clear elements. A proper API should be added in chatService,
-        // but for now, we clear the memory and reset max_seq locally.
+        await chatService.clearMessagesBySessionId(props.chat.conversation_id);
+
         props.chat.max_seq = 0;
         props.chat.last_content = '';
-        chatStore.removeChat(props.chat.conversation_id);
         ElMessage.success('聊天记录已清除');
         emit('close');
-    }).catch(() => { });
+    }
 };
 
-const confirmDeleteFriend = () => {
-    ElMessageBox.confirm(`确定要删除好友 ${friendInfo.value?.remark || userInfo.value?.user_name || targetId.value} 吗？`, '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-    }).then(async () => {
+const confirmDeleteFriend = async () => {
+    const res = await CusDialog.open({
+        title: '提示',
+        content: `确定要删除好友 ${friendInfo.value?.remark || userInfo.value?.user_name || targetId.value} 吗？`,
+        showCancel: true,
+        confirmText: '确定',
+        cancelText: '取消',
+    });
+
+    if (res === DialogResult.Confirm) {
         if (!targetId.value) return;
         try {
-            const res = await deleteFriend(targetId.value);
-            if (res.code === 200) {
+            const apiRes = await deleteFriend(targetId.value);
+            if (apiRes.code === 200) {
                 ElMessage.success('已删除好友');
                 userStore.friendMap.delete(targetId.value);
                 chatStore.removeChat(props.chat.conversation_id);
                 emit('close');
             } else {
-                ElMessage.error(res.message || '删除失败');
+                ElMessage.error(apiRes.message || '删除失败');
             }
         } catch (e) {
             ElMessage.error('删除请求失败');
         }
-    }).catch(() => { });
+    }
 };
 </script>
 

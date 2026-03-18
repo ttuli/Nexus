@@ -140,7 +140,7 @@ const handleLogin = async () => {
             windowService.createWindow('home')
             window.close()
         } else {
-            ElMessage.error('登录失败')
+            ElMessage.error(res.error || '登录失败')
         }
     } catch (error) {
         ElMessage.error('登录失败')

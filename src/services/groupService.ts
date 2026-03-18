@@ -233,9 +233,7 @@ class GroupService {
      */
     async handleGroupApply(data: ApiTypes.group.HandleGroupApplyReq) {
         try {
-            console.log(data)
             let res = await apiHandleGroupApply(data)
-            console.log(res)
             if (res.data.data) {
                 await cacheService.updateItems(UpdateAction.Update, ResourceType.GROUP_APPLY, [res.data.data])
                 if (res.data.data.status == ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_ACCEPTED) {

@@ -4,6 +4,7 @@
 export * as auth from './auth/auth';
 export * as file from './file/file';
 export * as group from './group/group';
+export * as llm from './llm/llm';
 export * as message from './message/message';
 export * as user from './user/user';
 
