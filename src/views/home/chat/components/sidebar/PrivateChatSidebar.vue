@@ -49,10 +49,10 @@ import { useChatStore } from '@/store/chat';
 import { ImTypes } from '@/types';
 import { ElMessage } from 'element-plus';
 import { updateConversation } from '@/apis/message';
-import { deleteFriend, updateFriendInfo } from '@/apis/user';
+import { updateFriendInfo } from '@/apis/user';
 import { extractTargetIdFromSessionId } from '@/utils/chat';
 import { Edit } from '@element-plus/icons-vue';
-import { chatService } from '@/services';
+import { chatService, friendService } from '@/services';
 
 const props = defineProps<{
     chat: ImTypes.Conversation;
@@ -211,17 +211,13 @@ const confirmDeleteFriend = async () => {
     });
 
     if (res === DialogResult.Confirm) {
-        if (!targetId.value) return;
+        if (!targetId.value || !friendInfo.value) {
+            ElMessage.error('好友不存在');
+            return;
+        }
         try {
-            const apiRes = await deleteFriend(targetId.value);
-            if (apiRes.code === 200) {
-                ElMessage.success('已删除好友');
-                userStore.friendMap.delete(targetId.value);
-                chatStore.removeChat(props.chat.conversation_id);
-                emit('close');
-            } else {
-                ElMessage.error(apiRes.message || '删除失败');
-            }
+            await friendService.deleteFriend(targetId.value);
+            emit('close');
         } catch (e) {
             ElMessage.error('删除请求失败');
         }

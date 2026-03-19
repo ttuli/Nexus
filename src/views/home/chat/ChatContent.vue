@@ -4,7 +4,7 @@
         <div class="header">
             <span class="title">{{ title }}</span>
             <div class="actions">
-                <span v-html="phoneIcon" class="icon-btn phone" title="语音通话" @click="startCall"></span>
+                <!-- <span v-html="phoneIcon" class="icon-btn phone" title="语音通话" @click="startCall"></span> -->
                 <div class="icon-btn" title="聊天信息" @click="toggleSidebar">⋮</div>
             </div>
         </div>
@@ -81,7 +81,7 @@ import { websocketService, windowService } from '@/services';
 const chatStore = useChatStore();
 const userStore = useUserStore();
 const groupStore = useGroupStore();
-const { currentSessionId, messages, isLoading, hasMore } = storeToRefs(chatStore);
+const { currentChat, currentSessionId, messages, isLoading, hasMore } = storeToRefs(chatStore);
 
 // Sidebar Logic
 const sidebarVisible = ref(false);
@@ -144,7 +144,6 @@ const handleMenuSelect = async (option: MenuOption) => {
 };
 
 // Computed
-const currentChat = computed(() => chatStore.currentChat);
 
 const title = computed(() => {
     if (!currentChat.value) return '';
@@ -231,19 +230,17 @@ const handleSelectSuggestion = (text: string) => {
 };
 
 const startCall = () => {
-    ElMessage.warning('该功能暂未开放');
-    return;
-    // if (!currentChat.value) return;
-    // const targetId = extractTargetIdFromSessionId(currentChat.value.conversation_id, userStore.getUserID());
-    // const targetType = currentChat.value.type === ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE ? 'private' : 'group';
+    if (!currentChat.value) return;
+    const targetId = extractTargetIdFromSessionId(currentChat.value.conversation_id, userStore.getUserID());
+    const targetType = currentChat.value.type === ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE ? 'private' : 'group';
 
-    // if (targetId) {
-    //     windowService.createWindow('call', {
-    //         targetId: targetId,
-    //         fromId: userStore.getUserID(),
-    //         targetType
-    //     });
-    // }
+    if (targetId) {
+        windowService.createWindow('call', {
+            targetId: targetId,
+            fromId: userStore.getUserID(),
+            targetType
+        });
+    }
 }
 
 // Resizer Logic

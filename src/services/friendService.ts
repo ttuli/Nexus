@@ -1,4 +1,4 @@
-import { ImTypes } from '@/types';
+import { ImTypes, ResourceType, UpdateAction } from '@/types';
 /**
  * 好友服务
  * 处理好友关系和好友请求的管理
@@ -7,8 +7,9 @@ import { ImTypes } from '@/types';
 import { ipcService } from './ipcService'
 import { useUserStore } from '@/store/user'
 import { IpcChannels } from '@/types'
-import { applyFriend, createFriend, handleFriendApply } from '@/apis/user'
+import { applyFriend, createFriend, deleteFriend, handleFriendApply } from '@/apis/user'
 import { ApiTypes } from '@/types'
+import cacheService from './cacheService';
 
 class FriendService {
     /**
@@ -78,6 +79,23 @@ class FriendService {
      */
     async handleFriendApply(data: ApiTypes.user.HandleFriendApplyReq) {
         return handleFriendApply(data)
+    }
+
+    /**
+     *  删除好友
+     */
+    async deleteFriend(friendId: number) {
+        await deleteFriend(friendId)
+        await cacheService.updateItems(UpdateAction.Delete, ResourceType.FRIEND, [{
+            friend_id: friendId,
+            user_id: 0,
+            remark: '',
+            starred: false,
+            blocked: false,
+            source: ImTypes.FriendSource.UNRECOGNIZED,
+            create_time: 0,
+            extra: '',
+        }])
     }
 }
 

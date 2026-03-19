@@ -124,7 +124,7 @@ onMounted(async () => {
     chatStore.loadFromStorage(userStore.getUserID());
     import('@/views/home/contact/components/ContactSidebar.vue')
 
-    signalWindowReady()
+    setTimeout(signalWindowReady,100)
     messageService.getOfflineActiveSessions()
     websocketService.connect()
     await initRelationStore()
