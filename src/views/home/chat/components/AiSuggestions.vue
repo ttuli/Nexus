@@ -6,8 +6,8 @@
                     <img class="icon" :src="bulbIcon" /> AI 建议回复
                 </span>
                 <div class="actions">
-                    <el-checkbox v-model="autoGenerate" size="small"
-                        style="margin-right: 12px; margin-bottom: 0;">自动生成</el-checkbox>
+                    <!-- <el-checkbox v-model="autoGenerate" size="small"
+                        style="margin-right: 12px; margin-bottom: 0;">自动生成</el-checkbox> -->
                     <span class="refresh-btn" @click="handleRegenerate" :class="{ 'is-loading': loading }"
                         style="margin-right: 12px;">
                         <el-icon>

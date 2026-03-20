@@ -40,6 +40,7 @@ import ZoomIn from '@/assets/photoView/zoom-in.svg?url';
 import ZoomOut from '@/assets/photoView/zoom-out.svg?url';
 import Download from '@/assets/photoView/download.svg?url';
 import { signalWindowReady } from '@/utils/windowReady';
+import { ElMessage } from 'element-plus';
 
 // State
 const route = useRoute();
@@ -238,6 +239,7 @@ const downloadImage = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    ElMessage.success("保存成功")
 };
 
 </script>

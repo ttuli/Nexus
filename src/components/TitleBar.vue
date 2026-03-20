@@ -71,7 +71,6 @@ onMounted(() => {
     })
     ipcService.on(IpcChannels.WS_STATE_CHANGE, (e,state) => {
         wsState.value = state
-        console.log(state)
     })
 })
 onUnmounted(() => {

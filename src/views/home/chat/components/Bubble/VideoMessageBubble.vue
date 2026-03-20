@@ -52,6 +52,8 @@ import { fileService } from '@/services/fileService';
 import { openVideoViewer } from '@/utils/window';
 import { ElMessage } from 'element-plus';
 import { chatService } from '@/services';
+import { toNetworkPreviewUrl } from '@/utils/chat';
+import { ms } from 'element-plus/es/locale/index.mjs';
 
 interface Props {
     message: ILocalVideoMessage;
@@ -77,6 +79,7 @@ watch(() => props.message, async (msg) => {
     // 优先使用传入的 thumbnailUrl（发送方的首帧 Base64）
     if (msg.thumbnailUrl && msg.thumbnailUrl !== '') {
         displayThumb.value = msg.thumbnailUrl;
+        return;
     }
     console.log('VideoMessageBubble message changed:', msg);
     
@@ -91,8 +94,8 @@ watch(() => props.message, async (msg) => {
                 if (!displayThumb.value) {
                     const thumbUrl = await fileService.getFileUrl(msg.url, 'video/snapshot,t_0,f_jpg');
                     if (thumbUrl) {
-                        displayThumb.value = thumbUrl;
-                        msg.thumbnailUrl = thumbUrl;
+                        msg.thumbnailUrl = toNetworkPreviewUrl(thumbUrl);
+                        displayThumb.value = msg.thumbnailUrl;
                         chatService.saveMessage(msg);
                     }
                 }
