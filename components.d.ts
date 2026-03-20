@@ -22,6 +22,7 @@ declare module 'vue' {
     CusInput: typeof import('./src/components/CusInput.vue')['default']
     CusInputDialog: typeof import('./src/components/CusInputDialog/CusInputDialog.vue')['default']
     CusInputHint: typeof import('./src/components/CusInputHint.vue')['default']
+    CusSwitch: typeof import('./src/components/CusSwitch.vue')['default']
     FilterColumn: typeof import('./src/components/FilterColumn.vue')['default']
     GlobalLoading: typeof import('./src/components/GlobalLoading/GlobalLoading.vue')['default']
     Logo: typeof import('./src/components/Logo.vue')['default']

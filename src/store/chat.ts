@@ -3,7 +3,6 @@ import { useUserStore } from './user';
 import { ApiTypes, ImTypes } from '@/types';
 import { IChatMessage, ILocalSystemMessage } from '@/types/chatMessage';
 import { chatService, windowService } from '@/services';
-import { updateConversation } from '@/apis/message';
 import { config } from '@/config';
 import { extractTargetIdFromSessionId, formatSystemMessage } from '@/utils/chat';
 
@@ -76,8 +75,8 @@ export const useChatStore = defineStore('chat', {
                     unread_count: 0,
                     create_time: Date.now(),
                     update_time: Date.now(),
-                    is_top: false,
-                    is_disturb: false,
+                    is_top: 1,
+                    is_disturb: 1,
                     last_msg_type: ImTypes.MessageType.UNKNOWN,
                 };
                 this.chatList.unshift(newChat);
@@ -220,40 +219,12 @@ export const useChatStore = defineStore('chat', {
         },
 
         /**
-         * 设置置顶状态
-         */
-        async setTopStatus(sessionId: string, isTop: boolean) {
-            const chat = this.chatList.find((c) => c.conversation_id === sessionId);
-            if (!chat) return;
-
-            // 乐观更新本地状态
-            const oldStatus = chat.is_top;
-            chat.is_top = isTop;
-            
-            // 重新排序，将置顶的放到前面，按时间倒序
-            this.sortChatList();
-
-            try {
-                // 异步更新到服务器
-                await updateConversation({
-                    conversation_id: sessionId,
-                    is_top: isTop ? 1 : 0
-                } as ApiTypes.message.UpdateConversationReq);
-            } catch (error) {
-                // 如果失败则回滚
-                console.error('[ChatStore] Failed to update top status', error);
-                chat.is_top = oldStatus;
-                this.sortChatList();
-            }
-        },
-
-        /**
          * 对聊天列表排序 (置顶在前, 然后按最近消息时间排序)
          */
         sortChatList() {
             this.chatList.sort((a, b) => {
                 if (a.is_top !== b.is_top) {
-                    return a.is_top ? -1 : 1;
+                    return a.is_top === 2 ? -1 : 1;
                 }
                 const timeA = a.last_message_time || a.update_time || 0;
                 const timeB = b.last_message_time || b.update_time || 0;
@@ -279,8 +250,8 @@ export const useChatStore = defineStore('chat', {
                         unread_count: c.unread_count || 0,
                         create_time: c.create_time || 0,
                         update_time: c.update_time || 0,
-                        is_top: c.is_top || false,
-                        is_disturb: c.is_disturb || false,
+                        is_top: Number(c.is_top) || 1,
+                        is_disturb: Number(c.is_disturb) || 1,
                     }));
                     this.sortChatList();
                 } catch (e) {
@@ -442,6 +413,17 @@ export const useChatStore = defineStore('chat', {
             return state.chatList.reduce((acc, current) => {
                 return acc + (current.unread_count || 0);
             }, 0);
-        }
+        },
+        /**
+         * 获取聊天
+         */
+        getChat: (state) => (sessionId: string) => {
+            if (!sessionId) {
+                return null;
+            }
+            return state.chatList.find(
+                (c) => c.conversation_id === sessionId
+            ) || null;
+        },
     },
 });

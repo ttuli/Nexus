@@ -33,8 +33,12 @@ export async function getFriendList(params: { limit?: number, offset?: number } 
  */
 export async function updateFriendInfo(data: ApiTypes.user.UpdateFriendReq) {
   const reqData = ApiTypes.user.UpdateFriendReq.encode(data).finish()
-  let res = await instance.put(config.userServer + '/user/friend/update', reqData)
-  return res.data
+  let res = await instance<ApiResponse<ApiTypes.user.UpdateFriendResp>>({
+    method: 'put',
+    url: config.userServer + '/user/friend/update',
+    data: reqData
+  })
+  return decodeResponse(res.data, ApiTypes.user.UpdateFriendResp.decode)
 }
 
 /**

@@ -7,7 +7,7 @@ import { ImTypes, ResourceType, UpdateAction } from '@/types';
 import { ipcService } from './ipcService'
 import { useUserStore } from '@/store/user'
 import { IpcChannels } from '@/types'
-import { applyFriend, createFriend, deleteFriend, handleFriendApply } from '@/apis/user'
+import { applyFriend, createFriend, deleteFriend, handleFriendApply, updateFriendInfo } from '@/apis/user'
 import { ApiTypes } from '@/types'
 import cacheService from './cacheService';
 
@@ -96,6 +96,14 @@ class FriendService {
             create_time: 0,
             extra: '',
         }])
+    }
+
+    /**
+     * 更新好友信息
+     */
+    async updateFriend(data: ApiTypes.user.UpdateFriendReq) {
+        let res = await updateFriendInfo(data)
+        await cacheService.updateItems(UpdateAction.Update, ResourceType.FRIEND, [res.data.data as ImTypes.Friend])
     }
 }
 

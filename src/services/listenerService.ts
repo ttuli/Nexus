@@ -213,6 +213,11 @@ class ListenerService {
                     chatStore.addChat(generateSessionId(friend.friend_id, friend.user_id))
                     break;
                 }
+                case ImTypes.MessageType.FRIEND_DELETED: {
+                    const friend = ImTypes.Friend.decode(data.payload.payload)
+                    await cacheService.updateItems(UpdateAction.Delete, ResourceType.FRIEND, [friend])
+                    break;
+                }
                 case ImTypes.MessageType.GROUP_REQUEST: {
                     const groupRequest = ImTypes.GroupApply.decode(data.payload.payload)
                     await cacheService.updateItems(UpdateAction.Update, ResourceType.GROUP_APPLY, [groupRequest])

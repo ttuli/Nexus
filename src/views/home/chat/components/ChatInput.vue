@@ -1,5 +1,8 @@
 <template>
     <div class="chat-input-area">
+        <div class="disabled-overlay" v-if="disableReason">
+            {{ disableReason }}
+        </div>
         <div class="toolbar">
             <!-- P1: Icons for Emoji, Image, File (Placeholders) -->
             <el-tooltip content="表情" placement="top" :show-after="500">
@@ -58,6 +61,12 @@ import emoji from '@/assets/chat/emoji.svg?url';
 import picture from '@/assets/chat/picture.svg?url';
 import file from '@/assets/chat/file.svg?url';
 import bulb from '@/assets/chat/bulb.svg?url';
+
+const props = withDefaults(defineProps<{
+    disableReason?: string;
+}>(), {
+    disableReason: ''
+});
 
 const inputValue = ref('');
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
@@ -180,6 +189,23 @@ defineExpose({
     background-color: white;
     padding: 8px 16px;
     box-sizing: border-box;
+    position: relative;
+
+    .disabled-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(255, 255, 255, 0.8);
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: $color-error;
+        font-size: 14px;
+        backdrop-filter: blur(2px);
+    }
 
     .toolbar {
         display: flex;
@@ -206,6 +232,7 @@ defineExpose({
                 transform: scale(1.1);
             }
         }
+
         .bulb {
             margin-top: -4px;
         }

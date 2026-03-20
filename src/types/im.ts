@@ -147,8 +147,10 @@ export enum MessageType {
   FRIEND_REQUEST = 601,
   /** FRIEND_ADD - 添加好友 */
   FRIEND_ADD = 602,
+  /** FRIEND_DELETED - 删除好友 */
+  FRIEND_DELETED = 603,
   /** GROUP_REQUEST - 群请求 */
-  GROUP_REQUEST = 603,
+  GROUP_REQUEST = 604,
   /** UPDATE_SESSION - 内部消费消息 */
   UPDATE_SESSION = 700,
   /** ERROR - 错误响应 900-999 */
@@ -246,6 +248,9 @@ export function messageTypeFromJSON(object: any): MessageType {
     case "FRIEND_ADD":
       return MessageType.FRIEND_ADD;
     case 603:
+    case "FRIEND_DELETED":
+      return MessageType.FRIEND_DELETED;
+    case 604:
     case "GROUP_REQUEST":
       return MessageType.GROUP_REQUEST;
     case 700:
@@ -321,6 +326,8 @@ export function messageTypeToJSON(object: MessageType): string {
       return "FRIEND_REQUEST";
     case MessageType.FRIEND_ADD:
       return "FRIEND_ADD";
+    case MessageType.FRIEND_DELETED:
+      return "FRIEND_DELETED";
     case MessageType.GROUP_REQUEST:
       return "GROUP_REQUEST";
     case MessageType.UPDATE_SESSION:
@@ -1526,9 +1533,9 @@ export interface Conversation {
   /** 更新时间 */
   update_time: number;
   /** 是否置顶 */
-  is_top: boolean;
+  is_top: number;
   /** 是否免打扰 */
-  is_disturb: boolean;
+  is_disturb: number;
   /** 最后消息类型 (用于渲染图标) */
   last_msg_type: MessageType;
 }
@@ -5082,8 +5089,8 @@ function createBaseConversation(): Conversation {
     unread_count: 0,
     create_time: 0,
     update_time: 0,
-    is_top: false,
-    is_disturb: false,
+    is_top: 0,
+    is_disturb: 0,
     last_msg_type: 0,
   };
 }
@@ -5117,11 +5124,11 @@ export const Conversation: MessageFns<Conversation> = {
     if (message.update_time !== 0) {
       writer.uint32(72).int64(message.update_time);
     }
-    if (message.is_top !== false) {
-      writer.uint32(80).bool(message.is_top);
+    if (message.is_top !== 0) {
+      writer.uint32(80).int32(message.is_top);
     }
-    if (message.is_disturb !== false) {
-      writer.uint32(88).bool(message.is_disturb);
+    if (message.is_disturb !== 0) {
+      writer.uint32(88).int32(message.is_disturb);
     }
     if (message.last_msg_type !== 0) {
       writer.uint32(96).int32(message.last_msg_type);
@@ -5213,7 +5220,7 @@ export const Conversation: MessageFns<Conversation> = {
             break;
           }
 
-          message.is_top = reader.bool();
+          message.is_top = reader.int32();
           continue;
         }
         case 11: {
@@ -5221,7 +5228,7 @@ export const Conversation: MessageFns<Conversation> = {
             break;
           }
 
-          message.is_disturb = reader.bool();
+          message.is_disturb = reader.int32();
           continue;
         }
         case 12: {
@@ -5285,15 +5292,15 @@ export const Conversation: MessageFns<Conversation> = {
         ? globalThis.Number(object.update_time)
         : 0,
       is_top: isSet(object.isTop)
-        ? globalThis.Boolean(object.isTop)
+        ? globalThis.Number(object.isTop)
         : isSet(object.is_top)
-        ? globalThis.Boolean(object.is_top)
-        : false,
+        ? globalThis.Number(object.is_top)
+        : 0,
       is_disturb: isSet(object.isDisturb)
-        ? globalThis.Boolean(object.isDisturb)
+        ? globalThis.Number(object.isDisturb)
         : isSet(object.is_disturb)
-        ? globalThis.Boolean(object.is_disturb)
-        : false,
+        ? globalThis.Number(object.is_disturb)
+        : 0,
       last_msg_type: isSet(object.lastMsgType)
         ? messageTypeFromJSON(object.lastMsgType)
         : isSet(object.last_msg_type)
@@ -5331,11 +5338,11 @@ export const Conversation: MessageFns<Conversation> = {
     if (message.update_time !== 0) {
       obj.updateTime = Math.round(message.update_time);
     }
-    if (message.is_top !== false) {
-      obj.isTop = message.is_top;
+    if (message.is_top !== 0) {
+      obj.isTop = Math.round(message.is_top);
     }
-    if (message.is_disturb !== false) {
-      obj.isDisturb = message.is_disturb;
+    if (message.is_disturb !== 0) {
+      obj.isDisturb = Math.round(message.is_disturb);
     }
     if (message.last_msg_type !== 0) {
       obj.lastMsgType = messageTypeToJSON(message.last_msg_type);
@@ -5357,8 +5364,8 @@ export const Conversation: MessageFns<Conversation> = {
     message.unread_count = object.unread_count ?? 0;
     message.create_time = object.create_time ?? 0;
     message.update_time = object.update_time ?? 0;
-    message.is_top = object.is_top ?? false;
-    message.is_disturb = object.is_disturb ?? false;
+    message.is_top = object.is_top ?? 0;
+    message.is_disturb = object.is_disturb ?? 0;
     message.last_msg_type = object.last_msg_type ?? 0;
     return message;
   },

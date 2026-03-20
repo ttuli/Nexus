@@ -21,38 +21,44 @@
             <div class="detail-group mt-15">
                 <div class="detail-item action-toggle">
                     <span class="label">置顶聊天</span>
-                    <el-switch v-model="isPinned" @change="handleUpdatePinned" :loading="pinLoading" />
+                    <CusSwitch :model-value="props.chat.is_top" :active-value="2" :inactive-value="1"
+                        @change="handleUpdatePinned" :loading="pinLoading" />
                 </div>
                 <div class="detail-item action-toggle">
                     <span class="label">消息免打扰</span>
-                    <el-switch v-model="isDisturb" @change="handleUpdateDisturb" :loading="disturbLoading" />
+                    <CusSwitch :model-value="props.chat.is_disturb" :active-value="2" :inactive-value="1"
+                        @change="handleUpdateDisturb" :loading="disturbLoading" />
                 </div>
             </div>
 
             <div class="actions-section">
-                <CusButton class="action-btn" type="primary" :show-icon="false" @click="clearChatData">清除聊天记录
-                </CusButton>
-                <CusButton class="action-btn danger-btn" :show-icon="false" @click="confirmDeleteFriend">删除好友
-                </CusButton>
+                <div class="detail-group action-group">
+                    <div class="detail-item center-item text-primary" @click="clearChatData">
+                        清除聊天记录
+                    </div>
+                </div>
+                <div class="detail-group action-group mt-15">
+                    <div class="detail-item center-item text-danger" @click="confirmDeleteFriend">
+                        删除好友
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, nextTick } from 'vue';
-import CusButton from '@/components/CusButton.vue';
+import { computed, ref, nextTick } from 'vue';
+import CusSwitch from '@/components/CusSwitch.vue';
 import CusDialog from '@/components/CusDialog/CusDialog';
 import { DialogResult } from '@/components/CusDialog/types';
 import { useUserStore } from '@/store/user';
 import { useChatStore } from '@/store/chat';
 import { ImTypes } from '@/types';
 import { ElMessage } from 'element-plus';
-import { updateConversation } from '@/apis/message';
-import { updateFriendInfo } from '@/apis/user';
 import { extractTargetIdFromSessionId } from '@/utils/chat';
 import { Edit } from '@element-plus/icons-vue';
-import { chatService, friendService } from '@/services';
+import { chatService, friendService, messageService } from '@/services';
 
 const props = defineProps<{
     chat: ImTypes.Conversation;
@@ -93,35 +99,17 @@ const handleSaveRemark = async () => {
     }
 
     try {
-        const res = await updateFriendInfo({
+        await friendService.updateFriend({
             friend_id: targetIdVal.value,
             remark: editRemarkValue.value,
             blocked: friendInfo.value.blocked || false,
             starred: friendInfo.value.starred || false
         });
 
-        if (res.code === 200) {
-            ElMessage.success('备注修改成功');
-            // Update local store preserving reactivity and keeping other fields
-            const updatedFriend: ImTypes.Friend = { ...friendInfo.value, remark: editRemarkValue.value };
-            userStore.setFriend(updatedFriend);
-        } else {
-            ElMessage.error(res.message || '修改失败');
-        }
+        ElMessage.success('备注修改成功');
     } catch (error) {
-        ElMessage.error('修改备注请求失败');
     }
 };
-
-
-// Sync local toggle state with store
-const isPinned = ref(props.chat.is_top || false);
-const isDisturb = ref(props.chat.is_disturb || false);
-
-watch(() => props.chat, (newChat) => {
-    isPinned.value = newChat.is_top || false;
-    isDisturb.value = newChat.is_disturb || false;
-}, { deep: true });
 
 const pinLoading = ref(false);
 const disturbLoading = ref(false);
@@ -130,23 +118,7 @@ const handleUpdatePinned = async (val: string | number | boolean) => {
     if (pinLoading.value) return;
     pinLoading.value = true;
     try {
-        const isTop = val ? 1 : 2; // Usually 1=true, 2=false in this backend convention, or check specific backend req
-        const res = await updateConversation({
-            conversation_id: props.chat.conversation_id,
-            is_top: isTop,
-            is_disturb: 0,
-            is_mute: 0,
-        });
-        if (res.code === 200) {
-            props.chat.is_top = !!val;
-            ElMessage.success(val ? '已设为置顶' : '已取消置顶');
-        } else {
-            isPinned.value = !val;
-            ElMessage.error(res.message || '设置失败');
-        }
-    } catch (e) {
-        isPinned.value = !val;
-        ElMessage.error('设置失败');
+        await messageService.updateConversion(props.chat.conversation_id, 3 - props.chat.is_top, undefined);
     } finally {
         pinLoading.value = false;
     }
@@ -156,23 +128,7 @@ const handleUpdateDisturb = async (val: string | number | boolean) => {
     if (disturbLoading.value) return;
     disturbLoading.value = true;
     try {
-        const isDisturbVal = val ? 1 : 2;
-        const res = await updateConversation({
-            conversation_id: props.chat.conversation_id,
-            is_top: 0,
-            is_disturb: isDisturbVal,
-            is_mute: 0,
-        });
-        if (res.code === 200) {
-            props.chat.is_disturb = !!val;
-            ElMessage.success(val ? '已开启免打扰' : '已关闭免打扰');
-        } else {
-            isDisturb.value = !val;
-            ElMessage.error(res.message || '设置失败');
-        }
-    } catch (e) {
-        isDisturb.value = !val;
-        ElMessage.error('设置失败');
+        await messageService.updateConversion(props.chat.conversation_id, undefined, 3 - props.chat.is_disturb);
     } finally {
         disturbLoading.value = false;
     }
@@ -320,23 +276,32 @@ const confirmDeleteFriend = async () => {
             margin-top: 30px;
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            gap: 12px;
 
-            .action-btn {
-                margin-left: 0;
+            .action-group {
+                padding: 0;
+                cursor: pointer;
+                transition: background-color 0.2s;
+
+                &:hover {
+                    background-color: #f3f4f6;
+                }
+
+                .center-item {
+                    justify-content: center;
+                    border-bottom: none;
+                    font-size: 15px;
+                    font-weight: 500;
+                }
+
+                .text-primary {
+                    color: $color-text-primary;
+                }
+
+                .text-danger {
+                    color: $color-error;
+                }
             }
         }
-    }
-}
-
-:deep(.danger-btn) {
-    background-color: $color-error !important;
-    color: white !important;
-
-    &:hover {
-        background-color: color.adjust($color-error, $lightness: -10%) !important;
     }
 }
 </style>

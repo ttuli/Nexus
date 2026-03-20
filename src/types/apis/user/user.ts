@@ -145,6 +145,11 @@ export interface UpdateFriendReq {
   starred: boolean;
 }
 
+export interface UpdateFriendResp {
+  /** @gotags: json:"data" */
+  data: Friend | undefined;
+}
+
 /** DeleteFriendReq */
 export interface DeleteFriendReq {
   /** @gotags: json:"friend_id" */
@@ -1553,6 +1558,64 @@ export const UpdateFriendReq: MessageFns<UpdateFriendReq> = {
     message.remark = object.remark ?? "";
     message.blocked = object.blocked ?? false;
     message.starred = object.starred ?? false;
+    return message;
+  },
+};
+
+function createBaseUpdateFriendResp(): UpdateFriendResp {
+  return { data: undefined };
+}
+
+export const UpdateFriendResp: MessageFns<UpdateFriendResp> = {
+  encode(message: UpdateFriendResp, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.data !== undefined) {
+      Friend.encode(message.data, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdateFriendResp {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdateFriendResp();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.data = Friend.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdateFriendResp {
+    return { data: isSet(object.data) ? Friend.fromJSON(object.data) : undefined };
+  },
+
+  toJSON(message: UpdateFriendResp): unknown {
+    const obj: any = {};
+    if (message.data !== undefined) {
+      obj.data = Friend.toJSON(message.data);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdateFriendResp>, I>>(base?: I): UpdateFriendResp {
+    return UpdateFriendResp.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdateFriendResp>, I>>(object: I): UpdateFriendResp {
+    const message = createBaseUpdateFriendResp();
+    message.data = (object.data !== undefined && object.data !== null) ? Friend.fromPartial(object.data) : undefined;
     return message;
   },
 };

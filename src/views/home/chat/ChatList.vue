@@ -23,6 +23,7 @@ import { useChatStore } from '@/store/chat';
 import ChatCard from './components/ChatCard.vue';
 import ContextMenu, { type MenuOption } from '@/components/ContextMenu.vue';
 import { ImTypes } from '@/types';
+import { messageService } from '@/services';
 
 const router = useRouter();
 const store = useChatStore();
@@ -43,9 +44,9 @@ const menuOptions = computed<MenuOption[]>(() => {
     if (!chat) return [];
     return [
         { label: '设为已读', key: 'mark_read' },
-        { label: chat.is_top ? '取消置顶' : '置顶聊天', key: 'toggle_top' },
+        { label: chat.is_top === 2 ? '取消置顶' : '置顶聊天', key: 'toggle_top' },
         { label: '删除聊天', key: 'delete' },
-        { label: chat.is_disturb ? '取消免打扰' : '消息免打扰', key: 'toggle_disturb' }
+        { label: chat.is_disturb === 2 ? '取消免打扰' : '消息免打扰', key: 'toggle_disturb' }
     ];
 });
 
@@ -74,10 +75,10 @@ const handleMenuSelect = (option: MenuOption) => {
             }
             break;
         case 'toggle_top':
-            store.setTopStatus(chat.conversation_id, !chat.is_top);
+            messageService.updateConversion(chat.conversation_id, 3 - chat.is_top, undefined);
             break;
         case 'toggle_disturb':
-            // 待实现
+            messageService.updateConversion(chat.conversation_id, undefined, 3 - chat.is_disturb);
             break;
     }
 };

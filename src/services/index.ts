@@ -26,4 +26,5 @@ export { listenerService } from './listenerService'
 export { websocketService, type WebSocketState, type WsMessage } from './websocketService'
 export { chatService } from './chatService'
 export { callService } from './callService'
+export { messageService } from './messageService'
 

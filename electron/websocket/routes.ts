@@ -148,6 +148,7 @@ export const wsRouteTable: Record<number, MessageHandler> = {
 
     [ImTypes.MessageType.FRIEND_REQUEST]: handleNotification,
     [ImTypes.MessageType.FRIEND_ADD]: handleNotification,
+    [ImTypes.MessageType.FRIEND_DELETED]: handleNotification,
     [ImTypes.MessageType.GROUP_REQUEST]: handleNotification,
     [ImTypes.MessageType.GROUP_OP_NOTIFICATION]: handleNotification,
     [ImTypes.MessageType.MSG_OP_RECALL]: handleNotification,

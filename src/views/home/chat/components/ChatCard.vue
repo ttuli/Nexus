@@ -1,5 +1,5 @@
 <template>
-    <div class="chat-card" :class="{ active: props.isActive, 'is-top': props.data.is_top }"
+    <div class="chat-card" :class="{ active: props.isActive, 'is-top': props.data.is_top === 2 }"
         @click.capture.stop="handleClick">
         <div class="avatar-container">
             <Avatar :uid="getTargetId(props.data)"

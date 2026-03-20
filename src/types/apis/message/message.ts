@@ -52,11 +52,9 @@ export interface UserConversation {
   /** @gotags: json:"conversation_id" */
   conversation_id: string;
   /** @gotags: json:"is_top" */
-  is_top: boolean;
+  is_top: number;
   /** @gotags: json:"is_disturb" */
-  is_disturb: boolean;
-  /** @gotags: json:"is_mute" */
-  is_mute: boolean;
+  is_disturb: number;
   /** @gotags: json:"last_read_seq" */
   last_read_seq: number;
   /** @gotags: json:"create_time" */
@@ -99,8 +97,6 @@ export interface UpdateConversationReq {
   is_top: number;
   /** @gotags: json:"is_disturb,optional" */
   is_disturb: number;
-  /** @gotags: json:"is_mute,optional" */
-  is_mute: number;
 }
 
 /** GetUserConversationsResp */
@@ -582,9 +578,8 @@ function createBaseUserConversation(): UserConversation {
   return {
     user_id: 0,
     conversation_id: "",
-    is_top: false,
-    is_disturb: false,
-    is_mute: false,
+    is_top: 0,
+    is_disturb: 0,
     last_read_seq: 0,
     create_time: 0,
     update_time: 0,
@@ -599,20 +594,17 @@ export const UserConversation: MessageFns<UserConversation> = {
     if (message.conversation_id !== "") {
       writer.uint32(18).string(message.conversation_id);
     }
-    if (message.is_top !== false) {
-      writer.uint32(24).bool(message.is_top);
+    if (message.is_top !== 0) {
+      writer.uint32(24).int32(message.is_top);
     }
-    if (message.is_disturb !== false) {
-      writer.uint32(32).bool(message.is_disturb);
-    }
-    if (message.is_mute !== false) {
-      writer.uint32(40).bool(message.is_mute);
+    if (message.is_disturb !== 0) {
+      writer.uint32(32).int32(message.is_disturb);
     }
     if (message.last_read_seq !== 0) {
-      writer.uint32(48).uint64(message.last_read_seq);
+      writer.uint32(40).uint64(message.last_read_seq);
     }
     if (message.create_time !== 0) {
-      writer.uint32(56).int64(message.create_time);
+      writer.uint32(48).int64(message.create_time);
     }
     if (message.update_time !== 0) {
       writer.uint32(64).int64(message.update_time);
@@ -648,7 +640,7 @@ export const UserConversation: MessageFns<UserConversation> = {
             break;
           }
 
-          message.is_top = reader.bool();
+          message.is_top = reader.int32();
           continue;
         }
         case 4: {
@@ -656,7 +648,7 @@ export const UserConversation: MessageFns<UserConversation> = {
             break;
           }
 
-          message.is_disturb = reader.bool();
+          message.is_disturb = reader.int32();
           continue;
         }
         case 5: {
@@ -664,19 +656,11 @@ export const UserConversation: MessageFns<UserConversation> = {
             break;
           }
 
-          message.is_mute = reader.bool();
+          message.last_read_seq = longToNumber(reader.uint64());
           continue;
         }
         case 6: {
           if (tag !== 48) {
-            break;
-          }
-
-          message.last_read_seq = longToNumber(reader.uint64());
-          continue;
-        }
-        case 7: {
-          if (tag !== 56) {
             break;
           }
 
@@ -713,20 +697,15 @@ export const UserConversation: MessageFns<UserConversation> = {
         ? globalThis.String(object.conversation_id)
         : "",
       is_top: isSet(object.isTop)
-        ? globalThis.Boolean(object.isTop)
+        ? globalThis.Number(object.isTop)
         : isSet(object.is_top)
-        ? globalThis.Boolean(object.is_top)
-        : false,
+        ? globalThis.Number(object.is_top)
+        : 0,
       is_disturb: isSet(object.isDisturb)
-        ? globalThis.Boolean(object.isDisturb)
+        ? globalThis.Number(object.isDisturb)
         : isSet(object.is_disturb)
-        ? globalThis.Boolean(object.is_disturb)
-        : false,
-      is_mute: isSet(object.isMute)
-        ? globalThis.Boolean(object.isMute)
-        : isSet(object.is_mute)
-        ? globalThis.Boolean(object.is_mute)
-        : false,
+        ? globalThis.Number(object.is_disturb)
+        : 0,
       last_read_seq: isSet(object.lastReadSeq)
         ? globalThis.Number(object.lastReadSeq)
         : isSet(object.last_read_seq)
@@ -753,14 +732,11 @@ export const UserConversation: MessageFns<UserConversation> = {
     if (message.conversation_id !== "") {
       obj.conversationId = message.conversation_id;
     }
-    if (message.is_top !== false) {
-      obj.isTop = message.is_top;
+    if (message.is_top !== 0) {
+      obj.isTop = Math.round(message.is_top);
     }
-    if (message.is_disturb !== false) {
-      obj.isDisturb = message.is_disturb;
-    }
-    if (message.is_mute !== false) {
-      obj.isMute = message.is_mute;
+    if (message.is_disturb !== 0) {
+      obj.isDisturb = Math.round(message.is_disturb);
     }
     if (message.last_read_seq !== 0) {
       obj.lastReadSeq = Math.round(message.last_read_seq);
@@ -781,9 +757,8 @@ export const UserConversation: MessageFns<UserConversation> = {
     const message = createBaseUserConversation();
     message.user_id = object.user_id ?? 0;
     message.conversation_id = object.conversation_id ?? "";
-    message.is_top = object.is_top ?? false;
-    message.is_disturb = object.is_disturb ?? false;
-    message.is_mute = object.is_mute ?? false;
+    message.is_top = object.is_top ?? 0;
+    message.is_disturb = object.is_disturb ?? 0;
     message.last_read_seq = object.last_read_seq ?? 0;
     message.create_time = object.create_time ?? 0;
     message.update_time = object.update_time ?? 0;
@@ -1050,7 +1025,7 @@ export const ReadMessageReq: MessageFns<ReadMessageReq> = {
 };
 
 function createBaseUpdateConversationReq(): UpdateConversationReq {
-  return { conversation_id: "", is_top: 0, is_disturb: 0, is_mute: 0 };
+  return { conversation_id: "", is_top: 0, is_disturb: 0 };
 }
 
 export const UpdateConversationReq: MessageFns<UpdateConversationReq> = {
@@ -1063,9 +1038,6 @@ export const UpdateConversationReq: MessageFns<UpdateConversationReq> = {
     }
     if (message.is_disturb !== 0) {
       writer.uint32(24).int32(message.is_disturb);
-    }
-    if (message.is_mute !== 0) {
-      writer.uint32(32).int32(message.is_mute);
     }
     return writer;
   },
@@ -1101,14 +1073,6 @@ export const UpdateConversationReq: MessageFns<UpdateConversationReq> = {
           message.is_disturb = reader.int32();
           continue;
         }
-        case 4: {
-          if (tag !== 32) {
-            break;
-          }
-
-          message.is_mute = reader.int32();
-          continue;
-        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1135,11 +1099,6 @@ export const UpdateConversationReq: MessageFns<UpdateConversationReq> = {
         : isSet(object.is_disturb)
         ? globalThis.Number(object.is_disturb)
         : 0,
-      is_mute: isSet(object.isMute)
-        ? globalThis.Number(object.isMute)
-        : isSet(object.is_mute)
-        ? globalThis.Number(object.is_mute)
-        : 0,
     };
   },
 
@@ -1154,9 +1113,6 @@ export const UpdateConversationReq: MessageFns<UpdateConversationReq> = {
     if (message.is_disturb !== 0) {
       obj.isDisturb = Math.round(message.is_disturb);
     }
-    if (message.is_mute !== 0) {
-      obj.isMute = Math.round(message.is_mute);
-    }
     return obj;
   },
 
@@ -1168,7 +1124,6 @@ export const UpdateConversationReq: MessageFns<UpdateConversationReq> = {
     message.conversation_id = object.conversation_id ?? "";
     message.is_top = object.is_top ?? 0;
     message.is_disturb = object.is_disturb ?? 0;
-    message.is_mute = object.is_mute ?? 0;
     return message;
   },
 };

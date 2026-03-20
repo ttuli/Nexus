@@ -9,6 +9,11 @@
             </div>
         </div>
 
+        <!-- Warning Area -->
+        <div class="chat-warning" v-if="chatDisableReason">
+            <span>{{ chatDisableReason }}</span>
+        </div>
+
         <!-- Content Area (Relative for Sidebar) -->
         <div class="content-wrapper">
             <!-- Message List -->
@@ -43,12 +48,12 @@
             <div class="resize-handle" @mousedown="startResize"></div>
 
             <AiSuggestions :visible="aiSuggestionsVisible" @select="handleSelectSuggestion"
-                    @close="aiSuggestionsVisible = false" />
+                @close="aiSuggestionsVisible = false" />
 
             <!-- Input Area -->
             <div class="input-area" :style="{ height: inputHeight + 'px' }">
-                <ChatInput ref="chatInputRef" @send="handleSendMessage" @sendImage="handleSendImage"
-                    @sendFile="handleSendFile" @triggerAi="handleTriggerAi" />
+                <ChatInput ref="chatInputRef" :disable-reason="chatDisableReason" @send="handleSendMessage"
+                    @sendImage="handleSendImage" @sendFile="handleSendFile" @triggerAi="handleTriggerAi" />
             </div>
         </div>
     </div>
@@ -161,6 +166,23 @@ const title = computed(() => {
 });
 
 const isSelf = (uid: number) => uid === userStore.userID;
+
+const chatDisableReason = computed(() => {
+    if (!currentChat.value) return '';
+    const targetId = extractTargetIdFromSessionId(currentChat.value.conversation_id, userStore.getUserID());
+    if (!targetId) return '';
+
+    if (currentChat.value.type === ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE) {
+        if (!userStore.isFriend(targetId)) {
+            return '您与对方非好友关系，无法发送消息';
+        }
+    } else {
+        if (!groupStore.isJoinedGroup(targetId)) {
+            return '您已不在此群聊中，无法发送消息';
+        }
+    }
+    return '';
+});
 
 // Messages (Local Mock)
 // Messages handled by store now
@@ -329,6 +351,19 @@ const startResize = (e: MouseEvent) => {
                 }
             }
         }
+    }
+
+    .chat-warning {
+        -webkit-app-region: no-drag;
+        background-color: rgba(253, 230, 232, 0.9);
+        color: $color-error;
+        padding: 8px 20px;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        z-index: 5;
     }
 
     .content-wrapper {
