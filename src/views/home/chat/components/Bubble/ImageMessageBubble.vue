@@ -78,6 +78,7 @@ async function fetchThumbnail(msg: ILocalImageMessage) {
 
 // 监听消息变化，决定 displayUrl 来源
 watch(() => props.message, (msg) => {
+    console.log(msg)
     if (msg.thumbnailUrl && msg.thumbnailUrl !== '') {
         displayUrl.value = msg.thumbnailUrl;
         return;

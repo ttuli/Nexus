@@ -52,7 +52,7 @@ app.whenReady().then(() => {
     resourceManager.setStoreRefreshToken(true);
     cacheManager.flushToDisk();
     windowManager.closeAllWindows().finally(() => {
-      wsManager.disconnect();
+      wsManager.closeWs();
       app.quit();
     })
   })

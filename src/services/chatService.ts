@@ -132,6 +132,61 @@ class ChatService {
         return 0;
     }
 
+    private toStorableValue(value: unknown, seen: WeakSet<object>): unknown {
+        if (value === null || value === undefined) return value;
+
+        const valueType = typeof value;
+        if (valueType === 'string' || valueType === 'number' || valueType === 'boolean') {
+            return value;
+        }
+        if (valueType === 'bigint') {
+            return value.toString();
+        }
+        if (valueType === 'function' || valueType === 'symbol') {
+            return undefined;
+        }
+
+        if (value instanceof Date) {
+            return value.toISOString();
+        }
+
+        if (value instanceof ArrayBuffer) {
+            return value.slice(0);
+        }
+
+        if (ArrayBuffer.isView(value)) {
+            return value;
+        }
+
+        if (typeof value === 'object') {
+            const obj = value as Record<string, unknown>;
+            if (seen.has(obj)) {
+                return undefined;
+            }
+            seen.add(obj);
+
+            if (Array.isArray(obj)) {
+                return obj.map((item) => this.toStorableValue(item, seen));
+            }
+
+            const plain: Record<string, unknown> = {};
+            for (const [key, item] of Object.entries(obj)) {
+                const converted = this.toStorableValue(item, seen);
+                if (converted !== undefined) {
+                    plain[key] = converted;
+                }
+            }
+            return plain;
+        }
+
+        return undefined;
+    }
+
+    private toStorableMessage(message: IChatMessage): IChatMessage {
+        const cloned = this.toStorableValue(message, new WeakSet<object>());
+        return (cloned ?? {}) as IChatMessage;
+    }
+
     private parseExtra(extraRaw: string): Record<string, unknown> {
         if (!extraRaw) return {};
         try {
@@ -318,7 +373,7 @@ class ChatService {
                 clientId,
                 sendTime: Number(message.sendTime) || Date.now(),
                 seq: Number(message.seq) || 0,
-                message: { ...message },
+                message: this.toStorableMessage(message),
                 updatedAt: Date.now(),
             };
 

@@ -51,6 +51,7 @@ import { ImTypes } from '@/types';
 import { fileService } from '@/services/fileService';
 import { openVideoViewer } from '@/utils/window';
 import { ElMessage } from 'element-plus';
+import { chatService } from '@/services';
 
 interface Props {
     message: ILocalVideoMessage;
@@ -77,7 +78,7 @@ watch(() => props.message, async (msg) => {
     if (msg.thumbnailUrl && msg.thumbnailUrl !== '') {
         displayThumb.value = msg.thumbnailUrl;
     }
-
+    console.log('VideoMessageBubble message changed:', msg);
     
     // 如果有远端 url，则获取签名/完整访问地址
     if (msg.url) {
@@ -91,6 +92,8 @@ watch(() => props.message, async (msg) => {
                     const thumbUrl = await fileService.getFileUrl(msg.url, 'video/snapshot,t_0,f_jpg');
                     if (thumbUrl) {
                         displayThumb.value = thumbUrl;
+                        msg.thumbnailUrl = thumbUrl;
+                        chatService.saveMessage(msg);
                     }
                 }
             } else {

@@ -111,17 +111,6 @@ export class WebSocketManager extends EventEmitter {
         }
     }
 
-    /**
-     * Disconnect from WebSocket server
-     */
-    disconnect(): void {
-        this.isManualClose = true;
-        this.clearTimers();
-        this.closeWs();
-        this.setState(ImTypes.ConnectionState.DISCONNECTED);
-        this.reconnectAttempts = 0;
-    }
-
 
     /**
      * Send a message
@@ -188,7 +177,7 @@ export class WebSocketManager extends EventEmitter {
         this.ws.on('unexpected-response', async (request, response) => {
             // 手动终止请求，防止劫持此事件后导致的底层对象内存泄漏
             request.abort();
-            
+
             console.error(`[WebSocketManager] Unexpected response: ${response.statusCode}`);
             if (response.statusCode === 401) {
 
@@ -245,8 +234,11 @@ export class WebSocketManager extends EventEmitter {
     /**
      * 关闭并清理 WebSocket 实例
      */
-    private closeWs(): void {
+    closeWs(): void {
         if (!this.ws) return;
+        this.clearTimers();
+        this.setState(ImTypes.ConnectionState.DISCONNECTED);
+        this.reconnectAttempts = 0;
         this.isManualClose = true;
         this.ws.removeAllListeners();
         if (this.ws.readyState === WebSocket.OPEN) {
