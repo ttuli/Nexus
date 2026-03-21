@@ -115,26 +115,27 @@ export function enableAcrylicBlur(
         // AccentState 3 = ACCENT_ENABLE_BLURBEHIND (轻量，无噪声纹理)
         // AccentState 4 = ACCENT_ENABLE_ACRYLICBLURBEHIND (重量，每帧计算噪声)
         // BlurBehind 没有噪声纹理层，视觉上更透明，需要提高 alpha 补偿
-        const alpha = (tintColor >>> 24) & 0xFF;
-        const boostedAlpha = Math.min(alpha + 0x77, 0xFF); // 提升约 26% 不透明度
-        const boostedTint = ((boostedAlpha << 24) | (tintColor & 0x00FFFFFF)) >>> 0;
+        // const alpha = (tintColor >>> 24) & 0xFF;
+        // const boostedAlpha = Math.min(alpha + 0x77, 0xFF); // 提升约 26% 不透明度
+        // const boostedTint = ((boostedAlpha << 24) | (tintColor & 0x00FFFFFF)) >>> 0;
 
-        const policy = {
-            AccentState: 3,     // ACCENT_ENABLE_BLURBEHIND（比 4 轻量很多）
-            AccentFlags: 2,     // ACCENT_FLAG_DRAW_ALL
-            GradientColor: boostedTint,
-            AnimationId: 0,
-        };
+        // const policy = {
+        //     AccentState: 3,     // ACCENT_ENABLE_BLURBEHIND（比 4 轻量很多）
+        //     AccentFlags: 2,     // ACCENT_FLAG_DRAW_ALL
+        //     GradientColor: boostedTint,
+        //     AnimationId: 0,
+        // };
 
-        const data = {
-            Attribute: 19,      // WCA_ACCENT_POLICY
-            Data: policy,
-            SizeOfData: koffi.sizeof(AccentPolicy),
-        };
+        // const data = {
+        //     Attribute: 19,      // WCA_ACCENT_POLICY
+        //     Data: policy,
+        //     SizeOfData: koffi.sizeof(AccentPolicy),
+        // };
 
-        const result = SetWindowCompositionAttribute(hwnd, data);
-        console.log(`[AcrylicBlur] SetWindowCompositionAttribute (BlurBehind) result: ${result}`);
-        return result;
+        // const result = SetWindowCompositionAttribute(hwnd, data);
+        // console.log(`[AcrylicBlur] SetWindowCompositionAttribute (BlurBehind) result: ${result}`);
+        // return result;
+        return true;
     } catch (error) {
         console.error('[AcrylicBlur] Failed to enable backdrop blur:', error);
         return false;
@@ -165,14 +166,12 @@ export function restoreWindowDecorations(window: BrowserWindow): void {
             cyTopHeight: -1,
             cyBottomHeight: -1,
         };
-        const marginResult = DwmExtendFrameIntoClientArea(hwnd, margins);
-        console.log(`[AcrylicBlur] DwmExtendFrameIntoClientArea (Win11) HRESULT: 0x${(marginResult >>> 0).toString(16)}`);
+        DwmExtendFrameIntoClientArea(hwnd, margins);
         // ─── 圆角恢复 (仅 Win11, Build >= 22000) ───
         if (winBuild >= 22000) {
             const cornerPref = Buffer.alloc(4);
             cornerPref.writeInt32LE(2);
-            const cornerResult = DwmSetWindowAttribute(hwnd, 33, cornerPref, 4);
-            console.log(`[AcrylicBlur] DwmSetWindowAttribute (corner) HRESULT: 0x${(cornerResult >>> 0).toString(16)}`);
+            DwmSetWindowAttribute(hwnd, 33, cornerPref, 4);
         }
     } catch (error) {
         console.error('[AcrylicBlur] Failed to restore window decorations:', error);

@@ -168,7 +168,6 @@ export const wsRouteTable: Record<number, MessageHandler> = {
  */
 export function setupRoutes(): void {
     messageRouter.registerRoutes(wsRouteTable);
-    console.log('[Routes] Registered routes:', messageRouter.getRegisteredTypes());
 }
 
 /**

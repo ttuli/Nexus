@@ -88,7 +88,7 @@ let configs: Map<string, WindowConfig> = new Map([
             backgroundColor: '#00000000',
             backgroundMaterial: 'mica',
             acrylicColor: 0x66ECECEC,
-            maximizeBackgroundColor: '#F3F3F3',
+            // maximizeBackgroundColor: '#F3F3F3',
         }
     ],
     [

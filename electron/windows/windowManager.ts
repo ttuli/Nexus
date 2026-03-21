@@ -169,8 +169,8 @@ class WindowManager {
         resizable,
         maximizable,
         frame,
-        backgroundMaterial,
         backgroundColor,
+        backgroundMaterial,
         transparent,
         opacity: 1,
         icon: path.join(process.env.VITE_PUBLIC || __dirname, 'icon.png'),
@@ -185,12 +185,11 @@ class WindowManager {
           preload: path.join(__dirname, 'preload.mjs'),
         },
       });
-
       // 启用亚克力模糊
       if (config.acrylicColor) {
         enableAcrylicBlur(window, config.acrylicColor);
       }
-
+      
       // 设置事件监听器
       const cleanup = this.setupWindowListeners(window, config);
 
@@ -283,9 +282,9 @@ class WindowManager {
     const onMaximize = () => {
       if (this.isValidWindow(window) && resizable) {
         window.webContents.send(IpcChannels.WINDOW_STATE, 'maximized');
-        if (windowConfig.maximizeBackgroundColor) {
-          window.setBackgroundColor(windowConfig.maximizeBackgroundColor);
-        }
+        // if (windowConfig.maximizeBackgroundColor) {
+        //   window.setBackgroundColor(windowConfig.maximizeBackgroundColor);
+        // }
       }
     };
 
@@ -293,9 +292,9 @@ class WindowManager {
       if (this.isValidWindow(window)) {
         window.webContents.send(IpcChannels.WINDOW_STATE, 'unmaximize');
         restoreWindowDecorations(window);
-        if (windowConfig.backgroundColor) {
-          window.setBackgroundColor(windowConfig.backgroundColor);
-        }
+        // if (windowConfig.backgroundColor) {
+        //   window.setBackgroundColor(windowConfig.backgroundColor);
+        // }
       }
     };
 
@@ -309,9 +308,9 @@ class WindowManager {
       if (this.isValidWindow(window)) {
         window.webContents.send(IpcChannels.WINDOW_STATE, 'restored');
         restoreWindowDecorations(window);
-        if (windowConfig.backgroundColor && !window.isMaximized()) {
-          window.setBackgroundColor(windowConfig.backgroundColor);
-        }
+        // if (windowConfig.backgroundColor && !window.isMaximized()) {
+        //   window.setBackgroundColor(windowConfig.backgroundColor);
+        // }
       }
     };
 
