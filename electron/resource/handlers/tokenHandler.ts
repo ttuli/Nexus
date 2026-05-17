@@ -20,7 +20,9 @@ export function setupTokenHandlers(): void {
 
     ipcMain.handle(IpcChannels.RESOURCE_REQUEST_TOKEN_REFRESH, async () => {
         const result = await tokenManager.requestTokenRefresh();
-        
+        if (!result.success) {
+            tokenManager.setStoreRefreshToken(false);
+        }
         return { success: result.success, error: result.error };
     });
 }

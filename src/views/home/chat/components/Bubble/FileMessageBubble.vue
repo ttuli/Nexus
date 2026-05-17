@@ -70,9 +70,8 @@
 import { computed, ref } from 'vue';
 import { ILocalFileMessage } from '@/types/chatMessage';
 import { fileService } from '@/services/fileService';
-import { ipcService } from '@/services/ipcService';
+import { settingService } from '@/services/settingService';
 import { websocketService } from '@/services/websocketService';
-import { IpcChannels } from '@/types/ipc';
 import { ElMessage } from 'element-plus';
 import { ImTypes } from '@/types';
 import { useChatStore } from '@/store/chat';
@@ -250,8 +249,8 @@ const openFile = async () => {
     // 优先打开本地文件路径
     if (props.message.localPath) {
         try {
-            const res = await ipcService.invoke(IpcChannels.SYSTEM_SHOW_IN_FOLDER, props.message.localPath);
-            if (!res.success) {
+            const ok = await settingService.showInFolder(props.message.localPath);
+            if (!ok) {
                 ElMessage.error('文件已过期或已删除');
             }
         } catch (error) {

@@ -26,6 +26,7 @@ import { getTheme, setTheme } from '@/utils/themeManager';
 import { signalWindowReady } from '@/utils/windowReady';
 import { ipcService } from '@/services/ipcService';
 import { IpcChannels } from '@/types';
+import { settingService } from '@/services';
 
 const isDark = ref(getTheme() === 'dark');
 const currentStoragePath = ref<string>('加载中...');
@@ -36,12 +37,7 @@ const handleThemeChange = (val: boolean) => {
 
 const fetchStoragePath = async () => {
     try {
-        const res = await ipcService.invoke<string>(IpcChannels.SETTINGS_GET_STORAGE_PATH);
-        if (res?.success && res.data) {
-            currentStoragePath.value = res.data;
-        } else {
-            currentStoragePath.value = '获取失败';
-        }
+        currentStoragePath.value = await settingService.getStoragePath()
     } catch (e) {
         currentStoragePath.value = '获取失败';
     }

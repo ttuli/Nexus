@@ -26,10 +26,10 @@
 </template>
 
 <script lang="ts" setup>
-import Min from '@/assets/Minimize2.svg'
-import X from '@/assets/x.svg'
-import Max from '@/assets/Maximize1.svg'
-import UnMax from '@/assets/Maximize2.svg'
+import Min from '@/assets/window/Minimize2.svg'
+import X from '@/assets/window/x.svg'
+import Max from '@/assets/window/Maximize1.svg'
+import UnMax from '@/assets/window/Maximize2.svg'
 import { onMounted, onUnmounted, ref } from 'vue';
 import { windowService, ipcService } from '@/services';
 import { ImTypes, IpcChannels } from '@/types';

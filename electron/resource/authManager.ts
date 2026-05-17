@@ -70,7 +70,6 @@ class AuthManager {
                 platform: this.platform,
             }).finish()
             const res = await mainPost<ApiTypes.auth.LoginResp>(`${config.authServer}/auth/login`, loginReqData, { skipAuth: true });
-
             if (res.code === 200) {
                 const decoded = decodeMainResponse(res, ApiTypes.auth.LoginResp.decode);
                 if (decoded.data) {

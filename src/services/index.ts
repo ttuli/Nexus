@@ -27,4 +27,5 @@ export { websocketService, type WebSocketState, type WsMessage } from './websock
 export { chatService } from './chatService'
 export { callService } from './callService'
 export { messageService } from './messageService'
+export { settingService } from './settingService'
 

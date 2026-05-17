@@ -65,8 +65,8 @@ import { useUserStore } from '@/store/user';
 import { userService } from '@/services';
 import { extractTargetIdFromSessionId } from '@/utils/chat';
 import { ImTypes } from '@/types'
-import DefaultAvatar from '@/assets/default.png?url';
-import CheckIcon from '@/assets/view/check.svg?url';
+import DefaultAvatar from '@/assets/avatar/default.png?url';
+import CheckIcon from '@/assets/common/check.svg?url';
 
 const props = defineProps<{
     visible: boolean;

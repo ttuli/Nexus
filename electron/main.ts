@@ -36,6 +36,7 @@ function createWindow(): void {
 
 // 设置全局应用名，影响窗口默认标题、任务栏和托盘等展示
 app.setName('IMChat')
+
 app.whenReady().then(() => {
   // 初始化本地文件缓存管理器
   fileCacheManager.init();

@@ -5,8 +5,8 @@
 </template>
 
 <script lang="ts" setup>
-import defaultImg from '@/assets/default.png'
-import defaultGroupImg from '@/assets/defaultg.png'
+import defaultImg from '@/assets/avatar/default.png'
+import defaultGroupImg from '@/assets/avatar/defaultg.png'
 
 const props = withDefaults(
     defineProps<{

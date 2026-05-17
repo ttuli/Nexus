@@ -134,7 +134,6 @@ class TokenManager {
                 platform: this.platform,
                 refresh_token: '' //服务器会从Header获取，保留字段保证服务器能正确解析
             }).finish();
-
             const request = net.request({
                 method: 'POST',
                 url: `${config.authServer}/auth/refresh`,
@@ -159,6 +158,7 @@ class TokenManager {
                         const buffer = Buffer.concat(chunks);
                         let token: string;
                         let refresh_token: string;
+                        console.log(contentType)
                         if (contentType.includes('application/x-protobuf')) {
                             const apiResp = ImTypes.ApiResponse.decode(new Uint8Array(buffer));
                             if (apiResp.code !== 200 || !apiResp.data) {

@@ -25,6 +25,14 @@ import ContextMenu, { type MenuOption } from '@/components/ContextMenu.vue';
 import { ImTypes } from '@/types';
 import { messageService } from '@/services';
 
+import notdisturb from '@/assets/chat/notdisturb.svg?raw';
+import disturb from '@/assets/chat/disturb.svg?raw';
+import nottop from '@/assets/chat/nottop.svg?raw';
+import top from '@/assets/chat/top.svg?raw';
+import trash from '@/assets/chat/trash.svg?raw';
+import setmsgunread from '@/assets/chat/setmsgunread.svg?raw';
+import setmsgread from '@/assets/chat/setmsgread.svg?raw';
+
 const router = useRouter();
 const store = useChatStore();
 const { chatList, currentSessionId } = storeToRefs(store);
@@ -43,10 +51,22 @@ const menuOptions = computed<MenuOption[]>(() => {
     const chat = contextMenuTarget.value;
     if (!chat) return [];
     return [
-        { label: '设为已读', key: 'mark_read' },
-        { label: chat.is_top === 2 ? '取消置顶' : '置顶聊天', key: 'toggle_top' },
-        { label: '删除聊天', key: 'delete' },
-        { label: chat.is_disturb === 2 ? '取消免打扰' : '消息免打扰', key: 'toggle_disturb' }
+        {
+            label: chat.unread_count === 0 ? '设为未读' : '设为已读',
+            key: chat.unread_count === 0 ? 'mark_unread' : 'mark_read',
+            icon: chat.unread_count === 0 ? setmsgunread : setmsgread
+        },
+        {
+            label: chat.is_top === 2 ? '取消置顶' : '置顶聊天',
+            key: 'toggle_top',
+            icon: chat.is_top === 2 ? nottop : top
+        },
+        {
+            label: chat.is_disturb === 2 ? '取消免打扰' : '消息免打扰',
+            key: 'toggle_disturb',
+            icon: chat.is_disturb === 2 ? disturb : notdisturb
+        },
+        { label: '删除聊天', key: 'delete', icon: trash },
     ];
 });
 
@@ -62,6 +82,9 @@ const handleMenuSelect = (option: MenuOption) => {
     if (!chat) return;
 
     switch (option.key) {
+        case 'mark_unread':
+            store.incrementUnread(chat.conversation_id);
+            break;
         case 'mark_read':
             store.clearUnread(chat.conversation_id);
             break;

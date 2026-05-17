@@ -1,8 +1,10 @@
 import { ImTypes, IChatMessage, ILocalTextMessage, ILocalImageMessage, ILocalVideoMessage, ILocalAudioMessage, ILocalFileMessage, ILocalSystemMessage } from '@/types';
 import { config } from '@/config';
-
 import { useUserStore } from '@/store/user';
 import { ulid } from 'ulid';
+import { fileService } from '@/services/fileService';
+import { settingService } from '@/services/settingService';
+import { chatService } from '@/services/chatService';
 
 /** imlocal:// 协议 Scheme，与主进程 fileCacheManager 中定义保持一致 */
 const IMLOCAL_SCHEME = 'imlocal';
@@ -23,7 +25,7 @@ export function toLocalPreviewUrlRaw(filePath: string): string {
 
 /**
  * 将本地文件绝对路径转换为 imlocal:// 协议地址（渲染进程侧）
- * 主进程会拦截此协议，用 nativeImage 缩放后返回图片 buffer，不写入磁盘缓存
+ * 主进程会拦截此协议，用 nativeImage 缩放后返回图片 buffer
  * @param filePath 本地文件绝对路径（Electron File.path 字段）
  * @param maxWidth 缩略图最大宽度，默认 400px
  */
@@ -373,7 +375,7 @@ function buildBase(type: ImTypes.MessageType, sessionId: string, existingClientI
         version: config.wsMessageVersion,
         payload: new Uint8Array(),
         sender_id: 0,
-        route_target: targetId,
+        route_target: [targetId],
         route_target_type: targetType,
     };
 
@@ -620,7 +622,7 @@ export function buildVerifyWsMsg(type: ImTypes.MessageType, data:
         version: config.wsMessageVersion,
         payload: new Uint8Array(),
         sender_id: 0,
-        route_target: targetId,
+        route_target: [targetId],
         route_target_type: targetType,
     };
 
@@ -720,6 +722,35 @@ export function formatSystemMessage(message: ILocalSystemMessage): string {
         default:
             return '系统消息';
     }
+}
+
+/**
+ * 下载媒体消息（图片/视频/音频/文件）的 OSS 资源到本地存储路径，
+ * 并将 localPath 回写到 message 对象，最后持久化到数据库。
+ *
+ * @param message 目标消息（含 url、format、fileName 等字段）
+ * @param onProgress 下载进度回调 0-100（可选）
+ * @returns 成功时返回本地绝对路径；失败时抛出异常
+ */
+export async function downloadMessageToLocal(
+    message: ILocalImageMessage | ILocalVideoMessage | ILocalAudioMessage | ILocalFileMessage,
+    url: string,
+    onProgress?: (progress: number) => void,
+): Promise<string> {
+    const storagePath = await settingService.getStoragePath();
+
+    const now = new Date();
+    const datePart = `${now.getFullYear()}_${now.getMonth() + 1}_${now.getDate()}`;
+    const ext = ('format' in message && message.format) ? '.' + message.format : '';
+    let fileName = `${datePart}_${Date.now()}${ext}`;
+
+    console.debug('[downloadMessageToLocal] storagePath:', storagePath);
+    const localPath = await fileService.downloadFile(url, fileName, onProgress);
+
+    (message as any).localPath = localPath;
+    chatService.saveMessage(message as any);
+
+    return localPath;
 }
 
 /**

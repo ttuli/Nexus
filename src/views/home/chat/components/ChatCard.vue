@@ -13,7 +13,8 @@
             </div>
             <div class="bottom-row">
                 <span class="message">{{ props.data.last_content || '' }}</span>
-                <div class="badge" v-if="props.data.unread_count > 0">{{ props.data.unread_count }}</div>
+                <div class="badge" :class="{ 'disturb-badge': props.data.is_disturb === 2 }" v-if="props.data.unread_count > 0">{{ props.data.unread_count }}</div>
+                <span class="disturb-icon" v-else-if="props.data.is_disturb === 2 && props.data.unread_count === 0" v-html="notdisturb"></span>
             </div>
         </div>
     </div>
@@ -25,6 +26,8 @@ import { ImTypes } from '@/types';
 import { useUserStore } from '@/store/user';
 import { useGroupStore } from '@/store/group';
 import { extractTargetIdFromSessionId } from '@/utils/chat';
+
+import notdisturb from '@/assets/chat/notdisturb.svg?raw';
 
 // Props
 interface Props {
@@ -173,6 +176,25 @@ const formatTime = (timestamp: number | null) => {
                 padding: 0 5px;
                 box-sizing: border-box;
                 flex-shrink: 0;
+
+                &.disturb-badge {
+                    background-color: #c0c4cc;
+                }
+            }
+
+            .disturb-icon {
+                width: 14px;
+                height: 14px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: $color-text-placeholder;
+                flex-shrink: 0;
+
+                :deep(svg) {
+                    width: 100%;
+                    height: 100%;
+                }
             }
         }
     }

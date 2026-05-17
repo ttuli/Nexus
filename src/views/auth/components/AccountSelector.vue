@@ -35,7 +35,7 @@
 import { ref, computed } from 'vue';
 import { ClickOutside as vClickOutside } from 'element-plus';
 // Use a generic default avatar if specific one is missing
-import DefaultAvatar from '@/assets/default.png?url';
+import DefaultAvatar from '@/assets/avatar/default.png?url';
 // We might need an arrow icon
 import ArrowDownIcon from '@/assets/input/arrow_down.svg?url'; // Assuming this exists or I will use a simple svg content
 

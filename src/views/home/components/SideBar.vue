@@ -28,9 +28,9 @@ import { useGroupStore } from '@/store/group';
 import { useAppStore } from '@/store/app';
 import { useChatStore } from '@/store/chat';
 
-import ChatIcon from '@/assets/view/message.svg';
-import ContactsIcon from '@/assets/input/input_name.svg';
-import SettingIcon from '@/assets/view/setting.svg';
+import ChatIcon from '@/assets/sidebar/message.svg';
+import ContactsIcon from '@/assets/menu/contacts.svg';
+import SettingIcon from '@/assets/sidebar/setting.svg';
 import { createWindow } from '@/utils/window';
 import { windowService } from '@/services';
 import { NotifySoundType } from '@/services/windowService';

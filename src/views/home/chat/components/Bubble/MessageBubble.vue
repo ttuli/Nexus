@@ -111,7 +111,29 @@ const handleContextMenu = (event: MouseEvent) => {
 
 const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
-    return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+    const now = new Date();
+    
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const timeStr = `${hours}:${minutes}`;
+
+    const isToday = 
+        date.getFullYear() === now.getFullYear() &&
+        date.getMonth() === now.getMonth() &&
+        date.getDate() === now.getDate();
+
+    if (isToday) {
+        return timeStr;
+    }
+
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+
+    if (date.getFullYear() === now.getFullYear()) {
+        return `${month}-${day} ${timeStr}`;
+    }
+
+    return `${date.getFullYear()}-${month}-${day} ${timeStr}`;
 };
 
 // const handleAvatarClick = () => {

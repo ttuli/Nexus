@@ -52,7 +52,7 @@ import { fileService } from '@/services/fileService';
 import { openVideoViewer } from '@/utils/window';
 import { ElMessage } from 'element-plus';
 import { chatService } from '@/services';
-import { toNetworkPreviewUrl } from '@/utils/chat';
+import { downloadMessageToLocal, toLocalPreviewUrlRaw, toNetworkPreviewUrl } from '@/utils/chat';
 import { ms } from 'element-plus/es/locale/index.mjs';
 
 interface Props {
@@ -81,7 +81,6 @@ watch(() => props.message, async (msg) => {
         displayThumb.value = msg.thumbnailUrl;
         return;
     }
-    console.log('VideoMessageBubble message changed:', msg);
     
     // 如果有远端 url，则获取签名/完整访问地址
     if (msg.url) {
@@ -160,18 +159,19 @@ const handleClick = async () => {
                 props.message.width,
                 props.message.height
             );
-            console.log('localPath', props.message.localPath);
             return;
         }
 
         const fullUrl = await fileService.getFileUrl(props.message.url);
         if (fullUrl !== '') {
+            // 下载到本地
             openVideoViewer(fullUrl, props.message.width, props.message.height);
+            await downloadMessageToLocal(props.message, props.message.url);
         } else {
             ElMessage.error('视频已过期或无法访问');
         }
     } catch (e) {
-        ElMessage.error('视频已过期或无法访问');
+        ElMessage.error('视频无法访问');
         console.error('[VideoBubble] Failed to open viewer:', e);
     }
 };

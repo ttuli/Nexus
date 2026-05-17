@@ -77,7 +77,6 @@ export const useChatStore = defineStore('chat', {
                     update_time: Date.now(),
                     is_top: 1,
                     is_disturb: 1,
-                    last_msg_type: ImTypes.MessageType.UNKNOWN,
                 };
                 this.chatList.unshift(newChat);
                 this.sortChatList();
@@ -411,7 +410,7 @@ export const useChatStore = defineStore('chat', {
          */
         totalUnreadCount: (state) => {
             return state.chatList.reduce((acc, current) => {
-                return acc + (current.unread_count || 0);
+                return acc + (current.is_disturb === 2 ? 0 : current.unread_count || 0);
             }, 0);
         },
         /**

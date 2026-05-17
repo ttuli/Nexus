@@ -41,6 +41,7 @@ import ZoomOut from '@/assets/photoView/zoom-out.svg?url';
 import Download from '@/assets/photoView/download.svg?url';
 import { signalWindowReady } from '@/utils/windowReady';
 import { ElMessage } from 'element-plus';
+import { toNetworkPreviewUrl } from '@/utils/chat';
 
 // State
 const route = useRoute();
@@ -87,7 +88,10 @@ onMounted(() => {
 
     if (queryUrls) {
         try {
-            urls.value = JSON.parse(queryUrls);
+            const urlArray = JSON.parse(queryUrls);
+            urls.value = urlArray.map((url: string) => {
+                return toNetworkPreviewUrl(url);
+            });
         } catch (e) {
             console.error('Failed to parse urls', e);
             urls.value = [queryUrls];

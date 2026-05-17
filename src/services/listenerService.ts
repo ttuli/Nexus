@@ -159,7 +159,8 @@ class ListenerService {
             });
             if (chatMsg.sessionId !== chatStore.currentSessionId || !await windowService.isFocused() || appStore.currentRoute !== CurrentRoute.Chat) {
                 chatStore.incrementUnread(chatMsg.sessionId);
-                windowService.playNotificationSound();
+                if (chatStore.currentChat?.is_disturb !== 2)
+                    windowService.playNotificationSound();
             }
             switch (data.type) {
                 case ImTypes.MessageType.ERROR: {
@@ -172,7 +173,7 @@ class ListenerService {
 
         ipcService.on(IpcChannels.WS_MESSAGE_ACK, async (_event, data: { ack: ImTypes.MessageAck, timestamp: number }) => {
             const chatStore = useChatStore()
-
+            console.log('[ListenerService] Received MessageAck:',data);
             if (data.ack.status === ImTypes.AckStatus.ACK_STATUS_FAILED) {
                 chatStore.updateMessageStatus(data.ack.session_id, data.ack.client_id, ImTypes.MessageStatus.MESSAGE_STATUS_FAILED, data.timestamp)
             } else if (data.ack.status === ImTypes.AckStatus.ACK_STATUS_SUCCESS) {

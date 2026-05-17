@@ -10,13 +10,12 @@
 
     <!-- 视频网格区域 -->
     <div class="video-grid" :class="gridClass">
-      <!-- 渲染所有参与者的视频块 -->
       <div class="video-item" v-for="participant in participants" :key="participant.id">
-        <video 
-          v-if="participant.videoAttached" 
-          class="video-element" 
-          autoplay 
-          playsinline 
+        <video
+          v-if="participant.videoAttached"
+          class="video-element"
+          autoplay
+          playsinline
           :muted="participant.isLocal"
         ></video>
         <div v-else class="video-placeholder">
@@ -29,33 +28,25 @@
       </div>
     </div>
 
-    <!-- 通话控制栏 -->
-    <div class="control-bar">
-      <div class="actions">
-        <button class="action-btn" :class="{ 'is-active': isMuted }" @click="toggleMute">
-          <span class="icon">🎙️</span>
-        </button>
-        <button class="action-btn" :class="{ 'is-active': !isVideoEnabled }" @click="toggleVideo">
-          <span class="icon">📹</span>
-        </button>
-        <button class="action-btn screen-share-btn" @click="toggleScreenShare">
-          <span class="icon">💻</span>
-        </button>
-        <!-- 拒绝/挂断按钮 -->
-        <button class="action-btn hangup-btn" @click="hangup">
-          <span class="icon">📞</span>
-        </button>
-        <!-- 接听按钮 (如果是被叫方且尚未接听) -->
-        <button class="action-btn accept-btn" v-if="isIncoming && !isConnected" @click="acceptCall">
-          <span class="icon">📞</span>
-        </button>
-      </div>
-    </div>
+    <CallControlBar
+      :is-muted="isMuted"
+      :is-video-enabled="isVideoEnabled"
+      :is-incoming="isIncoming"
+      :is-connected="isConnected"
+      :show-screen-share="true"
+      @toggle-mute="toggleMute"
+      @toggle-video="toggleVideo"
+      @hangup="hangup"
+      @accept="acceptCall"
+      @toggle-screen-share="toggleScreenShare"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onUnmounted } from 'vue';
+import CallControlBar from './components/CallControlBar.vue';
+import { useCallState } from './composables/useCallState';
 
 interface Participant {
   id: string;
@@ -65,11 +56,19 @@ interface Participant {
   isMuted: boolean;
 }
 
-const isConnected = ref(false);
+const {
+  isConnected,
+  isMuted,
+  isVideoEnabled,
+  formattedDuration,
+  toggleMute,
+  toggleVideo,
+  hangup,
+  acceptCall,
+  stopDurationTimer,
+} = useCallState();
+
 const isIncoming = ref(false); // 是否是被叫方
-const isMuted = ref(false);
-const isVideoEnabled = ref(true);
-const formattedDuration = ref('00:00');
 
 // 模拟参与者数据
 const participants = ref<Participant[]>([
@@ -87,30 +86,13 @@ const gridClass = computed(() => {
   return 'grid-auto';
 });
 
-const toggleMute = () => {
-    isMuted.value = !isMuted.value;
-    // TODO: 调用 callService 禁用/启用麦克风
-};
-
-const toggleVideo = () => {
-    isVideoEnabled.value = !isVideoEnabled.value;
-    // TODO: 调用 callService 禁用/启用摄像头
-};
-
 const toggleScreenShare = () => {
-    // TODO: 调用 livekit 开启屏幕共享
+  // TODO: callService.toggleScreenShare()
 };
 
-const hangup = () => {
-    // TODO: 调用 callService 挂断
-    console.log('Hangup call');
-};
-
-const acceptCall = () => {
-    // TODO: 调用 callService 接听
-    console.log('Accept call');
-    isConnected.value = true;
-};
+onUnmounted(() => {
+  stopDurationTimer();
+});
 </script>
 
 <style scoped lang="scss">
@@ -129,7 +111,7 @@ const acceptCall = () => {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent);
     position: absolute;
     top: 0;
     left: 0;
@@ -138,14 +120,16 @@ const acceptCall = () => {
 
     .group-info {
       text-align: center;
+
       .title {
         font-size: 16px;
         font-weight: 500;
       }
+
       .duration {
         display: block;
         font-size: 12px;
-        color: rgba(255,255,255,0.7);
+        color: rgba(255, 255, 255, 0.7);
         margin-top: 4px;
       }
     }
@@ -164,8 +148,8 @@ const acceptCall = () => {
     &.grid-2 { grid-template-columns: repeat(2, 1fr); }
     &.grid-4 { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); }
     &.grid-9 { grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); }
-    &.grid-auto { 
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+    &.grid-auto {
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       align-content: start;
     }
 
@@ -202,65 +186,13 @@ const acceptCall = () => {
         position: absolute;
         bottom: 10px;
         left: 10px;
-        background: rgba(0,0,0,0.6);
+        background: rgba(0, 0, 0, 0.6);
         padding: 4px 10px;
         border-radius: 12px;
         font-size: 12px;
         display: flex;
         align-items: center;
         gap: 6px;
-      }
-    }
-  }
-
-  .control-bar {
-    position: absolute;
-    bottom: 40px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.6);
-    padding: 15px 30px;
-    border-radius: 20px;
-    backdrop-filter: blur(10px);
-    z-index: 10;
-
-    .actions {
-      display: flex;
-      gap: 20px;
-
-      .action-btn {
-        width: 48px;
-        height: 48px;
-        border-radius: 50%;
-        border: none;
-        background-color: rgba(255,255,255,0.2);
-        color: white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 20px;
-        cursor: pointer;
-        transition: all 0.3s;
-
-        &:hover {
-          background-color: rgba(255,255,255,0.3);
-        }
-
-        &.is-active {
-           background-color: white;
-           color: #333;
-        }
-
-        &.hangup-btn {
-          background-color: #ff4d4f;
-          transform: rotate(135deg);
-          &:hover { background-color: #ff7875; }
-        }
-
-        &.accept-btn {
-          background-color: #52c41a;
-          &:hover { background-color: #73d13d; }
-        }
       }
     }
   }

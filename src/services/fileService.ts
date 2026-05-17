@@ -2,6 +2,8 @@ import { getUploadSignature, getAcessUrl } from '@/apis/file'
 import { ApiTypes } from '@/types'
 import { computeFileMd5 } from '@/utils/md5'
 import { config } from '@/config'
+import { ipcService } from './ipcService';
+import { IpcChannels } from '@/types/ipc';
 
 class FileService {
     /**
@@ -247,9 +249,6 @@ class FileService {
      * @returns 保存到本地的绝对路径
      */
     async downloadFile(url: string, fileName: string, onProgress?: (progress: number) => void): Promise<string> {
-        const { ipcService } = await import('./ipcService');
-        const { IpcChannels } = await import('@/types/ipc');
-
         // 获取带签名的下载 URL
         const downloadUrl = await this.getFileUrl(url);
         if (!downloadUrl) throw new Error('无法获取文件下载地址');

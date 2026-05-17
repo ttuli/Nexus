@@ -4,7 +4,9 @@
         <div class="header">
             <span class="title">{{ title }}</span>
             <div class="actions">
-                <!-- <span v-html="phoneIcon" class="icon-btn phone" title="语音通话" @click="startCall"></span> -->
+                <span v-if="currentChat.type === ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE" v-html="phoneIcon"
+                    class="icon-btn phone" title="语音通话" @click="startCall">
+                </span>
                 <div class="icon-btn" title="聊天信息" @click="toggleSidebar">⋮</div>
             </div>
         </div>
@@ -79,7 +81,7 @@ import { ElMessage } from 'element-plus';
 
 import copyIcon from '@/assets/chat/copy.svg?raw';
 import phoneIcon from '@/assets/call/phone.svg?raw';
-import aiIcon from '@/assets/chat/robot.svg?raw'
+import trashIcon from '@/assets/chat/trash.svg?raw'
 import { websocketService, windowService } from '@/services';
 
 
@@ -118,11 +120,24 @@ const isSystemMessage = (type: number) => {
     return sysTypes.includes(type);
 };
 
-const menuOptions: MenuOption[] = [
-    { label: '复制', key: 'copy', icon: copyIcon }
-];
+const menuOptions = ref<MenuOption[]>([]);
 
 const handleMessageContextMenu = (event: MouseEvent, message: IChatMessage) => {
+    if (isSystemMessage(message.type)) return;
+
+    let options: MenuOption[] = [];
+
+    if (message.type === MessageType.CHAT_TEXT || message.type === MessageType.GROUP_TEXT) {
+        options = [
+            { label: '复制', key: 'copy', icon: copyIcon }
+        ];
+    }
+
+    // 后续可以根据需要的消息类型（如图片等）添加其他菜单
+    options.push({ label: '删除', key: 'remove', icon: trashIcon });
+    if (options.length === 0) return;
+
+    menuOptions.value = options;
     menuX.value = event.clientX;
     menuY.value = event.clientY;
     contextMenuTarget.value = message;
@@ -130,7 +145,8 @@ const handleMessageContextMenu = (event: MouseEvent, message: IChatMessage) => {
 };
 
 const handleMenuSelect = async (option: MenuOption) => {
-    if (option.key === 'copy' && contextMenuTarget.value) {
+    if (!contextMenuTarget.value) return;
+    if (option.key === 'copy') {
         let content = '';
         if (contextMenuTarget.value.type === MessageType.CHAT_TEXT || contextMenuTarget.value.type === MessageType.GROUP_TEXT) {
             content = (contextMenuTarget.value as ILocalTextMessage).content;

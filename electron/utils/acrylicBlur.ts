@@ -115,27 +115,26 @@ export function enableAcrylicBlur(
         // AccentState 3 = ACCENT_ENABLE_BLURBEHIND (轻量，无噪声纹理)
         // AccentState 4 = ACCENT_ENABLE_ACRYLICBLURBEHIND (重量，每帧计算噪声)
         // BlurBehind 没有噪声纹理层，视觉上更透明，需要提高 alpha 补偿
-        // const alpha = (tintColor >>> 24) & 0xFF;
-        // const boostedAlpha = Math.min(alpha + 0x77, 0xFF); // 提升约 26% 不透明度
-        // const boostedTint = ((boostedAlpha << 24) | (tintColor & 0x00FFFFFF)) >>> 0;
+        const alpha = (tintColor >>> 24) & 0xFF;
+        const boostedAlpha = Math.min(alpha + 0x77, 0xFF); // 提升约 26% 不透明度
+        const boostedTint = ((boostedAlpha << 24) | (tintColor & 0x00FFFFFF)) >>> 0;
 
-        // const policy = {
-        //     AccentState: 3,     // ACCENT_ENABLE_BLURBEHIND（比 4 轻量很多）
-        //     AccentFlags: 2,     // ACCENT_FLAG_DRAW_ALL
-        //     GradientColor: boostedTint,
-        //     AnimationId: 0,
-        // };
+        const policy = {
+            AccentState: 3,     // ACCENT_ENABLE_BLURBEHIND（比 4 轻量很多）
+            AccentFlags: 2,     // ACCENT_FLAG_DRAW_ALL
+            GradientColor: boostedTint,
+            AnimationId: 0,
+        };
 
-        // const data = {
-        //     Attribute: 19,      // WCA_ACCENT_POLICY
-        //     Data: policy,
-        //     SizeOfData: koffi.sizeof(AccentPolicy),
-        // };
+        const data = {
+            Attribute: 19,      // WCA_ACCENT_POLICY
+            Data: policy,
+            SizeOfData: koffi.sizeof(AccentPolicy),
+        };
 
-        // const result = SetWindowCompositionAttribute(hwnd, data);
-        // console.log(`[AcrylicBlur] SetWindowCompositionAttribute (BlurBehind) result: ${result}`);
-        // return result;
-        return true;
+        const result = SetWindowCompositionAttribute(hwnd, data);
+        console.log(`[AcrylicBlur] SetWindowCompositionAttribute (BlurBehind) result: ${result}`);
+        return result;
     } catch (error) {
         console.error('[AcrylicBlur] Failed to enable backdrop blur:', error);
         return false;

@@ -27,7 +27,6 @@ onMounted(() => {
     currentTargetId.value = Number(route.query.targetId);
     const targetType = route.query.targetType as string;
     fromId.value = Number(route.query.fromId);
-    console.log('fromId', fromId.value);
     callType.value = targetType as 'private' | 'group';
 
     signalWindowReady()
