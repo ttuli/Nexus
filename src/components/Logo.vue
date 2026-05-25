@@ -6,7 +6,7 @@
 </template>
 
 <script setup lang="ts">
-const icon = '/icon.png'
+const icon = '/icon/icon_' + import.meta.env.VITE_ICON_VERSION + '.png'
 </script>
 
 <style scoped lang="scss">
@@ -16,8 +16,8 @@ const icon = '/icon.png'
   gap: 12px;
 
   .logo-icon {
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
     border-radius: 12px;
     display: flex;
     align-items: center;

@@ -36,8 +36,8 @@ class WebSocketService {
     /**
      * 发送消息
      */
-    async send(message: ImTypes.WSMessage, clientId = ''): Promise<IpcResponse & { sent?: boolean, error?: string }> {
-        return ipcService.invoke(IpcChannels.WS_SEND, message, clientId)
+    async send(message: ImTypes.WSMessage, clientId = '', sessionId = ''): Promise<IpcResponse & { sent?: boolean, error?: string }> {
+        return ipcService.invoke(IpcChannels.WS_SEND, message, clientId, sessionId)
     }
 
     /**
@@ -50,7 +50,7 @@ class WebSocketService {
         const { msg, clientId, localMsg } = buildTextWsMessage(content, sessionId)
         chatStore.addMessage(localMsg)
 
-        const result = await this.send(msg, clientId)
+        const result = await this.send(msg, clientId, sessionId)
         if (!result.success || !result.data?.sent) {
             chatStore.updateMessageStatus(
                 sessionId, clientId,
@@ -112,7 +112,7 @@ class WebSocketService {
             localMsg_copy.thumbnailUrl = undefined
             // 5. 用 buildImageWsPayload 直接从已有本地消息拼装 WS 载荷，不再重复所有内容
             const finalMsg = buildImageWsPayload(localMsg_copy, ossUrl, sessionId)
-            const result = await this.send(finalMsg, clientId)
+            const result = await this.send(finalMsg, clientId, sessionId)
             if (!result.success || !result.data?.sent) {
                 chatStore.updateMessageStatus(
                     sessionId, clientId,
@@ -172,7 +172,7 @@ class WebSocketService {
 
             // 4. 构建最终 WS payload 并发送（复用同一个 clientId，保证 ACK 能匹配）
             const { msg: finalMsg } = buildFileWsMessage({ url: ossUrl, fileName: file.name, size: file.size }, sessionId, clientId)
-            const result = await this.send(finalMsg, clientId)
+            const result = await this.send(finalMsg, clientId, sessionId)
             if (!result.success || !result.data?.sent) {
                 chatStore.updateMessageStatus(
                     sessionId, clientId,
@@ -246,7 +246,7 @@ class WebSocketService {
                 duration: videoMeta.duration,
                 thumbnailUrl: '', // 最终发送不包含 Base64 缩略图
             }, sessionId, clientId)
-            const result = await this.send(finalMsg, clientId)
+            const result = await this.send(finalMsg, clientId, sessionId)
             if (!result.success || !result.data?.sent) {
                 chatStore.updateMessageStatus(
                     sessionId, clientId,

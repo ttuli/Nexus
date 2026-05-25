@@ -8,7 +8,6 @@ import { resourceManager } from '../resource';
 import { TrayManager } from './trayManager';
 import { IpcChannels } from '../../src/types';
 import { config } from '../config';
-import { enableAcrylicBlur, restoreWindowDecorations } from '../utils/acrylicBlur';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -173,7 +172,7 @@ class WindowManager {
         backgroundMaterial,
         transparent,
         opacity: 1,
-        icon: path.join(process.env.VITE_PUBLIC || __dirname, 'icon.png'),
+        icon: path.join(process.env.VITE_PUBLIC || __dirname, 'icon/icon_' + process.env.VITE_ICON_VERSION + '.png'),
         modal,
         title: app.getName(),
         parent: parent,
@@ -185,10 +184,6 @@ class WindowManager {
           preload: path.join(__dirname, 'preload.mjs'),
         },
       });
-      // 启用亚克力模糊
-      if (config.acrylicColor) {
-        enableAcrylicBlur(window, config.acrylicColor);
-      }
       
       // 设置事件监听器
       const cleanup = this.setupWindowListeners(window, config);
@@ -291,10 +286,6 @@ class WindowManager {
     const onUnmaximize = () => {
       if (this.isValidWindow(window)) {
         window.webContents.send(IpcChannels.WINDOW_STATE, 'unmaximize');
-        restoreWindowDecorations(window);
-        // if (windowConfig.backgroundColor) {
-        //   window.setBackgroundColor(windowConfig.backgroundColor);
-        // }
       }
     };
 
@@ -307,10 +298,6 @@ class WindowManager {
     const onRestore = () => {
       if (this.isValidWindow(window)) {
         window.webContents.send(IpcChannels.WINDOW_STATE, 'restored');
-        restoreWindowDecorations(window);
-        // if (windowConfig.backgroundColor && !window.isMaximized()) {
-        //   window.setBackgroundColor(windowConfig.backgroundColor);
-        // }
       }
     };
 

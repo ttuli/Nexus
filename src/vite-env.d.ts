@@ -8,6 +8,8 @@ interface ImportMetaEnv {
   VITE_WS_SERVER: string
   VITE_SOCIAL_SERVER: string
   VITE_MESSAGE_SERVER: string
+
+  VITE_ICON_VERSION: string
 }
 
 // 声明 .vue 文件模块

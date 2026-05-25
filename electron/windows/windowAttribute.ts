@@ -18,8 +18,6 @@ export interface WindowConfig extends Electron.BrowserWindowConstructorOptions {
     parentId?: string;
     // 是否允许关闭时最小化到托盘（仅对 home 窗口有效）
     allowHideOnClose?: boolean;
-    // 亚克力模糊效果颜色 (ABGR 格式，可选)
-    acrylicColor?: number;
     // 最大化时的背景色，用于替代默认背景色
     maximizeBackgroundColor?: string;
 }
@@ -86,9 +84,7 @@ let configs: Map<string, WindowConfig> = new Map([
             minHeight: 430,
             transparent: false,
             backgroundColor: '#00000000',
-            backgroundMaterial: 'mica',
-            acrylicColor: 0x66ECECEC,
-            // maximizeBackgroundColor: '#F3F3F3',
+            backgroundMaterial: 'acrylic'
         }
     ],
     [

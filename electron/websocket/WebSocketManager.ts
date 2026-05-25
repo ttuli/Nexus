@@ -289,7 +289,7 @@ export class WebSocketManager extends EventEmitter {
         // Listen for failures
         messageQueue.on('fail', (data: ImTypes.MessageAck) => {
             console.warn('[WebSocketManager] Message failed (internal):', data.client_id);
-            windowManager.broadcastMessage(IpcChannels.WS_MESSAGE_ACK, data);
+            windowManager.broadcastMessage(IpcChannels.WS_MESSAGE_ACK, { ack: data, timestamp: Date.now() });
         });
     }
 

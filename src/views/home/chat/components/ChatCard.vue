@@ -13,8 +13,12 @@
             </div>
             <div class="bottom-row">
                 <span class="message">{{ props.data.last_content || '' }}</span>
-                <div class="badge" :class="{ 'disturb-badge': props.data.is_disturb === 2 }" v-if="props.data.unread_count > 0">{{ props.data.unread_count }}</div>
-                <span class="disturb-icon" v-else-if="props.data.is_disturb === 2 && props.data.unread_count === 0" v-html="notdisturb"></span>
+                <div class="badge" :class="{ 'disturb-badge': props.data.is_disturb === 2 }"
+                    v-if="props.data.unread_count > 0">
+                    {{ props.data.unread_count > 99 ? '99+' : props.data.unread_count }}
+                </div>
+                <span class="disturb-icon" v-else-if="props.data.is_disturb === 2 && props.data.unread_count === 0"
+                    v-html="notdisturb"></span>
             </div>
         </div>
     </div>

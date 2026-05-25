@@ -81,10 +81,10 @@ export class MessageQueue extends EventEmitter {
                     console.warn(`[MessageQueue] Message ${id} failed after max retries`);
                     this.emit('fail', {
                         client_id: id,
-                        session_id: pending.message.sessionId,
+                        session_id: pending.message.sessionId || '',
                         status: ImTypes.AckStatus.ACK_STATUS_FAILED,
-                        msg_id: pending.message.msgId,
-                        seq: pending.message.seq,
+                        msg_id: pending.message.msgId || '',
+                        seq: pending.message.seq || 0,
                         error_msg: ''
                     });
                 }

@@ -18,9 +18,9 @@ export function setupWsIpcHandlers(): void {
     });
 
     // Send a message
-    ipcMain.handle(IpcChannels.WS_SEND, async (_event, message: ImTypes.WSMessage, clientId: string) => {
+    ipcMain.handle(IpcChannels.WS_SEND, async (_event, message: ImTypes.WSMessage, clientId: string, sessionId: string) => {
         try {
-            const msg = { ...message, clientId };
+            const msg = { ...message, clientId, sessionId };
             const sent = wsManager.send(msg);
             return { sent };
         } catch (error) {

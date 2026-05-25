@@ -4,11 +4,11 @@
             <Avatar :uid="userStore.getUserID()" @click.capture.stop="openUserInfo" />
             <div class="nav-item" :class="{ active: activeRoute.includes('chat') }" @click="navigateTo('chat')">
                 <img :src="ChatIcon" alt="Chat" />
-                <div v-if="chatBadge > 0" class="badge">{{ chatBadge }}</div>
+                <div v-if="chatBadge > 0" class="badge">{{ chatBadge > 99 ? '99+' : chatBadge }}</div>
             </div>
             <div class="nav-item" :class="{ active: activeRoute.includes('contacts') }" @click="navigateTo('contacts')">
                 <img :src="ContactsIcon" alt="Contacts" />
-                <div v-if="contactBadge > 0" class="badge">{{ contactBadge }}</div>
+                <div v-if="contactBadge > 0" class="badge">{{ contactBadge > 99 ? '99+' : contactBadge }}</div>
             </div>
 
         </div>
@@ -142,12 +142,12 @@ watch(contactBadge, (newVal, oldVal) => {
         .badge {
             position: absolute;
             top: -4px;
-            right: -2px;
+            right: -4px;
             background-color: #ff4d4f;
             color: white;
             font-size: 10px;
-            height: 18px;
-            width: 18px;
+            height: 22px;
+            width: 22px;
             border-radius: 50%;
             text-align: center;
             display: flex;
