@@ -3,8 +3,8 @@ import { fileCacheManager, IMCACHE_SCHEME, IMLOCAL_SCHEME, IMLOCALRAW_SCHEME } f
 
 export function registerProtocols() {
     // 注册 imcache:// 自定义协议：将网络图片请求映射到本地磁盘缓存
-    protocol.handle(IMCACHE_SCHEME, (request) => {
-        const localPath = fileCacheManager.handleProtocolRequest(request.url);
+    protocol.handle(IMCACHE_SCHEME, async (request) => {
+        const localPath = await fileCacheManager.handleProtocolRequest(request.url);
         if (localPath) {
             // 本地缓存命中，通过 Electron 的 net.fetch 读取本地文件（ESM 安全）
             return net.fetch('file://' + localPath);

@@ -3,7 +3,7 @@
  * 集中管理所有 server URL 和常量，避免各文件分散定义
  */
 
-import dotenv from 'dotenv';
+import * as dotenv from 'dotenv';
 
 // 加载 .env 文件（默认从 process.cwd() 即项目根目录寻找）
 dotenv.config();

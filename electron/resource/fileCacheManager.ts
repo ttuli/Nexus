@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as crypto from 'crypto';
 import { nativeImage } from 'electron';
 import { storage } from '../utils/storage';
+import { tokenManager } from './tokenManager';
 import { config } from '../config';
 
 /**
@@ -44,6 +45,9 @@ class FileCacheManager {
         }
     }
 
+    public setCacheDir(dir: string): void {
+        this.cacheDir = dir;
+    }
     /**
      * 将网络 URL 转换为 imcache:// 协议地址供前端使用
      */
@@ -60,7 +64,7 @@ class FileCacheManager {
      * 处理渲染进程对 imcache:// 协议的请求
      * 如果本地缓存存在，则直接返回本地文件路径；否则触发后台下载并返回 null（调用方应 fallback）
      */
-    public handleProtocolRequest(protocolUrl: string): string | null {
+    public async handleProtocolRequest(protocolUrl: string,method: string = 'async'): Promise<string | null> {
         const encoded = protocolUrl.replace(`${IMCACHE_SCHEME}://`, '').split('?')[0]; // 去掉 ? 之后的查询参数
         let originalUrl: string;
         try {
@@ -71,12 +75,18 @@ class FileCacheManager {
 
         const localPath = this.getLocalPath(originalUrl);
         if (fs.existsSync(localPath)) {
+            console.log('[FileCacheManager] Cache hit:', originalUrl, '->', localPath);
             return localPath;
         }
 
         // 本地没有，触发异步下载，本次请求返回 null 让前端 fallback 到网络图
-        this.prefetch(originalUrl);
-        return null;
+        switch (method) {
+            case 'sync':
+                return await this.prefetch(originalUrl);
+            default:
+                this.prefetch(originalUrl);
+                return null;
+        }
     }
 
     /**
@@ -153,24 +163,34 @@ class FileCacheManager {
      * 预先在后台下载并缓存一张图片
      * 如果已经下载过则跳过
      */
-    public prefetch(url: string): void {
-        if (!url || !url.startsWith('http')) return;
+    public async prefetch(url: string): Promise<string | null> {
+        if (!url || !url.startsWith('http')) return null;
         const localPath = this.getLocalPath(url);
-        if (fs.existsSync(localPath)) return;
-        if (this.downloading.has(url)) return;
+        if (fs.existsSync(localPath)) return localPath;
+        if (this.downloading.has(url)) return null;
 
         this.downloading.add(url);
-        this.downloadFile(url, localPath)
-            .catch(err => console.error('[FileCacheManager] prefetch failed:', url, err))
-            .finally(() => this.downloading.delete(url));
+        try {
+            await this.downloadFile(url, localPath);
+        } catch (err) {
+            console.error('[FileCacheManager] prefetch error:', url, err);
+        } finally {
+            this.downloading.delete(url);
+        }
+        return localPath;
     }
 
     /**
      * 获取某个网络 URL 对应的本地缓存文件路径
-     * 使用 SHA256 哈希作为文件名（保留扩展名）
+     *
+     * 目录结构：cacheDir/{userId}/{fileCategory}/{YYYY_MM}/{sha256hash}{ext}
+     *   - userId      : 当前登录用户 ID（未登录时为 "anonymous"）
+     *   - fileCategory: picture | video | document | other
+     *   - YYYY_MM     : 当前年月，如 2026_06
      */
     public getLocalPath(url: string): string {
         const hash = crypto.createHash('sha256').update(url).digest('hex');
+
         let ext = '';
         try {
             const pathname = new URL(url).pathname;
@@ -178,7 +198,35 @@ class FileCacheManager {
         } catch {
             ext = '.bin';
         }
-        return path.join(this.cacheDir, `${hash}${ext}`);
+
+        const userId    = tokenManager.getCurrentUserID() || 'anonymous';
+        const category  = this.getFileCategory(ext);
+        const now       = new Date();
+        const yearMonth = `${now.getFullYear()}_${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+        const dir = path.join(this.cacheDir, String(userId), category, yearMonth);
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+
+        return path.join(dir, `${hash}${ext}`);
+    }
+
+    /**
+     * 根据文件扩展名返回文件分类
+     * @param ext 文件扩展名（含点，如 ".jpg"）
+     * @returns 文件分类字符串
+     */
+    private getFileCategory(ext: string): 'picture' | 'video' | 'document' | 'other' {
+        const e = ext.toLowerCase();
+        const PICTURE_EXTS  = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg', '.ico', '.tiff', '.heic', '.heif', '.avif']);
+        const VIDEO_EXTS    = new Set(['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv', '.flv', '.wmv', '.m4v', '.3gp']);
+        const DOCUMENT_EXTS = new Set(['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt', '.csv', '.md', '.zip', '.rar', '.7z']);
+
+        if (PICTURE_EXTS.has(e))  return 'picture';
+        if (VIDEO_EXTS.has(e))    return 'video';
+        if (DOCUMENT_EXTS.has(e)) return 'document';
+        return 'other';
     }
 
     /**
