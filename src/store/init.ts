@@ -7,39 +7,44 @@ import { extractTargetIdFromSessionId } from '@/utils/chat';
 export async function initRelationStore() {
     const userStore = useUserStore()
     const friends = await friendService.loadFriendListToStore()
-    const Ids = friends.map((friend: ImTypes.Friend) => friend.friend_id);
-    Ids.push(userStore.getUserID());
+    const ids = friends.map((friend: ImTypes.Friend) => friend.friend_id);
+    ids.push(userStore.getUserID());
 
-    const requests = await friendService.loadPendingRequestsToStore()
-    requests.map((request: ImTypes.FriendRequest) => {
-        if (userStore.getUserID() === request.from_user_id) {
-            Ids.push(request.to_user_id);
-        } else {
-            Ids.push(request.from_user_id);
-        }
-    })
+    groupService.fetchPendingApplies().then(grequests => {
+        const reqGroupIds: number[] = [];
+        grequests.forEach((request: ImTypes.GroupApply) => {
+            reqGroupIds.push(request.group_id);
+        });
+        if (reqGroupIds.length) groupService.fetchByIds([...new Set(reqGroupIds)]);
+    });
+
+    friendService.loadPendingRequestsToStore().then(requests => {
+        const reqIds: number[] = [];
+        requests.forEach((request: ImTypes.FriendRequest) => {
+            if (userStore.getUserID() === request.from_user_id) {
+                reqIds.push(request.to_user_id);
+            } else {
+                reqIds.push(request.from_user_id);
+            }
+        });
+        if (reqIds.length) userService.fetchByIds([...new Set(reqIds)]);
+    });
 
     const chatStore = useChatStore()
-    // const groupStore = useGroupStore()
     const groupIdsToFetch: number[] = [];
 
     chatStore.chatList.forEach((chat: ImTypes.Conversation) => {
         const targetId = extractTargetIdFromSessionId(chat.conversation_id, userStore.getUserID());
         if (chat.type === ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE) {
-            if (targetId) Ids.push(targetId);
+            if (targetId && !isNaN(targetId)) ids.push(targetId);
         } else if (chat.type === ImTypes.ConversationType.CONVERSATION_TYPE_GROUP) {
-            if (targetId) groupIdsToFetch.push(targetId);
+            if (targetId && !isNaN(targetId)) groupIdsToFetch.push(targetId);
         }
     })
-    await userService.fetchByIds([...new Set(Ids)]);
+    await userService.fetchByIds([...new Set(ids)]);
 
     const groupIds = await groupService.fetchUserGroupIds();
     groupIds.push(...groupIdsToFetch);
-
-    const grequests = await groupService.fetchPendingApplies()
-    grequests.map((request: ImTypes.GroupApply) => {
-        groupIds.push(request.group_id)
-    })
     await groupService.fetchByIds([...new Set(groupIds)]);
 }
 

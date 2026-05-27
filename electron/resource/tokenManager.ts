@@ -178,8 +178,8 @@ class TokenManager {
                             refresh_token = result.data.refresh_token;
                         }
 
-                        this.token = token;
-                        this.refreshToken = refresh_token;
+                        this.setToken(token);
+                        this.setRefreshToken(refresh_token);
                         if (this.storeRefreshToken) {
                             storage.set(StorageKeys.REFRESH_TOKEN, refresh_token);
                         }

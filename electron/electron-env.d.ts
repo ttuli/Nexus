@@ -38,3 +38,9 @@ interface Window {
     env: NodeJS.ProcessEnv
   }
 }
+
+// Vite ?raw 导入：将文本文件内容作为字符串内联到构建产物
+declare module '*.sql?raw' {
+  const content: string;
+  export default content;
+}

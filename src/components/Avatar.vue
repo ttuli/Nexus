@@ -80,9 +80,13 @@ const handleClick = () => {
 
 onMounted(async () => {
     if (props.type === 'user') {
-        await userService.fetchByIds([props.uid])
+        if (!userStore.getUser(props.uid)) {
+            await userService.fetchByIds([props.uid])
+        }
     } else {
-        await groupService.fetchByIds([props.uid])
+        if (!groupStore.getGroup(props.uid)) {
+            await groupService.fetchByIds([props.uid])
+        }
     }
 })
 </script>

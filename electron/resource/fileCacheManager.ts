@@ -2,7 +2,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
-import { nativeImage } from 'electron';
+import { nativeImage, net } from 'electron';
 import { storage } from '../utils/storage';
 import { tokenManager } from './tokenManager';
 import { config } from '../config';
@@ -233,7 +233,7 @@ class FileCacheManager {
      * 实际执行下载的私有方法
      */
     private async downloadFile(url: string, localPath: string): Promise<void> {
-        const response = await fetch(url);
+        const response = await net.fetch(url);
         if (!response.ok) {
             throw new Error(`HTTP ${response.status} for ${url}`);
         }

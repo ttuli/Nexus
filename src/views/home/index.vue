@@ -120,14 +120,16 @@ onMounted(async () => {
     ipcService.on(IpcChannels.ROUTE_NAVIGATE, (_e, path) => {
         router.push(path);
     });
-
-    chatStore.loadFromStorage(userStore.getUserID());
     await import('@/views/home/contact/components/ContactSidebar.vue')
 
-    setTimeout(signalWindowReady,200)
-    messageService.getOfflineActiveSessions()
+    chatStore.loadFromStorage(userStore.getUserID());
     websocketService.connect()
+
     await initRelationStore()
+
+    signalWindowReady()
+
+    messageService.getOfflineActiveSessions()
 });
 onUnmounted(async () => {
     storeOfflineTimestamp()

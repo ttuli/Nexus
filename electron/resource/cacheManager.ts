@@ -1,8 +1,14 @@
-import { ResourceType, ResourceIdKeyMap, IpcChannels } from '../../src/types';
+import { ResourceType, ResourceIdKeyMap, IpcChannels, GroupMembersWrapper } from '../../src/types';
 import { windowManager } from '../windows/windowManager';
 import { config } from '../config';
 import { LRUCache } from 'lru-cache';
-import Store from 'electron-store';
+import {
+    userStore,
+    groupStore,
+    groupMemberStore,
+    kvCache,
+    closeDb
+} from '../db';
 
 // ─── 需要持久化到磁盘的资源类型 ─────────────────────────────────
 const PERSIST_TYPES = new Set<ResourceType>([
@@ -13,15 +19,9 @@ const PERSIST_TYPES = new Set<ResourceType>([
     ResourceType.GROUP_MEMBER,
 ]);
 
-// 磁盘存储的单条记录
-interface DiskRecord {
-    data: any;
-    expiresAt: number;
-}
-
 /**
  * 缓存管理器
- * 内存 LRU + 磁盘 electron-store 双层缓存
+ * 内存 LRU + SQLite 双层缓存
  */
 class CacheManager {
     // ─── 内存层 ──────────────────────────────────────────────────
@@ -29,30 +29,11 @@ class CacheManager {
     private userGroupIds: number[] = [];
     private initialized: boolean = false;
 
-    // ─── 磁盘层 ──────────────────────────────────────────────────
-    private diskStore: Store<Record<string, any>> | null = null;
-
-    // Debounce 脏队列：key → DiskRecord
-    private dirtyQueue: Map<string, DiskRecord | null> = new Map(); // null 表示待删除
-    private flushTimer: ReturnType<typeof setTimeout> | null = null;
-    private readonly FLUSH_DELAY_MS = 500;
-
-    // ─── 磁盘 key 工具 ────────────────────────────────────────────
-    private diskKey(type: ResourceType, id: number): string {
-        return `${type}:${id}`;
-    }
-
     // ==================== 初始化 ====================
 
     public init(): void {
         if (this.initialized) return;
         this.initialized = true;
-
-        // 初始化磁盘存储
-        this.diskStore = new Store({
-            name: 'resource-cache',
-            clearInvalidConfig: true,
-        });
 
         // 初始化各类型内存缓存
         Object.values(ResourceType).forEach((type) => {
@@ -63,65 +44,31 @@ class CacheManager {
             }));
         });
 
-        // 从磁盘恢复到内存
-        this.restoreFromDisk();
+        // 清理 SQLite 中的过期数据
+        this.cleanExpiredDiskCache();
+
+        // 从 SQLite 恢复 userGroupIds
+        try {
+            this.userGroupIds = kvCache.getAllIds('group_joined');
+            console.log(`[CacheManager] Restored ${this.userGroupIds.length} joined groups from SQLite`);
+        } catch (err) {
+            console.error('[CacheManager] Failed to restore userGroupIds from SQLite:', err);
+        }
     }
 
     /**
-     * 从磁盘恢复未过期的缓存到内存
+     * 清理所有过期记录
      */
-    private restoreFromDisk(): void {
-        if (!this.diskStore) return;
-
-        const now = Date.now();
-        const all = this.diskStore.store as Record<string, any>;
-
-        // 恢复 GROUP_JOINED
-        const savedGroupIds = all['__userGroupIds__'];
-        if (Array.isArray(savedGroupIds)) {
-            this.userGroupIds = savedGroupIds;
+    private cleanExpiredDiskCache(): void {
+        try {
+            userStore.deleteExpired();
+            groupStore.deleteExpired();
+            groupMemberStore.deleteExpired();
+            kvCache.deleteExpired();
+            console.log('[CacheManager] SQLite expired entries cleaned');
+        } catch (err) {
+            console.error('[CacheManager] Failed to clean expired entries:', err);
         }
-
-        // 恢复普通资源
-        const keysToDelete: string[] = [];
-
-        for (const [key, record] of Object.entries(all)) {
-            if (key === '__userGroupIds__') continue;
-
-            const [typeStr, idStr] = key.split(':');
-            const type = typeStr as ResourceType;
-            const id = parseInt(idStr, 10);
-
-            if (!PERSIST_TYPES.has(type) || isNaN(id)) continue;
-
-            const diskRecord = record as DiskRecord;
-            if (!diskRecord || !diskRecord.expiresAt) {
-                keysToDelete.push(key);
-                continue;
-            }
-
-            if (diskRecord.expiresAt <= now) {
-                // 已过期，标记删除
-                keysToDelete.push(key);
-                continue;
-            }
-
-            // 未过期，回填内存
-            const cache = this.caches.get(type);
-            if (cache) {
-                cache.set(id, {
-                    data: diskRecord.data,
-                    lastUpdated: diskRecord.expiresAt - config.cacheExpirationMs,
-                });
-            }
-        }
-
-        // 清理过期记录
-        if (keysToDelete.length > 0) {
-            keysToDelete.forEach((k) => this.diskStore!.delete(k));
-        }
-
-        console.log(`[CacheManager] Restored from disk, cleaned ${keysToDelete.length} expired entries`);
     }
 
     // ==================== 通用缓存方法 ====================
@@ -133,10 +80,11 @@ class CacheManager {
         const cache = this.caches.get(type);
         const cached = cache?.get(id);
 
-        // 检查过期
+        // 检查内存过期
         if (cached && Date.now() - cached.lastUpdated > config.cacheExpirationMs) {
             cache?.delete(id);
-            return null;
+            // 内存过期，尝试从磁盘重新加载
+            return this.getFromDisk<T>(type, id);
         }
 
         if (cached) return cached.data as T;
@@ -155,32 +103,88 @@ class CacheManager {
 
         const items: T[] = [];
         const missingIds: number[] = [];
+        const dbQueryIds: number[] = [];
 
+        // 1. 检查内存缓存
         ids.forEach((id) => {
             const cached = cache.get(id);
             if (cached) {
                 if (Date.now() - cached.lastUpdated > config.cacheExpirationMs) {
                     cache.delete(id);
-                    // 内存过期，尝试磁盘
-                    const diskData = this.getFromDisk<T>(type, id);
-                    if (diskData !== null) {
-                        items.push(diskData);
-                    } else {
-                        missingIds.push(id);
-                    }
+                    dbQueryIds.push(id);
                 } else {
                     items.push(cached.data);
                 }
             } else {
-                // 内存 miss，尝试磁盘
-                const diskData = this.getFromDisk<T>(type, id);
-                if (diskData !== null) {
-                    items.push(diskData);
-                } else {
-                    missingIds.push(id);
-                }
+                dbQueryIds.push(id);
             }
         });
+
+        // 2. 批量查 SQLite
+        if (dbQueryIds.length > 0 && PERSIST_TYPES.has(type)) {
+            let foundInDb: any[] = [];
+            let missingInDb: number[] = [];
+
+            try {
+                switch (type) {
+                    case ResourceType.USER: {
+                        const res = userStore.getMany(dbQueryIds);
+                        foundInDb = res.found;
+                        missingInDb = res.missing;
+                        break;
+                    }
+                    case ResourceType.GROUP: {
+                        const res = groupStore.getMany(dbQueryIds);
+                        foundInDb = res.found;
+                        missingInDb = res.missing;
+                        break;
+                    }
+                    case ResourceType.GROUP_MEMBER: {
+                        // GROUP_MEMBER 通常按 group_id 批量获取成员列表
+                        dbQueryIds.forEach((groupId) => {
+                            const members = groupMemberStore.getByGroup(groupId);
+                            if (members.length > 0) {
+                                foundInDb.push({ group_id: groupId, members });
+                            } else {
+                                missingInDb.push(groupId);
+                            }
+                        });
+                        break;
+                    }
+                    case ResourceType.FRIEND: {
+                        const res = kvCache.getMany<any>('friend', dbQueryIds);
+                        foundInDb = res.found;
+                        missingInDb = res.missing;
+                        break;
+                    }
+                    case ResourceType.GROUP_JOINED: {
+                        const res = kvCache.getMany<any>('group_joined', dbQueryIds);
+                        foundInDb = res.found;
+                        missingInDb = res.missing;
+                        break;
+                    }
+                    default:
+                        missingInDb = dbQueryIds;
+                }
+
+                // 回填内存并添加到结果中
+                foundInDb.forEach((data) => {
+                    const idKey = ResourceIdKeyMap[type];
+                    if (idKey) {
+                        const id = data[idKey] as number;
+                        cache.set(id, { data, lastUpdated: Date.now() });
+                        items.push(data);
+                    }
+                });
+
+                missingIds.push(...missingInDb);
+            } catch (err) {
+                console.error(`[CacheManager] Failed to batch get ${type} from SQLite:`, err);
+                missingIds.push(...dbQueryIds);
+            }
+        } else {
+            missingIds.push(...dbQueryIds);
+        }
 
         return { items, missingIds };
     }
@@ -189,44 +193,67 @@ class CacheManager {
      * 从磁盘读取单条记录，命中则回填内存
      */
     private getFromDisk<T>(type: ResourceType, id: number): T | null {
-        if (!this.diskStore || !PERSIST_TYPES.has(type)) return null;
+        if (!PERSIST_TYPES.has(type)) return null;
 
-        const key = this.diskKey(type, id);
-        const record = this.diskStore.get(key) as DiskRecord | undefined;
-        if (!record || !record.expiresAt) return null;
-
-        if (record.expiresAt <= Date.now()) {
-            // 过期，删除
-            this.diskStore.delete(key);
+        let data: any = null;
+        try {
+            switch (type) {
+                case ResourceType.USER:
+                    data = userStore.get(id);
+                    break;
+                case ResourceType.GROUP:
+                    data = groupStore.get(id);
+                    break;
+                case ResourceType.GROUP_MEMBER: {
+                    const members = groupMemberStore.getByGroup(id);
+                    if (members.length > 0) {
+                        data = { group_id: id, members } as GroupMembersWrapper;
+                    }
+                    break;
+                }
+                case ResourceType.FRIEND:
+                    data = kvCache.get('friend', id);
+                    break;
+                case ResourceType.GROUP_JOINED:
+                    data = kvCache.get('group_joined', id);
+                    break;
+            }
+        } catch (err) {
+            console.error(`[CacheManager] Failed to read ${type}:${id} from SQLite:`, err);
             return null;
         }
+
+        if (data === null) return null;
 
         // 回填内存
         const cache = this.caches.get(type);
         if (cache) {
             cache.set(id, {
-                data: record.data,
-                lastUpdated: record.expiresAt - config.cacheExpirationMs,
+                data,
+                lastUpdated: Date.now(),
             });
         }
 
-        return record.data as T;
+        return data as T;
     }
 
     /**
      * 设置单个资源（更新缓存）
      */
     public setItem<T extends Record<string, any>>(type: ResourceType, item: T): void {
+        const expiresAt = Date.now() + config.cacheExpirationMs;
+
         // GROUP_JOINED: 仅维护用户已加入群组 ID 列表
         if (type === ResourceType.GROUP_JOINED) {
             if (typeof item === 'number') {
                 if (!this.userGroupIds.includes(item)) {
                     this.userGroupIds.push(item);
                 }
-                this.enqueueDiskWrite('__userGroupIds__', {
-                    data: this.userGroupIds,
-                    expiresAt: Date.now() + config.cacheExpirationMs,
-                });
+                try {
+                    kvCache.set('group_joined', item, {}, expiresAt);
+                } catch (err) {
+                    console.error('[CacheManager] Failed to write group_joined to SQLite:', err);
+                }
             } else {
                 console.error('GROUP_JOINED must be a number');
             }
@@ -242,6 +269,7 @@ class CacheManager {
             const existing = cache.get(id);
 
             // 如果已有缓存，进行合并
+            let mergedItem = item;
             if (existing && existing.data && Array.isArray(existing.data.members)) {
                 const existingMembers = existing.data.members;
                 const newMembers = (item as any).members;
@@ -252,16 +280,25 @@ class CacheManager {
                         memberMap.set(m.user_id, m);
                     });
 
-                    const mergedItem = {
+                    mergedItem = {
                         ...item,
                         members: Array.from(memberMap.values())
-                    };
-
-                    cache.set(id, { data: mergedItem, lastUpdated: Date.now() });
-                    this.scheduleDiskWrite(type, id, mergedItem);
-                    return;
+                    } as any;
                 }
             }
+
+            cache.set(id, { data: mergedItem, lastUpdated: Date.now() });
+
+            // 写入 SQLite
+            try {
+                const members = (mergedItem as any).members;
+                if (Array.isArray(members)) {
+                    groupMemberStore.upsertMany(members, expiresAt);
+                }
+            } catch (err) {
+                console.error('[CacheManager] Failed to write group members to SQLite:', err);
+            }
+            return;
         }
 
         const cache = this.caches.get(type);
@@ -270,14 +307,95 @@ class CacheManager {
 
         const id = item[idKey] as number;
         cache.set(id, { data: item, lastUpdated: Date.now() });
-        this.scheduleDiskWrite(type, id, item);
+
+        // 写入 SQLite
+        try {
+            switch (type) {
+                case ResourceType.USER:
+                    userStore.set(item as any, expiresAt);
+                    break;
+                case ResourceType.GROUP:
+                    groupStore.set(item as any, expiresAt);
+                    break;
+                case ResourceType.FRIEND:
+                    kvCache.set('friend', id, item, expiresAt);
+                    break;
+            }
+        } catch (err) {
+            console.error(`[CacheManager] Failed to write ${type}:${id} to SQLite:`, err);
+        }
     }
 
     /**
      * 批量设置资源
      */
     public setItems<T extends Record<string, any>>(type: ResourceType, items: T[]): void {
-        items.forEach((item) => this.setItem(type, item));
+        if (items.length === 0) return;
+
+        const expiresAt = Date.now() + config.cacheExpirationMs;
+
+        // 1. 更新内存缓存
+        items.forEach((item) => {
+            if (type === ResourceType.GROUP_JOINED) {
+                if (typeof item === 'number') {
+                    if (!this.userGroupIds.includes(item)) {
+                        this.userGroupIds.push(item);
+                    }
+                }
+                return;
+            }
+
+            const cache = this.caches.get(type);
+            const idKey = ResourceIdKeyMap[type];
+            if (!cache || !idKey) return;
+
+            const id = item[idKey] as number;
+            cache.set(id, { data: item, lastUpdated: Date.now() });
+        });
+
+        // 2. 批量写入 SQLite (使用事务，性能好)
+        if (!PERSIST_TYPES.has(type)) return;
+
+        try {
+            switch (type) {
+                case ResourceType.USER:
+                    userStore.setMany(items as any[], expiresAt);
+                    break;
+                case ResourceType.GROUP:
+                    groupStore.setMany(items as any[], expiresAt);
+                    break;
+                case ResourceType.GROUP_MEMBER: {
+                    const allMembers: any[] = [];
+                    items.forEach((wrapper: any) => {
+                        if (wrapper && Array.isArray(wrapper.members)) {
+                            allMembers.push(...wrapper.members);
+                        }
+                    });
+                    if (allMembers.length > 0) {
+                        groupMemberStore.upsertMany(allMembers, expiresAt);
+                    }
+                    break;
+                }
+                case ResourceType.FRIEND: {
+                    const kvItems = items.map(item => {
+                        const idKey = ResourceIdKeyMap[type]!;
+                        return { id: item[idKey] as number, data: item };
+                    });
+                    kvCache.setMany('friend', kvItems, expiresAt);
+                    break;
+                }
+                case ResourceType.GROUP_JOINED: {
+                    const kvItems = items.map(item => {
+                        const id = typeof item === 'number' ? item : item[ResourceIdKeyMap[type]!] as number;
+                        return { id, data: {} };
+                    });
+                    kvCache.setMany('group_joined', kvItems, expiresAt);
+                    break;
+                }
+            }
+        } catch (err) {
+            console.error(`[CacheManager] Failed to batch write ${type} to SQLite:`, err);
+        }
     }
 
     /**
@@ -297,19 +415,38 @@ class CacheManager {
         // GROUP_JOINED: 从用户群组列表中移除
         if (type === ResourceType.GROUP_JOINED) {
             this.userGroupIds = this.userGroupIds.filter(gid => gid !== id);
-            this.enqueueDiskWrite('__userGroupIds__', {
-                data: this.userGroupIds,
-                expiresAt: Date.now() + config.cacheExpirationMs,
-            });
+            try {
+                kvCache.delete('group_joined', id);
+            } catch (err) {
+                console.error('[CacheManager] Failed to delete group_joined from SQLite:', err);
+            }
             return;
         }
 
         const cache = this.caches.get(type);
         cache?.delete(id);
 
-        // 标记磁盘删除
+        // 从 SQLite 删除
         if (PERSIST_TYPES.has(type)) {
-            this.enqueueDiskWrite(this.diskKey(type, id), null);
+            try {
+                switch (type) {
+                    case ResourceType.USER:
+                        userStore.delete(id);
+                        break;
+                    case ResourceType.GROUP:
+                        groupStore.delete(id);
+                        break;
+                    case ResourceType.GROUP_MEMBER:
+                        // 删除该群的所有成员缓存
+                        groupMemberStore.deleteByGroup(id);
+                        break;
+                    case ResourceType.FRIEND:
+                        kvCache.delete('friend', id);
+                        break;
+                }
+            } catch (err) {
+                console.error(`[CacheManager] Failed to delete ${type}:${id} from SQLite:`, err);
+            }
         }
     }
 
@@ -325,10 +462,16 @@ class CacheManager {
      */
     public setUserGroupIds(ids: number[]): void {
         this.userGroupIds = [...ids];
-        this.enqueueDiskWrite('__userGroupIds__', {
-            data: this.userGroupIds,
-            expiresAt: Date.now() + config.cacheExpirationMs,
-        });
+        const expiresAt = Date.now() + config.cacheExpirationMs;
+
+        try {
+            // 重置 group_joined 表
+            kvCache.clear('group_joined');
+            const items = ids.map(id => ({ id, data: {} }));
+            kvCache.setMany('group_joined', items, expiresAt);
+        } catch (err) {
+            console.error('[CacheManager] Failed to batch write userGroupIds to SQLite:', err);
+        }
     }
 
     /**
@@ -337,12 +480,39 @@ class CacheManager {
     public clearCache(type?: ResourceType): void {
         if (type) {
             this.caches.get(type)?.clear();
-            // 清磁盘中该类型的所有记录
-            this.clearDiskByType(type);
+            try {
+                switch (type) {
+                    case ResourceType.USER:
+                        userStore.clear();
+                        break;
+                    case ResourceType.GROUP:
+                        groupStore.clear();
+                        break;
+                    case ResourceType.GROUP_MEMBER:
+                        groupMemberStore.clear();
+                        break;
+                    case ResourceType.FRIEND:
+                        kvCache.clear('friend');
+                        break;
+                    case ResourceType.GROUP_JOINED:
+                        kvCache.clear('group_joined');
+                        this.userGroupIds = [];
+                        break;
+                }
+            } catch (err) {
+                console.error(`[CacheManager] Failed to clear disk cache for ${type}:`, err);
+            }
         } else {
             this.caches.forEach((cache) => cache.clear());
             this.userGroupIds = [];
-            this.diskStore?.clear();
+            try {
+                userStore.clear();
+                groupStore.clear();
+                groupMemberStore.clear();
+                kvCache.clear();
+            } catch (err) {
+                console.error('[CacheManager] Failed to clear all SQLite tables:', err);
+            }
         }
     }
 
@@ -353,77 +523,17 @@ class CacheManager {
         windowManager.broadcastMessage(IpcChannels.RESOURCE_UPDATE, { type, items });
     }
 
-    // ==================== 磁盘写入 ====================
+    // ==================== 磁盘写入兼容方法 ====================
 
     /**
-     * 将写入/删除操作推入脏队列，debounce 刷盘
-     */
-    private enqueueDiskWrite(key: string, record: DiskRecord | null): void {
-        this.dirtyQueue.set(key, record);
-        this.scheduleFlush();
-    }
-
-    /**
-     * 便捷方法：安排持久化写入
-     */
-    private scheduleDiskWrite(type: ResourceType, id: number, data: any): void {
-        if (!PERSIST_TYPES.has(type)) return;
-        this.enqueueDiskWrite(this.diskKey(type, id), {
-            data,
-            expiresAt: Date.now() + config.cacheExpirationMs,
-        });
-    }
-
-    /**
-     * 安排 debounce 刷盘
-     */
-    private scheduleFlush(): void {
-        if (this.flushTimer) return; // 已有定时器，等合并
-        this.flushTimer = setTimeout(() => {
-            this.flushTimer = null;
-            this.flushToDisk();
-        }, this.FLUSH_DELAY_MS);
-    }
-
-    /**
-     * 立即将脏队列写入磁盘（退出时调用）
+     * 保持与 main.ts 签名的兼容，在此处安全关闭 SQLite 连接
      */
     public flushToDisk(): void {
-        if (!this.diskStore || this.dirtyQueue.size === 0) return;
-
-        for (const [key, record] of this.dirtyQueue) {
-            if (record === null) {
-                this.diskStore.delete(key);
-            } else {
-                this.diskStore.set(key, record);
-            }
-        }
-
-        this.dirtyQueue.clear();
-
-        if (this.flushTimer) {
-            clearTimeout(this.flushTimer);
-            this.flushTimer = null;
-        }
-    }
-
-    /**
-     * 清除磁盘中指定类型的所有记录
-     */
-    private clearDiskByType(type: ResourceType): void {
-        if (!this.diskStore || !PERSIST_TYPES.has(type)) return;
-
-        if (type === ResourceType.GROUP_JOINED) {
-            this.diskStore.delete('__userGroupIds__');
-            return;
-        }
-
-        const prefix = `${type}:`;
-        const all = this.diskStore.store as Record<string, any>;
-        for (const key of Object.keys(all)) {
-            if (key.startsWith(prefix)) {
-                this.diskStore.delete(key);
-            }
+        try {
+            closeDb();
+            console.log('[CacheManager] SQLite connection closed successfully on app quit.');
+        } catch (err) {
+            console.error('[CacheManager] Error closing SQLite connection on app quit:', err);
         }
     }
 }

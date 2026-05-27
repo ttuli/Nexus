@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => {
           vite: {
             build: {
               rollupOptions: {
-                external: ['dotenv', 'koffi'],
+                external: ['dotenv', 'koffi', 'better-sqlite3'],
               },
             },
             // 将所有 VITE_ 环境变量注入到主进程代码中（构建时替换）

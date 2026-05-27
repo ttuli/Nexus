@@ -2,6 +2,7 @@ import { mainGet, decodeMainResponse } from './mainRequest';
 import { cacheManager } from './cacheManager';
 import { ResourceType, ApiTypes, ImTypes } from '../../src/types';
 import { config } from '../config';
+import { kvCache } from '../db';
 
 type FriendInfo = ApiTypes.user.Friend;
 type FriendRequest = ApiTypes.user.FriendRequest;
@@ -16,9 +17,18 @@ class FriendService {
     private pendingRequests: Promise<FriendRequest[]> | null = null;
 
     /**
-     * 获取好友列表（返回全部好友，无分页）
+     * 获取好友列表（cache-first）
+     * 1. 先读 SQLite kvCache，有数据直接返回（无网络，启动快）
+     * 2. 缓存为空时才发起 HTTP 请求，并将结果写入缓存
      */
     public async fetchFriendList(): Promise<ImTypes.Friend[]> {
+        // 1. 优先读本地 SQLite 缓存
+        const cached = kvCache.getAll<ImTypes.Friend>('friend');
+        if (cached.length > 0) {
+            return cached;
+        }
+
+        // 2. 缓存不存在（首次登录 / 缓存过期清除），走网络
         if (this.pendingFriendList) {
             console.log('[FriendService] Reusing pending friend list request');
             const friends = await this.pendingFriendList;
