@@ -73,9 +73,6 @@ class AuthManager {
             if (res.code === 200) {
                 const decoded = decodeMainResponse(res, ApiTypes.auth.LoginResp.decode);
                 if (decoded.data) {
-                    console.log('\n\n')
-                    console.log('Login success', decoded.data);
-                    console.log('\n\n')
                     tokenManager.setToken(decoded.data.token);
                     tokenManager.setRefreshToken(decoded.data.refresh_token);
                     tokenManager.setStoreRefreshToken(remember);
