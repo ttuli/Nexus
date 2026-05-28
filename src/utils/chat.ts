@@ -801,3 +801,33 @@ export function extractVideoFrame(file: File): Promise<{ thumbnailUrl: string, w
         video.src = url;
     });
 }
+
+/**
+ * 根据消息类型生成会话列表中展示的最后一条消息预览文字
+ * @param message 本地消息对象
+ * @returns 预览字符串，如 '[图片]'、'[文件]' 或文本内容
+ */
+export function getLastContent(message: IChatMessage): string {
+    switch (message.type) {
+        case ImTypes.MessageType.CHAT_TEXT:
+        case ImTypes.MessageType.GROUP_TEXT:
+            return (message as any).content ?? '';
+        case ImTypes.MessageType.CHAT_IMAGE:
+        case ImTypes.MessageType.GROUP_IMAGE:
+            return '[图片]';
+        case ImTypes.MessageType.CHAT_FILE:
+        case ImTypes.MessageType.GROUP_FILE:
+            return '[文件]';
+        case ImTypes.MessageType.CHAT_VIDEO:
+        case ImTypes.MessageType.GROUP_VIDEO:
+            return '[视频]';
+        case ImTypes.MessageType.CHAT_AUDIO:
+        case ImTypes.MessageType.GROUP_AUDIO:
+            return '[音频]';
+        case ImTypes.MessageType.GROUP_OP_NOTIFICATION:
+        case ImTypes.MessageType.MSG_RECALL:
+            return formatSystemMessage(message as ILocalSystemMessage);
+        default:
+            return '[消息]';
+    }
+}

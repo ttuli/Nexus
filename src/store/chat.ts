@@ -1,10 +1,10 @@
 import { defineStore } from 'pinia';
 import { useUserStore } from './user';
 import { ApiTypes, ImTypes } from '@/types';
-import { IChatMessage, ILocalSystemMessage } from '@/types/chatMessage';
+import { IChatMessage } from '@/types/chatMessage';
 import { chatService, windowService } from '@/services';
 import { config } from '@/config';
-import { extractTargetIdFromSessionId, formatSystemMessage } from '@/utils/chat';
+import { extractTargetIdFromSessionId, getLastContent } from '@/utils/chat';
 
 export const useChatStore = defineStore('chat', {
     state: () => ({
@@ -354,25 +354,7 @@ export const useChatStore = defineStore('chat', {
             }
 
             // Generate last content string based on message type
-            let lastContent = '';
-            if (message.type === ImTypes.MessageType.CHAT_TEXT || message.type === ImTypes.MessageType.GROUP_TEXT) {
-                lastContent = (message as any).content;
-            } else if (message.type === ImTypes.MessageType.CHAT_IMAGE || message.type === ImTypes.MessageType.GROUP_IMAGE) {
-                lastContent = '[图片]';
-            } else if (message.type === ImTypes.MessageType.CHAT_FILE || message.type === ImTypes.MessageType.GROUP_FILE) {
-                lastContent = '[文件]';
-            } else if (message.type === ImTypes.MessageType.CHAT_VIDEO || message.type === ImTypes.MessageType.GROUP_VIDEO) {
-                lastContent = '[视频]';
-            } else if (message.type === ImTypes.MessageType.CHAT_AUDIO || message.type === ImTypes.MessageType.GROUP_AUDIO) {
-                lastContent = '[音频]';
-            } else if (
-                message.type === ImTypes.MessageType.GROUP_OP_NOTIFICATION ||
-                message.type === ImTypes.MessageType.MSG_RECALL
-            ) {
-                lastContent = formatSystemMessage(message as ILocalSystemMessage);
-            } else {
-                lastContent = '[消息]';
-            }
+            const lastContent = getLastContent(message);
 
             this.chatList.forEach(chat => {
                 if (chat.conversation_id === message.sessionId) {
