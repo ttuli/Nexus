@@ -2,7 +2,7 @@
 import instance, { decodeResponse, ApiResponse } from '@/utils/request'
 import { ApiTypes } from '@/types'
 import qs from 'qs'
-import { config } from '@/config';
+import { APP_CONSTANTS as config } from '@/config/constants';
 
 
 // ==================== ImTypes.GroupInfo APIs ====================

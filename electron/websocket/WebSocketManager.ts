@@ -6,9 +6,9 @@ import { messageQueue } from './MessageQueue';
 import { messageRouter } from './MessageRouter';
 import { setupRoutes } from './routes';
 import { tokenManager } from '../resource/tokenManager';
-import { ImTypes, LogoutType, IpcChannels } from '../../src/types';
+import { ImTypes, LogoutType, IpcChannels, ConnectionState } from '../../src/types';
 import { windowManager } from '../windows/windowManager';
-import { config } from '../config';
+import { Main_Config as config } from '../../src/config/constants';
 import { defaultSerializer } from './serializer/protoSerializer';
 
 /**
@@ -41,7 +41,7 @@ const DEFAULT_CONFIG: Required<WsManagerConfig> = {
 export class WebSocketManager extends EventEmitter {
     private ws: WebSocket | null = null;
     private config: Required<WsManagerConfig>;
-    private state: ImTypes.ConnectionState = ImTypes.ConnectionState.DISCONNECTED;
+    private state: ConnectionState = ConnectionState.DISCONNECTED;
     private reconnectAttempts: number = 0;
     private reconnectTimer: NodeJS.Timeout | null = null;
     private heartbeatTimer: NodeJS.Timeout | null = null;
@@ -85,12 +85,12 @@ export class WebSocketManager extends EventEmitter {
 
         this.isManualClose = false;
 
-        if (this.state === ImTypes.ConnectionState.CONNECTED || this.state === ImTypes.ConnectionState.CONNECTING) {
+        if (this.state === ConnectionState.CONNECTED || this.state === ConnectionState.CONNECTING) {
             console.warn('[WebSocketManager] Already connected or connecting');
             return;
         }
 
-        this.setState(ImTypes.ConnectionState.CONNECTING);
+        this.setState(ConnectionState.CONNECTING);
 
         try {
             // Get auth token
@@ -116,7 +116,7 @@ export class WebSocketManager extends EventEmitter {
      * Send a message
      */
     send(message: WsMessage): boolean {
-        if (this.state !== ImTypes.ConnectionState.CONNECTED || !this.ws) {
+        if (this.state !== ConnectionState.CONNECTED || !this.ws) {
             // Queue message for later
             messageQueue.enqueue(message);
             console.log('[WebSocketManager] Message queued (offline):', message.clientId);
@@ -152,7 +152,7 @@ export class WebSocketManager extends EventEmitter {
 
         this.ws.on('open', () => {
             console.log('[WebSocketManager] Connected');
-            this.setState(ImTypes.ConnectionState.CONNECTED);
+            this.setState(ConnectionState.CONNECTED);
             this.reconnectAttempts = 0;
             this.isRecovering401 = false;
             this.isManualClose = false;
@@ -165,7 +165,7 @@ export class WebSocketManager extends EventEmitter {
         });
 
         this.ws.on('close', (code: number, reason: Buffer) => {
-            this.setState(ImTypes.ConnectionState.DISCONNECTED);
+            this.setState(ConnectionState.DISCONNECTED);
             console.log(`[WebSocketManager] Closed: ${code} - ${reason.toString()}`);
             this.handleDisconnect();
         });
@@ -196,7 +196,7 @@ export class WebSocketManager extends EventEmitter {
                     console.log('[WebSocketManager] Token refresh success, reconnecting...');
                     this.clearTimers();
                     this.closeWs();
-                    this.setState(ImTypes.ConnectionState.DISCONNECTED);
+                    this.setState(ConnectionState.DISCONNECTED);
                     this.connect();
                 } else {
                     console.error('[WebSocketManager] Token refresh failed:', result.error);
@@ -227,7 +227,7 @@ export class WebSocketManager extends EventEmitter {
 
     private handleDisconnect(): void {
         this.clearTimers();
-        this.setState(ImTypes.ConnectionState.DISCONNECTED);
+        this.setState(ConnectionState.DISCONNECTED);
         this.scheduleReconnect();
     }
 
@@ -237,7 +237,7 @@ export class WebSocketManager extends EventEmitter {
     closeWs(): void {
         if (!this.ws) return;
         this.clearTimers();
-        this.setState(ImTypes.ConnectionState.DISCONNECTED);
+        this.setState(ConnectionState.DISCONNECTED);
         this.reconnectAttempts = 0;
         this.isManualClose = true;
         this.ws.removeAllListeners();
@@ -254,7 +254,7 @@ export class WebSocketManager extends EventEmitter {
             return;
         }
 
-        this.setState(ImTypes.ConnectionState.RECONNECTING);
+        this.setState(ConnectionState.RECONNECTING);
 
         // Exponential backoff
         const delay = Math.min(
@@ -341,7 +341,7 @@ export class WebSocketManager extends EventEmitter {
         }
     }
 
-    private setState(newState: ImTypes.ConnectionState): void {
+    private setState(newState: ConnectionState): void {
         this.state = newState;
         this.emit('stateChange', newState);
     }

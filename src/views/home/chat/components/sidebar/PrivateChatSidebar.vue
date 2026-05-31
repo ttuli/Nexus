@@ -58,7 +58,8 @@ import { ImTypes } from '@/types';
 import { ElMessage } from 'element-plus';
 import { extractTargetIdFromSessionId } from '@/utils/chat';
 import { Edit } from '@element-plus/icons-vue';
-import { chatService, friendService, messageService } from '@/services';
+import { friendService, messageService } from '@/services';
+import { messageStorageService } from '@/services/messageStorageService';
 
 const props = defineProps<{
     chat: ImTypes.Conversation;
@@ -148,7 +149,7 @@ const clearChatData = async () => {
             chatStore.messages = [];
         }
 
-        await chatService.clearMessagesBySessionId(props.chat.conversation_id);
+        await messageStorageService.clearMessagesBySessionId(props.chat.conversation_id);
 
         props.chat.max_seq = 0;
         props.chat.last_content = '';

@@ -30,7 +30,8 @@
 
                 <!-- Status Indicators (Only for self messages) -->
                 <div class="status-indicator loading"
-                    v-if="isSelf && message.status === MessageStatus.MESSAGE_STATUS_SENDING"></div>
+                    v-if="isSelf && (message.status === MessageStatus.MESSAGE_STATUS_SENDING ||
+                     message.status === MessageStatus.MESSAGE_STATUS_SENT)"></div>
                 <div class="status-indicator failed"
                     v-if="isSelf && message.status === MessageStatus.MESSAGE_STATUS_FAILED">!</div>
             </div>

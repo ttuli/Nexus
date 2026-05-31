@@ -34,9 +34,31 @@ const handleMsgAck: MessageHandler = async (message: WsMessage) => {
             try {
                 // Decode MessageAck to get client_id
                 const ack = ImTypes.MessageAck.decode(message.payload);
-                // Assuming msg_id in MessageAck corresponds to the client_id we sent
-                messageQueue.acknowledge(ack.client_id);
+
+                // messageQueue.acknowledge(ack.client_id);
                 windowManager.broadcastMessage(IpcChannels.WS_MESSAGE_ACK, {
+                    ack: ack,
+                    timestamp: message.timestamp,
+                });
+            } catch (e) {
+                console.error('[WebSocketManager] Failed to decode ACK', e);
+            }
+        } else {
+            console.error('[WebSocketManager] Invalid payload type for ACK');
+        }
+    } catch (e) {
+        console.error('Failed to decode MsgAck', e);
+    }
+};
+
+const handleMsgPersistAck: MessageHandler = async (message: WsMessage) => {
+    try {
+        if (message.payload instanceof Uint8Array) {
+            try {
+                const ack = ImTypes.PersistAck.decode(message.payload);
+
+                messageQueue.acknowledge(ack.client_id);
+                windowManager.broadcastMessage(IpcChannels.WS_MESSAGE_PERSIST_ACK, {
                     ack: ack,
                     timestamp: message.timestamp,
                 });
@@ -156,7 +178,7 @@ export const wsRouteTable: Record<number, MessageHandler> = {
 
 
     [ImTypes.MessageType.MSG_ACK]: handleMsgAck,
-
+    [ImTypes.MessageType.MSG_PERSIST_ACK]: handleMsgPersistAck,
 
     [ImTypes.MessageType.MSG_RECALL]: handleMessageRecall,
     [ImTypes.MessageType.USER_OFFLINE]: handleOfflineNotify,

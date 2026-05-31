@@ -1,5 +1,6 @@
 import { protocol, net } from 'electron'
-import { fileCacheManager, IMCACHE_SCHEME, IMLOCAL_SCHEME, IMLOCALRAW_SCHEME } from '../resource/fileCacheManager'
+import { fileCacheManager } from '../resource/fileCacheManager'
+import { IMCACHE_SCHEME, IMLOCAL_SCHEME, IMLOCALRAW_SCHEME } from '../../src/config/constants'
 
 export function registerProtocols() {
     // 注册 imcache:// 自定义协议：将网络图片请求映射到本地磁盘缓存
@@ -21,7 +22,7 @@ export function registerProtocols() {
 
     // 注册 imlocal:// 自定义协议：将本地文件路径裁剪缩放后返回给渲染进程
     protocol.handle(IMLOCAL_SCHEME, (request) => {
-        const result = fileCacheManager.handleLocalRequest(request.url); // 宽度默认设为 250
+        const result = fileCacheManager.handleLocalRequest(request.url);
 
         if (result.status) {
             return new Response(null, { status: result.status });

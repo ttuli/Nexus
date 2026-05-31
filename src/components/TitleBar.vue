@@ -2,8 +2,8 @@
     <div class="main-container" :class="{ dark: props.theme === 'dark' }">
         <div class="center-content">
             <span class="title-content" v-if="props.title">{{ props.title }}</span>
-            <div class="connection-status" v-if="wsState !== ImTypes.ConnectionState.CONNECTED && wsState !== ImTypes.ConnectionState.UNRECOGNIZED">
-                <div class="status-item loading" v-if="wsState === ImTypes.ConnectionState.CONNECTING || wsState === ImTypes.ConnectionState.RECONNECTING">
+            <div class="connection-status" v-if="wsState !== ConnectionState.CONNECTED && wsState !== ConnectionState.UNRECOGNIZED">
+                <div class="status-item loading" v-if="wsState === ConnectionState.CONNECTING || wsState === ConnectionState.RECONNECTING">
                     <span class="spinner"></span>
                     <span class="text">连接中...</span>
                 </div>
@@ -32,7 +32,7 @@ import Max from '@/assets/window/Maximize1.svg'
 import UnMax from '@/assets/window/Maximize2.svg'
 import { onMounted, onUnmounted, ref } from 'vue';
 import { windowService, ipcService } from '@/services';
-import { ImTypes, IpcChannels } from '@/types';
+import { ImTypes, IpcChannels, ConnectionState } from '@/types';
 
 const props = withDefaults(
     defineProps<{
@@ -56,7 +56,7 @@ const props = withDefaults(
     }
 )
 const isMax = ref(false)
-const wsState = ref(ImTypes.ConnectionState.UNRECOGNIZED)
+const wsState = ref(ConnectionState.UNRECOGNIZED)
 
 const onMin = () => {
     windowService.minimize()

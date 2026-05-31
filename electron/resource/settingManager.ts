@@ -1,4 +1,4 @@
-import { dialog, BrowserWindow, shell } from 'electron';
+import { dialog, BrowserWindow, shell, app } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as https from 'https';
@@ -14,7 +14,18 @@ class SettingManager {
      * 获取当前资源存储根路径
      */
     getStoragePath(): string {
-        return storage.getResourcePath();
+        const customPath = storage.get<string>(StorageKeys.CUSTOM_RESOURCE_PATH);
+        if (customPath && fs.existsSync(customPath)) {
+            try {
+                // 测试是否可写
+                fs.accessSync(customPath, fs.constants.R_OK | fs.constants.W_OK);
+                return customPath;
+            } catch (err) {
+                console.error('[SettingManager] Custom resource path has no read/write access, falling back to default:', err);
+            }
+        }
+        // 回退默认路径：用户数据目录下
+        return path.join(app.getPath('userData'), 'IMChatResources');
     }
 
     /**
@@ -43,6 +54,25 @@ class SettingManager {
 
         storage.set(StorageKeys.CUSTOM_RESOURCE_PATH, selectedPath);
         return selectedPath;
+    }
+
+    /**
+     * 将二进制图片数据直接保存为本地图片
+     * @param buffer 图片的二进制数据 (Uint8Array)
+     * @param fileName 可选的文件名，如果未提供则使用 UUID
+     * @returns 保存的本地绝对路径
+     */
+    saveImageBuffer(buffer: Uint8Array, fileName?: string): string {
+        const thumbnailsDir = path.join(this.getStoragePath(), 'thumbnails');
+        if (!fs.existsSync(thumbnailsDir)) {
+            fs.mkdirSync(thumbnailsDir, { recursive: true });
+        }
+
+        const name = fileName || `${Date.now()}_${Math.random().toString(36).substring(2, 8)}.jpg`;
+        const savePath = path.join(thumbnailsDir, name);
+
+        fs.writeFileSync(savePath, buffer);
+        return savePath;
     }
 
     /**

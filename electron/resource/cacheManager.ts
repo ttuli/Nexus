@@ -1,6 +1,6 @@
 import { ResourceType, ResourceIdKeyMap, IpcChannels, GroupMembersWrapper } from '../../src/types';
 import { windowManager } from '../windows/windowManager';
-import { config } from '../config';
+import { Main_Config as config } from '../../src/config/constants';
 import { LRUCache } from 'lru-cache';
 import {
     userStore,

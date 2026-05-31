@@ -24,7 +24,7 @@
                     @load="onLoad">
                     <template v-if="messages.length > 0">
                         <transition-group name="msg-fade" appear>
-                            <template v-for="msg in messages" :key="msg.msgId">
+                            <template v-for="msg in messages" :key="msg.clientId || msg.msgId">
                                 <!-- 系统 / 群通知消息气泡 -->
                                 <SystemMessageBubble v-if="isSystemMessage(msg.type)" :message="(msg as any)" />
                                 <!-- 普通用户聊天气泡 -->

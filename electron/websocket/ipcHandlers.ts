@@ -1,6 +1,6 @@
 import { ipcMain, BrowserWindow } from 'electron';
 import { wsManager } from './WebSocketManager';
-import { IpcChannels, ImTypes } from '../../src/types';
+import { IpcChannels, ImTypes, ConnectionState } from '../../src/types';
 
 /**
  * Setup WebSocket IPC handlers for renderer communication
@@ -37,7 +37,7 @@ export function setupWsIpcHandlers(): void {
  * Call this after wsManager is initialized
  */
 export function setupWsEventForwarding(): void {
-    wsManager.on('stateChange', (event: ImTypes.ConnectionState) => {
+    wsManager.on('stateChange', (event: ConnectionState) => {
         // Broadcast state change to all windows
         // Broadcast state change to all windows
         BrowserWindow.getAllWindows().forEach((win: Electron.BrowserWindow) => {

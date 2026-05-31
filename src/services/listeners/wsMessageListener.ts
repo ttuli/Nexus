@@ -57,4 +57,14 @@ export function initWsMessageListener(): void {
             chatStore.updateMessageStatus(data.ack.session_id, data.ack.client_id, ImTypes.MessageStatus.MESSAGE_STATUS_SENT, data.timestamp)
         }
     })
+
+    ipcService.on(IpcChannels.WS_MESSAGE_PERSIST_ACK, async (_event, data: { ack: ImTypes.PersistAck; timestamp: number }) => {
+        const chatStore = useChatStore()
+        console.log('[WsMessageListener] Received PersistAck:', data)
+        if (data.ack.ack_status === ImTypes.AckStatus.ACK_STATUS_FAILED) {
+            chatStore.updateMessageStatus(data.ack.session_id, data.ack.client_id, ImTypes.MessageStatus.MESSAGE_STATUS_FAILED, data.timestamp)
+        } else if (data.ack.ack_status === ImTypes.AckStatus.ACK_STATUS_SUCCESS) {
+            chatStore.updateMessageStatus(data.ack.session_id, data.ack.client_id, ImTypes.MessageStatus.MESSAGE_STATUS_DELIVERED, data.timestamp)
+        }
+    })
 }

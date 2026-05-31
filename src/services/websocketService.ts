@@ -1,10 +1,14 @@
 import { ipcService } from './ipcService'
 import { IpcChannels, IpcResponse, ImTypes, ApiTypes } from '../types'
 import { ILocalImageMessage, ILocalFileMessage, ILocalVideoMessage } from '@/types/chatMessage'
-import { buildTextWsMessage, buildImageLocalMsg, buildImageWsPayload, buildFileWsMessage, buildVideoWsMessage, extractVideoFrame, toLocalPreviewUrl } from '@/utils/chat'
+import { buildTextWsMessage, buildImageLocalMsg, 
+    buildImageWsPayload, buildFileLocalMsg, buildFileWsPayload, 
+    buildVideoLocalMsg, buildVideoWsPayload, extractVideoFrame, toLocalPreviewUrl, 
+    toLocalPreviewUrlRaw} from '@/utils/chat'
 import { useChatStore } from '@/store/chat'
 import { fileService } from './fileService'
-import { chatService } from './chatService'
+import { messageStorageService } from './messageStorageService'
+import { APP_CONSTANTS } from '@/config/constants'
 
 /**
  * WebSocket 连接状态
@@ -71,18 +75,30 @@ class WebSocketService {
         const bitmap = await createImageBitmap(file)
         const imgWidth = bitmap.width
         const imgHeight = bitmap.height
+        
+        let thumbnailWidth = imgWidth
+        let thumbnailHeight = imgHeight
+        if (imgWidth > APP_CONSTANTS.maxImageWidth || imgHeight > APP_CONSTANTS.maxImageHeight) {
+            const ratio = Math.min(APP_CONSTANTS.maxImageWidth / imgWidth, APP_CONSTANTS.maxImageHeight / imgHeight)
+            thumbnailWidth = Math.round(imgWidth * ratio)
+            thumbnailHeight = Math.round(imgHeight * ratio)
+        }
         bitmap.close()
+        const filePath = window.webUtils.getPathForFile(file);
 
         // 2. 初始化占位消息（仅需本地消息，不需要 WS payload）
         const { clientId, localMsg } = buildImageLocalMsg({
             url: '',
-            localPath: file.path,
+            localPath: filePath,
             uploadProgress: 0,
             width: imgWidth,
-            height: imgHeight,
+            height: imgHeight,  
+            thumbnailWidth: thumbnailWidth,
+            thumbnailHeight: thumbnailHeight,
             size: file.size,
             format: file.type,
-            thumbnailUrl: toLocalPreviewUrl(file.path),
+            thumbnailUrl: toLocalPreviewUrl(filePath, thumbnailWidth, thumbnailHeight),
+            fileName: file.name
         }, sessionId)
         chatStore.addMessage(localMsg)
 
@@ -91,7 +107,7 @@ class WebSocketService {
             const { promise, abort } = fileService.uploadFile(
                 file,
                 ApiTypes.file.FileType.FileTypeChatImage,
-                (progress) => chatStore.updateMessageProgress(clientId, progress)
+                (progress) => chatStore.updateMessageProgress(sessionId, clientId, progress)
             )
             this.uploadAbortControllers.set(clientId, abort);
 
@@ -102,7 +118,7 @@ class WebSocketService {
             const storedMsg = chatStore.messages.find(m => m.clientId === clientId) as ILocalImageMessage | undefined
             if (storedMsg) {
                 storedMsg.url = ossUrl
-                void chatService.saveMessage(storedMsg).catch(e =>
+                void messageStorageService.saveMessage(storedMsg).catch(e =>
                     console.error('[WebSocketService] Failed to persist image ossUrl:', e)
                 )
             }
@@ -125,7 +141,7 @@ class WebSocketService {
                 sessionId, clientId,
                 ImTypes.MessageStatus.MESSAGE_STATUS_FAILED, Date.now()
             )
-            chatStore.updateMessageProgress(clientId, undefined)
+            chatStore.updateMessageProgress(sessionId, clientId, undefined)
             this.uploadAbortControllers.delete(clientId);
         }
     }
@@ -137,14 +153,15 @@ class WebSocketService {
     async sendFile(file: File): Promise<void> {
         const chatStore = useChatStore()
         const sessionId = chatStore.currentSessionId
-
-        // 1. 通过 buildWsMessage 统一构建占位消息
-        const { clientId, localMsg } = buildFileWsMessage({
+        const filePath = window.webUtils.getPathForFile(file);
+        // 1. 构建本地占位消息并立即上屏
+        const { clientId, localMsg } = buildFileLocalMsg({
             url: '',
-            localPath: file.path,
+            localPath: filePath,
             uploadProgress: 0,
             fileName: file.name,
             size: file.size,
+            format: file.type,
         }, sessionId)
         chatStore.addMessage(localMsg)
 
@@ -153,25 +170,24 @@ class WebSocketService {
             const { promise, abort } = fileService.uploadFile(
                 file,
                 ApiTypes.file.FileType.FileTypeChatFile,
-                (progress) => chatStore.updateMessageProgress(clientId, progress)
+                (progress) => chatStore.updateMessageProgress(sessionId, clientId, progress)
             )
             this.uploadAbortControllers.set(clientId, abort);
 
             const ossUrl = await promise;
             this.uploadAbortControllers.delete(clientId);
 
-            const msgIndex = chatStore.messages.findIndex(m => m.clientId === clientId)
-            if (msgIndex !== -1) {
-                const storedMsg = chatStore.messages[msgIndex] as ILocalFileMessage;
+            // 3. 更新 store 中占位消息的 OSS URL 并持久化
+            const storedMsg = chatStore.messages.find(m => m.clientId === clientId) as ILocalFileMessage | undefined
+            if (storedMsg) {
                 storedMsg.url = ossUrl
-                // 持久化 URL 到 DB
-                void chatService.saveMessage(storedMsg).catch(e =>
+                void messageStorageService.saveMessage(storedMsg).catch(e =>
                     console.error('[WebSocketService] Failed to persist file ossUrl:', e)
                 )
             }
 
-            // 4. 构建最终 WS payload 并发送（复用同一个 clientId，保证 ACK 能匹配）
-            const { msg: finalMsg } = buildFileWsMessage({ url: ossUrl, fileName: file.name, size: file.size }, sessionId, clientId)
+            // 4. 用 buildFileWsPayload 从已有本地消息拼装 WS 载荷并发送
+            const finalMsg = buildFileWsPayload(localMsg, ossUrl, sessionId)
             const result = await this.send(finalMsg, clientId, sessionId)
             if (!result.success || !result.data?.sent) {
                 chatStore.updateMessageStatus(
@@ -185,7 +201,7 @@ class WebSocketService {
                 sessionId, clientId,
                 ImTypes.MessageStatus.MESSAGE_STATUS_FAILED, Date.now()
             )
-            chatStore.updateMessageProgress(clientId, undefined)
+            chatStore.updateMessageProgress(sessionId, clientId, undefined)
             this.uploadAbortControllers.delete(clientId);
         }
     }
@@ -200,12 +216,13 @@ class WebSocketService {
 
         // 提取视频首帧、尺寸和时长
         const videoMeta = await extractVideoFrame(file);
-
-        // 1. 构建占位消息并入展示
-        const { clientId, localMsg } = buildVideoWsMessage({
+        const filePath = window.webUtils.getPathForFile(file);
+        
+        // 1. 构建占位消息并立即上屏
+        const { clientId, localMsg } = buildVideoLocalMsg({
             url: '',
-            localPath: file.path,
-            thumbnailUrl: videoMeta.thumbnailUrl,
+            localPath: filePath,
+            thumbnailUrl: toLocalPreviewUrlRaw(videoMeta.thumbnailUrl),
             width: videoMeta.width,
             height: videoMeta.height,
             duration: videoMeta.duration,
@@ -220,7 +237,7 @@ class WebSocketService {
             const { promise, abort } = fileService.uploadFile(
                 file,
                 ApiTypes.file.FileType.FileTypeChatFile,
-                (progress) => chatStore.updateMessageProgress(clientId, progress)
+                (progress) => chatStore.updateMessageProgress(sessionId, clientId, progress)
             )
             this.uploadAbortControllers.set(clientId, abort);
 
@@ -231,21 +248,13 @@ class WebSocketService {
             const storedMsg = chatStore.messages.find(m => m.clientId === clientId) as ILocalVideoMessage | undefined
             if (storedMsg) {
                 storedMsg.url = ossUrl
-                void chatService.saveMessage(storedMsg).catch(e =>
+                void messageStorageService.saveMessage(storedMsg).catch(e =>
                     console.error('[WebSocketService] Failed to persist video ossUrl:', e)
                 )
             }
 
-            // 4. 构建最终 WS payload 并发送
-            const { msg: finalMsg } = buildVideoWsMessage({
-                url: ossUrl,
-                size: file.size,
-                format: file.type,
-                width: videoMeta.width,
-                height: videoMeta.height,
-                duration: videoMeta.duration,
-                thumbnailUrl: '', // 最终发送不包含 Base64 缩略图
-            }, sessionId, clientId)
+            // 4. 用 buildVideoWsPayload 从已有本地消息拼装 WS 载荷并发送
+            const finalMsg = buildVideoWsPayload(localMsg, ossUrl, sessionId)
             const result = await this.send(finalMsg, clientId, sessionId)
             if (!result.success || !result.data?.sent) {
                 chatStore.updateMessageStatus(
@@ -259,7 +268,7 @@ class WebSocketService {
                 sessionId, clientId,
                 ImTypes.MessageStatus.MESSAGE_STATUS_FAILED, Date.now()
             )
-            chatStore.updateMessageProgress(clientId, undefined)
+            chatStore.updateMessageProgress(sessionId, clientId, undefined)
             this.uploadAbortControllers.delete(clientId);
         }
     }
@@ -270,16 +279,17 @@ class WebSocketService {
      */
     cancelUpload(clientId: string): void {
         const abort = this.uploadAbortControllers.get(clientId);
+        const chatStore = useChatStore()
+        const sessionId = chatStore.currentSessionId
         if (abort) {
             abort();
             this.uploadAbortControllers.delete(clientId);
 
-            const chatStore = useChatStore()
             chatStore.updateMessageStatus(
-                chatStore.currentSessionId, clientId,
+                sessionId, clientId,
                 ImTypes.MessageStatus.MESSAGE_STATUS_FAILED, Date.now()
             )
-            chatStore.updateMessageProgress(clientId, undefined)
+            chatStore.updateMessageProgress(sessionId, clientId, undefined)
         }
     }
 }

@@ -17,7 +17,7 @@ import { ApiTypes } from '@/types'
 import cacheService from './cacheService'
 import { useChatStore } from '@/store/chat'
 import { generateGroupSessionId } from '@/utils/chat'
-import { MessageType, MessageStatus } from '@/types/im'
+import { MessageType, MessageStatus } from '@/types/proto'
 import { IChatMessage } from '@/types/chatMessage'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '@/store/app';

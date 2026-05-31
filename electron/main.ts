@@ -1,3 +1,6 @@
+import * as dotenv from 'dotenv';
+dotenv.config();
+
 import { app, ipcMain } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
@@ -68,7 +71,7 @@ app.whenReady().then(() => {
   })
 })
 
-app.on('window-all-closed', (e: Event) => {
+app.on('window-all-closed', () => {
   // 始终阻止 Electron 自动退出，由 closeAllWindows() Promise 链显式控制
-  e.preventDefault();
+  // (在 Electron 中，只要监听了 window-all-closed 事件，就不会自动退出，不需要 preventDefault)
 });

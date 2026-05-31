@@ -1,7 +1,7 @@
 
 import instance, { decodeResponse, ApiResponse } from '@/utils/request'
 import { ApiTypes, PartialExcept } from '@/types'
-import { config } from '@/config'
+import { APP_CONSTANTS as config } from '@/config/constants'
 
 
 // ==================== Conversation APIs ====================

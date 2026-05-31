@@ -1,6 +1,6 @@
 import instance, { decodeResponse } from '@/utils/request'
 import { ApiTypes } from '@/types';
-import { config } from '@/config';
+import { APP_CONSTANTS as config } from '@/config/constants';
 
 // ==================== Auth APIs ====================
 

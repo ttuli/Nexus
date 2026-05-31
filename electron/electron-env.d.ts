@@ -32,6 +32,9 @@ declare namespace NodeJS {
 // Used in Renderer process, expose in `preload.ts`
 interface Window {
   ipcRenderer: import('electron').IpcRenderer
+  webUtils: {
+    getPathForFile: (file: File) => string
+  }
   process: {
     platform: NodeJS.Platform
     versions: NodeJS.ProcessVersions

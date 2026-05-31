@@ -3,7 +3,8 @@ import { useUserStore } from './user';
 import { ApiTypes, ImTypes } from '@/types';
 import { IChatMessage } from '@/types/chatMessage';
 import { chatService, windowService } from '@/services';
-import { config } from '@/config';
+import { messageStorageService } from '@/services/messageStorageService';
+import { Renderer_Config as config } from '@/config/constants';
 import { extractTargetIdFromSessionId, getLastContent } from '@/utils/chat';
 
 export const useChatStore = defineStore('chat', {
@@ -163,7 +164,7 @@ export const useChatStore = defineStore('chat', {
                 this.messages[msgIndex].sendTime = timestamp;
             }
             // 无论是否在内存中，都同步更新本地数据库
-            void chatService.updateMessageStatus(sessionId, clientId, status, msgId).catch((e) => {
+            void messageStorageService.updateMessageStatus(sessionId, clientId, status, msgId).catch((e) => {
                 console.error('[ChatStore] Failed to persist message status', e);
             });
         },
@@ -173,11 +174,16 @@ export const useChatStore = defineStore('chat', {
          * @param clientId 客户端消息ID
          * @param progress 进度 0-100，undefined 表示上传完成
          */
-        updateMessageProgress(clientId: string, progress: number | undefined) {
-            const msg = this.messages.find(m => m.clientId === clientId) as any;
-            if (msg !== undefined) {
-                msg.uploadProgress = progress;
+        updateMessageProgress(sessionId: string, clientId: string, progress: number | undefined) {
+            if (sessionId === this.currentSessionId) {
+                const msg = this.messages.find(m => m.clientId === clientId) as any;
+                if (msg !== undefined) {
+                    msg.uploadProgress = progress;
+                }
             }
+            // void messageStorageService.updateMessageStatus(sessionId, clientId, status).catch((e) => {
+            //     console.error('[ChatStore] Failed to persist message status', e);
+            // });
         },
 
         /**
@@ -191,7 +197,7 @@ export const useChatStore = defineStore('chat', {
             if (msg) {
                 msg.localPath = localPath;
             }
-            void chatService.updateMessageLocalPath(sessionId, clientId, msgId, localPath).catch((e) => {
+            void messageStorageService.updateMessageLocalPath(sessionId, clientId, msgId, localPath).catch((e) => {
                 console.error('[ChatStore] Failed to persist localPath', e);
             });
         },
@@ -370,7 +376,7 @@ export const useChatStore = defineStore('chat', {
             });
             this.sortChatList();
 
-            void chatService.saveMessage(message).catch((e) => {
+            void messageStorageService.saveMessage(message).catch((e) => {
                 console.error('[ChatStore] Failed to persist message', e);
             });
         },

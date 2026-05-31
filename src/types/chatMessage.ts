@@ -1,4 +1,4 @@
-import { MessageType, MessageStatus, AtInfo, GroupOperationType } from './im';
+import { MessageType, MessageStatus, AtInfo, GroupOperationType } from './proto';
 
 /**
  * 基础消息结构 (本地扁平化)
@@ -12,7 +12,6 @@ export interface ILocalMessageBase {
     sendTime: number;        // 发送时间
     seq: number;             // 消息序号
     status: MessageStatus;   // 消息状态
-
     // 客户端/本地 额外字段
     clientId?: string;       // 客户端ID
     ext?: Record<string, string>; // 扩展字段 (Map<string, string>)
@@ -41,8 +40,11 @@ export interface ILocalImageMessage extends ILocalMessageBase {
     thumbnailUrl?: string;
     width: number;
     height: number;
+    thumbnailWidth?: number;
+    thumbnailHeight?: number;
     size: number;
     format: string;
+    fileName?: string;
 }
 
 /**
@@ -57,6 +59,8 @@ export interface ILocalVideoMessage extends ILocalMessageBase {
     duration: number;
     width: number;
     height: number;
+    thumbnailWidth?: number;
+    thumbnailHeight?: number;
     size: number;
     format: string;
 }
@@ -84,6 +88,7 @@ export interface ILocalFileMessage extends ILocalMessageBase {
     uploadProgress?: number; // 上传进度 0-100，上传完成后 undefined
     fileName: string;
     size: number;
+    format?: string;
 }
 
 /**

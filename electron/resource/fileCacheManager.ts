@@ -3,9 +3,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import { nativeImage, net } from 'electron';
-import { storage } from '../utils/storage';
+
 import { tokenManager } from './tokenManager';
-import { config } from '../config';
+import { settingManager } from './settingManager';
+import { Main_Config as config, IMCACHE_SCHEME, IMLOCAL_SCHEME, IMLOCALRAW_SCHEME } from '../../src/config/constants';
 
 /**
  * 本地文件缓存管理器
@@ -19,9 +20,6 @@ import { config } from '../config';
  *   2. 否则触发后台下载，当次请求返回原 URL（兜底显示网络图片）
  */
 
-export const IMCACHE_SCHEME = 'imcache';
-export const IMLOCAL_SCHEME = 'imlocal';
-export const IMLOCALRAW_SCHEME = 'imlocalraw';
 
 class FileCacheManager {
     private cacheDir: string = '';
@@ -30,7 +28,7 @@ class FileCacheManager {
     private initialized = false;
 
     constructor() {
-        // Delay resolution of cacheDir until init() is called so storage is ready.
+        
     }
 
     public init(): void {
@@ -38,7 +36,7 @@ class FileCacheManager {
         this.initialized = true;
 
         // 使用用户配置的（或默认的）大文件资源统一存储路径
-        this.cacheDir = path.join(storage.getResourcePath(), 'media-cache');
+        this.cacheDir = path.join(settingManager.getStoragePath(), 'media-cache');
 
         if (!fs.existsSync(this.cacheDir)) {
             fs.mkdirSync(this.cacheDir, { recursive: true });
@@ -109,9 +107,10 @@ class FileCacheManager {
 
         const params = new URLSearchParams(queryString || '');
         const maxWidth = parseInt(params.get('width') ?? defaultMaxWidth.toString(), 10);
+        const maxHeight = params.get('height') ? parseInt(params.get('height')!, 10) : 0;
 
-        // 生成本地缓存路径
-        const cacheKey = `imlocal_${filePath}_${maxWidth}`;
+        // 生成本地缓存路径（含 width 和 height 以区分不同尺寸的缓存）
+        const cacheKey = `imlocal_${filePath}_${maxWidth}_${maxHeight}`;
         const cachePath = this.getLocalPath(cacheKey);
 
         // 如果已经裁剪并缓存过，直接返回缓存的文件路径
@@ -123,10 +122,19 @@ class FileCacheManager {
             const img = nativeImage.createFromPath(filePath);
             if (img.isEmpty()) return { status: 404 };
             const size = img.getSize();
-            // 等比缩放：只在原图宽度超出时才缩，避免放大模糊
-            const targetWidth = Math.min(maxWidth, size.width);
+
+            // 等比缩放：根据 width 和 height 约束计算目标宽度
+            let targetWidth = Math.min(maxWidth, size.width);
+            if (maxHeight > 0 && size.height > 0) {
+                // 如果高度也有约束，取宽高比例中较小的那个
+                const ratioW = maxWidth / size.width;
+                const ratioH = maxHeight / size.height;
+                const ratio = Math.min(ratioW, ratioH, 1); // 不放大
+                targetWidth = Math.round(size.width * ratio);
+            }
+
             const resized = img.resize({ width: targetWidth });
-            const buffer = resized.toJPEG(85);
+            const buffer = resized.toJPEG(config.FileCacheManagerConfig.quality);
 
             // 存入本地缓存
             fs.writeFileSync(cachePath, buffer);

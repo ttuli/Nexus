@@ -1,17 +1,10 @@
 import { ImTypes, IChatMessage, ILocalTextMessage, ILocalImageMessage, ILocalVideoMessage, ILocalAudioMessage, ILocalFileMessage, ILocalSystemMessage } from '@/types';
-import { config } from '@/config';
+import { APP_CONSTANTS, Renderer_Config as config, IMCACHE_SCHEME, IMLOCAL_SCHEME, IMLOCALRAW_SCHEME } from '@/config/constants';
 import { useUserStore } from '@/store/user';
 import { ulid } from 'ulid';
 import { fileService } from '@/services/fileService';
 import { settingService } from '@/services/settingService';
-import { chatService } from '@/services/chatService';
-
-/** imlocal:// 协议 Scheme，与主进程 fileCacheManager 中定义保持一致 */
-const IMLOCAL_SCHEME = 'imlocal';
-/** imlocalraw:// 协议 Scheme，原样返回本地图片不裁剪 */
-const IMLOCALRAW_SCHEME = 'imlocalraw';
-/** imcache:// 协议 Scheme，与主进程 fileCacheManager 中定义保持一致 */
-const IMCACHE_SCHEME = 'imcache';
+import { messageStorageService } from '@/services/messageStorageService';
 
 /**
  * 将本地文件绝对路径转换为 imlocalraw:// 协议地址（原样返回，不裁剪）
@@ -27,14 +20,20 @@ export function toLocalPreviewUrlRaw(filePath: string): string {
  * 将本地文件绝对路径转换为 imlocal:// 协议地址（渲染进程侧）
  * 主进程会拦截此协议，用 nativeImage 缩放后返回图片 buffer
  * @param filePath 本地文件绝对路径（Electron File.path 字段）
- * @param maxWidth 缩略图最大宽度，默认 400px
  */
-export function toLocalPreviewUrl(filePath: string, maxWidth = 400): string {
+export function toLocalPreviewUrl(filePath: string, width?: number, height?: number): string {
     // 使用 URL-safe Base64（浏览器原生 btoa 只支持 latin1，需转义 unicode）
     const encoded = btoa(encodeURIComponent(filePath).replace(/%([0-9A-F]{2})/g, (_, p1) =>
         String.fromCharCode(parseInt(p1, 16))
     )).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-    return `${IMLOCAL_SCHEME}://${encoded}?width=${maxWidth}`;
+
+    let url = `${IMLOCAL_SCHEME}://${encoded}`;
+    const params = new URLSearchParams();
+    if (width) params.append('width', width.toString());
+    if (height) params.append('height', height.toString());
+    const qs = params.toString();
+    if (qs) url += `?${qs}`;
+    return url;
 }
 
 /**
@@ -44,7 +43,7 @@ export function toLocalPreviewUrl(filePath: string, maxWidth = 400): string {
  * @param width 图片推荐的渲染宽度
  * @param height 图片推荐的渲染高度
  */
-export function toNetworkPreviewUrl(url: string, width?: number, height?: number): string {
+export function toNetworkPreviewUrl(url: string): string {
     if (!url) return '';
     // 如果已经是 imcache 协议了，就直接返回
     if (url.startsWith(`${IMCACHE_SCHEME}://`)) return url;
@@ -54,15 +53,7 @@ export function toNetworkPreviewUrl(url: string, width?: number, height?: number
         String.fromCharCode(parseInt(p1, 16))
     )).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 
-    let result = `${IMCACHE_SCHEME}://${encoded}`;
-    const params = new URLSearchParams();
-    if (width) params.append('width', width.toString());
-    if (height) params.append('height', height.toString());
-
-    const qs = params.toString();
-    if (qs) result += `?${qs}`;
-
-    return result;
+    return `${IMCACHE_SCHEME}://${encoded}`;
 }
 
 /**
@@ -299,8 +290,11 @@ export interface ImageContent {
     uploadProgress?: number;
     width?: number;
     height?: number;
+    thumbnailWidth?: number;
+    thumbnailHeight?: number;
     size?: number;
     format?: string;
+    fileName?: string;
 }
 
 export interface FileContent {
@@ -309,6 +303,7 @@ export interface FileContent {
     uploadProgress?: number;
     fileName?: string;
     size?: number;
+    format?: string;
 }
 
 export interface AudioContent {
@@ -388,6 +383,7 @@ function buildBase(type: ImTypes.MessageType, sessionId: string, existingClientI
         status: ImTypes.MessageStatus.MESSAGE_STATUS_SENDING,
         isRead: true,
         clientId,
+        preview: '',
         ext: undefined as undefined,
     };
 
@@ -413,44 +409,6 @@ export function buildTextWsMessage(
 }
 
 /**
- * 构建图片消息的 WS 包和占位本地消息
- * content.url 为空时表示占位消息（上传前），有值时表示结果消息（上传后）
- */
-export function buildImageWsMessage(
-    content: ImageContent,
-    sessionId: string,
-    existingClientId?: string
-): WsMessageResult<ILocalImageMessage> {
-    const isGroup = sessionId.startsWith('group_');
-    const type = isGroup ? ImTypes.MessageType.GROUP_IMAGE : ImTypes.MessageType.CHAT_IMAGE;
-    const { clientId, baseMsg, wsMsg, commonFields } = buildBase(type, sessionId, existingClientId);
-
-    wsMsg.payload = ImTypes.ImageMessage.encode({
-        base: baseMsg,
-        url: content.url,
-        thumbnail_url: content.thumbnailUrl || '',
-        width: content.width || 0,
-        height: content.height || 0,
-        size: content.size || 0,
-        format: content.format || ''
-    }).finish();
-
-    const localMsg: ILocalImageMessage = {
-        ...commonFields,
-        type,
-        url: content.url,
-        localPath: content.localPath,
-        thumbnailUrl: content.thumbnailUrl,
-        uploadProgress: content.uploadProgress,
-        width: content.width || 0,
-        height: content.height || 0,
-        size: content.size || 0,
-        format: content.format || ''
-    };
-    return { msg: wsMsg, clientId, localMsg };
-}
-
-/**
  * 仅构建图片占位本地消息（不含 WS payload），用于上传前立即塞入 store 显示预览
  */
 export function buildImageLocalMsg(
@@ -470,8 +428,11 @@ export function buildImageLocalMsg(
         uploadProgress: content.uploadProgress,
         width: content.width || 0,
         height: content.height || 0,
+        thumbnailWidth: content.thumbnailWidth || 0,
+        thumbnailHeight: content.thumbnailHeight || 0,
         size: content.size || 0,
-        format: content.format || ''
+        format: content.format || '',
+        fileName: content.fileName || ''
     };
     return { clientId, localMsg };
 }
@@ -495,33 +456,27 @@ export function buildImageWsPayload(
         thumbnail_url: localMsg.thumbnailUrl || '',
         width: localMsg.width || 0,
         height: localMsg.height || 0,
+        thumbnail_width: localMsg.thumbnailWidth || 0,
+        thumbnail_height: localMsg.thumbnailHeight || 0,
         size: localMsg.size || 0,
-        format: localMsg.format || ''
+        format: localMsg.format || '',
+        file_name: localMsg.fileName || ''
     }).finish();
 
     return wsMsg;
 }
 
+
 /**
- * 构建文件消息的 WS 包和占位本地消息
- * content.url 为空时表示占位消息（上传前），有值时表示结果消息（上传后）
+ * 仅构建文件占位本地消息（不含 WS payload），用于上传前立即塑入 store 显示占位
  */
-export function buildFileWsMessage(
+export function buildFileLocalMsg(
     content: FileContent,
-    sessionId: string,
-    existingClientId?: string
-): WsMessageResult<ILocalFileMessage> {
+    sessionId: string
+): { clientId: string; localMsg: ILocalFileMessage } {
     const isGroup = sessionId.startsWith('group_');
     const type = isGroup ? ImTypes.MessageType.GROUP_FILE : ImTypes.MessageType.CHAT_FILE;
-    const { clientId, baseMsg, wsMsg, commonFields } = buildBase(type, sessionId, existingClientId);
-
-    wsMsg.payload = ImTypes.FileMessage.encode({
-        base: baseMsg,
-        url: content.url,
-        file_name: content.fileName || '',
-        size: content.size || 0,
-        md5: ''
-    }).finish();
+    const { clientId, commonFields } = buildBase(type, sessionId);
 
     const localMsg: ILocalFileMessage = {
         ...commonFields,
@@ -531,8 +486,34 @@ export function buildFileWsMessage(
         uploadProgress: content.uploadProgress,
         fileName: content.fileName || '',
         size: content.size || 0,
+        format: content.format || '',
     };
-    return { msg: wsMsg, clientId, localMsg };
+    return { clientId, localMsg };
+}
+
+/**
+ * 根据已有的文件本地消息和最终 OSS URL 构建 WS 发送载荷
+ * 用于上传完成后发送 WebSocket 消息
+ */
+export function buildFileWsPayload(
+    localMsg: ILocalFileMessage,
+    ossUrl: string,
+    sessionId: string
+): ImTypes.WSMessage {
+    const isGroup = sessionId.startsWith('group_');
+    const type = isGroup ? ImTypes.MessageType.GROUP_FILE : ImTypes.MessageType.CHAT_FILE;
+    const { baseMsg, wsMsg } = buildBase(type, sessionId, localMsg.clientId);
+
+    wsMsg.payload = ImTypes.FileMessage.encode({
+        base: baseMsg,
+        url: ossUrl,
+        file_name: localMsg.fileName || '',
+        size: localMsg.size || 0,
+        format: localMsg.format || '',
+        md5: ''
+    }).finish();
+
+    return wsMsg;
 }
 
 
@@ -573,27 +554,15 @@ export function buildAudioWsMessage(
 }
 
 /**
- * 构建视频消息的 WS 包和占位本地消息
+ * 仅构建视频占位本地消息（不含 WS payload），用于上传前立即塞入 store 显示预览
  */
-export function buildVideoWsMessage(
+export function buildVideoLocalMsg(
     content: VideoContent,
-    sessionId: string,
-    existingClientId?: string
-): WsMessageResult<ILocalVideoMessage> {
+    sessionId: string
+): { clientId: string; localMsg: ILocalVideoMessage } {
     const isGroup = sessionId.startsWith('group_');
     const type = isGroup ? ImTypes.MessageType.GROUP_VIDEO : ImTypes.MessageType.CHAT_VIDEO;
-    const { clientId, baseMsg, wsMsg, commonFields } = buildBase(type, sessionId, existingClientId);
-
-    wsMsg.payload = ImTypes.VideoMessage.encode({
-        base: baseMsg,
-        url: content.url,
-        thumbnail_url: content.thumbnailUrl || '',
-        duration: content.duration || 0,
-        width: content.width || 0,
-        height: content.height || 0,
-        size: content.size || 0,
-        format: content.format || '',
-    }).finish();
+    const { clientId, commonFields } = buildBase(type, sessionId);
 
     const localMsg: ILocalVideoMessage = {
         ...commonFields,
@@ -608,7 +577,37 @@ export function buildVideoWsMessage(
         size: content.size || 0,
         format: content.format || '',
     };
-    return { msg: wsMsg, clientId, localMsg };
+    return { clientId, localMsg };
+}
+
+/**
+ * 根据已有的视频本地消息和最终 OSS URL 构建 WS 发送载荷
+ * 用于上传完成后发送 WebSocket 消息
+ */
+export function buildVideoWsPayload(
+    localMsg: ILocalVideoMessage,
+    ossUrl: string,
+    sessionId: string
+): ImTypes.WSMessage {
+    const isGroup = sessionId.startsWith('group_');
+    const type = isGroup ? ImTypes.MessageType.GROUP_VIDEO : ImTypes.MessageType.CHAT_VIDEO;
+    const { baseMsg, wsMsg } = buildBase(type, sessionId, localMsg.clientId);
+
+    wsMsg.payload = ImTypes.VideoMessage.encode({
+        base: baseMsg,
+        url: ossUrl,
+        thumbnail_url: '',
+        thumbnail_width: localMsg.thumbnailWidth || 0,
+        thumbnail_height: localMsg.thumbnailHeight || 0,
+        duration: localMsg.duration || 0,
+        width: localMsg.width || 0,
+        height: localMsg.height || 0,
+        size: localMsg.size || 0,
+        format: localMsg.format || '',
+        file_name: '',
+    }).finish();
+
+    return wsMsg;
 }
 
 export function buildVerifyWsMsg(type: ImTypes.MessageType, data:
@@ -748,7 +747,7 @@ export async function downloadMessageToLocal(
     const localPath = await fileService.downloadFile(url, fileName, onProgress);
 
     (message as any).localPath = localPath;
-    chatService.saveMessage(message as any);
+    messageStorageService.saveMessage(message as any);
 
     return localPath;
 }
@@ -756,50 +755,64 @@ export async function downloadMessageToLocal(
 /**
  * 提取视频第一帧作为 Base64 封面，并获取宽高和时长
  */
-export function extractVideoFrame(file: File): Promise<{ thumbnailUrl: string, width: number, height: number, duration: number }> {
-    return new Promise((resolve) => {
-        const video = document.createElement('video');
-        video.autoplay = true;
-        video.muted = true;
-        const url = URL.createObjectURL(file);
+export async function extractVideoFrame(file: File): Promise<{ thumbnailUrl: string, width: number, height: number, duration: number }> {
+    const video = document.createElement('video');
+    video.autoplay = true;
+    video.muted = true;
+    const url = URL.createObjectURL(file);
 
-        video.addEventListener('loadeddata', () => {
-            video.currentTime = Math.min(0.1, video.duration || 0);
-        }, { once: true });
+    try {
+        await new Promise<void>((resolve, reject) => {
+            video.addEventListener('loadeddata', () => {
+                if (video.duration <= 0.1) {
+                    resolve(); // 无需 seek，直接用当前帧
+                } else {
+                    video.currentTime = 0.1;
+                }
+            }, { once: true });
 
-        video.addEventListener('seeked', () => {
-            const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const ctx = canvas.getContext('2d');
-            ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const thumbnailUrl = canvas.toDataURL('image/jpeg', 0.8);
+            video.addEventListener('seeked', () => resolve(), { once: true });
+            video.addEventListener('error', () => reject(new Error('Video load error')), { once: true });
 
-            const videoWidth = video.videoWidth;
-            const videoHeight = video.videoHeight;
-            const duration = video.duration > 0 ? Math.floor(video.duration) : 0;
+            video.src = url;
+        });
 
-            // 必须在 revoke 之前切断底层 video 元素的引用，防止浏览器继续去下已被销毁的 blob 块报错
-            video.removeAttribute('src');
-            video.load();
-            URL.revokeObjectURL(url);
-            resolve({
-                thumbnailUrl,
-                width: videoWidth,
-                height: videoHeight,
-                duration
-            });
-        }, { once: true });
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        video.addEventListener('error', () => {
-            video.removeAttribute('src');
-            video.load();
-            URL.revokeObjectURL(url);
-            resolve({ thumbnailUrl: '', width: 0, height: 0, duration: 0 });
-        }, { once: true });
+        const savedLocalPath = await new Promise<string>((resolve, reject) => {
+            canvas.toBlob(async (blob) => {
+                if (!blob) {
+                    return reject(new Error('Failed to create blob from canvas'));
+                }
+                try {
+                    const arrayBuffer = await blob.arrayBuffer();
+                    const uint8Array = new Uint8Array(arrayBuffer);
+                    const localPath = await settingService.saveImageBuffer(uint8Array);
+                    resolve(localPath);
+                } catch (e) {
+                    reject(e);
+                }
+            }, 'image/jpeg', APP_CONSTANTS.imageCompressQuality / 100.0);
+        });
 
-        video.src = url;
-    });
+        return {
+            thumbnailUrl: savedLocalPath,
+            width: video.videoWidth,
+            height: video.videoHeight,
+            duration: video.duration > 0 ? Math.floor(video.duration) : 0
+        };
+    } catch {
+        return { thumbnailUrl: '', width: 0, height: 0, duration: 0 };
+    } finally {
+        // 必须在 revoke 之前切断底层 video 元素的引用，防止浏览器继续去下已被销毁的 blob 块报错
+        video.removeAttribute('src');
+        video.load();
+        URL.revokeObjectURL(url);
+    }
 }
 
 /**

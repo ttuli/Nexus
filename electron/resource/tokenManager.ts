@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { storage, StorageKeys } from '../utils/storage';
 import { RefreshTokenPayload, TokenPayload, ResourceType, ImTypes, ApiTypes } from '../../src/types';
 import { cacheManager } from './cacheManager';
-import { config } from '../config';
+import { APP_CONSTANTS as config } from '../../src/config/constants';
 
 /**
  * Token 管理器

@@ -46,14 +46,13 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { ILocalVideoMessage } from '@/types/chatMessage';
-import { config } from '@/config';
+import { APP_CONSTANTS as config } from '@/config/constants';
 import { ImTypes } from '@/types';
 import { fileService } from '@/services/fileService';
 import { openVideoViewer } from '@/utils/window';
 import { ElMessage } from 'element-plus';
-import { chatService } from '@/services';
-import { downloadMessageToLocal, toLocalPreviewUrlRaw, toNetworkPreviewUrl } from '@/utils/chat';
-import { ms } from 'element-plus/es/locale/index.mjs';
+import { messageStorageService } from '@/services/messageStorageService';
+import { downloadMessageToLocal, toNetworkPreviewUrl } from '@/utils/chat';
 
 interface Props {
     message: ILocalVideoMessage;
@@ -95,7 +94,7 @@ watch(() => props.message, async (msg) => {
                     if (thumbUrl) {
                         msg.thumbnailUrl = toNetworkPreviewUrl(thumbUrl);
                         displayThumb.value = msg.thumbnailUrl;
-                        chatService.saveMessage(msg);
+                        messageStorageService.saveMessage(msg);
                     }
                 }
             } else {
@@ -122,14 +121,11 @@ const wrapperStyle = computed(() => {
 
     if (width > 0 && height > 0) {
         // 限制最大宽高，保持比例（复用图片的最大尺寸配置）
-        if (width > config.message.image.max_width || height > config.message.image.max_height) {
-            const ratio = Math.min(config.message.image.max_width / width, config.message.image.max_height / height);
+        if (width > config.maxImageWidth || height > config.maxImageHeight) {
+            const ratio = Math.min(config.maxImageWidth / width, config.maxImageHeight / height);
             width = width * ratio;
             height = height * ratio;
         }
-        // 限制最小宽高
-        width = Math.max(width, config.message.image.min_size);
-        height = Math.max(height, config.message.image.min_size);
 
         return {
             width: `${width}px`,

@@ -9,14 +9,6 @@ enum TargetType {
   GROUP = 1;
 }
 
-// WebSocket connection state
-enum ConnectionState {
-  DISCONNECTED = 0;
-  CONNECTING = 1;
-  CONNECTED = 2;
-  RECONNECTING = 3;
-}
-
 // 消息类型枚举
 enum MessageType {
   UNKNOWN = 0;

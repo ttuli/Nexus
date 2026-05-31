@@ -1,7 +1,7 @@
 import { getUploadSignature, getAcessUrl } from '@/apis/file'
 import { ApiTypes } from '@/types'
 import { computeFileMd5 } from '@/utils/md5'
-import { config } from '@/config'
+import { APP_CONSTANTS as config } from '@/config/constants'
 import { ipcService } from './ipcService';
 import { IpcChannels } from '@/types/ipc';
 
@@ -40,6 +40,7 @@ class FileService {
                 if (accessUrlResp.data?.access_url) {
                     const checkRes = await fetch(accessUrlResp.data.access_url, { method: 'HEAD' });
                     // 如果返回 200，说明文件已存在
+                    console.log(checkRes)
                     if (checkRes.status === 200) {
                         if (onProgress) {
                             onProgress(100);
@@ -62,6 +63,7 @@ class FileService {
             formData.append("x-oss-security-token", response.data.security_token);
             formData.append("callback", response.data.callback);
             formData.append("file", file);
+            console.log(response.data.callback)
 
             return new Promise<string>((resolve, reject) => {
                 const xhr = new XMLHttpRequest();
@@ -83,14 +85,17 @@ class FileService {
                 }
 
                 xhr.onload = () => {
-                    if (xhr.status >= 200 && xhr.status < 300) {
+                    if (xhr.status === 200) {
                         resolve(response.data.host + '/' + key);
                     } else {
+                        console.log(xhr.responseText)
                         reject(new Error(`Upload failed with status: ${xhr.status}`));
                     }
                 };
 
-                xhr.onerror = () => reject(new Error('Upload failed network error'));
+                xhr.onerror = (ev) => reject(
+                    new Error('Upload failed network error' + JSON.stringify(ev))
+                );
 
                 xhr.send(formData);
             });
@@ -146,13 +151,11 @@ class FileService {
         let targetW = width || 0;
         let targetH = height || 0;
         if (targetW > 0 && targetH > 0) {
-            if (targetW > config.message.image.max_width || targetH > config.message.image.max_height) {
-                const ratio = Math.min(config.message.image.max_width / targetW, config.message.image.max_height / targetH);
+            if (targetW > config.maxImageWidth || targetH > config.maxImageHeight) {
+                const ratio = Math.min(config.maxImageWidth / targetW, config.maxImageHeight / targetH);
                 targetW = Math.round(targetW * ratio);
                 targetH = Math.round(targetH * ratio);
             }
-            targetW = Math.max(targetW, config.message.image.min_size);
-            targetH = Math.max(targetH, config.message.image.min_size);
         }
 
         let ossProcess = '';

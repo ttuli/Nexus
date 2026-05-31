@@ -1,6 +1,6 @@
 import instance, { decodeResponse, ApiResponse } from '@/utils/request'
 import { ApiTypes } from '@/types'
-import { config } from '@/config';
+import { APP_CONSTANTS as config } from '@/config/constants';
 
 export async function getUploadSignature(data: ApiTypes.file.GetPostSignatureReq) {
   // GetPostSignatureReq has `key: string`, `content_md5: string`, etc.

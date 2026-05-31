@@ -3,23 +3,24 @@
         <!-- eslint-disable-next-line vue/valid-v-else-if -->
         <div class="image-wrapper" :style="wrapperStyle" @click="handleClick">
             <!-- 图片主体 -->
-            <img v-if="displayUrl" :src="displayUrl" class="image-content" @error="handleImageError" alt="图片消息" />
+            <img v-if="displayUrl" :src="displayUrl" class="image-content" @error="handleImageError"
+                alt="图片消息" @load="imageLoaded = true" />
 
-            <!-- 上传进度蒙层（仅对自己发送且处于上传状态的消息显示） -->
+            <!-- 上传进度蒙层（复用于自己发送的上传和对方发送的下载） -->
             <transition name="fade-reveal">
                 <div class="upload-mask" :class="{ 'is-finishing': isFinishing }" v-show="!isFinishing">
                     <div class="custom-progress">
-                        <svg class="progress-ring" width="44" height="44">
+                        <svg class="progress-ring" :class="{ 'is-spinning': !isSelf }" width="44" height="44">
                             <!-- 背景环 -->
                             <circle class="ring-bg" stroke="rgba(255,255,255,0.3)" stroke-width="3" fill="transparent"
                                 r="18" cx="22" cy="22" />
                             <!-- 进度环 -->
                             <circle class="ring-progress" stroke="#fff" stroke-width="3" fill="transparent"
                                 :stroke-dasharray="113"
-                                :stroke-dashoffset="113 - ((props.message.uploadProgress || 0) / 100) * 113"
+                                :stroke-dashoffset="isSelf ? (113 - ((props.message.uploadProgress || 0) / 100) * 113) : 85"
                                 stroke-linecap="round" r="18" cx="22" cy="22" />
                         </svg>
-                        <span class="progress-text">{{ props.message.uploadProgress || 0 }}%</span>
+                        <span class="progress-text" v-if="isSelf">{{ props.message.uploadProgress || 0 }}%</span>
                     </div>
                 </div>
             </transition>
@@ -30,13 +31,14 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { ILocalImageMessage } from '@/types/chatMessage';
-import { config } from '@/config';
-import { toLocalPreviewUrlRaw, toNetworkPreviewUrl } from '@/utils/chat';
+import { APP_CONSTANTS as config } from '@/config/constants';
+import { toLocalPreviewUrl, toNetworkPreviewUrl, toLocalPreviewUrlRaw } from '@/utils/chat';
 import { ImTypes } from '@/types';
 import { fileService } from '@/services/fileService';
-import { chatService } from '@/services/chatService';
+import { messageStorageService } from '@/services/messageStorageService';
 import { openPhotoViewer } from '@/utils/window';
 import { ElMessage } from 'element-plus';
+import { useUserStore } from '@/store/user';
 
 interface Props {
     message: ILocalImageMessage;
@@ -44,30 +46,40 @@ interface Props {
 
 const props = defineProps<Props>();
 
+const userStore = useUserStore();
+const isSelf = computed(() => props.message.fromUserId === userStore.userID);
+
 const isError = ref(false);
 const isLoading = ref(false);
 const errorRetryCount = ref(0);
+const imageLoaded = ref(false);
 
 // 控制遮罩显示及动画退场的状态
 const isFinishing = computed(() => {
-    return props.message.uploadProgress === 100 || props.message.status !== ImTypes.MessageStatus.MESSAGE_STATUS_SENDING;
+    if (isSelf.value) {
+        return props.message.uploadProgress === 100 || props.message.status !== ImTypes.MessageStatus.MESSAGE_STATUS_SENDING;
+    } else {
+        return imageLoaded.value;
+    }
 })
 
 // 实际渲染的 URL，响应式
-const displayUrl = ref('');
+const displayUrl = ref(props.message.thumbnailUrl || '');
 
 // 获取缩略图签名 URL 并缓存
 async function fetchThumbnail(msg: ILocalImageMessage) {
     if (isLoading.value) return;
     isLoading.value = true;
     try {
-        const thumbUrl = await fileService.getImageThumbnailUrl(msg.url, msg.width, msg.height);
+        const targetW = msg.thumbnailWidth || msg.width;
+        const targetH = msg.thumbnailHeight || msg.height;
+        const thumbUrl = await fileService.getImageThumbnailUrl(msg.url, targetW, targetH);
         if (thumbUrl) {
             // 用 imcache 协议包裹，触发主进程磁盘缓存
-            msg.thumbnailUrl = toNetworkPreviewUrl(thumbUrl, msg.width, msg.height);
+            msg.thumbnailUrl = toNetworkPreviewUrl(thumbUrl);
             displayUrl.value = msg.thumbnailUrl;
             // 持久化到本地数据库
-            chatService.saveMessage(msg);
+            messageStorageService.saveMessage(msg);
         }
     } catch (e) {
         console.error('[ImageBubble] Failed to get thumbnail url:', e);
@@ -78,13 +90,12 @@ async function fetchThumbnail(msg: ILocalImageMessage) {
 
 // 监听消息变化，决定 displayUrl 来源
 watch(() => props.message, (msg) => {
-    console.log(msg)
     if (msg.thumbnailUrl && msg.thumbnailUrl !== '') {
         displayUrl.value = msg.thumbnailUrl;
         return;
     }
     if (msg.localPath && msg.localPath !== '') {
-        displayUrl.value = toLocalPreviewUrlRaw(msg.localPath);
+        displayUrl.value = toLocalPreviewUrl(msg.localPath, msg.thumbnailWidth, msg.thumbnailHeight);
         return;
     }
     // 没有本地路径也没有缩略图 URL，异步获取
@@ -93,21 +104,25 @@ watch(() => props.message, (msg) => {
     }
 }, { immediate: true });
 
-// 如果后端或者本地已经有了宽高，直接在图片还没加载时撑开占位符，避免气泡闪烁
 const wrapperStyle = computed(() => {
+    // 优先使用明确提供的缩略图尺寸
+    if (props.message.thumbnailWidth && props.message.thumbnailHeight && props.message.thumbnailWidth > 0 && props.message.thumbnailHeight > 0) {
+        return {
+            width: `${props.message.thumbnailWidth}px`,
+            height: `${props.message.thumbnailHeight}px`
+        };
+    }
+
     let width = props.message.width || 0;
     let height = props.message.height || 0;
 
     if (width > 0 && height > 0) {
         // 限制最大宽高，保持比例
-        if (width > config.message.image.max_width || height > config.message.image.max_height) {
-            const ratio = Math.min(config.message.image.max_width / width, config.message.image.max_height / height);
+        if (width > config.maxImageWidth || height > config.maxImageHeight) {
+            const ratio = Math.min(config.maxImageWidth / width, config.maxImageHeight / height);
             width = width * ratio;
             height = height * ratio;
         }
-        // 限制最小宽高
-        width = Math.max(width, config.message.image.min_size);
-        height = Math.max(height, config.message.image.min_size);
 
         return {
             width: `${width}px`,
@@ -224,6 +239,14 @@ const handleClick = async () => {
 
                 .progress-ring {
                     transform: rotate(-90deg); // 从顶部开始
+                    
+                    &.is-spinning {
+                        animation: spin 1s linear infinite;
+                    }
+                    @keyframes spin {
+                        from { transform: rotate(-90deg); }
+                        to { transform: rotate(270deg); }
+                    }
 
                     circle {
                         transition: stroke-dashoffset 0.2s linear;

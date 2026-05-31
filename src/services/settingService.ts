@@ -28,6 +28,21 @@ class SettingService {
         const res = await ipcService.invoke(IpcChannels.SYSTEM_SHOW_IN_FOLDER, localPath);
         return res?.success === true;
     }
+
+
+    /**
+     * 将二进制图片数据(Uint8Array)保存为本地文件
+     * @param buffer 图片的二进制数据
+     * @param fileName 可选的文件名
+     * @returns 保存的本地绝对路径
+     */
+    async saveImageBuffer(buffer: Uint8Array, fileName?: string): Promise<string> {
+        const res = await ipcService.invoke<string>(IpcChannels.SYSTEM_SAVE_IMAGE_BUFFER, { buffer, fileName });
+        if (res?.success && res.data) {
+            return res.data;
+        }
+        throw new Error(`[SettingService] 保存二进制图片失败: ${res?.error ?? 'unknown'}`);
+    }
 }
 
 export const settingService = new SettingService();

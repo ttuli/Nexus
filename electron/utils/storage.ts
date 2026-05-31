@@ -130,26 +130,6 @@ class Storage {
     }
 
     /**
-     * 获取大文件/媒体资源的存储根目录
-     * 如果用户自定义了路径且有效，则使用自定义路径；否则返回默认的 appData 下的子目录
-     */
-    public getResourcePath(): string {
-        this.ensureInitialized();
-        const customPath = this.get<string>(StorageKeys.CUSTOM_RESOURCE_PATH);
-        if (customPath && fs.existsSync(customPath)) {
-            try {
-                // 测试是否可写
-                fs.accessSync(customPath, fs.constants.R_OK | fs.constants.W_OK);
-                return customPath;
-            } catch (err) {
-                console.error('[Storage] Custom resource path has no read/write access, falling back to default:', err);
-            }
-        }
-        // 回退默认路径：用户数据目录下
-        return path.join(this.storageDir, 'IMChatResources');
-    }
-
-    /**
      * 确保已初始化
      */
     private ensureInitialized(): void {

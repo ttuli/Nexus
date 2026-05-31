@@ -226,6 +226,7 @@ defineExpose({
             cursor: pointer;
             opacity: 0.7;
             transition: opacity 0.2s, transform 0.2s;
+            -webkit-user-drag: none;
 
             &:hover {
                 opacity: 1;

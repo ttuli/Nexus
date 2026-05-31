@@ -77,6 +77,7 @@ export const IpcChannels = {
     WS_STATE_CHANGE: 'ws:state-change',
     WS_MESSAGE: 'ws:message',
     WS_MESSAGE_ACK: 'ws:message-ack',
+    WS_MESSAGE_PERSIST_ACK: 'ws:message-persist-ack',
     WS_NOTIFICATION: 'ws:notification',
 
     // 窗口相关
@@ -111,6 +112,7 @@ export const IpcChannels = {
     SYSTEM_SHOW_IN_FOLDER: 'system:show-in-folder',
     SYSTEM_FILE_EXISTS: 'system:file-exists',
     SYSTEM_DOWNLOAD_FILE: 'system:download-file',
+    SYSTEM_SAVE_IMAGE_BUFFER: 'system:save-image-buffer',
 } as const
 
 export type IpcChannel = typeof IpcChannels[keyof typeof IpcChannels]

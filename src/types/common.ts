@@ -29,3 +29,12 @@ export enum ValidationType {
   Friend = 1,
   Group = 2,
 }
+
+// WebSocket connection state
+export enum ConnectionState {
+  UNRECOGNIZED = 0,
+  DISCONNECTED = 1,
+  CONNECTING = 2,
+  CONNECTED = 3,
+  RECONNECTING = 4,
+}

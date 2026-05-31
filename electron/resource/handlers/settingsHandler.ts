@@ -12,6 +12,16 @@ export function setupSettingsHandlers(): void {
         }
     });
 
+    // 保存二进制图片到本地缓存
+    ipcMain.handle(IpcChannels.SYSTEM_SAVE_IMAGE_BUFFER, (_event, { buffer, fileName }: { buffer: Uint8Array, fileName?: string }) => {
+        try {
+            return { success: true, data: settingManager.saveImageBuffer(buffer, fileName) };
+        } catch (error: any) {
+            console.error('[SettingsHandler] Save image buffer error:', error);
+            return { success: false, error: error.message };
+        }
+    });
+
     // 选择并设置新的存储路径
     ipcMain.handle(IpcChannels.SETTINGS_SELECT_STORAGE_PATH, async (event) => {
         try {

@@ -36,7 +36,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { ImTypes } from '@/types';
-import { config } from '@/config';
+import { APP_CONSTANTS as config } from '@/config/constants';
 import { useUserStore } from '@/store/user';
 
 const userStore = useUserStore();
