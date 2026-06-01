@@ -10,6 +10,7 @@ import { ImTypes, LogoutType, IpcChannels, ConnectionState } from '../../src/typ
 import { windowManager } from '../windows/windowManager';
 import { Main_Config as config } from '../../src/config/constants';
 import { defaultSerializer } from './serializer/protoSerializer';
+import { storage,StorageKeys } from '../utils/storage';
 
 /**
  * WebSocket Manager Configuration
@@ -96,8 +97,16 @@ export class WebSocketManager extends EventEmitter {
             // Get auth token
             const token = tokenManager.getToken();
 
+            // Parse URL and add parameters
+            const wsUrl = new URL(this.config.url);
+            const machineUid = storage.get(StorageKeys.MACHINE_UID);
+            if (machineUid) wsUrl.searchParams.append('machineUid', machineUid as string);
+            
+            const removeRT = !tokenManager.getStoreRefreshToken();
+            wsUrl.searchParams.append('removeRT', removeRT.toString());
+
             // Connect with auth header
-            this.ws = new WebSocket(this.config.url, {
+            this.ws = new WebSocket(wsUrl.toString(), {
                 headers: {
                     'Authorization': token ? `Bearer ${token}` : '',
                 },
