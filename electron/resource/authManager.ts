@@ -86,23 +86,6 @@ class AuthManager {
             return { success: false, error: error.message || 'Login failed' };
         }
     }
-
-    /**
-     * 调用退出登录 API
-     */
-    public async callLogoutApi(): Promise<void> {
-        if (!tokenManager.getToken()) return;
-
-        try {
-            const logoutReqData = ApiTypes.auth.LogoutReq.encode({
-                remove_rt: !tokenManager.getStoreRefreshToken(),
-                device_id: this.deviceId,
-            }).finish()
-            await mainPost(`${config.authServer}/auth/logout`, logoutReqData);
-        } catch (error) {
-            console.error('[AuthManager] Logout request error:', error);
-        }
-    }
 }
 
 export const authManager = new AuthManager();

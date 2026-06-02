@@ -40,9 +40,6 @@ class ResourceManager {
         cacheManager.clearCache();
     }
 
-    public async callLogoutApi(): Promise<void> {
-        return authManager.callLogoutApi();
-    }
 
     public getCurrentUserID(): number {
         return tokenManager.getCurrentUserID();

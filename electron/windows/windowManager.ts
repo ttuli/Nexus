@@ -436,9 +436,6 @@ class WindowManager {
    */
   public closeAllWindows(needLogout: boolean = true): Promise<void> {
 
-    // 先调用退出登录 API（此时 token 还存在）
-    const logoutPromise = needLogout ? resourceManager.callLogoutApi() : Promise.resolve();
-
     // 收集需要关闭的窗口
     const windowsToClose: ManagedWindow[] = [];
     this.windows.forEach((managed) => {
@@ -493,7 +490,7 @@ class WindowManager {
         resolve();
       }, 10000);
 
-      Promise.all([...closePromises, logoutPromise]).then(() => {
+      Promise.all([...closePromises]).then(() => {
         clearTimeout(timeout);
         resourceManager.cleanout();
         this.windows.clear();
