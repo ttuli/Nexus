@@ -67,7 +67,7 @@ class AuthManager {
                 account: Number(account),
                 password,
                 device_id: this.deviceId,
-                platform: this.platform,
+                remeber_me: remember,
             }).finish()
             const res = await mainPost<ApiTypes.auth.LoginResp>(`${config.authServer}/auth/login`, loginReqData, { skipAuth: true });
             if (res.code === 200) {

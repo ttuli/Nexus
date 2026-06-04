@@ -17,8 +17,8 @@ export interface LoginReq {
   password: string;
   /** @gotags: json:"device_id" */
   device_id: string;
-  /** @gotags: json:"platform" */
-  platform: string;
+  /** @gotags: json:"remeber_me" */
+  remeber_me: boolean;
 }
 
 /** LoginResp */
@@ -84,7 +84,7 @@ export interface RefreshResp {
 }
 
 function createBaseLoginReq(): LoginReq {
-  return { account: 0, password: "", device_id: "", platform: "" };
+  return { account: 0, password: "", device_id: "", remeber_me: false };
 }
 
 export const LoginReq: MessageFns<LoginReq> = {
@@ -98,8 +98,8 @@ export const LoginReq: MessageFns<LoginReq> = {
     if (message.device_id !== "") {
       writer.uint32(26).string(message.device_id);
     }
-    if (message.platform !== "") {
-      writer.uint32(34).string(message.platform);
+    if (message.remeber_me !== false) {
+      writer.uint32(32).bool(message.remeber_me);
     }
     return writer;
   },
@@ -136,11 +136,11 @@ export const LoginReq: MessageFns<LoginReq> = {
           continue;
         }
         case 4: {
-          if (tag !== 34) {
+          if (tag !== 32) {
             break;
           }
 
-          message.platform = reader.string();
+          message.remeber_me = reader.bool();
           continue;
         }
       }
@@ -161,7 +161,11 @@ export const LoginReq: MessageFns<LoginReq> = {
         : isSet(object.device_id)
         ? globalThis.String(object.device_id)
         : "",
-      platform: isSet(object.platform) ? globalThis.String(object.platform) : "",
+      remeber_me: isSet(object.remeberMe)
+        ? globalThis.Boolean(object.remeberMe)
+        : isSet(object.remeber_me)
+        ? globalThis.Boolean(object.remeber_me)
+        : false,
     };
   },
 
@@ -176,8 +180,8 @@ export const LoginReq: MessageFns<LoginReq> = {
     if (message.device_id !== "") {
       obj.deviceId = message.device_id;
     }
-    if (message.platform !== "") {
-      obj.platform = message.platform;
+    if (message.remeber_me !== false) {
+      obj.remeberMe = message.remeber_me;
     }
     return obj;
   },
@@ -190,7 +194,7 @@ export const LoginReq: MessageFns<LoginReq> = {
     message.account = object.account ?? 0;
     message.password = object.password ?? "";
     message.device_id = object.device_id ?? "";
-    message.platform = object.platform ?? "";
+    message.remeber_me = object.remeber_me ?? false;
     return message;
   },
 };
