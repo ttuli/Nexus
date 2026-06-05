@@ -46,7 +46,7 @@ function parseResponseData(response: import('axios').AxiosResponse): any {
   const contentType = response.headers['content-type'] || ''
   const data = response.data
 
-  if (contentType.includes('application/x-protobuf')) {
+  if (contentType.toString().includes('application/x-protobuf')) {
     try {
       const apiResp = ImTypes.ApiResponse.decode(new Uint8Array(data))
       return {
@@ -84,9 +84,11 @@ instance.interceptors.response.use(
     // 如果 error.response.data 是 ArrayBuffer，先解析
     if (error.response && (error.response.data instanceof ArrayBuffer || error.response.data instanceof Uint8Array)) {
       const contentType = error.response.headers?.['content-type'] || ''
-      if (contentType.includes('application/x-protobuf')) {
+      if (contentType.toString().includes('application/x-protobuf')) {
         try {
           const apiResp = ImTypes.ApiResponse.decode(new Uint8Array(error.response.data as ArrayBuffer))
+
+          // 拆分更方便查看
           error.response.data = {
             code: apiResp.code,
             message: apiResp.message,
