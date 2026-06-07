@@ -51,9 +51,10 @@ const scale = ref(1);
 const rotation = ref(0);
 const position = ref({ x: 0, y: 0 });
 const isDragging = ref(false);
+const isWheeling = ref(false);
 const lastMousePos = ref({ x: 0, y: 0 });
 // true during wheel/drag: suppresses CSS transition to avoid tile-memory exhaustion
-const isContinuous = ref(false);
+const isContinuous = computed(() => isDragging.value || isWheeling.value);
 
 // Refs
 const containerRef = ref<HTMLElement | null>(null);
@@ -69,7 +70,7 @@ const currentTitle = computed(() => {
 });
 
 const imageStyle = computed(() => ({
-    transform: `translate(${position.value.x}px, ${position.value.y}px) scale(${scale.value}) rotate(${rotation.value}deg)`,
+    transform: `translate3d(${position.value.x}px, ${position.value.y}px, 0) scale(${scale.value}) rotate(${rotation.value}deg)`,
     cursor: isDragging.value ? 'grabbing' : (scale.value > 1 ? 'grab' : 'default'),
     // Suppress transition during wheel/drag to avoid Chromium tile-memory exhaustion
     transition: isContinuous.value ? 'none' : 'transform 0.15s ease-out'
@@ -156,7 +157,7 @@ const handleWheel = (e: WheelEvent) => {
     pendingDelta += e.deltaY;
     if (rafPending) return;
     rafPending = true;
-    isContinuous.value = true;
+    isWheeling.value = true;
 
     requestAnimationFrame(() => {
         const zoomFactor = -0.001 * pendingDelta;
@@ -167,7 +168,7 @@ const handleWheel = (e: WheelEvent) => {
         checkBoundary();
         // Re-enable transition after wheel stops (300ms idle)
         clearTimeout(wheelEndTimer);
-        wheelEndTimer = setTimeout(() => { isContinuous.value = false; }, 300);
+        wheelEndTimer = setTimeout(() => { isWheeling.value = false; }, 300);
     });
 };
 let wheelEndTimer: ReturnType<typeof setTimeout>;
@@ -208,7 +209,6 @@ const handleMouseDown = (e: MouseEvent) => {
     if (e.button !== 0) return;
 
     isDragging.value = true;
-    isContinuous.value = true;
     lastMousePos.value = { x: e.clientX, y: e.clientY };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -231,7 +231,6 @@ const handleMouseMove = (e: MouseEvent) => {
 
 const handleMouseUp = () => {
     isDragging.value = false;
-    isContinuous.value = false;
     window.removeEventListener('mousemove', handleMouseMove);
     window.removeEventListener('mouseup', handleMouseUp);
 };

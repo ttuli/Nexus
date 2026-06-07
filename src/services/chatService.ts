@@ -82,10 +82,15 @@ class ChatService {
                 type,
                 url: message.media_url || message.content || '',
                 thumbnailUrl: typeof extra.thumbnail_url === 'string' ? extra.thumbnail_url : undefined,
-                width: this.normalizeNumber(extra.width),
-                height: this.normalizeNumber(extra.height),
-                size: this.normalizeNumber(extra.size),
-                format: typeof extra.format === 'string' ? extra.format : '',
+                width: this.normalizeNumber(extra.MESSAGE_EXTRA_KEY_WIDTH || extra.width),
+                height: this.normalizeNumber(extra.MESSAGE_EXTRA_KEY_HEIGHT || extra.height),
+                thumbnailWidth: this.normalizeNumber(extra.MESSAGE_EXTRA_KEY_THUMB_WIDE || extra.thumbnailWidth),
+                thumbnailHeight: this.normalizeNumber(extra.MESSAGE_EXTRA_KEY_THUMB_HEIGHT || extra.thumbnailHeight),
+                size: this.normalizeNumber(extra.MESSAGE_EXTRA_KEY_SIZE || extra.size),
+                format: typeof extra.MESSAGE_EXTRA_KEY_FORMAT === 'string' 
+                    ? extra.MESSAGE_EXTRA_KEY_FORMAT 
+                    : typeof extra.format === 'string' ? extra.format : '',
+                fileName: typeof extra.MESSAGE_EXTRA_KEY_NAME === 'string' ? extra.MESSAGE_EXTRA_KEY_NAME : undefined,
             };
         }
 
@@ -95,11 +100,16 @@ class ChatService {
                 type,
                 url: message.media_url || message.content || '',
                 thumbnailUrl: typeof extra.thumbnail_url === 'string' ? extra.thumbnail_url : undefined,
-                duration: this.normalizeNumber(extra.duration),
-                width: this.normalizeNumber(extra.width),
-                height: this.normalizeNumber(extra.height),
-                size: this.normalizeNumber(extra.size),
-                format: typeof extra.format === 'string' ? extra.format : '',
+                duration: this.normalizeNumber(extra.MESSAGE_EXTRA_KEY_DURATION || extra.duration),
+                width: this.normalizeNumber(extra.MESSAGE_EXTRA_KEY_WIDTH || extra.width),
+                height: this.normalizeNumber(extra.MESSAGE_EXTRA_KEY_HEIGHT || extra.height),
+                thumbnailWidth: this.normalizeNumber(extra.MESSAGE_EXTRA_KEY_THUMB_WIDE || extra.thumbnailWidth),
+                thumbnailHeight: this.normalizeNumber(extra.MESSAGE_EXTRA_KEY_THUMB_HEIGHT || extra.thumbnailHeight),
+                size: this.normalizeNumber(extra.MESSAGE_EXTRA_KEY_SIZE || extra.size),
+                format: typeof extra.MESSAGE_EXTRA_KEY_FORMAT === 'string' 
+                    ? extra.MESSAGE_EXTRA_KEY_FORMAT 
+                    : typeof extra.format === 'string' ? extra.format : '',
+                fileName: typeof extra.MESSAGE_EXTRA_KEY_NAME === 'string' ? extra.MESSAGE_EXTRA_KEY_NAME : '',
             };
         }
 
@@ -108,12 +118,17 @@ class ChatService {
                 ...common,
                 type,
                 url: message.media_url || '',
-                fileName: typeof extra.file_name === 'string'
-                    ? extra.file_name
-                    : typeof extra.fileName === 'string'
-                        ? extra.fileName
-                        : message.content || '',
-                size: this.normalizeNumber(extra.size),
+                fileName: typeof extra.MESSAGE_EXTRA_KEY_NAME === 'string'
+                    ? extra.MESSAGE_EXTRA_KEY_NAME
+                    : typeof extra.file_name === 'string'
+                        ? extra.file_name
+                        : typeof extra.fileName === 'string'
+                            ? extra.fileName
+                            : message.content || '',
+                size: this.normalizeNumber(extra.MESSAGE_EXTRA_KEY_SIZE || extra.size),
+                format: typeof extra.MESSAGE_EXTRA_KEY_FORMAT === 'string' 
+                    ? extra.MESSAGE_EXTRA_KEY_FORMAT 
+                    : typeof extra.format === 'string' ? extra.format : '',
             };
         }
 

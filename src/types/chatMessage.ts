@@ -63,6 +63,7 @@ export interface ILocalVideoMessage extends ILocalMessageBase {
     thumbnailHeight?: number;
     size: number;
     format: string;
+    fileName: string;
 }
 
 /**

@@ -121,6 +121,7 @@ onMounted(async () => {
         router.push(path);
     });
     await import('@/views/home/contact/components/ContactSidebar.vue')
+    await import('@/components/BlankPage.vue')
 
     chatStore.loadFromStorage(userStore.getUserID());
     websocketService.connect()

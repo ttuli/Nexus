@@ -197,11 +197,12 @@ class FileCacheManager {
      *   - YYYY_MM     : 当前年月，如 2026_06
      */
     public getLocalPath(url: string): string {
-        const hash = crypto.createHash('sha256').update(url).digest('hex');
+        let baseUrl = url.split('?')[0];
+        const hash = crypto.createHash('sha256').update(baseUrl).digest('hex');
 
         let ext = '';
         try {
-            const pathname = new URL(url).pathname;
+            const pathname = new URL(baseUrl).pathname;
             ext = path.extname(pathname) || '.bin';
         } catch {
             ext = '.bin';

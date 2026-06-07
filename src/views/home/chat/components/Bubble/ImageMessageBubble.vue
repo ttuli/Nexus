@@ -152,14 +152,18 @@ const handleImageError = async () => {
 const handleClick = async () => {
     if (isError.value || !isFinishing.value) return;
 
+    const initialSize = props.message.width && props.message.height 
+        ? { width: props.message.width, height: props.message.height } 
+        : undefined;
+
     try {
         if (props.message.localPath && await fileService.checkLocalFileExists(props.message.localPath)) {
-            await openPhotoViewer([toLocalPreviewUrlRaw(props.message.localPath)], 0);
+            await openPhotoViewer([toLocalPreviewUrlRaw(props.message.localPath)], 0, initialSize);
             return;
         }
         const fullUrl = await fileService.getImageUrl(props.message.url);
         if (fullUrl !== '') {
-            await openPhotoViewer([fullUrl], 0);
+            await openPhotoViewer([fullUrl], 0, initialSize);
         } else {
             ElMessage.error('图片已过期或被清理')
         }

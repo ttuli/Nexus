@@ -1,6 +1,7 @@
 import { net, ClientRequest } from 'electron';
 import { tokenManager } from './tokenManager';
-import { ImTypes } from '../../src/types';
+import { ImTypes, IpcChannels, LogoutType } from '../../src/types';
+import { windowManager } from '../windows/windowManager';
 
 /**
  * 主进程 HTTP 请求配置
@@ -195,7 +196,7 @@ export async function mainRequest<T = any>(options: MainRequestOptions): Promise
         const response = await executeRequest<T>(options, token);
 
         // 检查是否需要刷新 Token
-        if (response.code === 401) {
+        if (response.code === ImTypes.ErrorCode.ERR_UNAUTHORIZED) {
             console.log('[MainRequest] Received 401, attempting token refresh...');
 
             // 尝试刷新 Token
@@ -208,16 +209,21 @@ export async function mainRequest<T = any>(options: MainRequestOptions): Promise
                 const retryResponse = await executeRequest<T>(options, refreshResult.token);
 
                 // 如果重试后仍然是 401，不再重试
-                if (retryResponse.code === 401) {
+                if (retryResponse.code === ImTypes.ErrorCode.ERR_UNAUTHORIZED) {
                     console.error('[MainRequest] Retry still returned 401');
-                    throw new MainRequestError('Unauthorized after token refresh', 401);
+                    windowManager.broadcastMessage(IpcChannels.LOGOUT_REMIND, { type: LogoutType.LOGOUT });
+                    throw new MainRequestError('Unauthorized after token refresh', ImTypes.ErrorCode.ERR_UNAUTHORIZED);
                 }
 
                 return retryResponse;
             } else {
                 console.error('[MainRequest] Token refresh failed:', refreshResult.error);
-                throw new MainRequestError(refreshResult.error || 'Token refresh failed', 401);
+                throw new MainRequestError(refreshResult.error || 'Token refresh failed', ImTypes.ErrorCode.ERR_UNAUTHORIZED);
             }
+        } else if (response.code === ImTypes.ErrorCode.ERR_KICKED_OUT) {
+            console.error('[MainRequest] Kicked out');
+            windowManager.broadcastMessage(IpcChannels.LOGOUT_REMIND, { type: LogoutType.KICKED });
+            throw new MainRequestError('Kicked out', ImTypes.ErrorCode.ERR_KICKED_OUT);
         }
 
         return response;

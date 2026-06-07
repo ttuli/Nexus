@@ -108,8 +108,16 @@ instance.interceptors.response.use(
     }
 
     const errData = error.response?.data as { code?: number; message?: string } | undefined
+    
+    if (error.response?.status === ImTypes.ErrorCode.ERR_KICKED_OUT || 
+      errData?.code === ImTypes.ErrorCode.ERR_KICKED_OUT
+    ) {
+      windowService.logout(LogoutType.KICKED)
+      return Promise.reject(error)
+    }
     // 检查是否是 401 错误且不是重试请求
-    if (error.response?.status === 401 || errData?.code === 401) {
+    if (error.response?.status === ImTypes.ErrorCode.ERR_UNAUTHORIZED ||
+      errData?.code === ImTypes.ErrorCode.ERR_UNAUTHORIZED) {
       useUserStore().setToken('')
       // 如果是刷新 token 请求本身失败，直接跳转登录
       if (originalRequest.url?.includes('/auth/refresh')) {

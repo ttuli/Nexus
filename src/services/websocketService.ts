@@ -218,6 +218,14 @@ class WebSocketService {
         const videoMeta = await extractVideoFrame(file);
         const filePath = window.webUtils.getPathForFile(file);
         
+        let thumbnailWidth = videoMeta.width
+        let thumbnailHeight = videoMeta.height
+        if (videoMeta.width > APP_CONSTANTS.maxImageWidth || videoMeta.height > APP_CONSTANTS.maxImageHeight) {
+            const ratio = Math.min(APP_CONSTANTS.maxImageWidth / videoMeta.width, APP_CONSTANTS.maxImageHeight / videoMeta.height)
+            thumbnailWidth = Math.round(videoMeta.width * ratio)
+            thumbnailHeight = Math.round(videoMeta.height * ratio)
+        }
+
         // 1. 构建占位消息并立即上屏
         const { clientId, localMsg } = buildVideoLocalMsg({
             url: '',
@@ -225,10 +233,13 @@ class WebSocketService {
             thumbnailUrl: toLocalPreviewUrlRaw(videoMeta.thumbnailUrl),
             width: videoMeta.width,
             height: videoMeta.height,
-            duration: videoMeta.duration,
+            duration: videoMeta.duration,   
+            thumbnailHeight,
+            thumbnailWidth,
             uploadProgress: 0,
             size: file.size,
             format: file.type,
+            fileName: file.name
         }, sessionId)
         chatStore.addMessage(localMsg)
 

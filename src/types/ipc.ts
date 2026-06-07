@@ -113,6 +113,14 @@ export const IpcChannels = {
     SYSTEM_FILE_EXISTS: 'system:file-exists',
     SYSTEM_DOWNLOAD_FILE: 'system:download-file',
     SYSTEM_SAVE_IMAGE_BUFFER: 'system:save-image-buffer',
+
+    // 消息存储相关（主进程 SQLite ↔ 渲染进程 IPC）
+    MSG_SAVE: 'msg:save',
+    MSG_SAVE_MANY: 'msg:save-many',
+    MSG_UPDATE_STATUS: 'msg:update-status',
+    MSG_UPDATE_LOCAL_PATH: 'msg:update-local-path',
+    MSG_GET_HISTORY: 'msg:get-history',
+    MSG_CLEAR_SESSION: 'msg:clear-session',
 } as const
 
 export type IpcChannel = typeof IpcChannels[keyof typeof IpcChannels]

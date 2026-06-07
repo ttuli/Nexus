@@ -132,59 +132,70 @@ export function convertWSMessageToIChatMessage(wsMsg: ImTypes.WSMessage): IChatM
     };
 
     if (wsMsg.type === ImTypes.MessageType.CHAT_TEXT || wsMsg.type === ImTypes.MessageType.GROUP_TEXT) {
+        const textMsg = contentObj as ImTypes.TextMessage;
         return {
             ...commonFields,
             type: wsMsg.type,
-            content: contentObj.content || '',
-            atList: contentObj.at_list || []
+            content: textMsg.content || '',
+            atList: textMsg.at_list || []
         } as ILocalTextMessage;
     }
 
     if (wsMsg.type === ImTypes.MessageType.CHAT_IMAGE || wsMsg.type === ImTypes.MessageType.GROUP_IMAGE) {
+        const imageMsg = contentObj as ImTypes.ImageMessage;
         return {
             ...commonFields,
             type: wsMsg.type,
-            url: contentObj.url || '',
-            thumbnailUrl: contentObj.thumbnail_url,
-            width: contentObj.width || 0,
-            height: contentObj.height || 0,
-            size: contentObj.size || 0,
-            format: contentObj.format || ''
+            url: imageMsg.url || '',
+            thumbnailUrl: imageMsg.thumbnail_url,
+            thumbnailHeight: imageMsg.thumbnail_height || 0,
+            thumbnailWidth: imageMsg.thumbnail_width || 0,
+            width: imageMsg.width || 0,
+            height: imageMsg.height || 0,
+            size: imageMsg.size || 0,
+            format: imageMsg.format || '',
+            fileName: imageMsg.file_name || ''
         } as ILocalImageMessage;
     }
 
     if (wsMsg.type === ImTypes.MessageType.CHAT_VIDEO || wsMsg.type === ImTypes.MessageType.GROUP_VIDEO) {
+        const videoMsg = contentObj as ImTypes.VideoMessage;
         return {
             ...commonFields,
             type: wsMsg.type,
-            url: contentObj.url || '',
-            thumbnailUrl: contentObj.thumbnail_url,
-            duration: contentObj.duration || 0,
-            width: contentObj.width || 0,
-            height: contentObj.height || 0,
-            size: contentObj.size || 0,
-            format: contentObj.format || ''
+            url: videoMsg.url || '',
+            thumbnailUrl: videoMsg.thumbnail_url,
+            thumbnailHeight: videoMsg.thumbnail_height || 0,
+            thumbnailWidth: videoMsg.thumbnail_width || 0,
+            duration: videoMsg.duration || 0,
+            width: videoMsg.width || 0,
+            height: videoMsg.height || 0,
+            size: videoMsg.size || 0,
+            format: videoMsg.format || '',
+            fileName: videoMsg.file_name || ''
         } as ILocalVideoMessage;
     }
 
     if (wsMsg.type === ImTypes.MessageType.CHAT_FILE || wsMsg.type === ImTypes.MessageType.GROUP_FILE) {
+        const fileMsg = contentObj as ImTypes.FileMessage;
         return {
             ...commonFields,
             type: wsMsg.type,
-            url: contentObj.url || '',
-            fileName: contentObj.file_name || '',  // ts-proto 解码后字段为 snake_case
-            size: contentObj.size || 0,
+            url: fileMsg.url || '',
+            fileName: fileMsg.file_name || '',  // ts-proto 解码后字段为 snake_case
+            size: fileMsg.size || 0,
         } as ILocalFileMessage;
     }
 
     if (wsMsg.type === ImTypes.MessageType.CHAT_AUDIO || wsMsg.type === ImTypes.MessageType.GROUP_AUDIO) {
+        const audioMsg = contentObj as ImTypes.AudioMessage;
         return {
             ...commonFields,
             type: wsMsg.type,
-            url: contentObj.url || '',
-            duration: contentObj.duration || 0,
-            size: contentObj.size || 0,
-            format: contentObj.format || '',
+            url: audioMsg.url || '',
+            duration: audioMsg.duration || 0,
+            size: audioMsg.size || 0,
+            format: audioMsg.format || '',
         } as ILocalAudioMessage;
     }
 
@@ -323,8 +334,11 @@ export interface VideoContent {
     duration?: number;
     width?: number;
     height?: number;
+    thumbnailWidth?: number;
+    thumbnailHeight?: number;
     size?: number;
     format?: string;
+    fileName?: string;
 }
 
 // ─── Return type ────────────────────────────────────────────────────────────
@@ -576,6 +590,9 @@ export function buildVideoLocalMsg(
         height: content.height || 0,
         size: content.size || 0,
         format: content.format || '',
+        fileName: content.fileName || '',
+        thumbnailHeight: content.thumbnailHeight || 0,
+        thumbnailWidth: content.thumbnailWidth || 0,
     };
     return { clientId, localMsg };
 }
@@ -604,7 +621,7 @@ export function buildVideoWsPayload(
         height: localMsg.height || 0,
         size: localMsg.size || 0,
         format: localMsg.format || '',
-        file_name: '',
+        file_name: localMsg.fileName || '',
     }).finish();
 
     return wsMsg;

@@ -310,55 +310,118 @@ export function messageTypeToJSON(object: MessageType): string {
 
 /** 常见错误码定义 */
 export enum ErrorCode {
-  OK = 0,
-  /** INVALID_PARAM - 参数无效 */
-  INVALID_PARAM = 1001,
-  /** UNAUTHORIZED - 未授权 */
-  UNAUTHORIZED = 1002,
-  /** TOKEN_EXPIRED - Token过期 */
-  TOKEN_EXPIRED = 1003,
-  /** USER_NOT_FOUND - 用户不存在 */
-  USER_NOT_FOUND = 1004,
-  /** MESSAGE_TOO_LARGE - 消息过大 */
-  MESSAGE_TOO_LARGE = 1005,
-  /** RATE_LIMIT - 频率限制 */
-  RATE_LIMIT = 1006,
-  /** SERVER_ERROR - 服务器错误 */
-  SERVER_ERROR = 5000,
-  /** SERVICE_UNAVAILABLE - 服务不可用 */
-  SERVICE_UNAVAILABLE = 5001,
+  ERR_UNKNOWN = 0,
+  ERR_INVALID_PARAMS = 1001,
+  ERR_NOT_FOUND = 1002,
+  ERR_PASSWORD_ERROR = 1003,
+  ERR_ALREADY_EXISTS = 1004,
+  ERR_FORBIDDEN = 1005,
+  ERR_UNAUTHORIZED = 1006,
+  ERR_INTERNAL_SERVER = 1007,
+  ERR_TIMEOUT = 1008,
+  ERR_SERVICE_BUSY = 1009,
+  /** ERR_KICKED_OUT - 账号在其他设备登录，被强制下线 */
+  ERR_KICKED_OUT = 1010,
+  /** ERR_DATABASE - 业务错误码 2xxx */
+  ERR_DATABASE = 2001,
+  ERR_CACHE = 2002,
+  ERR_RPC = 2003,
+  ERR_WEBSOCKET = 2004,
+  ERR_ENCODING = 2005,
+  ERR_DECODING = 2006,
+  ERR_TOKEN_GENERATE = 2007,
+  ERR_AUTH_CODE_ERROR = 2008,
+  ERR_INVALID_ID_TYPE = 2009,
+  /** ERR_WS_UPGRADE - WebSocket 错误码 3xxx */
+  ERR_WS_UPGRADE = 3001,
+  /** ERR_WS_SEND - WebSocket 发送消息失败 */
+  ERR_WS_SEND = 3002,
+  /** ERR_WS_CLOSED - WebSocket 连接已关闭 */
+  ERR_WS_CLOSED = 3003,
+  /** ERR_WS_NOT_FOUND - WebSocket 用户连接不存在 */
+  ERR_WS_NOT_FOUND = 3004,
+  /** ERR_WS_CONN_ADD - WebSocket 连接添加失败 */
+  ERR_WS_CONN_ADD = 3005,
   UNRECOGNIZED = -1,
 }
 
 export function errorCodeFromJSON(object: any): ErrorCode {
   switch (object) {
     case 0:
-    case "OK":
-      return ErrorCode.OK;
+    case "ERR_UNKNOWN":
+      return ErrorCode.ERR_UNKNOWN;
     case 1001:
-    case "INVALID_PARAM":
-      return ErrorCode.INVALID_PARAM;
+    case "ERR_INVALID_PARAMS":
+      return ErrorCode.ERR_INVALID_PARAMS;
     case 1002:
-    case "UNAUTHORIZED":
-      return ErrorCode.UNAUTHORIZED;
+    case "ERR_NOT_FOUND":
+      return ErrorCode.ERR_NOT_FOUND;
     case 1003:
-    case "TOKEN_EXPIRED":
-      return ErrorCode.TOKEN_EXPIRED;
+    case "ERR_PASSWORD_ERROR":
+      return ErrorCode.ERR_PASSWORD_ERROR;
     case 1004:
-    case "USER_NOT_FOUND":
-      return ErrorCode.USER_NOT_FOUND;
+    case "ERR_ALREADY_EXISTS":
+      return ErrorCode.ERR_ALREADY_EXISTS;
     case 1005:
-    case "MESSAGE_TOO_LARGE":
-      return ErrorCode.MESSAGE_TOO_LARGE;
+    case "ERR_FORBIDDEN":
+      return ErrorCode.ERR_FORBIDDEN;
     case 1006:
-    case "RATE_LIMIT":
-      return ErrorCode.RATE_LIMIT;
-    case 5000:
-    case "SERVER_ERROR":
-      return ErrorCode.SERVER_ERROR;
-    case 5001:
-    case "SERVICE_UNAVAILABLE":
-      return ErrorCode.SERVICE_UNAVAILABLE;
+    case "ERR_UNAUTHORIZED":
+      return ErrorCode.ERR_UNAUTHORIZED;
+    case 1007:
+    case "ERR_INTERNAL_SERVER":
+      return ErrorCode.ERR_INTERNAL_SERVER;
+    case 1008:
+    case "ERR_TIMEOUT":
+      return ErrorCode.ERR_TIMEOUT;
+    case 1009:
+    case "ERR_SERVICE_BUSY":
+      return ErrorCode.ERR_SERVICE_BUSY;
+    case 1010:
+    case "ERR_KICKED_OUT":
+      return ErrorCode.ERR_KICKED_OUT;
+    case 2001:
+    case "ERR_DATABASE":
+      return ErrorCode.ERR_DATABASE;
+    case 2002:
+    case "ERR_CACHE":
+      return ErrorCode.ERR_CACHE;
+    case 2003:
+    case "ERR_RPC":
+      return ErrorCode.ERR_RPC;
+    case 2004:
+    case "ERR_WEBSOCKET":
+      return ErrorCode.ERR_WEBSOCKET;
+    case 2005:
+    case "ERR_ENCODING":
+      return ErrorCode.ERR_ENCODING;
+    case 2006:
+    case "ERR_DECODING":
+      return ErrorCode.ERR_DECODING;
+    case 2007:
+    case "ERR_TOKEN_GENERATE":
+      return ErrorCode.ERR_TOKEN_GENERATE;
+    case 2008:
+    case "ERR_AUTH_CODE_ERROR":
+      return ErrorCode.ERR_AUTH_CODE_ERROR;
+    case 2009:
+    case "ERR_INVALID_ID_TYPE":
+      return ErrorCode.ERR_INVALID_ID_TYPE;
+    case 3001:
+    case "ERR_WS_UPGRADE":
+      return ErrorCode.ERR_WS_UPGRADE;
+    case 3002:
+    case "ERR_WS_SEND":
+      return ErrorCode.ERR_WS_SEND;
+    case 3003:
+    case "ERR_WS_CLOSED":
+      return ErrorCode.ERR_WS_CLOSED;
+    case 3004:
+    case "ERR_WS_NOT_FOUND":
+      return ErrorCode.ERR_WS_NOT_FOUND;
+    case 3005:
+    case "ERR_WS_CONN_ADD":
+      return ErrorCode.ERR_WS_CONN_ADD;
     case -1:
     case "UNRECOGNIZED":
     default:
@@ -368,24 +431,56 @@ export function errorCodeFromJSON(object: any): ErrorCode {
 
 export function errorCodeToJSON(object: ErrorCode): string {
   switch (object) {
-    case ErrorCode.OK:
-      return "OK";
-    case ErrorCode.INVALID_PARAM:
-      return "INVALID_PARAM";
-    case ErrorCode.UNAUTHORIZED:
-      return "UNAUTHORIZED";
-    case ErrorCode.TOKEN_EXPIRED:
-      return "TOKEN_EXPIRED";
-    case ErrorCode.USER_NOT_FOUND:
-      return "USER_NOT_FOUND";
-    case ErrorCode.MESSAGE_TOO_LARGE:
-      return "MESSAGE_TOO_LARGE";
-    case ErrorCode.RATE_LIMIT:
-      return "RATE_LIMIT";
-    case ErrorCode.SERVER_ERROR:
-      return "SERVER_ERROR";
-    case ErrorCode.SERVICE_UNAVAILABLE:
-      return "SERVICE_UNAVAILABLE";
+    case ErrorCode.ERR_UNKNOWN:
+      return "ERR_UNKNOWN";
+    case ErrorCode.ERR_INVALID_PARAMS:
+      return "ERR_INVALID_PARAMS";
+    case ErrorCode.ERR_NOT_FOUND:
+      return "ERR_NOT_FOUND";
+    case ErrorCode.ERR_PASSWORD_ERROR:
+      return "ERR_PASSWORD_ERROR";
+    case ErrorCode.ERR_ALREADY_EXISTS:
+      return "ERR_ALREADY_EXISTS";
+    case ErrorCode.ERR_FORBIDDEN:
+      return "ERR_FORBIDDEN";
+    case ErrorCode.ERR_UNAUTHORIZED:
+      return "ERR_UNAUTHORIZED";
+    case ErrorCode.ERR_INTERNAL_SERVER:
+      return "ERR_INTERNAL_SERVER";
+    case ErrorCode.ERR_TIMEOUT:
+      return "ERR_TIMEOUT";
+    case ErrorCode.ERR_SERVICE_BUSY:
+      return "ERR_SERVICE_BUSY";
+    case ErrorCode.ERR_KICKED_OUT:
+      return "ERR_KICKED_OUT";
+    case ErrorCode.ERR_DATABASE:
+      return "ERR_DATABASE";
+    case ErrorCode.ERR_CACHE:
+      return "ERR_CACHE";
+    case ErrorCode.ERR_RPC:
+      return "ERR_RPC";
+    case ErrorCode.ERR_WEBSOCKET:
+      return "ERR_WEBSOCKET";
+    case ErrorCode.ERR_ENCODING:
+      return "ERR_ENCODING";
+    case ErrorCode.ERR_DECODING:
+      return "ERR_DECODING";
+    case ErrorCode.ERR_TOKEN_GENERATE:
+      return "ERR_TOKEN_GENERATE";
+    case ErrorCode.ERR_AUTH_CODE_ERROR:
+      return "ERR_AUTH_CODE_ERROR";
+    case ErrorCode.ERR_INVALID_ID_TYPE:
+      return "ERR_INVALID_ID_TYPE";
+    case ErrorCode.ERR_WS_UPGRADE:
+      return "ERR_WS_UPGRADE";
+    case ErrorCode.ERR_WS_SEND:
+      return "ERR_WS_SEND";
+    case ErrorCode.ERR_WS_CLOSED:
+      return "ERR_WS_CLOSED";
+    case ErrorCode.ERR_WS_NOT_FOUND:
+      return "ERR_WS_NOT_FOUND";
+    case ErrorCode.ERR_WS_CONN_ADD:
+      return "ERR_WS_CONN_ADD";
     case ErrorCode.UNRECOGNIZED:
     default:
       return "UNRECOGNIZED";

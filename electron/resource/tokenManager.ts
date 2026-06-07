@@ -45,7 +45,7 @@ class TokenManager {
         const savedRefreshToken = storage.get<string>(StorageKeys.REFRESH_TOKEN);
         if (savedRefreshToken) {
             const decodedToken = jwt.decode(savedRefreshToken) as RefreshTokenPayload;
-            if (decodedToken.device_id !== this.deviceId || decodedToken.platform !== this.platform) {
+            if (decodedToken.device_id !== this.deviceId) {
                 this.refreshToken = '';
             } else {
                 this.storeRefreshToken = true;
@@ -158,10 +158,9 @@ class TokenManager {
                         const buffer = Buffer.concat(chunks);
                         let token: string;
                         let refresh_token: string;
-                        console.log(contentType)
                         if (contentType.includes('application/x-protobuf')) {
                             const apiResp = ImTypes.ApiResponse.decode(new Uint8Array(buffer));
-                            if (apiResp.code !== 200 || !apiResp.data) {
+                            if (!apiResp.data || apiResp.code != 200) {
                                 resolve({ success: false, error: apiResp.message || 'Refresh token failed' });
                                 return;
                             }

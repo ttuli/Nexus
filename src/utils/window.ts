@@ -45,13 +45,15 @@ function calcViewerSize(
 
 /**
  * 打开图片浏览窗口
- * 在创建窗口前预先加载图片尺寸，计算好合适的窗口大小，避免窗口跳变
+ * 如果没有传入 initialSize，则预先加载图片尺寸，计算好合适的窗口大小，避免窗口跳变
  */
-export async function openPhotoViewer(urls: string[], index = 0): Promise<void> {
+export async function openPhotoViewer(urls: string[], index = 0, initialSize?: { width: number; height: number }): Promise<void> {
     const url = urls[index];
     let windowSize = { width: 800, height: 600 };
 
-    if (url) {
+    if (initialSize && initialSize.width > 0 && initialSize.height > 0) {
+        windowSize = calcViewerSize(initialSize.width, initialSize.height);
+    } else if (url) {
         try {
             const size = await new Promise<{ width: number; height: number }>((resolve, reject) => {
                 const img = new Image();
