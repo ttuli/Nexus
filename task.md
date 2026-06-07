@@ -12,4 +12,4 @@ setting界面优化，白天黑夜功能实现
 
 虚拟列表
 
-VideoBubble要优化
+VideoBubble要优化(x-oss-process=video/snapshot,t_0)
