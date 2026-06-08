@@ -2,16 +2,21 @@
     <div class="video-message-bubble">
         <!-- 视频外层容器 -->
         <div class="video-wrapper" :style="wrapperStyle" @click="handleClick">
-            <!-- 视频主体：优先显示缩略图，没有缩略图才用 video 去截帧 -->
+            <!-- 视频主体：仅保留缩略图的展示 -->
             <img v-if="displayThumb" :src="displayThumb" class="video-content" @error="handleVideoError" />
-            <video v-else-if="displayUrl" :src="displayUrl + '#t=0.1'" class="video-content" preload="metadata"
-                @error="handleVideoError" @loadedmetadata="handleLoadedMetadata" muted playsinline></video>
 
-            <!-- 播放按钮（仅在不在上传、不在下载、且没出错时显示） -->
-            <div class="play-btn-wrapper" v-show="isFinishing && !isError">
-                <div class="play-btn">
+            <!-- 播放/下载按钮（仅在不在上传、且没出错时显示） -->
+            <div class="action-btn-wrapper" v-show="isFinishing && !isError">
+                <!-- 有 localPath 显示播放按钮 -->
+                <div v-if="props.message.localPath" class="play-btn">
                     <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
                         <path d="M8 5v14l11-7z" />
+                    </svg>
+                </div>
+                <!-- 没有 localPath 显示下载按钮 -->
+                <div v-else class="download-btn">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+                        <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z" />
                     </svg>
                 </div>
             </div>
@@ -61,16 +66,12 @@ interface Props {
 const props = defineProps<Props>();
 
 const isError = ref(false);
-const videoWidth = ref(0);
-const videoHeight = ref(0);
 
 // 控制遮罩显示及无上传进度时的状态
 const isFinishing = computed(() => {
     return props.message.uploadProgress === 100 || props.message.status !== ImTypes.MessageStatus.MESSAGE_STATUS_SENDING;
 });
 
-// 视频播放地址
-const displayUrl = ref('');
 // 封面缩略图地址（Base64 或 OSS 截帧地址）
 const displayThumb = ref('');
 
@@ -84,19 +85,11 @@ watch(() => props.message, async (msg) => {
     // 如果有远端 url，则获取签名/完整访问地址
     if (msg.url) {
         try {
-            // 使用 getFileUrl 获取视频的 OSS 播放/下载地址
-            const fullUrl = await fileService.getFileUrl(msg.url); 
-            if (fullUrl !== '') {
-                displayUrl.value = fullUrl;
-                
-                if (!displayThumb.value) {
-                    const thumbUrl = await fileService.getFileUrl(msg.url, 'video/snapshot,t_0,f_jpg');
-                    if (thumbUrl) {
-                        msg.thumbnailUrl = toNetworkPreviewUrl(thumbUrl);
-                        displayThumb.value = msg.thumbnailUrl;
-                        messageStorageService.saveMessage(msg);
-                    }
-                }
+            const thumbUrl = await fileService.getFileUrl(msg.url, 'video/snapshot,t_0,f_jpg');
+            if (thumbUrl) {
+                msg.thumbnailUrl = toNetworkPreviewUrl(thumbUrl);
+                displayThumb.value = msg.thumbnailUrl;
+                messageStorageService.saveMessage(msg);
             } else {
                 isError.value = true;
             }
@@ -107,17 +100,18 @@ watch(() => props.message, async (msg) => {
     }
 }, { immediate: true });
 
-// 通过监听 loadedmetadata 拿到视频的原生比例，如果消息结构里没有带宽高的话
-const handleLoadedMetadata = (e: Event) => {
-    const target = e.target as HTMLVideoElement;
-    videoWidth.value = target.videoWidth;
-    videoHeight.value = target.videoHeight;
-};
-
-// 动态计算尺寸，如果有宽高信息按比例缩小，没有的话等待 loadedmetadata 或使用占位
+// 动态计算尺寸，如果有宽高信息按比例缩小，没有的话使用占位
 const wrapperStyle = computed(() => {
-    let width = props.message.width || videoWidth.value || 0;
-    let height = props.message.height || videoHeight.value || 0;
+    // 优先使用明确提供的缩略图尺寸
+    if (props.message.thumbnailWidth && props.message.thumbnailHeight && props.message.thumbnailWidth > 0 && props.message.thumbnailHeight > 0) {
+        return {
+            width: `${props.message.thumbnailWidth}px`,
+            height: `${props.message.thumbnailHeight}px`
+        };
+    }
+
+    let width = props.message.width || 0;
+    let height = props.message.height || 0;
 
     if (width > 0 && height > 0) {
         // 限制最大宽高，保持比例（复用图片的最大尺寸配置）
@@ -145,30 +139,33 @@ const handleVideoError = async () => {
     isError.value = true;
 };
 
+const handlePlay = () => {
+    console.log('[VideoBubble] 播放视频，本地路径:', props.message.localPath);
+    // TODO: 播放逻辑占位
+};
+
+const handleDownload = async () => {
+    console.log('[VideoBubble] 开始下载视频:', props.message.url);
+    // TODO: 下载逻辑占位
+    // 模拟下载成功并更新 localPath
+    try {
+        await new Promise(resolve => setTimeout(resolve, 1500)); // 模拟网络延迟
+        props.message.localPath = 'mock/local/path/video.mp4';
+        messageStorageService.saveMessage(props.message);
+        ElMessage.success('视频下载成功(模拟)');
+    } catch (e) {
+        console.error('[VideoBubble] 下载失败:', e);
+        ElMessage.error('视频下载失败(模拟)');
+    }
+};
+
 const handleClick = async () => {
     if (isError.value || !isFinishing.value) return;
 
-    try {
-        if (props.message.localPath && await fileService.checkLocalFileExists(props.message.localPath)) {
-            openVideoViewer(
-                props.message.localPath,
-                props.message.width,
-                props.message.height
-            );
-            return;
-        }
-
-        const fullUrl = await fileService.getFileUrl(props.message.url);
-        if (fullUrl !== '') {
-            // 下载到本地
-            openVideoViewer(fullUrl, props.message.width, props.message.height);
-            await downloadMessageToLocal(props.message, props.message.url);
-        } else {
-            ElMessage.error('视频已过期或无法访问');
-        }
-    } catch (e) {
-        ElMessage.error('视频无法访问');
-        console.error('[VideoBubble] Failed to open viewer:', e);
+    if (props.message.localPath) {
+        handlePlay();
+    } else {
+        await handleDownload();
     }
 };
 
@@ -224,7 +221,7 @@ const formatDuration = (seconds: number) => {
             pointer-events: none; // 禁止用户在气泡中交互原生的视频控件
         }
 
-        .play-btn-wrapper {
+        .action-btn-wrapper {
             position: absolute;
             inset: 0;
             display: flex;
@@ -233,7 +230,7 @@ const formatDuration = (seconds: number) => {
             z-index: 5;
             pointer-events: none;
 
-            .play-btn {
+            .play-btn, .download-btn {
                 width: 40px;
                 height: 40px;
                 border-radius: 50%;
@@ -244,14 +241,14 @@ const formatDuration = (seconds: number) => {
                 justify-content: center;
                 backdrop-filter: blur(2px);
                 transition: transform 0.2s, background-color 0.2s;
+            }
 
-                svg {
-                    margin-left: 2px; // 光学居中调整
-                }
+            .play-btn svg {
+                margin-left: 2px; // 光学居中调整
             }
         }
 
-        &:hover .play-btn {
+        &:hover .play-btn, &:hover .download-btn {
             background-color: rgba(0, 0, 0, 0.7);
             transform: scale(1.1);
         }

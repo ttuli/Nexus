@@ -264,6 +264,10 @@ class WebSocketService {
                 )
             }
 
+            let localMsg_copy = { ...localMsg }
+            localMsg_copy.localPath = undefined
+            localMsg_copy.thumbnailUrl = undefined
+
             // 4. 用 buildVideoWsPayload 从已有本地消息拼装 WS 载荷并发送
             const finalMsg = buildVideoWsPayload(localMsg, ossUrl, sessionId)
             const result = await this.send(finalMsg, clientId, sessionId)

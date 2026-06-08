@@ -12,4 +12,8 @@ setting界面优化，白天黑夜功能实现
 
 虚拟列表
 
-VideoBubble要优化(x-oss-process=video/snapshot,t_0)
+VideoBubble要优化(x-oss-process=video/snapshot,t_0,f_jpg)
+
+缓存里面去掉了?后面的所有参数，所以fileService中获取图片地址和获取图片缩略图地址会进行同名缓存，解决
+
+看一下sqlite里面message存储的的url字段是不是签名过的

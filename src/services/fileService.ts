@@ -106,7 +106,7 @@ class FileService {
             abort: () => abortController.abort()
         };
     }
-
+    
     /**
      * 从 OSS URL 中提取 file_key（去掉 host 及开头的 /）
      */
