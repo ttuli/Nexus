@@ -113,6 +113,7 @@ class WebSocketService {
 
             const ossUrl = await promise;
             this.uploadAbortControllers.delete(clientId);
+            localMsg.url = ossUrl;
 
             // 4. 更新 store 中占位消息的 OSS URL，并持久化到 DB
             const storedMsg = chatStore.messages.find(m => m.clientId === clientId) as ILocalImageMessage | undefined
@@ -176,6 +177,7 @@ class WebSocketService {
 
             const ossUrl = await promise;
             this.uploadAbortControllers.delete(clientId);
+            localMsg.url = ossUrl;
 
             // 3. 更新 store 中占位消息的 OSS URL 并持久化
             const storedMsg = chatStore.messages.find(m => m.clientId === clientId) as ILocalFileMessage | undefined
@@ -254,6 +256,7 @@ class WebSocketService {
 
             const ossUrl = await promise;
             this.uploadAbortControllers.delete(clientId);
+            localMsg.url = ossUrl;
 
             // 3. 更新 store 中占位消息的 OSS URL 并持久化
             const storedMsg = chatStore.messages.find(m => m.clientId === clientId) as ILocalVideoMessage | undefined
