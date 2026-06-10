@@ -171,9 +171,9 @@ class FileCacheManager {
      * 预先在后台下载并缓存一张图片
      * 如果已经下载过则跳过
      */
-    public async prefetch(url: string): Promise<string | null> {
+    public async prefetch(url: string, customCacheKey?: string): Promise<string | null> {
         if (!url || !url.startsWith('http')) return null;
-        const localPath = this.getLocalPath(url);
+        const localPath = this.getLocalPath(customCacheKey || url);
         if (fs.existsSync(localPath)) return localPath;
         if (this.downloading.has(url)) return null;
 

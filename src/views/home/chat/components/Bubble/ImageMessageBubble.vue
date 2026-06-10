@@ -6,6 +6,13 @@
             <img v-if="displayUrl" :src="displayUrl" class="image-content" @error="handleImageError"
                 alt="图片消息" @load="imageLoaded = true" />
 
+            <!-- 图片加载过程中的 loading spinner -->
+            <div class="image-loading" :class="{ 'shifted': !isFinishing }" v-if="!imageLoaded && !isError">
+                <svg class="loading-circular" viewBox="25 25 50 50">
+                    <circle cx="50" cy="50" r="20" fill="none" class="path"></circle>
+                </svg>
+            </div>
+
             <!-- 上传进度蒙层（复用于自己发送的上传和对方发送的下载） -->
             <transition name="fade-reveal">
                 <div class="upload-mask" :class="{ 'is-finishing': isFinishing }" v-show="!isFinishing">
@@ -161,12 +168,7 @@ const handleClick = async () => {
             await openPhotoViewer([toLocalPreviewUrlRaw(props.message.localPath)], 0, initialSize);
             return;
         }
-        const fullUrl = await fileService.getImageUrl(props.message.url);
-        if (fullUrl !== '') {
-            await openPhotoViewer([fullUrl], 0, initialSize);
-        } else {
-            ElMessage.error('图片已过期或被清理')
-        }
+        await openPhotoViewer([props.message.url], 0, initialSize);
     } catch (e) {
         ElMessage.error('图片已过期或被清理')
         console.error('[ImageBubble] Failed to open photo viewer:', e);
@@ -214,6 +216,57 @@ const handleClick = async () => {
             object-fit: cover;
             /* 保证不管容器多大都能撑满且不变形 */
             transition: opacity 0.3s ease;
+        }
+
+        .image-loading {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+            pointer-events: none;
+            transition: transform 0.3s ease;
+
+            &.shifted {
+                transform: translateY(35px);
+            }
+
+            .loading-circular {
+                width: 24px;
+                height: 24px;
+                animation: image-loading-rotate 2s linear infinite;
+
+                .path {
+                    stroke: var(--el-color-primary, #409eff);
+                    stroke-width: 4;
+                    stroke-dasharray: 1, 200;
+                    stroke-dashoffset: 0;
+                    animation: image-loading-dash 1.5s ease-in-out infinite;
+                    stroke-linecap: round;
+                }
+            }
+
+            @keyframes image-loading-rotate {
+                100% {
+                    transform: rotate(360deg);
+                }
+            }
+
+            @keyframes image-loading-dash {
+                0% {
+                    stroke-dasharray: 1, 200;
+                    stroke-dashoffset: 0;
+                }
+                50% {
+                    stroke-dasharray: 90, 200;
+                    stroke-dashoffset: -35px;
+                }
+                100% {
+                    stroke-dasharray: 90, 200;
+                    stroke-dashoffset: -124px;
+                }
+            }
         }
 
         .upload-mask {

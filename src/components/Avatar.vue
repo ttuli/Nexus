@@ -29,27 +29,12 @@ import { userService, groupService } from '@/services'
 import { openPhotoViewer } from '@/utils/window'
 import { useUserStore } from '@/store/user';
 import { useGroupStore } from '@/store/group';
+import { toResourceUrl } from '@/utils/chat'
 
 const source = ref<string>('')
 const userStore = useUserStore();
 const groupStore = useGroupStore();
 
-/**
- * 解析尺寸字符串为数字（如 '40px' -> 40）
- */
-
-/**
- * 将网络 URL 转换为 imcache:// 协议地址
- * 主进程拦截该协议：本地有缓存则直接返回磁盘文件，否则 fallback 到原网络地址
- */
-const toImcacheUrl = (url: string): string => {
-    if (!url || url.startsWith('data:') || url.startsWith('blob:') || url.startsWith('imcache://')) {
-        return url;
-    }
-    const encoded = btoa(unescape(encodeURIComponent(url)))
-        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-    return `imcache://${encoded}`;
-}
 
 const getSrc = () => {
     let url = '';
@@ -65,7 +50,7 @@ const getSrc = () => {
     }
     source.value = url;
     // 通过 imcache:// 协议渲染：命中本地缓存时秒出，否则由主进程 fallback 到网络图
-    return toImcacheUrl(url);
+    return toResourceUrl(url);
 }
 
 const handleError = (e: Event) => {

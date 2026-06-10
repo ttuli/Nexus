@@ -1,7 +1,7 @@
 import { getUploadSignature, getAcessUrl } from '@/apis/file'
 import { ApiTypes } from '@/types'
 import { computeFileMd5 } from '@/utils/md5'
-import { APP_CONSTANTS as config } from '@/config/constants'
+import { APP_CONSTANTS as config, Renderer_Config } from '@/config/constants'
 import { ipcService } from './ipcService';
 import { IpcChannels } from '@/types/ipc';
 
@@ -140,7 +140,7 @@ class FileService {
 
         let ossProcess = '';
         if (targetW > 0 && targetH > 0) {
-            ossProcess = `image/resize,m_lfit,w_${targetW},h_${targetH}`;
+            ossProcess = `image/resize,m_lfit,w_${targetW},h_${targetH}/image/compress,q_${Renderer_Config.imageCompressQuality}`;
         }
 
         if (!(await this.checkFileExists(fileKey, ApiTypes.file.FileType.FileTypeChatImage))) {

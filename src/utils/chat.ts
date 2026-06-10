@@ -1,10 +1,39 @@
 import { ImTypes, IChatMessage, ILocalTextMessage, ILocalImageMessage, ILocalVideoMessage, ILocalAudioMessage, ILocalFileMessage, ILocalSystemMessage } from '@/types';
-import { APP_CONSTANTS, Renderer_Config as config, IMCACHE_SCHEME, IMLOCAL_SCHEME, IMLOCALRAW_SCHEME } from '@/config/constants';
+import { APP_CONSTANTS, Renderer_Config as config, IMCACHE_SCHEME, IMLOCAL_SCHEME, IMLOCALRAW_SCHEME, LOCA_CACHE_SCHEME } from '@/config/constants';
 import { useUserStore } from '@/store/user';
 import { ulid } from 'ulid';
 import { fileService } from '@/services/fileService';
 import { settingService } from '@/services/settingService';
 import { messageStorageService } from '@/services/messageStorageService';
+
+/**
+ * 统一的本地/网络资源 URL 转换器
+ * @param pathOrUrl 资源的本地绝对路径，或是网络 http(s) URL
+ * @param cacheKey 稳定标识，格式如 `fileKey` 或 `fileKey|ossProcess`
+ */
+export function toResourceUrl(pathOrUrl: string, cacheKey?: string): string {
+    if (!pathOrUrl) return '';
+
+    // 如果已经是 localcache 协议了，就直接返回
+    if (pathOrUrl.startsWith(`${LOCA_CACHE_SCHEME}://`)) return pathOrUrl;
+
+    // URL-safe Base64 编码路径或 URL
+    const encoded = btoa(encodeURIComponent(pathOrUrl).replace(/%([0-9A-F]{2})/g, (_, p1) =>
+        String.fromCharCode(parseInt(p1, 16))
+    )).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+
+    let result = `${LOCA_CACHE_SCHEME}://${encoded}`;
+
+    // 如果有 cacheKey，也进行编码并拼接
+    if (cacheKey) {
+        const encodedKey = btoa(encodeURIComponent(cacheKey).replace(/%([0-9A-F]{2})/g, (_, p1) =>
+            String.fromCharCode(parseInt(p1, 16))
+        )).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+        result += `?ck=${encodedKey}`;
+    }
+
+    return result;
+}
 
 /**
  * 将本地文件绝对路径转换为 imlocalraw:// 协议地址（原样返回，不裁剪）

@@ -11,6 +11,7 @@ export const getEnv = (key: string) => {
     return undefined;
 };
 
+export const LOCA_CACHE_SCHEME = 'localcache';
 export const IMCACHE_SCHEME = 'imcache';
 export const IMLOCAL_SCHEME = 'imlocal';
 export const IMLOCALRAW_SCHEME = 'imlocalraw';
@@ -54,6 +55,8 @@ export const Renderer_Config = {
     get wsMessageVersion() { return getEnv('VITE_WS_VERSION') },
 
     maxChatListCount: 40,
+
+    imageCompressQuality: 80,
 };
 
 // 存放主进程和渲染进程通用的不变常量
