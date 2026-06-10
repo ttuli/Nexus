@@ -131,6 +131,13 @@ export interface CallbackData {
 export interface GetPostSignatureReq {
   /** @gotags: form:"file_type,optional" json:"file_type,optional" */
   file_type: number;
+  /** @gotags: form:"file_name,optional" json:"file_name,optional" */
+  file_name: string;
+}
+
+export interface GetPostSignatureResp {
+  is_exits: boolean;
+  policy: PolicyToken | undefined;
 }
 
 export interface GetAccessUrlReq {
@@ -625,13 +632,16 @@ export const CallbackData: MessageFns<CallbackData> = {
 };
 
 function createBaseGetPostSignatureReq(): GetPostSignatureReq {
-  return { file_type: 0 };
+  return { file_type: 0, file_name: "" };
 }
 
 export const GetPostSignatureReq: MessageFns<GetPostSignatureReq> = {
   encode(message: GetPostSignatureReq, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.file_type !== 0) {
       writer.uint32(8).int32(message.file_type);
+    }
+    if (message.file_name !== "") {
+      writer.uint32(18).string(message.file_name);
     }
     return writer;
   },
@@ -651,6 +661,14 @@ export const GetPostSignatureReq: MessageFns<GetPostSignatureReq> = {
           message.file_type = reader.int32();
           continue;
         }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.file_name = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -667,6 +685,11 @@ export const GetPostSignatureReq: MessageFns<GetPostSignatureReq> = {
         : isSet(object.file_type)
         ? globalThis.Number(object.file_type)
         : 0,
+      file_name: isSet(object.fileName)
+        ? globalThis.String(object.fileName)
+        : isSet(object.file_name)
+        ? globalThis.String(object.file_name)
+        : "",
     };
   },
 
@@ -674,6 +697,9 @@ export const GetPostSignatureReq: MessageFns<GetPostSignatureReq> = {
     const obj: any = {};
     if (message.file_type !== 0) {
       obj.fileType = Math.round(message.file_type);
+    }
+    if (message.file_name !== "") {
+      obj.fileName = message.file_name;
     }
     return obj;
   },
@@ -684,6 +710,89 @@ export const GetPostSignatureReq: MessageFns<GetPostSignatureReq> = {
   fromPartial<I extends Exact<DeepPartial<GetPostSignatureReq>, I>>(object: I): GetPostSignatureReq {
     const message = createBaseGetPostSignatureReq();
     message.file_type = object.file_type ?? 0;
+    message.file_name = object.file_name ?? "";
+    return message;
+  },
+};
+
+function createBaseGetPostSignatureResp(): GetPostSignatureResp {
+  return { is_exits: false, policy: undefined };
+}
+
+export const GetPostSignatureResp: MessageFns<GetPostSignatureResp> = {
+  encode(message: GetPostSignatureResp, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.is_exits !== false) {
+      writer.uint32(8).bool(message.is_exits);
+    }
+    if (message.policy !== undefined) {
+      PolicyToken.encode(message.policy, writer.uint32(18).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetPostSignatureResp {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetPostSignatureResp();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.is_exits = reader.bool();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.policy = PolicyToken.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetPostSignatureResp {
+    return {
+      is_exits: isSet(object.isExits)
+        ? globalThis.Boolean(object.isExits)
+        : isSet(object.is_exits)
+        ? globalThis.Boolean(object.is_exits)
+        : false,
+      policy: isSet(object.policy) ? PolicyToken.fromJSON(object.policy) : undefined,
+    };
+  },
+
+  toJSON(message: GetPostSignatureResp): unknown {
+    const obj: any = {};
+    if (message.is_exits !== false) {
+      obj.isExits = message.is_exits;
+    }
+    if (message.policy !== undefined) {
+      obj.policy = PolicyToken.toJSON(message.policy);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetPostSignatureResp>, I>>(base?: I): GetPostSignatureResp {
+    return GetPostSignatureResp.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetPostSignatureResp>, I>>(object: I): GetPostSignatureResp {
+    const message = createBaseGetPostSignatureResp();
+    message.is_exits = object.is_exits ?? false;
+    message.policy = (object.policy !== undefined && object.policy !== null)
+      ? PolicyToken.fromPartial(object.policy)
+      : undefined;
     return message;
   },
 };

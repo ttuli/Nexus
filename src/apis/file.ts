@@ -7,10 +7,10 @@ export async function getUploadSignature(data: ApiTypes.file.GetPostSignatureReq
   // Axios params will serialize it.
   // Assuming simple types match.
 
-  let res = await instance.get<ApiResponse<ApiTypes.file.PolicyToken>>(config.fileServer + '/fileupload/getPostSignature', {
+  let res = await instance.get<ApiResponse<ApiTypes.file.GetPostSignatureResp>>(config.fileServer + '/fileupload/getPostSignature', {
     params: data
   })
-  return decodeResponse(res.data, ApiTypes.file.PolicyToken.decode)
+  return decodeResponse(res.data, ApiTypes.file.GetPostSignatureResp.decode)
 }
 
 export async function getAcessUrl(data: ApiTypes.file.GetAccessUrlReq) {

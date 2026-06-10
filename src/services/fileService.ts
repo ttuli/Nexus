@@ -7,13 +7,6 @@ import { IpcChannels } from '@/types/ipc';
 
 class FileService {
     /**
-     * 获取上传签名
-     */
-    async getUploadSignature(data: ApiTypes.file.GetPostSignatureReq) {
-        return getUploadSignature(data)
-    }
-
-    /**
      * 上传文件到文件服务器
      */
     uploadFile(
@@ -24,50 +17,37 @@ class FileService {
         let abortController = new AbortController();
 
         const promise = (async () => {
-            const response = await this.getUploadSignature({ file_type: Number(fileType) })
             const md5 = await computeFileMd5(file)
-            const key = response.data.dir + md5
+            const response = await getUploadSignature({
+                file_type: Number(fileType),
+                file_name: md5
+            })
+            if (!response.data.policy) {
+                throw new Error('Failed to get upload policy');
+            }
+            const policy = response.data.policy
+            const key = policy.dir + md5
 
-            // 1. 发起请求前，检测是否有这个文件
-            try {
-                const accessUrlResp = await getAcessUrl({
-                    file_key: key,
-                    file_type: fileType,
-                    oss_process: '',
-                    method: ApiTypes.file.GetMethod.MethodHead
-                });
-
-                if (accessUrlResp.data?.access_url) {
-                    const checkRes = await fetch(accessUrlResp.data.access_url, { method: 'HEAD' });
-                    // 如果返回 200，说明文件已存在
-                    console.log(checkRes)
-                    if (checkRes.status === 200) {
-                        if (onProgress) {
-                            onProgress(100);
-                        }
-                        return response.data.host + '/' + key;
-                    }
-                }
-            } catch (error) {
-                console.warn('[FileService] Failed to check if file exists, proceeding with upload:', error);
+            if (response.data.is_exits) {
+                onProgress?.(100)
+                return policy.host + '/' + key
             }
 
             let formData = new FormData();
             formData.append("success_action_status", "200");
-            formData.append("policy", response.data.policy);
-            formData.append("x-oss-signature", response.data.signature);
-            formData.append("x-oss-signature-version", "OSS4-HMAC-SHA256");
-            formData.append("x-oss-credential", response.data.x_oss_credential);
-            formData.append("x-oss-date", response.data.x_oss_date);
+            formData.append("policy", policy.policy);
+            formData.append("x-oss-signature", policy.signature);
+            formData.append("x-oss-signature-version", policy.x_oss_signature_version);
+            formData.append("x-oss-credential", policy.x_oss_credential);
+            formData.append("x-oss-date", policy.x_oss_date);
             formData.append("key", key);
-            formData.append("x-oss-security-token", response.data.security_token);
-            formData.append("callback", response.data.callback);
+            formData.append("x-oss-security-token", policy.security_token);
+            formData.append("callback", policy.callback);
             formData.append("file", file);
-            console.log(response.data.callback)
 
             return new Promise<string>((resolve, reject) => {
                 const xhr = new XMLHttpRequest();
-                xhr.open('POST', response.data.host);
+                xhr.open('POST', policy.host);
 
                 // 监听取消信号
                 abortController.signal.addEventListener('abort', () => {
@@ -86,7 +66,7 @@ class FileService {
 
                 xhr.onload = () => {
                     if (xhr.status === 200) {
-                        resolve(response.data.host + '/' + key);
+                        resolve(policy.host + '/' + key);
                     } else {
                         console.log(xhr.responseText)
                         reject(new Error(`Upload failed with status: ${xhr.status}`));
@@ -106,7 +86,7 @@ class FileService {
             abort: () => abortController.abort()
         };
     }
-    
+
     /**
      * 从 OSS URL 中提取 file_key（去掉 host 及开头的 /）
      */
