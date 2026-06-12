@@ -39,19 +39,19 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import SideBar from './components/SideBar.vue';
-import { windowService, ipcService, websocketService } from '@/services';
-import { signalWindowReady } from '@/utils/windowReady';
-import { useUserStore } from '@/store/user';
-import { useChatStore } from '@/store/chat';
-import FilterColumn from '@/components/FilterColumn.vue';
-import CreateGroup from '@/components/CreateGroup.vue';
-import { createWindow } from '@/utils/window';
-import { groupService } from '@/services'
-import { IpcChannels, ApiTypes } from '@/types';
-import { initRelationStore, storeOfflineTimestamp } from '@/store/init';
+import { windowService, ipcService, websocketService } from '@/src/services';
+import { signalWindowReady } from '@/src/utils/windowReady';
+import { useUserStore } from '@/src/store/user';
+import { useChatStore } from '@/src/store/chat';
+import FilterColumn from '@/src/components/FilterColumn.vue';
+import CreateGroup from '@/src/components/CreateGroup.vue';
+import { createWindow } from '@/src/utils/window';
+import { groupService } from '@/src/services'
+import { IpcChannels, ApiTypes } from '@/src/types';
+import { initRelationStore, storeOfflineTimestamp } from '@/src/store/init';
 import { ElMessage } from 'element-plus';
-import GlobalLoading from '@/components/GlobalLoading/GlobalLoading';
-import messageService from '@/services/messageService';
+import GlobalLoading from '@/src/components/GlobalLoading/GlobalLoading';
+import messageService from '@/src/services/messageService';
 
 const router = useRouter();
 const userStore = useUserStore()
@@ -120,8 +120,8 @@ onMounted(async () => {
     ipcService.on(IpcChannels.ROUTE_NAVIGATE, (_e, path) => {
         router.push(path);
     });
-    await import('@/views/home/contact/components/ContactSidebar.vue')
-    await import('@/components/BlankPage.vue')
+    await import('@/src/views/home/contact/components/ContactSidebar.vue')
+    await import('@/src/components/BlankPage.vue')
 
     chatStore.loadFromStorage(userStore.getUserID());
     websocketService.connect()
@@ -140,7 +140,7 @@ onUnmounted(async () => {
 </script>
 
 <style scoped lang="scss">
-@use "@/style/_constant.scss" as *;
+@use "@/src/style/_constant.scss" as *;
 
 .main-container {
     position: fixed;

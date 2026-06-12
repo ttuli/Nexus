@@ -23,18 +23,18 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import { useUserStore } from '@/store/user';
-import { useGroupStore } from '@/store/group';
-import { useAppStore } from '@/store/app';
-import { useChatStore } from '@/store/chat';
+import { useUserStore } from '@/src/store/user';
+import { useGroupStore } from '@/src/store/group';
+import { useAppStore } from '@/src/store/app';
+import { useChatStore } from '@/src/store/chat';
 
-import ChatIcon from '@/assets/sidebar/message.svg';
-import ContactsIcon from '@/assets/menu/contacts.svg';
-import SettingIcon from '@/assets/sidebar/setting.svg';
-import { createWindow } from '@/utils/window';
-import { windowService } from '@/services';
-import { NotifySoundType } from '@/services/windowService';
-import { CurrentRoute } from '@/types';
+import ChatIcon from '@/src/assets/sidebar/message.svg';
+import ContactsIcon from '@/src/assets/menu/contacts.svg';
+import SettingIcon from '@/src/assets/sidebar/setting.svg';
+import { createWindow } from '@/src/utils/window';
+import { windowService } from '@/src/services';
+import { NotifySoundType } from '@/src/services/windowService';
+import { CurrentRoute } from '@/src/types';
 
 const router = useRouter();
 const route = useRoute();

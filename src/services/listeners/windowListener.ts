@@ -5,8 +5,8 @@
  */
 
 import { ipcService } from '../ipcService'
-import { IpcChannels } from '@/types'
-import { useChatStore } from '@/store/chat'
+import { IpcChannels } from '@/src/types'
+import { useChatStore } from '@/src/store/chat'
 
 export function initWindowListener(): void {
     ipcService.on(IpcChannels.WINDOW_STATE, (_event, state) => {

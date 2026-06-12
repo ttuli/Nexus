@@ -1,8 +1,8 @@
-import { friendService, groupService, userService } from "@/services";
-import { ImTypes } from '@/types';
+import { friendService, groupService, userService } from "@/src/services";
+import { ImTypes } from '@/src/types';
 import { useUserStore } from "./user";
 import { useChatStore } from "./chat";
-import { extractTargetIdFromSessionId } from '@/utils/chat';
+import { extractTargetIdFromSessionId } from '@/src/utils/chat';
 
 export async function initRelationStore() {
     const userStore = useUserStore()

@@ -12,7 +12,7 @@
 </template>
 
 <script setup lang="ts">
-import Avatar from '@/components/Avatar.vue';
+import Avatar from '@/src/components/Avatar.vue';
 
 interface Props {
     id: number;
@@ -39,7 +39,7 @@ const handleClick = () => {
 </script>
 
 <style scoped lang="scss">
-@use "@/style/_constant.scss" as *;
+@use "@/src/style/_constant.scss" as *;
 
 .contact-item {
     display: flex;

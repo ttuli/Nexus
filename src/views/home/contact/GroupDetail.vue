@@ -75,21 +75,21 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import Avatar from '@/components/Avatar.vue';
-import AvatarUpload from '@/components/AvatarUpload.vue';
-import CusButton from '@/components/CusButton.vue';
+import Avatar from '@/src/components/Avatar.vue';
+import AvatarUpload from '@/src/components/AvatarUpload.vue';
+import CusButton from '@/src/components/CusButton.vue';
 import GroupMemberGrid from './components/GroupMemberGrid.vue';
-import { useUserStore } from '@/store/user';
-import { generateGroupSessionId } from '@/utils/chat';
-import { useGroupStore } from '@/store/group';
-import { useChatStore } from '@/store/chat';
+import { useUserStore } from '@/src/store/user';
+import { generateGroupSessionId } from '@/src/utils/chat';
+import { useGroupStore } from '@/src/store/group';
+import { useChatStore } from '@/src/store/chat';
 import { ElMessage } from 'element-plus';
 import { CopyDocument } from '@element-plus/icons-vue';
-import CusDialog from '@/components/CusDialog/CusDialog';
-import { DialogResult } from '@/components/CusDialog/types';
-import { groupService } from '@/services';
-import CusInputDialog from '@/components/CusInputDialog';
-import { ApiTypes, ImTypes } from '@/types';
+import CusDialog from '@/src/components/CusDialog/CusDialog';
+import { DialogResult } from '@/src/components/CusDialog/types';
+import { groupService } from '@/src/services';
+import CusInputDialog from '@/src/components/CusInputDialog';
+import { ApiTypes, ImTypes } from '@/src/types';
 
 const route = useRoute();
 const router = useRouter();
@@ -283,7 +283,7 @@ const doQuit = async () => {
 
 <style scoped lang="scss">
 @use "sass:color";
-@use "@/style/_constant.scss" as *;
+@use "@/src/style/_constant.scss" as *;
 
 .group-detail {
     width: 100%;

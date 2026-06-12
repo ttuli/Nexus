@@ -31,7 +31,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
-import { signalWindowReady } from '@/utils/windowReady';
+import { signalWindowReady } from '@/src/utils/windowReady';
 
 const route = useRoute();
 const urls = ref<string[]>([]);

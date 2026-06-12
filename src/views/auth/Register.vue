@@ -121,17 +121,17 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { authService } from '@/services'
+import { authService } from '@/src/services'
 
-import NameIcon from '@/assets/input/input_name.svg?url'
-import PhoneIcon from '@/assets/input/input_phone.svg?url'
-import PasswordIcon from '@/assets/input/input_password.svg?url'
-import EyeOpenIcon from '@/assets/input/eye_open.svg?url'
-import EyeClosedIcon from '@/assets/input/eye_closed.svg?url'
-import CheckValidIcon from '@/assets/input/check_valid.svg?url'
-import CheckInvalidIcon from '@/assets/input/check_invalid.svg?url'
-import CodeIcon from '@/assets/input/input_code.svg?url'
-import { signalWindowReady } from '@/utils/windowReady'
+import NameIcon from '@/src/assets/input/input_name.svg?url'
+import PhoneIcon from '@/src/assets/input/input_phone.svg?url'
+import PasswordIcon from '@/src/assets/input/input_password.svg?url'
+import EyeOpenIcon from '@/src/assets/input/eye_open.svg?url'
+import EyeClosedIcon from '@/src/assets/input/eye_closed.svg?url'
+import CheckValidIcon from '@/src/assets/input/check_valid.svg?url'
+import CheckInvalidIcon from '@/src/assets/input/check_invalid.svg?url'
+import CodeIcon from '@/src/assets/input/input_code.svg?url'
+import { signalWindowReady } from '@/src/utils/windowReady'
 
 interface RegisterForm {
     nickname: string

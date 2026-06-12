@@ -1,4 +1,4 @@
-import { CurrentRoute, ImTypes } from '@/types';
+import { CurrentRoute, ImTypes } from '@/src/types';
 /**
  * 群组服务
  * 处理群组信息的获取和管理
@@ -9,18 +9,18 @@ import { CurrentRoute, ImTypes } from '@/types';
  */
 
 import { ipcService } from './ipcService'
-import { ResourceType, IpcChannels, UpdateAction } from '@/types'
-import { useGroupStore } from '@/store/group'
-import { useUserStore } from '@/store/user'
-import { updateGroup, setMemberNickname, joinGroup, createGroup, leaveGroup, handleGroupApply as apiHandleGroupApply, dismissGroup } from '@/apis/group'
-import { ApiTypes } from '@/types'
+import { ResourceType, IpcChannels, UpdateAction } from '@/src/types'
+import { useGroupStore } from '@/src/store/group'
+import { useUserStore } from '@/src/store/user'
+import { updateGroup, setMemberNickname, joinGroup, createGroup, leaveGroup, handleGroupApply as apiHandleGroupApply, dismissGroup } from '@/src/apis/group'
+import { ApiTypes } from '@/src/types'
 import cacheService from './cacheService'
-import { useChatStore } from '@/store/chat'
-import { generateGroupSessionId } from '@/utils/chat'
-import { MessageType, MessageStatus } from '@/types/proto'
-import { IChatMessage } from '@/types/chatMessage'
+import { useChatStore } from '@/src/store/chat'
+import { generateGroupSessionId } from '@/src/utils/chat'
+import { MessageType, MessageStatus } from '@/src/types/proto'
+import { IChatMessage } from '@/src/types/chatMessage'
 import { useRouter } from 'vue-router'
-import { useAppStore } from '@/store/app';
+import { useAppStore } from '@/src/store/app';
 
 class GroupService {
     /**

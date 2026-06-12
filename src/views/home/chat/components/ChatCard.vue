@@ -26,12 +26,12 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { ImTypes } from '@/types';
-import { useUserStore } from '@/store/user';
-import { useGroupStore } from '@/store/group';
-import { extractTargetIdFromSessionId } from '@/utils/chat';
+import { ImTypes } from '@/src/types';
+import { useUserStore } from '@/src/store/user';
+import { useGroupStore } from '@/src/store/group';
+import { extractTargetIdFromSessionId } from '@/src/utils/chat';
 
-import notdisturb from '@/assets/chat/notdisturb.svg?raw';
+import notdisturb from '@/src/assets/chat/notdisturb.svg?raw';
 
 // Props
 interface Props {
@@ -96,7 +96,7 @@ const formatTime = (timestamp: number | null) => {
 </script>
 
 <style scoped lang="scss">
-@use "@/style/_constant.scss" as *;
+@use "@/src/style/_constant.scss" as *;
 
 .chat-card {
     display: flex;

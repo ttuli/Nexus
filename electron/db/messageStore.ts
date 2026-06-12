@@ -1,7 +1,7 @@
 import type Database from 'better-sqlite3';
 import { getDb } from './database';
-import type { IChatMessage } from '../../src/types/chatMessage';
-import { MessageStatus } from '../../src/types/proto';
+import type { IChatMessage } from '@/src/types/chatMessage';
+import { MessageStatus } from '@/src/types/proto';
 
 // ── 表行类型 ──────────────────────────────────────────────────────────────────
 

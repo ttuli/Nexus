@@ -10,25 +10,25 @@ const router = createRouter({
         {
             path: '/login',
             name: '登录',
-            component: () => import('@/views/auth/Login.vue')
+            component: () => import('@/src/views/auth/Login.vue')
         },
         {
             path: '/register',
             name: '注册',
-            component: () => import('@/views/auth/Register.vue')
+            component: () => import('@/src/views/auth/Register.vue')
         },
         {
             path: '/home',
             name: '主界面',
-            component: () => import('@/views/home/index.vue'),
+            component: () => import('@/src/views/home/index.vue'),
             redirect: '/home/chat',
             children: [
                 {
                     path: 'chat',
                     name: '消息',
                     components: {
-                        list: () => import('@/views/home/chat/ChatList.vue'),
-                        default: () => import('@/views/home/chat/ChatContent.vue')
+                        list: () => import('@/src/views/home/chat/ChatList.vue'),
+                        default: () => import('@/src/views/home/chat/ChatContent.vue')
                     }
                 },
                 {
@@ -40,16 +40,16 @@ const router = createRouter({
                             path: 'empty',
                             name: 'ContactEmpty',
                             components: {
-                                list: () => import('@/views/home/contact/components/ContactSidebar.vue'),
-                                default: () => import('@/components/BlankPage.vue')
+                                list: () => import('@/src/views/home/contact/components/ContactSidebar.vue'),
+                                default: () => import('@/src/components/BlankPage.vue')
                             }
                         },
                         {
                             path: 'validation',
                             name: 'ValidationMessages',
                             components: {
-                                list: () => import('@/views/home/contact/components/ContactSidebar.vue'),
-                                default: () => import('@/views/home/contact/ValidationMessages.vue')
+                                list: () => import('@/src/views/home/contact/components/ContactSidebar.vue'),
+                                default: () => import('@/src/views/home/contact/ValidationMessages.vue')
                             },
                             meta: {
                                 preload: true
@@ -59,16 +59,16 @@ const router = createRouter({
                             path: 'friend',
                             name: 'FriendDetail',
                             components: {
-                                list: () => import('@/views/home/contact/components/ContactSidebar.vue'),
-                                default: () => import('@/views/home/contact/FriendDetail.vue')
+                                list: () => import('@/src/views/home/contact/components/ContactSidebar.vue'),
+                                default: () => import('@/src/views/home/contact/FriendDetail.vue')
                             }
                         },
                         {
                             path: 'group',
                             name: 'GroupDetail',
                             components: {
-                                list: () => import('@/views/home/contact/components/ContactSidebar.vue'),
-                                default: () => import('@/views/home/contact/GroupDetail.vue')
+                                list: () => import('@/src/views/home/contact/components/ContactSidebar.vue'),
+                                default: () => import('@/src/views/home/contact/GroupDetail.vue')
                             }
                         }
                     ]
@@ -78,32 +78,32 @@ const router = createRouter({
         {
             path: '/addFriend',
             name: '添加好友',
-            component: () => import('@/views/search/AddFriend.vue')
+            component: () => import('@/src/views/search/AddFriend.vue')
         },
         {
             path: '/userInfo',
             name: '用户信息',
-            component: () => import('@/views/infos/index.vue')
+            component: () => import('@/src/views/infos/index.vue')
         },
         {
             path: '/settings',
             name: '设置',
-            component: () => import('@/views/settings/SettingsLayout.vue')
+            component: () => import('@/src/views/settings/SettingsLayout.vue')
         },
         {
             path: '/photoViewer',
             name: '图片查看',
-            component: () => import('@/views/viewer/index.vue')
+            component: () => import('@/src/views/viewer/index.vue')
         },
         {
             path: '/videoViewer',
             name: '视频播放',
-            component: () => import('@/views/viewer/video.vue')
+            component: () => import('@/src/views/viewer/video.vue')
         },
         {
             path: '/call',
             name: '通话',
-            component: () => import('@/views/call/CallWindow.vue')
+            component: () => import('@/src/views/call/CallWindow.vue')
         }
     ]
 })

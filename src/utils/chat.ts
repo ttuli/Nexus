@@ -1,89 +1,94 @@
-import { ImTypes, IChatMessage, ILocalTextMessage, ILocalImageMessage, ILocalVideoMessage, ILocalAudioMessage, ILocalFileMessage, ILocalSystemMessage } from '@/types';
-import { APP_CONSTANTS, Renderer_Config as config, IMCACHE_SCHEME, IMLOCAL_SCHEME, IMLOCALRAW_SCHEME, LOCA_CACHE_SCHEME } from '@/config/constants';
-import { useUserStore } from '@/store/user';
+import {
+    ImTypes, IChatMessage, ILocalTextMessage, ILocalImageMessage,
+    ILocalVideoMessage, ILocalAudioMessage, ILocalFileMessage, ILocalSystemMessage,
+    CacheOption
+} from '@/src/types';
+import {
+    APP_CONSTANTS, Renderer_Config as config, IMCACHE_SCHEME,
+    IMLOCAL_SCHEME, IMLOCALRAW_SCHEME, LOCAL_CACHE_SCHEME
+} from '@/src/config/constants';
+import { useUserStore } from '@/src/store/user';
 import { ulid } from 'ulid';
-import { fileService } from '@/services/fileService';
-import { settingService } from '@/services/settingService';
-import { messageStorageService } from '@/services/messageStorageService';
+import { settingService } from '@/src/services/settingService';
 
 /**
  * 统一的本地/网络资源 URL 转换器
  * @param pathOrUrl 资源的本地绝对路径，或是网络 http(s) URL
  * @param cacheKey 稳定标识，格式如 `fileKey` 或 `fileKey|ossProcess`
  */
-export function toResourceUrl(pathOrUrl: string, cacheKey?: string): string {
+export function toResourceUrl(pathOrUrl: string, opts?: CacheOption): string {
     if (!pathOrUrl) return '';
 
     // 如果已经是 localcache 协议了，就直接返回
-    if (pathOrUrl.startsWith(`${LOCA_CACHE_SCHEME}://`)) return pathOrUrl;
+    if (pathOrUrl.startsWith(`${LOCAL_CACHE_SCHEME}://`)) return pathOrUrl;
 
     // URL-safe Base64 编码路径或 URL
     const encoded = btoa(encodeURIComponent(pathOrUrl).replace(/%([0-9A-F]{2})/g, (_, p1) =>
         String.fromCharCode(parseInt(p1, 16))
     )).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 
-    let result = `${LOCA_CACHE_SCHEME}://${encoded}`;
+    let result = `${LOCAL_CACHE_SCHEME}://${encoded}`;
 
-    // 如果有 cacheKey，也进行编码并拼接
-    if (cacheKey) {
-        const encodedKey = btoa(encodeURIComponent(cacheKey).replace(/%([0-9A-F]{2})/g, (_, p1) =>
+    // 将 opts 打包并进行 URL-safe Base64 编码拼接
+    if (opts && Object.keys(opts).length > 0) {
+        const encodedOpts = btoa(encodeURIComponent(JSON.stringify(opts)).replace(/%([0-9A-F]{2})/g, (_, p1) =>
             String.fromCharCode(parseInt(p1, 16))
         )).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-        result += `?ck=${encodedKey}`;
+        result += `?opts=${encodedOpts}`;
     }
 
     return result;
 }
 
-/**
- * 将本地文件绝对路径转换为 imlocalraw:// 协议地址（原样返回，不裁剪）
- */
-export function toLocalPreviewUrlRaw(filePath: string): string {
-    const encoded = btoa(encodeURIComponent(filePath).replace(/%([0-9A-F]{2})/g, (_, p1) =>
-        String.fromCharCode(parseInt(p1, 16))
-    )).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-    return `${IMLOCALRAW_SCHEME}://${encoded}`;
-}
+// /**
+//  * 将本地文件绝对路径转换为 imlocalraw:// 协议地址（原样返回，不裁剪）
+//  */
+// export function toLocalPreviewUrlRaw(filePath: string): string {
+//     const encoded = btoa(encodeURIComponent(filePath).replace(/%([0-9A-F]{2})/g, (_, p1) =>
+//         String.fromCharCode(parseInt(p1, 16))
+//     )).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+//     return `${IMLOCALRAW_SCHEME}://${encoded}`;
+// }
 
-/**
- * 将本地文件绝对路径转换为 imlocal:// 协议地址（渲染进程侧）
- * 主进程会拦截此协议，用 nativeImage 缩放后返回图片 buffer
- * @param filePath 本地文件绝对路径（Electron File.path 字段）
- */
-export function toLocalPreviewUrl(filePath: string, width?: number, height?: number): string {
-    // 使用 URL-safe Base64（浏览器原生 btoa 只支持 latin1，需转义 unicode）
-    const encoded = btoa(encodeURIComponent(filePath).replace(/%([0-9A-F]{2})/g, (_, p1) =>
-        String.fromCharCode(parseInt(p1, 16))
-    )).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+// /**
+//  * 将本地文件绝对路径转换为 imlocal:// 协议地址（渲染进程侧）
+//  * 主进程会拦截此协议，用 nativeImage 缩放后返回图片 buffer
+//  * @param filePath 本地文件绝对路径（Electron File.path 字段）
+//  */
+// export function toLocalPreviewUrl(filePath: string, width?: number, height?: number): string {
+//     // 使用 URL-safe Base64（浏览器原生 btoa 只支持 latin1，需转义 unicode）
+//     const encoded = btoa(encodeURIComponent(filePath).replace(/%([0-9A-F]{2})/g, (_, p1) =>
+//         String.fromCharCode(parseInt(p1, 16))
+//     )).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 
-    let url = `${IMLOCAL_SCHEME}://${encoded}`;
-    const params = new URLSearchParams();
-    if (width) params.append('width', width.toString());
-    if (height) params.append('height', height.toString());
-    const qs = params.toString();
-    if (qs) url += `?${qs}`;
-    return url;
-}
+//     let url = `${IMLOCAL_SCHEME}://${encoded}`;
+//     const params = new URLSearchParams();
+//     if (width) params.append('width', width.toString());
+//     if (height) params.append('height', height.toString());
+//     const qs = params.toString();
+//     if (qs) url += `?${qs}`;
+//     return url;
+// }
 
-/**
- * 将网络 OSS URL 转换为 imcache:// 协议地址（渲染进程侧）
- * 主进程会拦截此协议，下载文件、存入磁盘缓存，并返回。
- * @param url 网络图片地址
- * @param width 图片推荐的渲染宽度
- * @param height 图片推荐的渲染高度
- */
-export function toNetworkPreviewUrl(url: string): string {
-    if (!url) return '';
-    // 如果已经是 imcache 协议了，就直接返回
-    if (url.startsWith(`${IMCACHE_SCHEME}://`)) return url;
+// /**
+//  * 将网络 OSS URL 转换为 imcache:// 协议地址（渲染进程侧）
+//  * 主进程会拦截此协议，下载文件、存入磁盘缓存，并返回。
+//  * @param url 网络图片地址
+//  * @param width 图片推荐的渲染宽度
+//  * @param height 图片推荐的渲染高度
+//  */
+// export function toNetworkPreviewUrl(url: string): string {
+//     if (!url) return '';
+//     // 如果已经是 imcache 协议了，就直接返回
+//     if (url.startsWith(`${IMCACHE_SCHEME}://`)) return url;
 
-    // Base64Url 编码
-    const encoded = btoa(encodeURIComponent(url).replace(/%([0-9A-F]{2})/g, (_, p1) =>
-        String.fromCharCode(parseInt(p1, 16))
-    )).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+//     // Base64Url 编码
+//     const encoded = btoa(encodeURIComponent(url).replace(/%([0-9A-F]{2})/g, (_, p1) =>
+//         String.fromCharCode(parseInt(p1, 16))
+//     )).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 
-    return `${IMCACHE_SCHEME}://${encoded}`;
-}
+//     return `${IMCACHE_SCHEME}://${encoded}`;
+// }
 
 /**
  * Convert WSMessage to IChatMessage (Local Message format)
@@ -767,35 +772,6 @@ export function formatSystemMessage(message: ILocalSystemMessage): string {
         default:
             return '系统消息';
     }
-}
-
-/**
- * 下载媒体消息（图片/视频/音频/文件）的 OSS 资源到本地存储路径，
- * 并将 localPath 回写到 message 对象，最后持久化到数据库。
- *
- * @param message 目标消息（含 url、format、fileName 等字段）
- * @param onProgress 下载进度回调 0-100（可选）
- * @returns 成功时返回本地绝对路径；失败时抛出异常
- */
-export async function downloadMessageToLocal(
-    message: ILocalImageMessage | ILocalVideoMessage | ILocalAudioMessage | ILocalFileMessage,
-    url: string,
-    onProgress?: (progress: number) => void,
-): Promise<string> {
-    const storagePath = await settingService.getStoragePath();
-
-    const now = new Date();
-    const datePart = `${now.getFullYear()}_${now.getMonth() + 1}_${now.getDate()}`;
-    const ext = ('format' in message && message.format) ? '.' + message.format : '';
-    let fileName = `${datePart}_${Date.now()}${ext}`;
-
-    console.debug('[downloadMessageToLocal] storagePath:', storagePath);
-    const localPath = await fileService.downloadFile(url, fileName, onProgress);
-
-    (message as any).localPath = localPath;
-    messageStorageService.saveMessage(message as any);
-
-    return localPath;
 }
 
 /**

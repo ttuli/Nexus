@@ -1,6 +1,6 @@
-import { ResourceType, ResourceIdKeyMap, IpcChannels, GroupMembersWrapper } from '../../src/types';
-import { windowManager } from '../windows/windowManager';
-import { Main_Config as config } from '../../src/config/constants';
+import { ResourceType, ResourceIdKeyMap, IpcChannels, GroupMembersWrapper } from '@/src/types';
+import { windowManager } from '@/electron/windows/windowManager';
+import { Main_Config as config } from '@/src/config/constants';
 import { LRUCache } from 'lru-cache';
 import {
     userStore,
@@ -8,7 +8,7 @@ import {
     groupMemberStore,
     kvCache,
     closeDb
-} from '../db';
+} from '@/electron/db';
 
 // ─── 需要持久化到磁盘的资源类型 ─────────────────────────────────
 const PERSIST_TYPES = new Set<ResourceType>([

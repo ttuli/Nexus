@@ -5,10 +5,10 @@ import { WsMessage, IMessageSerializer } from './serializer/MessageSerializer';
 import { messageQueue } from './MessageQueue';
 import { messageRouter } from './MessageRouter';
 import { setupRoutes } from './routes';
-import { tokenManager } from '../resource/tokenManager';
-import { ImTypes, LogoutType, IpcChannels, ConnectionState } from '../../src/types';
-import { windowManager } from '../windows/windowManager';
-import { Main_Config as config } from '../../src/config/constants';
+import { tokenManager } from '@/electron/resource/tokenManager';
+import { ImTypes, LogoutType, IpcChannels, ConnectionState } from '@/src/types';
+import { windowManager } from '@/electron/windows/windowManager';
+import { Main_Config as config } from '@/src/config/constants';
 import { defaultSerializer } from './serializer/protoSerializer';
 
 /**

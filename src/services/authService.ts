@@ -4,9 +4,9 @@
  */
 
 import { ipcService } from './ipcService'
-import { IpcChannels } from '@/types'
-import { register, sendCode } from '@/apis/auth'
-import { ApiTypes } from '@/types'
+import { IpcChannels } from '@/src/types'
+import { register, sendCode } from '@/src/apis/auth'
+import { ApiTypes } from '@/src/types'
 
 export interface TokenRefreshResult {
     success: boolean

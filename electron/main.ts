@@ -8,7 +8,7 @@ import { windowManager } from './windows/windowManager'
 import { resourceManager, cacheManager } from './resource'
 import { registerProtocols } from './protocol'
 import { wsManager } from './websocket'
-import { IpcChannels } from '../src/types/ipc'
+import { IpcChannels } from '@/src/types/ipc'
 import { fileCacheManager } from './resource/fileCacheManager'
 
 export const __dirname = path.dirname(fileURLToPath(import.meta.url))

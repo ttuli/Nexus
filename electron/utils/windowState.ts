@@ -1,7 +1,7 @@
 import { app } from 'electron';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { join } from 'path';
-import { WindowState } from '../windows/windowAttribute';
+import { WindowState } from '@/electron/windows/windowAttribute';
 
 /**
  * 窗口状态管理器

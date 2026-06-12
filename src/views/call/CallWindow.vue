@@ -15,7 +15,7 @@ import { ref, onMounted } from 'vue';
 import PrivateCall from './PrivateCall.vue';
 import GroupCall from './GroupCall.vue';
 import { useRoute } from 'vue-router';
-import { signalWindowReady } from '@/utils/windowReady';
+import { signalWindowReady } from '@/src/utils/windowReady';
 
 // 决定显示一对一还是一对多
 const callType = ref<'private' | 'group'>('private');

@@ -2,8 +2,8 @@ import { authManager } from './authManager';
 import { tokenManager } from './tokenManager';
 import { cacheManager } from './cacheManager';
 import { setupIpcHandlers } from './ipcHandlers';
-import { wsManager, setupWsIpcHandlers, setupWsEventForwarding } from '../websocket';
-import { Group, ResourceType } from '../../src/types';
+import { wsManager, setupWsIpcHandlers, setupWsEventForwarding } from '@/electron/websocket';
+import { Group, ResourceType } from '@/src/types';
 
 /**
  * 资源管理器（主入口）

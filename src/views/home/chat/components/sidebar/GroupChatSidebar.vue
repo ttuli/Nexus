@@ -44,16 +44,16 @@
 
 <script setup lang="ts">
 import { computed, ref, watch, onMounted } from 'vue';
-import CusSwitch from '@/components/CusSwitch.vue';
-import { useUserStore } from '@/store/user';
-import { useChatStore } from '@/store/chat';
-import { useGroupStore } from '@/store/group';
-import { ImTypes } from '@/types';
+import CusSwitch from '@/src/components/CusSwitch.vue';
+import { useUserStore } from '@/src/store/user';
+import { useChatStore } from '@/src/store/chat';
+import { useGroupStore } from '@/src/store/group';
+import { ImTypes } from '@/src/types';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { leaveGroup, dismissGroup } from '@/apis/group';
-import { extractTargetIdFromSessionId } from '@/utils/chat';
+import { leaveGroup, dismissGroup } from '@/src/apis/group';
+import { extractTargetIdFromSessionId } from '@/src/utils/chat';
 import GroupMembersCard from './GroupMembersCard.vue';
-import { groupService, messageService } from '@/services';
+import { groupService, messageService } from '@/src/services';
 
 const props = defineProps<{
     chat: ImTypes.Conversation;
@@ -176,7 +176,7 @@ const inviteMembers = () => {
 
 <style scoped lang="scss">
 @use "sass:color";
-@use "@/style/constant.scss" as *;
+@use "@/src/style/constant.scss" as *;
 
 .group-sidebar {
     height: 100%;

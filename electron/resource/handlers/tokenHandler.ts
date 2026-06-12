@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron';
-import { tokenManager } from '../tokenManager';
-import { IpcChannels } from '../../../src/types/ipc';
+import { tokenManager } from '@/electron/resource/tokenManager';
+import { IpcChannels } from '@/src/types/ipc';
 
 /**
  * Token 相关 IPC 处理器

@@ -24,7 +24,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import ModalBackground from '@/components/ModalBackground/ModalBackground.vue';
+import ModalBackground from '@/src/components/ModalBackground/ModalBackground.vue';
 import { DialogResult } from './types';
 
 interface Props {
@@ -81,7 +81,7 @@ defineExpose({ open });
 
 
 <style lang="scss" scoped>
-@use "@/style/_constant.scss" as *;
+@use "@/src/style/_constant.scss" as *;
 
 .cus-dialog-card {
     background: $bg-card;

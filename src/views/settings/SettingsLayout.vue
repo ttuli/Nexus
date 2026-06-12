@@ -22,11 +22,11 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
-import { getTheme, setTheme } from '@/utils/themeManager';
-import { signalWindowReady } from '@/utils/windowReady';
-import { ipcService } from '@/services/ipcService';
-import { IpcChannels } from '@/types';
-import { settingService } from '@/services';
+import { getTheme, setTheme } from '@/src/utils/themeManager';
+import { signalWindowReady } from '@/src/utils/windowReady';
+import { ipcService } from '@/src/services/ipcService';
+import { IpcChannels } from '@/src/types';
+import { settingService } from '@/src/services';
 
 const isDark = ref(getTheme() === 'dark');
 const currentStoragePath = ref<string>('加载中...');
@@ -63,7 +63,7 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-@use "@/style/_constant.scss" as *;
+@use "@/src/style/_constant.scss" as *;
 
 .settings-layout {
     // padding: 40px;

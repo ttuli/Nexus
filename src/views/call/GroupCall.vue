@@ -96,7 +96,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
-@use "@/style/_constant.scss" as *;
+@use "@/src/style/_constant.scss" as *;
 
 .group-call-container {
   width: 100vw;

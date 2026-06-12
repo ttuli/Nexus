@@ -1,11 +1,11 @@
 import { defineStore } from 'pinia';
 import { useUserStore } from './user';
-import { ApiTypes, ImTypes } from '@/types';
-import { IChatMessage } from '@/types/chatMessage';
-import { chatService, windowService } from '@/services';
-import { messageStorageService } from '@/services/messageStorageService';
-import { Renderer_Config as config } from '@/config/constants';
-import { extractTargetIdFromSessionId, getLastContent } from '@/utils/chat';
+import { ApiTypes, ImTypes } from '@/src/types';
+import { IChatMessage } from '@/src/types/chatMessage';
+import { chatService, windowService } from '@/src/services';
+import { messageStorageService } from '@/src/services/messageStorageService';
+import { Renderer_Config as config } from '@/src/config/constants';
+import { extractTargetIdFromSessionId, getLastContent } from '@/src/utils/chat';
 
 export const useChatStore = defineStore('chat', {
     state: () => ({

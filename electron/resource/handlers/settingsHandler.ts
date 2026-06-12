@@ -1,6 +1,6 @@
 import { ipcMain, BrowserWindow } from 'electron';
-import { IpcChannels } from '../../../src/types';
-import { settingManager } from '../settingManager';
+import { IpcChannels } from '@/src/types';
+import { settingManager } from '@/electron/resource/settingManager';
 
 export function setupSettingsHandlers(): void {
     // 获取当前存储路径
@@ -58,10 +58,11 @@ export function setupSettingsHandlers(): void {
     });
 
     // 下载文件到本地
-    ipcMain.handle(IpcChannels.SYSTEM_DOWNLOAD_FILE, async (_event, { url, fileName, onProgressChannel }: {
+    ipcMain.handle(IpcChannels.SYSTEM_DOWNLOAD_FILE, async (_event, { url, fileName, onProgressChannel, downloadId }: {
         url: string;
         fileName: string;
         onProgressChannel?: string;
+        downloadId?: string;
     }) => {
         try {
             const onProgress = onProgressChannel
@@ -71,10 +72,21 @@ export function setupSettingsHandlers(): void {
                 }
                 : undefined;
 
-            const savePath = await settingManager.downloadFile(url, fileName, onProgress);
+            const savePath = await settingManager.downloadFile(url, fileName, onProgress, downloadId);
             return { success: true, data: savePath };
         } catch (error: any) {
             console.error('[SettingsHandler] Download file error:', error);
+            return { success: false, error: error.message };
+        }
+    });
+
+    // 取消下载
+    ipcMain.handle(IpcChannels.SYSTEM_CANCEL_DOWNLOAD, (_event, downloadId: string) => {
+        try {
+            settingManager.cancelDownload(downloadId);
+            return { success: true };
+        } catch (error: any) {
+            console.error('[SettingsHandler] Cancel download error:', error);
             return { success: false, error: error.message };
         }
     });

@@ -1,5 +1,5 @@
-import { ApiTypes } from "@/types"
-import { suggest } from "@/apis/llm"
+import { ApiTypes } from "@/src/types"
+import { suggest } from "@/src/apis/llm"
 
 class LlmService {
     async suggest(request: ApiTypes.llm.SuggestRequest): Promise<ApiTypes.llm.SuggestResponse> {

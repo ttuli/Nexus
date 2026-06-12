@@ -25,7 +25,7 @@
 
 <script setup lang="ts">
 import { ref, nextTick } from 'vue';
-import ModalBackground from '@/components/ModalBackground/ModalBackground.vue';
+import ModalBackground from '@/src/components/ModalBackground/ModalBackground.vue';
 import { ElMessage } from 'element-plus';
 
 interface Props {
@@ -92,7 +92,7 @@ defineExpose({ open });
 </script>
 
 <style lang="scss" scoped>
-@use "@/style/_constant.scss" as *;
+@use "@/src/style/_constant.scss" as *;
 
 .cus-input-dialog-card {
     background: $bg-card;

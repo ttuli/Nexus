@@ -21,10 +21,10 @@
 
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
-import Avatar from '@/components/Avatar.vue';
-import { ImTypes } from '@/types';
-import { useUserStore } from '@/store/user';
-import { userService } from '@/services';
+import Avatar from '@/src/components/Avatar.vue';
+import { ImTypes } from '@/src/types';
+import { useUserStore } from '@/src/store/user';
+import { userService } from '@/src/services';
 
 const userStore = useUserStore();
 const props = defineProps<{
@@ -63,7 +63,7 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-@use "@/style/_constant.scss" as *;
+@use "@/src/style/_constant.scss" as *;
 
 .section-card {
     background: $bg-card;

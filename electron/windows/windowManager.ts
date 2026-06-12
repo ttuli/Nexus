@@ -3,11 +3,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WindowConfig, ManagedWindow, CreateWindowRequest, WindowState } from './windowAttribute';
 import configs from './windowAttribute';
-import { windowStateManager } from '../utils/windowState';
-import { resourceManager } from '../resource';
+import { windowStateManager } from '@/electron/utils/windowState';
+import { resourceManager } from '@/electron/resource';
 import { TrayManager } from './trayManager';
-import { IpcChannels } from '../../src/types';
-import { Main_Config as config } from '../../src/config/constants';
+import { IpcChannels } from '@/src/types';
+import { Main_Config as config } from '@/src/config/constants';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

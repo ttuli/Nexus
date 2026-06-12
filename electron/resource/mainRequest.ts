@@ -1,7 +1,7 @@
 import { net, ClientRequest } from 'electron';
 import { tokenManager } from './tokenManager';
-import { ImTypes, IpcChannels, LogoutType } from '../../src/types';
-import { windowManager } from '../windows/windowManager';
+import { ImTypes, IpcChannels, LogoutType } from '@/src/types';
+import { windowManager } from '@/electron/windows/windowManager';
 
 /**
  * 主进程 HTTP 请求配置

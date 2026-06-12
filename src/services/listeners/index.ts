@@ -4,7 +4,7 @@
  */
 
 import { ipcService } from '../ipcService'
-import { IpcChannels } from '@/types'
+import { IpcChannels } from '@/src/types'
 import { initResourceListener } from './resourceListener'
 import { initWsMessageListener } from './wsMessageListener'
 import { initWsNotificationListener } from './wsNotificationListener'

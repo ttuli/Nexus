@@ -19,19 +19,19 @@ import { onMounted, onActivated, ref, computed } from 'vue';
 
 defineOptions({ name: 'ChatList' });
 import { useRouter } from 'vue-router';
-import { useChatStore } from '@/store/chat';
+import { useChatStore } from '@/src/store/chat';
 import ChatCard from './components/ChatCard.vue';
-import ContextMenu, { type MenuOption } from '@/components/ContextMenu.vue';
-import { ImTypes } from '@/types';
-import { messageService } from '@/services';
+import ContextMenu, { type MenuOption } from '@/src/components/ContextMenu.vue';
+import { ImTypes } from '@/src/types';
+import { messageService } from '@/src/services';
 
-import notdisturb from '@/assets/chat/notdisturb.svg?raw';
-import disturb from '@/assets/chat/disturb.svg?raw';
-import nottop from '@/assets/chat/nottop.svg?raw';
-import top from '@/assets/chat/top.svg?raw';
-import trash from '@/assets/chat/trash.svg?raw';
-import setmsgunread from '@/assets/chat/setmsgunread.svg?raw';
-import setmsgread from '@/assets/chat/setmsgread.svg?raw';
+import notdisturb from '@/src/assets/chat/notdisturb.svg?raw';
+import disturb from '@/src/assets/chat/disturb.svg?raw';
+import nottop from '@/src/assets/chat/nottop.svg?raw';
+import top from '@/src/assets/chat/top.svg?raw';
+import trash from '@/src/assets/chat/trash.svg?raw';
+import setmsgunread from '@/src/assets/chat/setmsgunread.svg?raw';
+import setmsgread from '@/src/assets/chat/setmsgread.svg?raw';
 
 const router = useRouter();
 const store = useChatStore();
@@ -122,7 +122,7 @@ onActivated(() => {
 </script>
 
 <style scoped lang="scss">
-@use "@/style/_constant.scss" as *;
+@use "@/src/style/_constant.scss" as *;
 
 .chat-list {
     height: 100%;

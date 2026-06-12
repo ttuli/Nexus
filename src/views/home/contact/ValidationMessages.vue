@@ -81,15 +81,15 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 
-import { useUserStore } from '@/store/user';
-import { useGroupStore } from '@/store/group';
-import { UpdateAction, ResourceType, ImTypes, ValidationType } from '@/types';
-import { cacheService, groupService } from '@/services';
-import { friendService } from '@/services'
-import GlobalLoading from '@/components/GlobalLoading/GlobalLoading';
-import { convertApplySrc2FriendSrc, generateSessionId } from '@/utils/chat';
-import { useChatStore } from '@/store/chat';
-import { useAppStore } from '@/store/app';
+import { useUserStore } from '@/src/store/user';
+import { useGroupStore } from '@/src/store/group';
+import { UpdateAction, ResourceType, ImTypes, ValidationType } from '@/src/types';
+import { cacheService, groupService } from '@/src/services';
+import { friendService } from '@/src/services'
+import GlobalLoading from '@/src/components/GlobalLoading/GlobalLoading';
+import { convertApplySrc2FriendSrc, generateSessionId } from '@/src/utils/chat';
+import { useChatStore } from '@/src/store/chat';
+import { useAppStore } from '@/src/store/app';
 import { ElMessage } from 'element-plus';
 
 const type = ref<'friend' | 'group'>('friend');
@@ -251,7 +251,7 @@ const handleGroupReq = async (req: ImTypes.GroupApply, actionType: 'accept' | 'r
 </script>
 
 <style scoped lang="scss">
-@use "@/style/_constant.scss" as *;
+@use "@/src/style/_constant.scss" as *;
 
 .validation-messages {
     height: 100%;

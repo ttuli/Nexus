@@ -1,6 +1,6 @@
-import { IChatMessage } from '@/types/chatMessage';
-import { MessageStatus } from '@/types/proto';
-import { IpcChannels } from '@/types/ipc';
+import { IChatMessage } from '@/src/types/chatMessage';
+import { MessageStatus } from '@/src/types/proto';
+import { IpcChannels } from '@/src/types/ipc';
 
 /**
  * 消息存储服务（渲染进程）

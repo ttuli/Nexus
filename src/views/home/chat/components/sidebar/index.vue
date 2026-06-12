@@ -10,7 +10,7 @@
 </template>
 
 <script setup lang="ts">
-import { ImTypes } from '@/types';
+import { ImTypes } from '@/src/types';
 import PrivateChatSidebar from './PrivateChatSidebar.vue';
 import GroupChatSidebar from './GroupChatSidebar.vue';
 
@@ -23,7 +23,7 @@ defineEmits(['close']);
 </script>
 
 <style scoped lang="scss">
-@use "@/style/constant.scss" as *;
+@use "@/src/style/constant.scss" as *;
 
 .chat-sidebar-wrapper {
     position: absolute;

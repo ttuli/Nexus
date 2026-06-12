@@ -112,6 +112,7 @@ export const IpcChannels = {
     SYSTEM_SHOW_IN_FOLDER: 'system:show-in-folder',
     SYSTEM_FILE_EXISTS: 'system:file-exists',
     SYSTEM_DOWNLOAD_FILE: 'system:download-file',
+    SYSTEM_CANCEL_DOWNLOAD: 'system:cancel-download',
     SYSTEM_SAVE_IMAGE_BUFFER: 'system:save-image-buffer',
 
     // 消息存储相关（主进程 SQLite ↔ 渲染进程 IPC）

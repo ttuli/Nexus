@@ -5,11 +5,11 @@
  */
 
 import { ipcService } from '../ipcService'
-import { useAppStore } from '@/store/app'
-import { IpcChannels, ImTypes, CurrentRoute } from '@/types'
+import { useAppStore } from '@/src/store/app'
+import { IpcChannels, ImTypes, CurrentRoute } from '@/src/types'
 import { ElMessage } from 'element-plus'
-import { useChatStore } from '@/store/chat'
-import { convertWSMessageToIChatMessage, checkAndClearInvalidLocalPath } from '@/utils/chat'
+import { useChatStore } from '@/src/store/chat'
+import { convertWSMessageToIChatMessage, checkAndClearInvalidLocalPath } from '@/src/utils/chat'
 import windowService from '../windowService'
 import { fileService } from '../fileService'
 

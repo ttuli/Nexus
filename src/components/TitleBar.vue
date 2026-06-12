@@ -26,13 +26,13 @@
 </template>
 
 <script lang="ts" setup>
-import Min from '@/assets/window/Minimize2.svg'
-import X from '@/assets/window/x.svg'
-import Max from '@/assets/window/Maximize1.svg'
-import UnMax from '@/assets/window/Maximize2.svg'
+import Min from '@/src/assets/window/Minimize2.svg'
+import X from '@/src/assets/window/x.svg'
+import Max from '@/src/assets/window/Maximize1.svg'
+import UnMax from '@/src/assets/window/Maximize2.svg'
 import { onMounted, onUnmounted, ref } from 'vue';
-import { windowService, ipcService } from '@/services';
-import { ImTypes, IpcChannels, ConnectionState } from '@/types';
+import { windowService, ipcService } from '@/src/services';
+import { ImTypes, IpcChannels, ConnectionState } from '@/src/types';
 
 const props = withDefaults(
     defineProps<{

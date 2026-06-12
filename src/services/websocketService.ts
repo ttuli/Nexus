@@ -1,14 +1,13 @@
 import { ipcService } from './ipcService'
-import { IpcChannels, IpcResponse, ImTypes, ApiTypes } from '../types'
-import { ILocalImageMessage, ILocalFileMessage, ILocalVideoMessage } from '@/types/chatMessage'
+import { IpcChannels, IpcResponse, ImTypes, ApiTypes, CacheOptionType } from '../types'
+import { ILocalImageMessage, ILocalFileMessage, ILocalVideoMessage } from '@/src/types/chatMessage'
 import { buildTextWsMessage, buildImageLocalMsg, 
     buildImageWsPayload, buildFileLocalMsg, buildFileWsPayload, 
-    buildVideoLocalMsg, buildVideoWsPayload, extractVideoFrame, toLocalPreviewUrl, 
-    toLocalPreviewUrlRaw} from '@/utils/chat'
-import { useChatStore } from '@/store/chat'
+    buildVideoLocalMsg, buildVideoWsPayload, extractVideoFrame, toResourceUrl} from '@/src/utils/chat'
+import { useChatStore } from '@/src/store/chat'
 import { fileService } from './fileService'
 import { messageStorageService } from './messageStorageService'
-import { APP_CONSTANTS } from '@/config/constants'
+import { APP_CONSTANTS } from '@/src/config/constants'
 
 /**
  * WebSocket 连接状态
@@ -97,7 +96,11 @@ class WebSocketService {
             thumbnailHeight: thumbnailHeight,
             size: file.size,
             format: file.type,
-            thumbnailUrl: toLocalPreviewUrl(filePath, thumbnailWidth, thumbnailHeight),
+            thumbnailUrl: toResourceUrl(filePath, {
+                cacheType: CacheOptionType.IMAGE_THUMB,
+                width: thumbnailWidth,
+                height: thumbnailHeight
+            }),
             fileName: file.name
         }, sessionId)
         chatStore.addMessage(localMsg)
@@ -232,7 +235,7 @@ class WebSocketService {
         const { clientId, localMsg } = buildVideoLocalMsg({
             url: '',
             localPath: filePath,
-            thumbnailUrl: toLocalPreviewUrlRaw(videoMeta.thumbnailUrl),
+            thumbnailUrl: toResourceUrl(videoMeta.thumbnailUrl),
             width: videoMeta.width,
             height: videoMeta.height,
             duration: videoMeta.duration,   

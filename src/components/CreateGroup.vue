@@ -59,14 +59,14 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import ModalBackground from '@/components/ModalBackground/ModalBackground.vue';
-import { useChatStore } from '@/store/chat';
-import { useUserStore } from '@/store/user';
-import { userService } from '@/services';
-import { extractTargetIdFromSessionId } from '@/utils/chat';
-import { ImTypes } from '@/types'
-import DefaultAvatar from '@/assets/avatar/default.png?url';
-import CheckIcon from '@/assets/common/check.svg?url';
+import ModalBackground from '@/src/components/ModalBackground/ModalBackground.vue';
+import { useChatStore } from '@/src/store/chat';
+import { useUserStore } from '@/src/store/user';
+import { userService } from '@/src/services';
+import { extractTargetIdFromSessionId } from '@/src/utils/chat';
+import { ImTypes } from '@/src/types'
+import DefaultAvatar from '@/src/assets/avatar/default.png?url';
+import CheckIcon from '@/src/assets/common/check.svg?url';
 
 const props = defineProps<{
     visible: boolean;

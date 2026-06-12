@@ -17,10 +17,10 @@
 
 <script lang="ts" setup>
 import { ref } from 'vue';
-import SearchIcon from '@/assets/input/search.svg?raw';
-import PlusIcon from '@/assets/input/plus.svg?raw';
+import SearchIcon from '@/src/assets/input/search.svg?raw';
+import PlusIcon from '@/src/assets/input/plus.svg?raw';
 
-import ContextMenu, { MenuOption } from '@/components/ContextMenu.vue';
+import ContextMenu, { MenuOption } from '@/src/components/ContextMenu.vue';
 const emit = defineEmits<{
     (e: 'menu-select', key: string): void;
 }>();
@@ -55,7 +55,7 @@ const handleMenuSelect = (option: MenuOption) => {
 </script>
 
 <style lang="scss" scoped>
-@use "@/style/_constant.scss" as *;
+@use "@/src/style/_constant.scss" as *;
 
 .filter-column {
     width: 100%;

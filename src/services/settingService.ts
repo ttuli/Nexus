@@ -3,7 +3,7 @@
  * 封装客户端设置相关的 IPC 调用（存储路径、文件系统操作等）
  */
 import { ipcService } from './ipcService';
-import { IpcChannels } from '@/types/ipc';
+import { IpcChannels } from '@/src/types/ipc';
 
 class SettingService {
     /**

@@ -1,5 +1,5 @@
 import { powerMonitor } from "electron";
-import { wsManager } from "../../websocket";
+import { wsManager } from "@/electron/websocket";
 
 export function setupSystemHandlers() {
     powerMonitor.on('suspend', handleSuspend);

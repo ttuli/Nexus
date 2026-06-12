@@ -44,10 +44,10 @@
 <script setup lang="ts">
 import { computed, reactive } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import { useGroupStore } from '@/store/group';
-import { useUserStore } from '@/store/user';
+import { useGroupStore } from '@/src/store/group';
+import { useUserStore } from '@/src/store/user';
 import ContactItem from './ContactItem.vue';
-import { ImTypes } from '@/types';
+import { ImTypes } from '@/src/types';
 
 const router = useRouter();
 const route = useRoute();
@@ -93,7 +93,7 @@ const handleSelect = (id: number) => {
 </script>
 
 <style scoped lang="scss">
-@use "@/style/_constant.scss" as *;
+@use "@/src/style/_constant.scss" as *;
 
 .group-list {
     padding: 8px 0;

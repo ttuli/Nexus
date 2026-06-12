@@ -2,8 +2,8 @@
 import { nextTick, onMounted, onUnmounted, ref } from 'vue'
 import CusDialog from './components/CusDialog/CusDialog'
 import { useUserStore } from './store/user'
-import { ipcService, windowService, tokenService, listenerService, LogoutType } from '@/services'
-import { IpcChannels } from '@/types'
+import { ipcService, windowService, tokenService, listenerService, LogoutType } from '@/src/services'
+import { IpcChannels } from '@/src/types'
 import { useGroupStore } from './store/group'
 
 const isAppMounted = ref(false)

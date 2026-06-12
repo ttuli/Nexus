@@ -11,7 +11,7 @@ export const getEnv = (key: string) => {
     return undefined;
 };
 
-export const LOCA_CACHE_SCHEME = 'localcache';
+export const LOCAL_CACHE_SCHEME = 'localcache';
 export const IMCACHE_SCHEME = 'imcache';
 export const IMLOCAL_SCHEME = 'imlocal';
 export const IMLOCALRAW_SCHEME = 'imlocalraw';

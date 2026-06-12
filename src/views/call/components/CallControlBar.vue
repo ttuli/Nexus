@@ -25,9 +25,9 @@
 </template>
 
 <script setup lang="ts">
-import Microphone from '@/assets/call/Microphone.svg?url'
-import Camera from '@/assets/call/VideoCamera.svg?url'
-import Phone from '@/assets/call/phone.svg?url'
+import Microphone from '@/src/assets/call/Microphone.svg?url'
+import Camera from '@/src/assets/call/VideoCamera.svg?url'
+import Phone from '@/src/assets/call/phone.svg?url'
 
 defineProps<{
   isMuted: boolean;

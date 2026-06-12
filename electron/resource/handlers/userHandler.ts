@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron';
-import { userService } from '../userManager';
-import { friendService } from '../friendManager';
-import { IpcChannels } from '../../../src/types/ipc';
+import { userService } from '@/electron/resource/userManager';
+import { friendService } from '@/electron/resource/friendManager';
+import { IpcChannels } from '@/src/types/ipc';
 
 /**
  * User + Friend IPC 处理器

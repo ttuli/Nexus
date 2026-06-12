@@ -1,5 +1,5 @@
 import { IMessageSerializer, WsMessage } from "./MessageSerializer";
-import { ImTypes } from '../../../src/types';
+import { ImTypes } from '@/src/types';
 
 
 /**

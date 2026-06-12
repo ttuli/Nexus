@@ -5,12 +5,12 @@
  */
 
 import { ipcService } from '../ipcService'
-import { useUserStore } from '@/store/user'
-import { useGroupStore } from '@/store/group'
-import { useAppStore } from '@/store/app'
-import { ResourceType, IpcChannels, UpdateAction, ImTypes, ValidationType, CurrentRoute } from '@/types'
-import { useChatStore } from '@/store/chat'
-import { convertApplySrc2FriendSrc, generateGroupSessionId, generateSessionId } from '@/utils/chat'
+import { useUserStore } from '@/src/store/user'
+import { useGroupStore } from '@/src/store/group'
+import { useAppStore } from '@/src/store/app'
+import { ResourceType, IpcChannels, UpdateAction, ImTypes, ValidationType, CurrentRoute } from '@/src/types'
+import { useChatStore } from '@/src/store/chat'
+import { convertApplySrc2FriendSrc, generateGroupSessionId, generateSessionId } from '@/src/utils/chat'
 import windowService from '../windowService'
 import cacheService from '../cacheService'
 import groupService from '../groupService'

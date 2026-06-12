@@ -1,9 +1,9 @@
-import { getHistory, getUserActiveConversation } from '@/apis/message';
-import { ApiTypes, ImTypes, PartialExcept, ResourceType, UpdateAction } from '@/types';
-import { MessageStatus, MessageType } from '@/types/proto';
-import { IChatMessage } from '@/types/chatMessage';
-import { useChatStore } from '@/store/chat';
-import { convertNotificationToChatMessage } from '@/utils/chat';
+import { getHistory, getUserActiveConversation } from '@/src/apis/message';
+import { ApiTypes, ImTypes, PartialExcept, ResourceType, UpdateAction } from '@/src/types';
+import { MessageStatus, MessageType } from '@/src/types/proto';
+import { IChatMessage } from '@/src/types/chatMessage';
+import { useChatStore } from '@/src/store/chat';
+import { convertNotificationToChatMessage } from '@/src/utils/chat';
 import cacheService from './cacheService';
 import groupService from './groupService';
 import windowService from './windowService';

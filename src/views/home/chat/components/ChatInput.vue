@@ -57,10 +57,10 @@ import { ref, nextTick } from 'vue';
 import EmojiPicker from './EmojiPicker.vue';
 import { ElMessage } from 'element-plus';
 
-import emoji from '@/assets/chat/emoji.svg?url';
-import picture from '@/assets/chat/picture.svg?url';
-import file from '@/assets/chat/file.svg?url';
-import bulb from '@/assets/chat/bulb.svg?url';
+import emoji from '@/src/assets/chat/emoji.svg?url';
+import picture from '@/src/assets/chat/picture.svg?url';
+import file from '@/src/assets/chat/file.svg?url';
+import bulb from '@/src/assets/chat/bulb.svg?url';
 
 const props = withDefaults(defineProps<{
     disableReason?: string;
@@ -179,7 +179,7 @@ defineExpose({
 </script>
 
 <style scoped lang="scss">
-@use "@/style/_constant.scss" as *;
+@use "@/src/style/_constant.scss" as *;
 
 .chat-input-area {
     width: 100%;

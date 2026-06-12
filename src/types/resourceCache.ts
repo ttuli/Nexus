@@ -2,7 +2,7 @@
  * 通用资源缓存类型定义
  */
 
-import type { ImTypes } from '@/types';
+import type { ImTypes } from '@/src/types';
 
 // 资源类型枚举
 export enum ResourceType {
@@ -79,3 +79,20 @@ export interface FetchRequestPayload {
 
 export type UserInfo = ImTypes.UserInfo;
 export type Group = ImTypes.GroupInfo;
+
+export enum CacheOptionType {
+    AVATAR = 'avatar',
+    IMAGE = 'image',
+    IMAGE_THUMB = 'image_thumb',
+    VIDEO = 'video',
+    VIDEO_THUMB = 'video_thumb',
+    FILE = 'file',
+    AUDIO = 'audio',
+}
+
+export interface CacheOption {
+    cacheType: CacheOptionType;
+    width?: number;
+    height?: number;
+    quality?: number;
+}

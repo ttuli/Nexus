@@ -5,8 +5,8 @@
 </template>
 
 <script lang="ts" setup>
-import defaultImg from '@/assets/avatar/default.png'
-import defaultGroupImg from '@/assets/avatar/defaultg.png'
+import defaultImg from '@/src/assets/avatar/default.png'
+import defaultGroupImg from '@/src/assets/avatar/defaultg.png'
 
 const props = withDefaults(
     defineProps<{
@@ -25,11 +25,11 @@ const props = withDefaults(
 )
 
 import { onMounted, ref } from 'vue'
-import { userService, groupService } from '@/services'
-import { openPhotoViewer } from '@/utils/window'
-import { useUserStore } from '@/store/user';
-import { useGroupStore } from '@/store/group';
-import { toResourceUrl } from '@/utils/chat'
+import { userService, groupService } from '@/src/services'
+import { openPhotoViewer } from '@/src/utils/window'
+import { useUserStore } from '@/src/store/user';
+import { useGroupStore } from '@/src/store/group';
+import { toResourceUrl } from '@/src/utils/chat'
 
 const source = ref<string>('')
 const userStore = useUserStore();

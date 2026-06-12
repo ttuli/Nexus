@@ -1,5 +1,5 @@
 import { h, render, ComponentPublicInstance } from 'vue';
-import CusDialogComponent from '@/components/CusDialog/CusDialog.vue';
+import CusDialogComponent from '@/src/components/CusDialog/CusDialog.vue';
 import { DialogOptions, DialogResult } from './types';
 
 interface CusDialogInstance extends ComponentPublicInstance {

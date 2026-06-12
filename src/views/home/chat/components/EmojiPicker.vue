@@ -57,7 +57,7 @@ const onSelect = (emoji: string) => {
 </script>
 
 <style scoped lang="scss">
-@use "@/style/_constant.scss" as *;
+@use "@/src/style/_constant.scss" as *;
 
 .emoji-picker-overlay {
     position: fixed;

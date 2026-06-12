@@ -61,7 +61,7 @@ const close = () => {
 </script>
 
 <style scoped lang="scss">
-@use "@/style/_constant.scss" as *;
+@use "@/src/style/_constant.scss" as *;
 
 .context-menu {
     position: fixed;

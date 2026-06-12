@@ -2,7 +2,7 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import schemaSql from './schema.sql?raw';
-import { settingManager } from '../resource/settingManager';
+import { settingManager } from '@/electron/resource/settingManager';
 
 let db: Database.Database | null = null;
 

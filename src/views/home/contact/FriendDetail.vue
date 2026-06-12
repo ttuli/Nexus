@@ -84,16 +84,16 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useUserStore } from '@/store/user';
-import { generateSessionId } from '@/utils/chat';
-import { useChatStore } from '@/store/chat';
-import MaleIcon from '@/assets/gender/male.svg';
-import FemaleIcon from '@/assets/gender/female.svg';
-import { ImTypes } from '@/types';
+import { useUserStore } from '@/src/store/user';
+import { generateSessionId } from '@/src/utils/chat';
+import { useChatStore } from '@/src/store/chat';
+import MaleIcon from '@/src/assets/gender/male.svg';
+import FemaleIcon from '@/src/assets/gender/female.svg';
+import { ImTypes } from '@/src/types';
 import { ElMessage } from 'element-plus';
 import { Edit } from '@element-plus/icons-vue';
-import { userService } from '@/services';
-import { updateFriendInfo } from '@/apis/user';
+import { userService } from '@/src/services';
+import { updateFriendInfo } from '@/src/apis/user';
 
 const route = useRoute();
 const router = useRouter();
@@ -166,7 +166,7 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-@use "@/style/_constant.scss" as *;
+@use "@/src/style/_constant.scss" as *;
 
 .friend-detail {
     height: 100%;

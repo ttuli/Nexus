@@ -1,8 +1,8 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios'
 import { ElMessage } from 'element-plus'
-import { useUserStore } from '@/store/user'
-import { tokenService, windowService, LogoutType } from '@/services'
-import { ImTypes } from '@/types'
+import { useUserStore } from '@/src/store/user'
+import { tokenService, windowService, LogoutType } from '@/src/services'
+import { ImTypes } from '@/src/types'
 
 /** 通用 HTTP 响应包装（泛型覆盖 im.proto ApiResponse 的 data 字段） */
 export type ApiResponse<T> = Omit<ImTypes.ApiResponse, 'data'> & { data: T }

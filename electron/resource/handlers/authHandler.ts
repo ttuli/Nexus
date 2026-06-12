@@ -1,9 +1,9 @@
 import { ipcMain } from 'electron';
-import { authManager } from '../authManager';
-import { tokenManager } from '../tokenManager';
-import { userService } from '../userManager';
-import { storage, StorageKeys } from '../../utils/storage';
-import { IpcChannels } from '../../../src/types/ipc';
+import { authManager } from '@/electron/resource/authManager';
+import { tokenManager } from '@/electron/resource/tokenManager';
+import { userService } from '@/electron/resource/userManager';
+import { storage, StorageKeys } from '@/electron/utils/storage';
+import { IpcChannels } from '@/src/types/ipc';
 
 /**
  * Auth 相关 IPC 处理器

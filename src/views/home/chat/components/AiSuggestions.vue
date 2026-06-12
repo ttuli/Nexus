@@ -53,12 +53,12 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
 import { Refresh, RefreshRight, Loading, Close } from '@element-plus/icons-vue';
-import bulbIcon from '@/assets/chat/bulb.svg?url';
-import llmService from '@/services/llmService';
-import { useChatStore } from '@/store/chat';
-import { useUserStore } from '@/store/user';
-import { Role } from '@/types/apis/llm/llm';
-import { ImTypes } from '@/types';
+import bulbIcon from '@/src/assets/chat/bulb.svg?url';
+import llmService from '@/src/services/llmService';
+import { useChatStore } from '@/src/store/chat';
+import { useUserStore } from '@/src/store/user';
+import { Role } from '@/src/types/apis/llm/llm';
+import { ImTypes } from '@/src/types';
 import { ElMessage } from 'element-plus';
 
 const props = defineProps<{
@@ -165,7 +165,7 @@ const handleClose = () => {
 </script>
 
 <style scoped lang="scss">
-@use "@/style/_constant.scss" as *;
+@use "@/src/style/_constant.scss" as *;
 
 .ai-suggestions-widget {
     width: 100%;

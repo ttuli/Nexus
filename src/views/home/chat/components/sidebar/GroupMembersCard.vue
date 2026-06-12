@@ -35,9 +35,9 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { ImTypes } from '@/types';
-import { APP_CONSTANTS as config } from '@/config/constants';
-import { useUserStore } from '@/store/user';
+import { ImTypes } from '@/src/types';
+import { APP_CONSTANTS as config } from '@/src/config/constants';
+import { useUserStore } from '@/src/store/user';
 
 const userStore = useUserStore();
 
@@ -64,7 +64,7 @@ const getAvatarUrl = (url?: string) => {
 </script>
 
 <style scoped lang="scss">
-@use "@/style/constant.scss" as *;
+@use "@/src/style/constant.scss" as *;
 
 .group-members-card {
     background-color: #f9fafb;

@@ -28,6 +28,11 @@ export default defineConfig(({ mode }) => {
                 external: ['dotenv', 'koffi', 'better-sqlite3'],
               },
             },
+            resolve: {
+              alias: {
+                '@': fileURLToPath(new URL('.', import.meta.url))
+              }
+            },
             // 将所有 VITE_ 环境变量注入到主进程代码中（构建时替换）
             define: Object.fromEntries(
               Object.entries(env).map(([key, val]) => [`process.env.${key}`, JSON.stringify(val)])
@@ -50,7 +55,7 @@ export default defineConfig(({ mode }) => {
     ],
     resolve: {
       alias: {
-        '@': fileURLToPath(new URL('./src', import.meta.url)),
+        '@': fileURLToPath(new URL('.', import.meta.url)),
         __dirname: path.resolve(__dirname, '.'),
       }
     },
@@ -58,7 +63,7 @@ export default defineConfig(({ mode }) => {
       preprocessorOptions: {
         scss: {
           api: 'modern-compiler', // or 'modern'
-          additionalData: `@use "@/style/_constant.scss" as *;`,
+          additionalData: `@use "@/src/style/_constant.scss" as *;`,
         },
       },
     },

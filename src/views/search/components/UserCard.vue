@@ -48,11 +48,11 @@
 
 <script lang="ts" setup>
 import { computed } from 'vue';
-import { ImTypes } from '@/types';
-import { useUserStore } from '@/store/user';
-import Avatar from '@/components/Avatar.vue';
-import maleIcon from '@/assets/gender/male.svg?url';
-import femaleIcon from '@/assets/gender/female.svg?url';
+import { ImTypes } from '@/src/types';
+import { useUserStore } from '@/src/store/user';
+import Avatar from '@/src/components/Avatar.vue';
+import maleIcon from '@/src/assets/gender/male.svg?url';
+import femaleIcon from '@/src/assets/gender/female.svg?url';
 
 
 const props = defineProps<{
@@ -90,7 +90,7 @@ const highlightKeyword = (text: string) => {
 </script>
 
 <style lang="scss" scoped>
-@use "@/style/_constant.scss" as *;
+@use "@/src/style/_constant.scss" as *;
 
 .user-card {
     display: flex;

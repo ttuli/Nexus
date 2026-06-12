@@ -1,6 +1,6 @@
 import { createApp } from 'vue'
 import App from './App.vue'
-import router from '@/router/router'
+import router from '@/src/router/router'
 import Elementpuls from 'element-plus'
 import 'element-plus/dist/index.css'
 import './style/themes.scss'
@@ -8,7 +8,7 @@ import './style/CusElmessage.css'
 import './style/global.scss'
 
 import { createPinia } from 'pinia'
-import { initTheme } from '@/utils/themeManager'
+import { initTheme } from '@/src/utils/themeManager'
 
 const app = createApp(App)
 

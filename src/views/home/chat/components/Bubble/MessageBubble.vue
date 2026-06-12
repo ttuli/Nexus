@@ -45,14 +45,14 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useUserStore } from '@/store/user';
+import { useUserStore } from '@/src/store/user';
 import ImageMessageBubble from './ImageMessageBubble.vue';
 import FileMessageBubble from './FileMessageBubble.vue';
 import VideoMessageBubble from './VideoMessageBubble.vue';
 
 // Replace MessageItem definition with IChatMessage import
-import { IChatMessage, ILocalTextMessage, ILocalFileMessage, ILocalImageMessage, ILocalVideoMessage } from '@/types/chatMessage';
-import { ImTypes } from '@/types';
+import { IChatMessage, ILocalTextMessage, ILocalFileMessage, ILocalImageMessage, ILocalVideoMessage } from '@/src/types/chatMessage';
+import { ImTypes } from '@/src/types';
 
 // Rename MessageType/Status to avoid conflict if needed, or just use types.MessageType
 const MessageType = ImTypes.MessageType;
@@ -143,7 +143,7 @@ const formatTime = (timestamp: number) => {
 </script>
 
 <style scoped lang="scss">
-@use "@/style/_constant.scss" as *;
+@use "@/src/style/_constant.scss" as *;
 
 .message-bubble {
     display: flex;

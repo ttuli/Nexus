@@ -1,11 +1,11 @@
 import { ipcMain } from 'electron';
-import { cacheManager } from '../cacheManager';
-import { userService } from '../userManager';
-import { groupService } from '../groupManager';
-import { ResourceType } from '../../../src/types/resourceCache';
-import { IpcChannels } from '../../../src/types/ipc';
+import { cacheManager } from '@/electron/resource/cacheManager';
+import { userService } from '@/electron/resource/userManager';
+import { groupService } from '@/electron/resource/groupManager';
+import { ResourceType } from '@/src/types/resourceCache';
+import { IpcChannels } from '@/src/types/ipc';
 
-import { UpdateAction } from '../../../src/types/common';
+import { UpdateAction } from '@/src/types/common';
 
 /**
  * 通用资源缓存 IPC 处理器

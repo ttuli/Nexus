@@ -37,15 +37,15 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import { ILocalImageMessage } from '@/types/chatMessage';
-import { APP_CONSTANTS as config } from '@/config/constants';
-import { toLocalPreviewUrl, toNetworkPreviewUrl, toLocalPreviewUrlRaw } from '@/utils/chat';
-import { ImTypes } from '@/types';
-import { fileService } from '@/services/fileService';
-import { messageStorageService } from '@/services/messageStorageService';
-import { openPhotoViewer } from '@/utils/window';
+import { ILocalImageMessage } from '@/src/types/chatMessage';
+import { APP_CONSTANTS as config } from '@/src/config/constants';
+import { toResourceUrl } from '@/src/utils/chat';
+import { CacheOptionType, ImTypes } from '@/src/types';
+import { fileService } from '@/src/services/fileService';
+import { messageStorageService } from '@/src/services/messageStorageService';
+import { openPhotoViewer } from '@/src/utils/window';
 import { ElMessage } from 'element-plus';
-import { useUserStore } from '@/store/user';
+import { useUserStore } from '@/src/store/user';
 
 interface Props {
     message: ILocalImageMessage;
@@ -74,26 +74,26 @@ const isFinishing = computed(() => {
 const displayUrl = ref(props.message.thumbnailUrl || '');
 
 // 获取缩略图签名 URL 并缓存
-async function fetchThumbnail(msg: ILocalImageMessage) {
-    if (isLoading.value) return;
-    isLoading.value = true;
-    try {
-        const targetW = msg.thumbnailWidth || msg.width;
-        const targetH = msg.thumbnailHeight || msg.height;
-        const thumbUrl = await fileService.getImageThumbnailUrl(msg.url, targetW, targetH);
-        if (thumbUrl) {
-            // 用 imcache 协议包裹，触发主进程磁盘缓存
-            msg.thumbnailUrl = toNetworkPreviewUrl(thumbUrl);
-            displayUrl.value = msg.thumbnailUrl;
-            // 持久化到本地数据库
-            messageStorageService.saveMessage(msg);
-        }
-    } catch (e) {
-        console.error('[ImageBubble] Failed to get thumbnail url:', e);
-    } finally {
-        isLoading.value = false;
-    }
-}
+// async function fetchThumbnail(msg: ILocalImageMessage) {
+//     if (isLoading.value) return;
+//     isLoading.value = true;
+//     try {
+//         const targetW = msg.thumbnailWidth || msg.width;
+//         const targetH = msg.thumbnailHeight || msg.height;
+//         const thumbUrl = await fileService.getImageThumbnailUrl(msg.url, targetW, targetH);
+//         if (thumbUrl) {
+//             // 用 imcache 协议包裹，触发主进程磁盘缓存
+//             msg.thumbnailUrl = toResourceUrl(thumbUrl);
+//             displayUrl.value = msg.thumbnailUrl;
+//             // 持久化到本地数据库
+//             messageStorageService.saveMessage(msg);
+//         }
+//     } catch (e) {
+//         console.error('[ImageBubble] Failed to get thumbnail url:', e);
+//     } finally {
+//         isLoading.value = false;
+//     }
+// }
 
 // 监听消息变化，决定 displayUrl 来源
 watch(() => props.message, (msg) => {
@@ -102,12 +102,20 @@ watch(() => props.message, (msg) => {
         return;
     }
     if (msg.localPath && msg.localPath !== '') {
-        displayUrl.value = toLocalPreviewUrl(msg.localPath, msg.thumbnailWidth, msg.thumbnailHeight);
+        displayUrl.value = toResourceUrl(msg.localPath, {
+            cacheType: CacheOptionType.IMAGE_THUMB,
+            width: msg.thumbnailWidth,
+            height: msg.thumbnailHeight
+        });
         return;
     }
     // 没有本地路径也没有缩略图 URL，异步获取
     if (msg.url) {
-        fetchThumbnail(msg);
+        displayUrl.value = toResourceUrl(msg.url, {
+            cacheType: CacheOptionType.IMAGE_THUMB,
+            width: msg.thumbnailWidth,
+            height: msg.thumbnailHeight
+        });
     }
 }, { immediate: true });
 
@@ -145,15 +153,11 @@ const wrapperStyle = computed(() => {
 });
 
 const handleImageError = async () => {
-    // 可能是签名 URL 过期导致 403，重试一次
+    // 重试一次
     if (errorRetryCount.value < 1 && props.message.url) {
         errorRetryCount.value++;
-        // 清空旧的 thumbnailUrl 强制重新获取
         props.message.thumbnailUrl = '';
-        await fetchThumbnail(props.message);
-        return;
     }
-    isError.value = true;
 };
 
 const handleClick = async () => {
@@ -165,10 +169,12 @@ const handleClick = async () => {
 
     try {
         if (props.message.localPath && await fileService.checkLocalFileExists(props.message.localPath)) {
-            await openPhotoViewer([toLocalPreviewUrlRaw(props.message.localPath)], 0, initialSize);
+            await openPhotoViewer([toResourceUrl(props.message.localPath)], 0, initialSize);
             return;
         }
-        await openPhotoViewer([props.message.url], 0, initialSize);
+        await openPhotoViewer([toResourceUrl(props.message.url,{
+            cacheType: CacheOptionType.IMAGE
+        })], 0, initialSize);
     } catch (e) {
         ElMessage.error('图片已过期或被清理')
         console.error('[ImageBubble] Failed to open photo viewer:', e);
@@ -177,7 +183,7 @@ const handleClick = async () => {
 </script>
 
 <style scoped lang="scss">
-@use "@/style/_constant.scss" as *;
+@use "@/src/style/_constant.scss" as *;
 
 .image-message-bubble {
     width: 100%;

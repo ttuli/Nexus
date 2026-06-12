@@ -1,6 +1,6 @@
 import type Database from 'better-sqlite3';
 import { getDb } from './database';
-import type { ImTypes } from '../../src/types';
+import type { ImTypes } from '@/src/types';
 
 type GroupMember = ImTypes.GroupMember;
 

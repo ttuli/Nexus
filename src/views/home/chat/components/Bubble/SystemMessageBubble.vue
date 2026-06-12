@@ -6,10 +6,10 @@
 
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
-import { ILocalSystemMessage } from '@/types/chatMessage';
-import { useUserStore } from '@/store/user';
-import { userService } from '@/services';
-import { formatSystemMessage } from '@/utils/chat';
+import { ILocalSystemMessage } from '@/src/types/chatMessage';
+import { useUserStore } from '@/src/store/user';
+import { userService } from '@/src/services';
+import { formatSystemMessage } from '@/src/utils/chat';
 
 interface Props {
     message: ILocalSystemMessage;
@@ -48,7 +48,7 @@ const systemMessageText = computed(() => {
 </script>
 
 <style scoped lang="scss">
-@use "@/style/_constant.scss" as *;
+@use "@/src/style/_constant.scss" as *;
 
 .system-message-bubble {
     display: flex;

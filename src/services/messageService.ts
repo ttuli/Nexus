@@ -1,6 +1,6 @@
-import { getUserActiveConversation, updateConversation } from "@/apis/message"
-import { useChatStore } from "@/store/chat"
-import { getOfflineTimestamp } from "@/store/init"
+import { getUserActiveConversation, updateConversation } from "@/src/apis/message"
+import { useChatStore } from "@/src/store/chat"
+import { getOfflineTimestamp } from "@/src/store/init"
 
 class MessageService {
     async getOfflineActiveSessions() {

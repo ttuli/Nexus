@@ -12,9 +12,9 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import { useUserStore } from '@/store/user';
+import { useUserStore } from '@/src/store/user';
 import ContactItem from './ContactItem.vue';
-import { ImTypes } from '@/types';
+import { ImTypes } from '@/src/types';
 
 const router = useRouter();
 const route = useRoute();

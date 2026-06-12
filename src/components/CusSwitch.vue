@@ -40,7 +40,7 @@ const toggle = () => {
 </script>
 
 <style scoped lang="scss">
-@use "@/style/constant.scss" as *;
+@use "@/src/style/constant.scss" as *;
 
 .cus-switch {
     display: inline-flex;

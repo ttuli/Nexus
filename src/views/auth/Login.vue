@@ -74,12 +74,12 @@
 <script setup lang="ts">
 import { nextTick, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { windowService, authService, userService, tokenService } from '@/services'
-import AccountIcon from '@/assets/input/input_name.svg?url'
-import PasswordIcon from '@/assets/input/input_password.svg?url'
-import EyeOpenIcon from '@/assets/input/eye_open.svg?url'
-import EyeClosedIcon from '@/assets/input/eye_closed.svg?url'
-import { signalWindowReady } from '@/utils/windowReady'
+import { windowService, authService, userService, tokenService } from '@/src/services'
+import AccountIcon from '@/src/assets/input/input_name.svg?url'
+import PasswordIcon from '@/src/assets/input/input_password.svg?url'
+import EyeOpenIcon from '@/src/assets/input/eye_open.svg?url'
+import EyeClosedIcon from '@/src/assets/input/eye_closed.svg?url'
+import { signalWindowReady } from '@/src/utils/windowReady'
 import AccountSelector, { AccountOption } from './components/AccountSelector.vue';
 
 interface LoginForm {

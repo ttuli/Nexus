@@ -95,19 +95,19 @@
 
 <script lang="ts" setup>
 import { onMounted, ref, watch } from 'vue';
-import { ImTypes } from '@/types';
-import SearchIcon from '@/assets/input/search.svg?url';
+import { ImTypes } from '@/src/types';
+import SearchIcon from '@/src/assets/input/search.svg?url';
 import UserCard from './components/UserCard.vue';
 import GroupCard from './components/GroupCard.vue';
-import Avatar from '@/components/Avatar.vue';
-import { UpdateAction, ResourceType } from '@/types';
-import GlobalLoading from '@/components/GlobalLoading/GlobalLoading';
-import { signalWindowReady } from '@/utils/windowReady';
-import { userService, friendService, cacheService, groupService } from '@/services';
+import Avatar from '@/src/components/Avatar.vue';
+import { UpdateAction, ResourceType } from '@/src/types';
+import GlobalLoading from '@/src/components/GlobalLoading/GlobalLoading';
+import { signalWindowReady } from '@/src/utils/windowReady';
+import { userService, friendService, cacheService, groupService } from '@/src/services';
 import { ElMessage } from 'element-plus';
 
-import maleIcon from '@/assets/gender/male.svg?url';
-import femaleIcon from '@/assets/gender/female.svg?url';
+import maleIcon from '@/src/assets/gender/male.svg?url';
+import femaleIcon from '@/src/assets/gender/female.svg?url';
 
 // Search State
 const searchType = ref<'user' | 'group'>('user');
@@ -284,7 +284,7 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
-@use "@/style/_constant.scss" as *;
+@use "@/src/style/_constant.scss" as *;
 
 .add-friend-container {
     width: 100%;

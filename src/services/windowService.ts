@@ -3,7 +3,7 @@
  * 处理窗口相关操作
  */
 import { ipcService } from './ipcService'
-import { IpcChannels, LogoutType } from '@/types'
+import { IpcChannels, LogoutType } from '@/src/types'
 
 export { LogoutType }
 
@@ -12,7 +12,7 @@ export enum NotifySoundType {
     Request = 'request',
 }
 
-import { CallWindowConfig } from '@/types/window'
+import { CallWindowConfig } from '@/src/types/window'
 
 type WindowConfigMap = {
     'call': CallWindowConfig;

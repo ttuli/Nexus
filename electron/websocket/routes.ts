@@ -1,7 +1,7 @@
 import { WsMessage } from './serializer/MessageSerializer';
 import { messageRouter, MessageHandler } from './MessageRouter';
-import { windowManager } from '../windows/windowManager';
-import { IpcChannels, ImTypes, LogoutType } from '../../src/types';
+import { windowManager } from '@/electron/windows/windowManager';
+import { IpcChannels, ImTypes, LogoutType } from '@/src/types';
 
 import { messageQueue } from './MessageQueue';
 

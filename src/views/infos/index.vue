@@ -16,7 +16,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
-import { useUserStore } from '@/store/user';
+import { useUserStore } from '@/src/store/user';
 import InfoLayout from './layout/InfoLayout.vue';
 import BaseUserInfo from './components/BaseUserInfo.vue';
 import UserInfoDisplay from './components/UserInfoDisplay.vue';

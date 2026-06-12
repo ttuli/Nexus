@@ -68,13 +68,13 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { ILocalFileMessage } from '@/types/chatMessage';
-import { fileService } from '@/services/fileService';
-import { settingService } from '@/services/settingService';
-import { websocketService } from '@/services/websocketService';
+import { ILocalFileMessage } from '@/src/types/chatMessage';
+import { fileService } from '@/src/services/fileService';
+import { settingService } from '@/src/services/settingService';
+import { websocketService } from '@/src/services/websocketService';
 import { ElMessage } from 'element-plus';
-import { ImTypes } from '@/types';
-import { useChatStore } from '@/store/chat';
+import { ImTypes } from '@/src/types';
+import { useChatStore } from '@/src/store/chat';
 
 interface Props {
     message: ILocalFileMessage;
@@ -96,6 +96,7 @@ const isUploading = computed(() => {
 // 本地下载状态
 const isDownloading = ref(false);
 const downloadProgress = ref(0);
+const currentDownloadAbort = ref<(() => void) | null>(null);
 // 是否已下载 (based on localPath 字段)
 const isDownloaded = computed(() => !!props.message.localPath);
 
@@ -204,8 +205,11 @@ const handleActionClick = () => {
                 ElMessage.success('已取消上传');
             }
         } else if (isDownloading.value) {
+            currentDownloadAbort.value?.();
             isDownloading.value = false;
             downloadProgress.value = 0;
+            currentDownloadAbort.value = null;
+            ElMessage.success('已取消下载');
         }
     } else {
         // 下载或打开
@@ -226,22 +230,29 @@ const startDownload = async () => {
     downloadProgress.value = 0;
 
     try {
-        const localPath = await fileService.downloadFile(
+        const { promise, abort } = await fileService.downloadFile(
             props.message.url,
             props.message.fileName,
             (percent) => { downloadProgress.value = percent; }
         );
+        currentDownloadAbort.value = abort;
+        
+        const localPath = await promise;
         // 更新内存和数据库中的 localPath
         chatStore.updateFileLocalPath(props.message.sessionId, props.message.clientId || '', props.message.msgId, localPath);
         isDownloading.value = false;
+        currentDownloadAbort.value = null;
         ElMessage.success('下载完成');
         // 下载完成后在资源管理器中打开
         openFile();
     } catch (e: any) {
         isDownloading.value = false;
         downloadProgress.value = 0;
+        currentDownloadAbort.value = null;
         console.error('[FileBubble] Download failed:', e);
-        ElMessage.error('下载失败：' + (e?.message || ''));
+        if (e?.message !== 'Download cancelled by user') {
+            ElMessage.error('下载失败：' + (e?.message || ''));
+        }
     }
 };
 
@@ -280,7 +291,7 @@ const openFile = async () => {
 </script>
 
 <style scoped lang="scss">
-@use "@/style/_constant.scss" as *;
+@use "@/src/style/_constant.scss" as *;
 
 .file-message-bubble {
     display: flex;

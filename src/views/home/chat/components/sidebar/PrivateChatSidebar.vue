@@ -49,17 +49,17 @@
 
 <script setup lang="ts">
 import { computed, ref, nextTick } from 'vue';
-import CusSwitch from '@/components/CusSwitch.vue';
-import CusDialog from '@/components/CusDialog/CusDialog';
-import { DialogResult } from '@/components/CusDialog/types';
-import { useUserStore } from '@/store/user';
-import { useChatStore } from '@/store/chat';
-import { ImTypes } from '@/types';
+import CusSwitch from '@/src/components/CusSwitch.vue';
+import CusDialog from '@/src/components/CusDialog/CusDialog';
+import { DialogResult } from '@/src/components/CusDialog/types';
+import { useUserStore } from '@/src/store/user';
+import { useChatStore } from '@/src/store/chat';
+import { ImTypes } from '@/src/types';
 import { ElMessage } from 'element-plus';
-import { extractTargetIdFromSessionId } from '@/utils/chat';
+import { extractTargetIdFromSessionId } from '@/src/utils/chat';
 import { Edit } from '@element-plus/icons-vue';
-import { friendService, messageService } from '@/services';
-import { messageStorageService } from '@/services/messageStorageService';
+import { friendService, messageService } from '@/src/services';
+import { messageStorageService } from '@/src/services/messageStorageService';
 
 const props = defineProps<{
     chat: ImTypes.Conversation;
@@ -184,7 +184,7 @@ const confirmDeleteFriend = async () => {
 
 <style scoped lang="scss">
 @use "sass:color";
-@use "@/style/constant.scss" as *;
+@use "@/src/style/constant.scss" as *;
 
 .private-sidebar {
     height: 100%;

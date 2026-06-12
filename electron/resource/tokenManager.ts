@@ -1,9 +1,9 @@
 import { net } from 'electron';
 import jwt from 'jsonwebtoken';
-import { storage, StorageKeys } from '../utils/storage';
-import { RefreshTokenPayload, TokenPayload, ResourceType, ImTypes, ApiTypes } from '../../src/types';
+import { storage, StorageKeys } from '@/electron/utils/storage';
+import { RefreshTokenPayload, TokenPayload, ResourceType, ImTypes, ApiTypes } from '@/src/types';
 import { cacheManager } from './cacheManager';
-import { APP_CONSTANTS as config } from '../../src/config/constants';
+import { APP_CONSTANTS as config } from '@/src/config/constants';
 
 /**
  * Token 管理器

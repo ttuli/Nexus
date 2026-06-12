@@ -3,13 +3,16 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as https from 'https';
 import * as http from 'http';
-import { storage, StorageKeys } from '../utils/storage';
+import { storage, StorageKeys } from '@/electron/utils/storage';
 
 /**
  * 设置管理器
  * 负责应用设置的读写以及与本地文件系统相关的操作（路径选择、文件下载、文件定位等）
  */
 class SettingManager {
+    // 跟踪正在进行的下载请求以便取消
+    private activeDownloads = new Map<string, http.ClientRequest>();
+
     /**
      * 获取当前资源存储根路径
      */
@@ -98,12 +101,14 @@ class SettingManager {
      * @param url        带签名的下载地址
      * @param fileName   期望的文件名（含扩展名）
      * @param onProgress 进度回调，参数为 0-100 的整数
+     * @param downloadId 可选的下载ID，用于取消下载
      * @returns 最终保存的绝对路径
      */
     async downloadFile(
         url: string,
         fileName: string,
         onProgress?: (percent: number) => void,
+        downloadId?: string
     ): Promise<string> {
         if (!url || !fileName) throw new Error('url and fileName are required');
 
@@ -128,7 +133,7 @@ class SettingManager {
         const protocol = url.startsWith('https') ? https : http;
         await new Promise<void>((resolve, reject) => {
             const file = fs.createWriteStream(savePath);
-            protocol.get(url, (response: any) => {
+            const request = protocol.get(url, (response: any) => {
                 const totalLength = parseInt(response.headers['content-length'] || '0', 10);
                 let downloaded = 0;
 
@@ -140,18 +145,41 @@ class SettingManager {
                 });
 
                 response.pipe(file);
-                file.on('finish', () => { file.close(); resolve(); });
+                file.on('finish', () => { 
+                    file.close(); 
+                    if (downloadId) this.activeDownloads.delete(downloadId);
+                    resolve(); 
+                });
                 file.on('error', (err: Error) => {
+                    if (downloadId) this.activeDownloads.delete(downloadId);
                     fs.unlink(savePath, () => { });
                     reject(err);
                 });
             }).on('error', (err: Error) => {
+                if (downloadId) this.activeDownloads.delete(downloadId);
                 fs.unlink(savePath, () => { });
                 reject(err);
             });
+
+            if (downloadId) {
+                this.activeDownloads.set(downloadId, request as http.ClientRequest);
+            }
         });
 
         return savePath;
+    }
+
+    /**
+     * 取消正在进行的下载
+     * @param downloadId 下载ID
+     */
+    cancelDownload(downloadId: string): void {
+        const request = this.activeDownloads.get(downloadId);
+        if (request) {
+            request.destroy(new Error('Download cancelled by user'));
+            this.activeDownloads.delete(downloadId);
+            console.log(`[SettingManager] Download ${downloadId} cancelled.`);
+        }
     }
 }
 

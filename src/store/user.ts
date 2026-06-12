@@ -1,9 +1,9 @@
-import { ImTypes } from '@/types';
+import { ImTypes } from '@/src/types';
 import { defineStore } from 'pinia';
 import { jwtDecode } from "jwt-decode";
-import { TokenPayload } from '@/types'
+import { TokenPayload } from '@/src/types'
 import { reactive } from 'vue'
-import { userService } from '@/services';
+import { userService } from '@/src/services';
 
 export const useUserStore = defineStore('user', {
   state: () => ({

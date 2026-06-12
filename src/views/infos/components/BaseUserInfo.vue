@@ -107,12 +107,12 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { useUserStore } from '@/store/user';
+import { useUserStore } from '@/src/store/user';
 
-import { ImTypes, ResourceType, UpdateAction } from '@/types';
+import { ImTypes, ResourceType, UpdateAction } from '@/src/types';
 import { ElMessage } from 'element-plus';
-import { cacheService, userService } from '@/services';
-import { signalWindowReady } from '@/utils/windowReady';
+import { cacheService, userService } from '@/src/services';
+import { signalWindowReady } from '@/src/utils/windowReady';
 
 const userStore = useUserStore();
 
@@ -237,7 +237,7 @@ onMounted(async () => {
 </script>
 
 <style scoped lang="scss">
-@use "@/style/_constant.scss" as *;
+@use "@/src/style/_constant.scss" as *;
 
 .base-user-info {
     display: flex;

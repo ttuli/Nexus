@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { CurrentRoute, ValidationType } from '@/types';
+import { CurrentRoute, ValidationType } from '@/src/types';
 
 export const useAppStore = defineStore('app', {
     state: () => ({

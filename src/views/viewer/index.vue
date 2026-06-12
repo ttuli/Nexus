@@ -35,13 +35,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
-import LeftRotate from '@/assets/photoView/left-rotate.svg?url';
-import ZoomIn from '@/assets/photoView/zoom-in.svg?url';
-import ZoomOut from '@/assets/photoView/zoom-out.svg?url';
-import Download from '@/assets/photoView/download.svg?url';
-import { signalWindowReady } from '@/utils/windowReady';
+import LeftRotate from '@/src/assets/photoView/left-rotate.svg?url';
+import ZoomIn from '@/src/assets/photoView/zoom-in.svg?url';
+import ZoomOut from '@/src/assets/photoView/zoom-out.svg?url';
+import Download from '@/src/assets/photoView/download.svg?url';
+import { signalWindowReady } from '@/src/utils/windowReady';
 import { ElMessage } from 'element-plus';
-import { toNetworkPreviewUrl } from '@/utils/chat';
 
 // State
 const route = useRoute();
@@ -89,10 +88,7 @@ onMounted(() => {
 
     if (queryUrls) {
         try {
-            const urlArray = JSON.parse(queryUrls);
-            urls.value = urlArray.map((url: string) => {
-                return toNetworkPreviewUrl(url);
-            });
+            urls.value = JSON.parse(queryUrls);
         } catch (e) {
             console.error('Failed to parse urls', e);
             urls.value = [queryUrls];

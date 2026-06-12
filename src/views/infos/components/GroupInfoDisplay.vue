@@ -60,15 +60,15 @@
 
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
-import { useGroupStore } from '@/store/group';
-import { generateGroupSessionId } from '@/utils/chat';
-import { useChatStore } from '@/store/chat';
-import { groupService } from '@/services';
+import { useGroupStore } from '@/src/store/group';
+import { generateGroupSessionId } from '@/src/utils/chat';
+import { useChatStore } from '@/src/store/chat';
+import { groupService } from '@/src/services';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { ArrowLeft, CopyDocument, User } from '@element-plus/icons-vue';
-import Avatar from '@/components/Avatar.vue';
-import CusButton from '@/components/CusButton.vue';
+import Avatar from '@/src/components/Avatar.vue';
+import CusButton from '@/src/components/CusButton.vue';
 
 
 const props = defineProps<{
@@ -133,7 +133,7 @@ const toJoin = () => {
 </script>
 
 <style scoped lang="scss">
-@use "@/style/_constant.scss" as *;
+@use "@/src/style/_constant.scss" as *;
 
 .group-info-display {
     position: relative;

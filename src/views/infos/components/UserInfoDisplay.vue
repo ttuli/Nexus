@@ -71,17 +71,17 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useUserStore } from '@/store/user';
-import { generateSessionId } from '@/utils/chat';
-import { useChatStore } from '@/store/chat';
+import { useUserStore } from '@/src/store/user';
+import { generateSessionId } from '@/src/utils/chat';
+import { useChatStore } from '@/src/store/chat';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { ArrowLeft, CopyDocument } from '@element-plus/icons-vue';
-import Avatar from '@/components/Avatar.vue';
-import CusButton from '@/components/CusButton.vue';
-import MaleIcon from '@/assets/gender/male.svg';
-import FemaleIcon from '@/assets/gender/female.svg';
-import { ImTypes } from '@/types';
+import Avatar from '@/src/components/Avatar.vue';
+import CusButton from '@/src/components/CusButton.vue';
+import MaleIcon from '@/src/assets/gender/male.svg';
+import FemaleIcon from '@/src/assets/gender/female.svg';
+import { ImTypes } from '@/src/types';
 
 const props = defineProps<{
     userId: number;
@@ -152,7 +152,7 @@ const toEdit = () => {
 </script>
 
 <style scoped lang="scss">
-@use "@/style/_constant.scss" as *;
+@use "@/src/style/_constant.scss" as *;
 
 .user-info-display {
     position: relative;

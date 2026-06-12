@@ -1,9 +1,9 @@
-import { getUploadSignature, getAcessUrl } from '@/apis/file'
-import { ApiTypes } from '@/types'
-import { computeFileMd5 } from '@/utils/md5'
-import { APP_CONSTANTS as config, Renderer_Config } from '@/config/constants'
+import { getUploadSignature, getAcessUrl } from '@/src/apis/file'
+import { ApiTypes } from '@/src/types'
+import { computeFileMd5 } from '@/src/utils/md5'
+import { APP_CONSTANTS as config, Renderer_Config } from '@/src/config/constants'
 import { ipcService } from './ipcService';
-import { IpcChannels } from '@/types/ipc';
+import { IpcChannels } from '@/src/types/ipc';
 
 class FileService {
     /**
@@ -216,7 +216,7 @@ class FileService {
         if (!localPath) return false;
         try {
             const { ipcService } = await import('./ipcService');
-            const { IpcChannels } = await import('@/types/ipc');
+            const { IpcChannels } = await import('@/src/types/ipc');
             const res = await ipcService.invoke(IpcChannels.SYSTEM_FILE_EXISTS, localPath);
             return res?.success && res?.data === true;
         } catch {
@@ -231,7 +231,7 @@ class FileService {
      * @param onProgress 进度回调 0-100
      * @returns 保存到本地的绝对路径
      */
-    async downloadFile(url: string, fileName: string, onProgress?: (progress: number) => void): Promise<string> {
+    async downloadFile(url: string, fileName: string, onProgress?: (progress: number) => void): Promise<{ promise: Promise<string>, abort: () => void }> {
         // 获取带签名的下载 URL
         const downloadUrl = await this.getFileUrl(url);
         if (!downloadUrl) throw new Error('无法获取文件下载地址');
@@ -239,30 +239,42 @@ class FileService {
         // 过滤文件名中的非法字符
         const sanitizedFileName = fileName.replace(/[\\/:*?"<>|]/g, '_');
 
+        const downloadId = `dl_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
         // 设置进度监听 (unique 渠道)
-        const progressChannel = onProgress ? `file-download-progress-${Date.now()}` : undefined;
+        const progressChannel = onProgress ? `file-download-progress-${downloadId}` : undefined;
         if (progressChannel && onProgress) {
             ipcService.on(progressChannel as any, (_evt: any, percent: number) => {
                 onProgress(percent);
             });
         }
 
-        try {
-            const res = await ipcService.invoke(IpcChannels.SYSTEM_DOWNLOAD_FILE, {
-                url: downloadUrl,
-                fileName: sanitizedFileName,
-                onProgressChannel: progressChannel
-            });
+        const promise = (async () => {
+            try {
+                const res = await ipcService.invoke(IpcChannels.SYSTEM_DOWNLOAD_FILE, {
+                    url: downloadUrl,
+                    fileName: sanitizedFileName,
+                    onProgressChannel: progressChannel,
+                    downloadId
+                });
 
-            if (!res?.success) {
-                throw new Error(res?.error || '下载失败');
+                if (!res?.success) {
+                    throw new Error(res?.error || '下载失败');
+                }
+                return res.data as string;
+            } finally {
+                if (progressChannel) {
+                    ipcService.off(progressChannel as any);
+                }
             }
-            return res.data as string;
-        } finally {
-            if (progressChannel) {
-                ipcService.off(progressChannel as any);
+        })();
+
+        return {
+            promise,
+            abort: () => {
+                ipcService.invoke(IpcChannels.SYSTEM_CANCEL_DOWNLOAD, downloadId);
             }
-        }
+        };
     }
 }
 

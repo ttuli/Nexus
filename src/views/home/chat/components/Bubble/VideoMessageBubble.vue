@@ -3,10 +3,10 @@
         <!-- 视频外层容器 -->
         <div class="video-wrapper" :style="wrapperStyle" @click="handleClick">
             <!-- 视频主体：仅保留缩略图的展示 -->
-            <img v-if="displayThumb" :src="displayThumb" class="video-content" @error="handleVideoError" />
+            <img v-if="displayThumb" :src="displayThumb" class="video-content" />
 
             <!-- 播放/下载按钮（仅在不在上传、且没出错时显示） -->
-            <div class="action-btn-wrapper" v-show="isFinishing && !isError">
+            <div class="action-btn-wrapper" v-show="isFinishing">
                 <!-- 有 localPath 显示播放按钮 -->
                 <div v-if="props.message.localPath" class="play-btn">
                     <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
@@ -29,18 +29,25 @@
             <!-- 上传进度蒙层（仅对自己发送且处于上传状态的消息显示） -->
             <transition name="fade-reveal">
                 <div class="upload-mask" :class="{ 'is-finishing': isFinishing }" v-show="!isFinishing">
-                    <div class="custom-progress">
-                        <svg class="progress-ring" width="44" height="44">
-                            <!-- 背景环 -->
-                            <circle class="ring-bg" stroke="rgba(255,255,255,0.3)" stroke-width="3" fill="transparent"
-                                r="18" cx="22" cy="22" />
-                            <!-- 进度环 -->
-                            <circle class="ring-progress" stroke="#fff" stroke-width="3" fill="transparent"
-                                :stroke-dasharray="113"
-                                :stroke-dashoffset="113 - ((props.message.uploadProgress || 0) / 100) * 113"
-                                stroke-linecap="round" r="18" cx="22" cy="22" />
-                        </svg>
-                        <span class="progress-text">{{ props.message.uploadProgress || 0 }}%</span>
+                    <div class="custom-progress" :class="{ 'can-cancel': isDownloading }">
+                        <div class="progress-display">
+                            <svg class="progress-ring" width="44" height="44">
+                                <!-- 背景环 -->
+                                <circle class="ring-bg" stroke="rgba(255,255,255,0.3)" stroke-width="3" fill="transparent"
+                                    r="18" cx="22" cy="22" />
+                                <!-- 进度环 -->
+                                <circle class="ring-progress" stroke="#fff" stroke-width="3" fill="transparent"
+                                    :stroke-dasharray="113"
+                                    :stroke-dashoffset="113 - ((props.message.uploadProgress || 0) / 100) * 113"
+                                    stroke-linecap="round" r="18" cx="22" cy="22" />
+                            </svg>
+                            <span class="progress-text">{{ props.message.uploadProgress || 0 }}%</span>
+                        </div>
+                        <div class="cancel-btn" v-if="isDownloading">
+                            <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+                                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                            </svg>
+                        </div>
                     </div>
                 </div>
             </transition>
@@ -50,14 +57,14 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import { ILocalVideoMessage } from '@/types/chatMessage';
-import { APP_CONSTANTS as config } from '@/config/constants';
-import { ImTypes } from '@/types';
-import { fileService } from '@/services/fileService';
-import { openVideoViewer } from '@/utils/window';
+import { ILocalVideoMessage } from '@/src/types/chatMessage';
+import { APP_CONSTANTS as config } from '@/src/config/constants';
+import { CacheOptionType, ImTypes } from '@/src/types';
+import { openVideoViewer } from '@/src/utils/window';
 import { ElMessage } from 'element-plus';
-import { messageStorageService } from '@/services/messageStorageService';
-import { downloadMessageToLocal, toNetworkPreviewUrl } from '@/utils/chat';
+import { messageStorageService } from '@/src/services/messageStorageService';
+import { toResourceUrl } from '@/src/utils/chat';
+import fileService from '@/src/services/fileService';
 
 interface Props {
     message: ILocalVideoMessage;
@@ -65,10 +72,15 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const isError = ref(false);
+
+// 控制下载状态
+const isDownloading = ref(false);
 
 // 控制遮罩显示及无上传进度时的状态
 const isFinishing = computed(() => {
+    if (isDownloading.value) {
+        return false;
+    }
     return props.message.uploadProgress === 100 || props.message.status !== ImTypes.MessageStatus.MESSAGE_STATUS_SENDING;
 });
 
@@ -85,17 +97,15 @@ watch(() => props.message, async (msg) => {
     // 如果有远端 url，则获取签名/完整访问地址
     if (msg.url) {
         try {
-            const thumbUrl = await fileService.getFileUrl(msg.url, 'video/snapshot,t_0,f_jpg');
-            if (thumbUrl) {
-                msg.thumbnailUrl = toNetworkPreviewUrl(thumbUrl);
-                displayThumb.value = msg.thumbnailUrl;
+            const thumbnailUrl = toResourceUrl(msg.url,{
+                cacheType: CacheOptionType.VIDEO_THUMB
+            })
+            if (thumbnailUrl) {
+                displayThumb.value = thumbnailUrl;
                 messageStorageService.saveMessage(msg);
-            } else {
-                isError.value = true;
             }
         } catch (e) {
             console.error('[VideoBubble] Failed to get video full url:', e);
-            isError.value = true;
         }
     }
 }, { immediate: true });
@@ -134,33 +144,69 @@ const wrapperStyle = computed(() => {
     };
 });
 
-const handleVideoError = async () => {
-    console.error('[VideoBubble] video-load-error');
-    isError.value = true;
-};
-
-const handlePlay = () => {
+const handlePlay = async () => {
+    if (!(await fileService.checkLocalFileExists(props.message.localPath || ''))) {
+        props.message.localPath = '';
+        messageStorageService.saveMessage(props.message);
+        ElMessage.error('视频文件不存在');
+        return;
+    }
     console.log('[VideoBubble] 播放视频，本地路径:', props.message.localPath);
     // TODO: 播放逻辑占位
 };
 
+const currentDownloadAbort = ref<(() => void) | null>(null);
+
 const handleDownload = async () => {
-    console.log('[VideoBubble] 开始下载视频:', props.message.url);
-    // TODO: 下载逻辑占位
-    // 模拟下载成功并更新 localPath
+    if (!props.message.url) {
+        ElMessage.error('视频地址无效');
+        return;
+    }
+    if (isDownloading.value) return;
+
+    isDownloading.value = true;
+    props.message.uploadProgress = 0;
+
     try {
-        await new Promise(resolve => setTimeout(resolve, 1500)); // 模拟网络延迟
-        props.message.localPath = 'mock/local/path/video.mp4';
+        const { promise, abort } = await fileService.downloadFile(
+            props.message.url, 
+            props.message.fileName,
+            (progress: number) => {
+                props.message.uploadProgress = progress;
+            }
+        );
+        
+        currentDownloadAbort.value = abort;
+        
+        const localPath = await promise;
+        props.message.localPath = localPath;
         messageStorageService.saveMessage(props.message);
-        ElMessage.success('视频下载成功(模拟)');
-    } catch (e) {
-        console.error('[VideoBubble] 下载失败:', e);
-        ElMessage.error('视频下载失败(模拟)');
+        
+        currentDownloadAbort.value = null;
+        isDownloading.value = false;
+    } catch (e: any) {
+        currentDownloadAbort.value = null;
+        props.message.uploadProgress = undefined;
+        isDownloading.value = false;
+        
+        if (e?.message !== 'Download cancelled by user') {
+            console.error('[VideoBubble] 下载失败:', e);
+            ElMessage.error('视频下载失败');
+        }
+    } finally {
+        currentDownloadAbort.value = null;
+        props.message.uploadProgress = undefined;
+        isDownloading.value = false;
     }
 };
 
 const handleClick = async () => {
-    if (isError.value || !isFinishing.value) return;
+    if (!isFinishing.value) {
+        if (isDownloading.value) {
+            currentDownloadAbort.value?.();
+        }
+        return;
+    }
 
     if (props.message.localPath) {
         handlePlay();
@@ -178,7 +224,7 @@ const formatDuration = (seconds: number) => {
 </script>
 
 <style scoped lang="scss">
-@use "@/style/_constant.scss" as *;
+@use "@/src/style/_constant.scss" as *;
 
 .video-message-bubble {
     width: 100%;
@@ -287,20 +333,51 @@ const formatDuration = (seconds: number) => {
                 justify-content: center;
                 transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
-                .progress-ring {
-                    transform: rotate(-90deg);
+                .progress-display {
+                    position: absolute;
+                    inset: 0;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: opacity 0.2s ease;
 
-                    circle {
-                        transition: stroke-dashoffset 0.2s linear;
+                    .progress-ring {
+                        transform: rotate(-90deg);
+
+                        circle {
+                            transition: stroke-dashoffset 0.2s linear;
+                        }
+                    }
+
+                    .progress-text {
+                        position: absolute;
+                        font-size: 11px;
+                        color: #fff;
+                        font-weight: 500;
+                        font-family: monospace;
                     }
                 }
 
-                .progress-text {
+                .cancel-btn {
                     position: absolute;
-                    font-size: 11px;
+                    inset: 0;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
                     color: #fff;
-                    font-weight: 500;
-                    font-family: monospace;
+                    opacity: 0;
+                    transition: opacity 0.2s ease;
+                    border-radius: 50%;
+                    background-color: rgba(255, 255, 255, 0.2); // 同色系半透明背景
+                }
+
+                &.can-cancel:hover {
+                    .progress-display {
+                        opacity: 0;
+                    }
+                    .cancel-btn {
+                        opacity: 1;
+                    }
                 }
             }
 

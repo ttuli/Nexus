@@ -64,25 +64,25 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue';
-import { useChatStore } from '@/store/chat';
-import { useUserStore } from '@/store/user';
-import { useGroupStore } from '@/store/group';
+import { useChatStore } from '@/src/store/chat';
+import { useUserStore } from '@/src/store/user';
+import { useGroupStore } from '@/src/store/group';
 import { storeToRefs } from 'pinia';
-import { extractTargetIdFromSessionId } from '@/utils/chat';
-import MessageBubble from '@/views/home/chat/components/Bubble/MessageBubble.vue';
-import SystemMessageBubble from '@/views/home/chat/components/Bubble/SystemMessageBubble.vue';
-import { IChatMessage, ILocalTextMessage } from '@/types/chatMessage';
-import { ImTypes } from '@/types';
+import { extractTargetIdFromSessionId } from '@/src/utils/chat';
+import MessageBubble from '@/src/views/home/chat/components/Bubble/MessageBubble.vue';
+import SystemMessageBubble from '@/src/views/home/chat/components/Bubble/SystemMessageBubble.vue';
+import { IChatMessage, ILocalTextMessage } from '@/src/types/chatMessage';
+import { ImTypes } from '@/src/types';
 import ChatInput from './components/ChatInput.vue';
 import ChatSidebar from './components/sidebar/index.vue';
 import AiSuggestions from './components/AiSuggestions.vue';
-import type { MenuOption } from '@/components/ContextMenu.vue';
+import type { MenuOption } from '@/src/components/ContextMenu.vue';
 import { ElMessage } from 'element-plus';
 
-import copyIcon from '@/assets/chat/copy.svg?raw';
-import phoneIcon from '@/assets/call/phone.svg?raw';
-import trashIcon from '@/assets/chat/trash.svg?raw'
-import { websocketService, windowService } from '@/services';
+import copyIcon from '@/src/assets/chat/copy.svg?raw';
+import phoneIcon from '@/src/assets/call/phone.svg?raw';
+import trashIcon from '@/src/assets/chat/trash.svg?raw'
+import { websocketService, windowService } from '@/src/services';
 
 
 const chatStore = useChatStore();
@@ -305,7 +305,7 @@ const startResize = (e: MouseEvent) => {
 </script>
 
 <style scoped lang="scss">
-@use "@/style/_constant.scss" as *;
+@use "@/src/style/_constant.scss" as *;
 
 .chat-content {
     display: flex;

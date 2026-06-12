@@ -39,10 +39,10 @@
 
 <script lang="ts" setup>
 import { computed } from 'vue';
-import { ImTypes } from '@/types';
-import { useGroupStore } from '@/store/group';
-import { useUserStore } from '@/store/user';
-import Avatar from '@/components/Avatar.vue';
+import { ImTypes } from '@/src/types';
+import { useGroupStore } from '@/src/store/group';
+import { useUserStore } from '@/src/store/user';
+import Avatar from '@/src/components/Avatar.vue';
 
 const props = defineProps<{
     groupInfo: ImTypes.GroupInfo;
@@ -83,7 +83,7 @@ const highlightKeyword = (text: string) => {
 </script>
 
 <style lang="scss" scoped>
-@use "@/style/_constant.scss" as *;
+@use "@/src/style/_constant.scss" as *;
 
 .group-card {
     display: flex;

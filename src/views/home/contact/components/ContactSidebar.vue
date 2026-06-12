@@ -34,14 +34,14 @@ import { useRouter, useRoute } from 'vue-router';
 
 defineOptions({ name: 'ContactSidebar' });
 
-import ValidationIcon from '@/assets/menu/contacts.svg?raw';
+import ValidationIcon from '@/src/assets/menu/contacts.svg?raw';
 import FriendList from './FriendList.vue';
 import GroupList from './GroupList.vue';
 
-import { useUserStore } from '@/store/user';
-import { useGroupStore } from '@/store/group';
-import { windowService } from '@/services';
-import { NotifySoundType } from '@/services/windowService';
+import { useUserStore } from '@/src/store/user';
+import { useGroupStore } from '@/src/store/group';
+import { windowService } from '@/src/services';
+import { NotifySoundType } from '@/src/services/windowService';
 
 const router = useRouter();
 const route = useRoute();
@@ -75,7 +75,7 @@ watch(pendingCount, (newVal, oldVal) => {
 </script>
 
 <style scoped lang="scss">
-@use "@/style/_constant.scss" as *;
+@use "@/src/style/_constant.scss" as *;
 
 .contact-sidebar {
     height: 100%;

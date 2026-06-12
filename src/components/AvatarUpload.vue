@@ -53,11 +53,11 @@
 
 <script setup lang="ts">
 import { ref, onUnmounted, computed } from 'vue'
-import Avatar from '@/components/Avatar.vue'
-import CusButton from '@/components/CusButton.vue'
-import { fileService } from '@/services/fileService'
+import Avatar from '@/src/components/Avatar.vue'
+import CusButton from '@/src/components/CusButton.vue'
+import { fileService } from '@/src/services/fileService'
 import { ElMessage } from 'element-plus'
-import { ApiTypes } from '@/types'
+import { ApiTypes } from '@/src/types'
 
 interface Props {
   uid: number
@@ -378,7 +378,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
-@use "@/style/_constant.scss" as *;
+@use "@/src/style/_constant.scss" as *;
 
 .avatar-upload {
   position: relative;

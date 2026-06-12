@@ -5,7 +5,7 @@
  * 避免窗口显示时内容闪烁。
  */
 
-import { IpcChannels } from '@/types'
+import { IpcChannels } from '@/src/types'
 
 let signalSent = false;
 
