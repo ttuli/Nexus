@@ -1,6 +1,7 @@
 
 import { Tray, Menu, nativeImage, app } from 'electron';
 import path from 'path';
+import { APP_CONSTANTS } from '@/src/config/constants';
 
 /**
  * 托盘操作的回调接口
@@ -88,7 +89,7 @@ export class TrayManager {
 
             const contextMenu = Menu.buildFromTemplate([
                 {
-                    label: 'IMChat',
+                    label: APP_CONSTANTS.ApplicationName,
                     enabled: false,
                 },
                 {

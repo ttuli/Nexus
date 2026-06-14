@@ -46,8 +46,10 @@ let configs: Map<string, WindowConfig> = new Map([
         {
             key: 'login',
             url: '',
-            width: 400,
-            height: 570,
+            // width: 400,
+            // height: 570,
+            width: 850,
+            height: 600,
             resizable: false,
             frame: false,
             maximizable: false,

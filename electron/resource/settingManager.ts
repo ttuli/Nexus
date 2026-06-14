@@ -1,6 +1,7 @@
 import { dialog, BrowserWindow, shell, app } from 'electron';
 import * as fs from 'fs';
-import * as path from 'path';
+import path from 'path';
+import { APP_CONSTANTS } from '@/src/config/constants';
 import * as https from 'https';
 import * as http from 'http';
 import { storage, StorageKeys } from '@/electron/utils/storage';
@@ -28,7 +29,7 @@ class SettingManager {
             }
         }
         // 回退默认路径：用户数据目录下
-        return path.join(app.getPath('userData'), 'IMChatResources');
+        return path.join(app.getPath('userData'), `${APP_CONSTANTS.ApplicationName}Resources`);
     }
 
     /**

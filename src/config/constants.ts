@@ -58,6 +58,7 @@ export const Renderer_Config = {
 
 // 存放主进程和渲染进程通用的不变常量
 export const APP_CONSTANTS = {
+    ApplicationName: 'Nexus',
     /** Auth 服务器地址 */
     get authServer() { return getEnv('VITE_AUTH_SERVER') || 'http://localhost:8022'; },
 

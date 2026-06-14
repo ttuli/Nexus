@@ -10,7 +10,7 @@ const router = createRouter({
         {
             path: '/login',
             name: '登录',
-            component: () => import('@/src/views/auth/Login.vue')
+            component: () => import('@/src/views/auth/AnimatedLogin.vue')
         },
         {
             path: '/register',

@@ -1,6 +1,6 @@
 ## 项目简介
 
-IMChat 前端，一个基于 **Electron + Vue 3 + TypeScript** 的桌面即时通讯客户端。  
+Nexus 悦联前端，一个基于 **Electron + Vue 3 + TypeScript** 的桌面即时通讯客户端。  
 项目包含：
 - **Electron 主进程**：窗口管理、托盘、协议注册、自定义缓存、WebSocket 管理
 - **Vue 渲染进程**：聊天 UI、联系人、设置等页面
