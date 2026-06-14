@@ -37,9 +37,9 @@ export function setupMessageHandlers(): void {
     /** 更新消息状态 */
     ipcMain.handle(
         IpcChannels.MSG_UPDATE_STATUS,
-        (_event, sessionId: string, clientId: string, status: MessageStatus, msgId?: string) => {
+        (_event, sessionId: string, clientId: string, status: MessageStatus, msgId?: string, seq?: number) => {
             try {
-                messageStore.updateMessageStatus(sessionId, clientId, status, msgId);
+                messageStore.updateMessageStatus(sessionId, clientId, status, msgId, seq);
                 return { success: true };
             } catch (err: any) {
                 console.error('[messageHandler] MSG_UPDATE_STATUS error:', err);

@@ -30,6 +30,7 @@ import { openPhotoViewer } from '@/src/utils/window'
 import { useUserStore } from '@/src/store/user';
 import { useGroupStore } from '@/src/store/group';
 import { toResourceUrl } from '@/src/utils/chat'
+import { CacheOptionType } from '../types';
 
 const source = ref<string>('')
 const userStore = useUserStore();
@@ -50,7 +51,9 @@ const getSrc = () => {
     }
     source.value = url;
     // 通过 imcache:// 协议渲染：命中本地缓存时秒出，否则由主进程 fallback 到网络图
-    return toResourceUrl(url);
+    return toResourceUrl(url, {
+        cacheType: CacheOptionType.AVATAR
+    });
 }
 
 const handleError = (e: Event) => {

@@ -32,7 +32,7 @@ import Max from '@/src/assets/window/Maximize1.svg'
 import UnMax from '@/src/assets/window/Maximize2.svg'
 import { onMounted, onUnmounted, ref } from 'vue';
 import { windowService, ipcService } from '@/src/services';
-import { ImTypes, IpcChannels, ConnectionState } from '@/src/types';
+import { IpcChannels, ConnectionState } from '@/src/types';
 
 const props = withDefaults(
     defineProps<{

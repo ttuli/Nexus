@@ -43,7 +43,7 @@ class WindowManager {
               this.showWindow('home');
             },
             onQuit: () => {
-              this.closeAllWindows().finally(() => {
+              this.closeAllWindows(false).finally(() => {
                 app.quit();
               });
             }
@@ -277,9 +277,6 @@ class WindowManager {
     const onMaximize = () => {
       if (this.isValidWindow(window) && resizable) {
         window.webContents.send(IpcChannels.WINDOW_STATE, 'maximized');
-        // if (windowConfig.maximizeBackgroundColor) {
-        //   window.setBackgroundColor(windowConfig.maximizeBackgroundColor);
-        // }
       }
     };
 
@@ -434,7 +431,7 @@ class WindowManager {
   /**
    * 关闭所有窗口（真正退出应用）
    */
-  public closeAllWindows(needLogout: boolean = true): Promise<void> {
+  public closeAllWindows(shouldCleanout: boolean = false): Promise<void> {
 
     // 收集需要关闭的窗口
     const windowsToClose: ManagedWindow[] = [];
@@ -492,7 +489,9 @@ class WindowManager {
 
       Promise.all([...closePromises]).then(() => {
         clearTimeout(timeout);
-        resourceManager.cleanout();
+        if (shouldCleanout) {
+          resourceManager.cleanout();
+        }
         this.windows.clear();
         this.trayManager?.destroy();
         this.trayManager = null;

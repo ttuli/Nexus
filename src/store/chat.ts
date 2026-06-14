@@ -63,7 +63,6 @@ export const useChatStore = defineStore('chat', {
 
             if (existingIndex !== -1) {
                 // 已存在，什么都不做，可能需要更新时间
-                // 这里只处理添加逻辑，如果要有最新行为请通过 updateLastMessage 处理
             } else {
                 // 不存在，添加新聊天
                 const newChat: ImTypes.Conversation = {
@@ -129,32 +128,12 @@ export const useChatStore = defineStore('chat', {
             }
         },
 
-        /**
-         * 更新最后一条消息
-         */
-        updateLastMessage(sessionId: string, message: string) {
-            let chat = this.chatList.find((c) => c.conversation_id === sessionId);
 
-            if (!chat) {
-                // 自动添加新会话
-                this.addChat(sessionId);
-                chat = this.chatList.find((c) => c.conversation_id === sessionId);
-            }
-
-            if (chat) {
-                chat.last_content = message;
-                chat.last_message_time = Date.now();
-                chat.update_time = Date.now();
-
-                // 重新排序
-                this.sortChatList();
-            }
-        },
 
         /**
          * 更新消息状态
          */
-        updateMessageStatus(sessionId: string, clientId: string, status: ImTypes.MessageStatus, timestamp: number, msgId?: string) {
+        updateMessageStatus(sessionId: string, clientId: string, status: ImTypes.MessageStatus, timestamp: number, msgId?: string, seq?: number) {
             const msgIndex = this.messages.findIndex(m =>
                 m.sessionId === sessionId &&
                 ((clientId && m.clientId === clientId) || (msgId && m.msgId === msgId))
@@ -162,9 +141,12 @@ export const useChatStore = defineStore('chat', {
             if (msgIndex !== -1) {
                 this.messages[msgIndex].status = status;
                 this.messages[msgIndex].sendTime = timestamp;
+                if (seq !== undefined && seq > 0) {
+                    this.messages[msgIndex].seq = seq;
+                }
             }
             // 无论是否在内存中，都同步更新本地数据库
-            void messageStorageService.updateMessageStatus(sessionId, clientId, status, msgId).catch((e) => {
+            void messageStorageService.updateMessageStatus(sessionId, clientId, status, msgId, seq).catch((e) => {
                 console.error('[ChatStore] Failed to persist message status', e);
             });
         },
@@ -277,14 +259,7 @@ export const useChatStore = defineStore('chat', {
             }));
         },
 
-        /**
-         * 清除持久化数据
-         * @param userId 用户 ID
-         */
-        clearStorage(userId: number) {
-            const key = `im-chat-store-${userId}`;
-            localStorage.removeItem(key);
-        },
+
 
         /**
          * 加载更多消息
@@ -324,6 +299,19 @@ export const useChatStore = defineStore('chat', {
 
                 if (moreMessages.length > 0) {
                     this.messages.unshift(...moreMessages);
+                    
+                    // 获取消息后更新对应会话的 last_content 等信息
+                    const cur = this.chatList.find(c => c.conversation_id === this.currentSessionId);
+                    if (cur && this.messages.length > 0) {
+                        const latestMsg = this.messages[this.messages.length - 1];
+                        if (latestMsg) {
+                            cur.last_content = getLastContent(latestMsg);
+                            cur.last_message_time = latestMsg.sendTime;
+                            if (latestMsg.fromUserId) {
+                                cur.last_sender = latestMsg.fromUserId;
+                            }
+                        }
+                    }
                 }
 
                 // If fewer messages returned than requested, assume no more history

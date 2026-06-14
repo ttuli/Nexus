@@ -55,7 +55,7 @@ app.whenReady().then(() => {
   ipcMain.on(IpcChannels.QUIT, () => {
     resourceManager.setStoreRefreshToken(true);
     cacheManager.flushToDisk();
-    windowManager.closeAllWindows().finally(() => {
+    windowManager.closeAllWindows(false).finally(() => {
       wsManager.closeWs();
       app.quit();
     })
@@ -63,7 +63,7 @@ app.whenReady().then(() => {
 
   ipcMain.on(IpcChannels.LOGOUT, () => {
     resourceManager.setStoreRefreshToken(false);
-    windowManager.closeAllWindows(false).finally(() => {
+    windowManager.closeAllWindows(true).finally(() => {
       wsManager.closeWs();
       windowManager.CreateWindow({
         key: 'login',

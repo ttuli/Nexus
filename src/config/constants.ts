@@ -12,9 +12,6 @@ export const getEnv = (key: string) => {
 };
 
 export const LOCAL_CACHE_SCHEME = 'localcache';
-export const IMCACHE_SCHEME = 'imcache';
-export const IMLOCAL_SCHEME = 'imlocal';
-export const IMLOCALRAW_SCHEME = 'imlocalraw';
 
 export const Main_Config = {
     get wsConfig() {

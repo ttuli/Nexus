@@ -152,16 +152,23 @@ class MessageStore {
     /**
      * 更新消息状态（优先用 clientId 定位，其次 msgId）
      */
-    updateMessageStatus(sessionId: string, clientId: string, status: MessageStatus, msgId?: string): void {
+    updateMessageStatus(sessionId: string, clientId: string, status: MessageStatus, msgId?: string, seq?: number): void {
         if (!sessionId || (!clientId && !msgId)) return;
 
         const pk = this.findExistingPk(sessionId, msgId || '', clientId);
         if (!pk) return;
 
-        // 同时更新 status 列和 data 内的 status 字段
-        this.db.prepare<[number, number, number, string]>(
-            'UPDATE chat_messages SET status = ?, data = json_set(data, \'$.status\', ?), updated_at = ? WHERE pk = ?'
-        ).run(Number(status), Number(status), Date.now(), pk);
+        if (seq !== undefined && seq > 0) {
+            // 同时更新 status 列、seq 列以及 data 内对应的字段
+            this.db.prepare<[number, number, number, number, number, string]>(
+                'UPDATE chat_messages SET status = ?, seq = ?, data = json_set(data, \'$.status\', ?, \'$.seq\', ?), updated_at = ? WHERE pk = ?'
+            ).run(Number(status), Number(seq), Number(status), Number(seq), Date.now(), pk);
+        } else {
+            // 同时更新 status 列和 data 内的 status 字段
+            this.db.prepare<[number, number, number, string]>(
+                'UPDATE chat_messages SET status = ?, data = json_set(data, \'$.status\', ?), updated_at = ? WHERE pk = ?'
+            ).run(Number(status), Number(status), Date.now(), pk);
+        }
     }
 
     /**

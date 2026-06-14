@@ -7,6 +7,7 @@ import {
     groupStore,
     groupMemberStore,
     kvCache,
+    openDb,
     closeDb
 } from '@/electron/db';
 
@@ -43,6 +44,15 @@ class CacheManager {
                 updateAgeOnGet: false,
             }));
         });
+    }
+
+    /**
+     * 登录成功后调用：打开用户数据库并执行数据库相关的初始化
+     * @param userId 当前登录用户 ID
+     */
+    public onLogin(userId: number): void {
+        // 打开（或切换至）该用户专属的数据库文件
+        openDb(userId);
 
         // 清理 SQLite 中的过期数据
         this.cleanExpiredDiskCache();

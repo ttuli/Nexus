@@ -4,7 +4,7 @@ import { ResourceType, ImTypes, ApiTypes } from '@/src/types';
 type UserInfo = ImTypes.UserInfo;
 import { storage, StorageKeys } from '@/electron/utils/storage';
 import { APP_CONSTANTS as config } from '@/src/config/constants';
-import { fileCacheManager } from './fileCacheManager';
+
 
 // 登录历史记录类型
 export interface LoginAccountInfo {
@@ -223,15 +223,10 @@ class UserService {
 
             const userInfo = users[0];
 
-            // 2. 后台预热头像到本地磁盘（非阅塞）
-            if (userInfo.avatar) {
-                fileCacheManager.prefetch(userInfo.avatar);
-            }
-
-            // 3. 读取现有登录历史
+            // 2. 读取现有登录历史
             let loginHistory: LoginAccountInfo[] = storage.get<LoginAccountInfo[]>(StorageKeys.LOGIN_HISTORY) || [];
 
-            // 4. 更新或添加账号记录
+            // 3. 更新或添加账号记录
             const existingIndex = loginHistory.findIndex(acc => acc.userId === userId);
             const accountInfo: LoginAccountInfo = {
                 userId,

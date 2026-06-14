@@ -100,10 +100,9 @@ import SearchIcon from '@/src/assets/input/search.svg?url';
 import UserCard from './components/UserCard.vue';
 import GroupCard from './components/GroupCard.vue';
 import Avatar from '@/src/components/Avatar.vue';
-import { UpdateAction, ResourceType } from '@/src/types';
 import GlobalLoading from '@/src/components/GlobalLoading/GlobalLoading';
 import { signalWindowReady } from '@/src/utils/windowReady';
-import { userService, friendService, cacheService, groupService } from '@/src/services';
+import { userService, friendService, groupService } from '@/src/services';
 import { ElMessage } from 'element-plus';
 
 import maleIcon from '@/src/assets/gender/male.svg?url';
@@ -254,11 +253,8 @@ const confirmAddFriend = async () => {
                 source: searchMode.value
             });
             if (res.data.friend) {
-                await cacheService.updateItems(UpdateAction.Add, ResourceType.FRIEND, [res.data.friend]);
                 ElMessage.success("添加成功");
             } else if (res.data.data) {
-                console.log(res.data)
-                await cacheService.updateItems(UpdateAction.Add, ResourceType.FRIEND_REQUEST, [res.data.data]);
                 ElMessage.success("发送好友申请成功");
             }
         } else if (targetGroup.value) {
@@ -277,9 +273,9 @@ const confirmAddFriend = async () => {
 onMounted(async () => {
     signalWindowReady()
 
+    groupService.fetchUserGroupIds()
     await friendService.loadFriendListToStore()
     await friendService.loadPendingRequestsToStore()
-    await groupService.fetchUserGroupIds()
 })
 </script>
 

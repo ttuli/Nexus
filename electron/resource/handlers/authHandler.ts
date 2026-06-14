@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron';
 import { authManager } from '@/electron/resource/authManager';
 import { tokenManager } from '@/electron/resource/tokenManager';
+import { cacheManager } from '@/electron/resource/cacheManager';
 import { userService } from '@/electron/resource/userManager';
 import { storage, StorageKeys } from '@/electron/utils/storage';
 import { IpcChannels } from '@/src/types/ipc';
@@ -13,6 +14,8 @@ export function setupAuthHandlers(): void {
         try {
             const result = await authManager.doLogin(data.account, data.password, data.remember);
             if (result.success && result.userId) {
+                // 登录成功：先打开该用户的数据库，再执行其他初始化
+                cacheManager.onLogin(result.userId);
                 userService.cacheLoginAccount(result.userId, data.account).then(() => {
                     if (tokenManager.getStoreRefreshToken()) {
                         storage.set(StorageKeys.REFRESH_TOKEN, tokenManager.getRefreshToken())

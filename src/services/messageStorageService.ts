@@ -23,7 +23,8 @@ class MessageStorageService {
      */
     async saveMessage(message: IChatMessage): Promise<void> {
         if (!message?.sessionId) return;
-        await this.invoke(IpcChannels.MSG_SAVE, message);
+        // 使用 JSON 序列化剥离 Vue Proxy，防止 IPC structured clone 报错
+        await this.invoke(IpcChannels.MSG_SAVE, JSON.parse(JSON.stringify(message)));
     }
 
     /**
@@ -31,7 +32,8 @@ class MessageStorageService {
      */
     async saveMessages(messages: IChatMessage[]): Promise<void> {
         if (!messages.length) return;
-        await this.invoke(IpcChannels.MSG_SAVE_MANY, messages);
+        // 使用 JSON 序列化剥离 Vue Proxy，防止 IPC structured clone 报错
+        await this.invoke(IpcChannels.MSG_SAVE_MANY, JSON.parse(JSON.stringify(messages)));
     }
 
     /**
@@ -41,10 +43,11 @@ class MessageStorageService {
         sessionId: string,
         clientId: string,
         status: MessageStatus,
-        msgId?: string
+        msgId?: string,
+        seq?: number
     ): Promise<void> {
         if (!sessionId || (!clientId && !msgId)) return;
-        await this.invoke(IpcChannels.MSG_UPDATE_STATUS, sessionId, clientId, status, msgId);
+        await this.invoke(IpcChannels.MSG_UPDATE_STATUS, sessionId, clientId, status, msgId, seq);
     }
 
     /**

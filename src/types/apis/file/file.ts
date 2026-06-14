@@ -154,7 +154,6 @@ export interface GetAccessUrlReq {
 export interface GetAccessUrlResp {
   /** @gotags: json:"access_url" */
   access_url: string;
-  is_exits: boolean;
 }
 
 function createBasePolicyToken(): PolicyToken {
@@ -918,16 +917,13 @@ export const GetAccessUrlReq: MessageFns<GetAccessUrlReq> = {
 };
 
 function createBaseGetAccessUrlResp(): GetAccessUrlResp {
-  return { access_url: "", is_exits: false };
+  return { access_url: "" };
 }
 
 export const GetAccessUrlResp: MessageFns<GetAccessUrlResp> = {
   encode(message: GetAccessUrlResp, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.access_url !== "") {
       writer.uint32(10).string(message.access_url);
-    }
-    if (message.is_exits !== false) {
-      writer.uint32(16).bool(message.is_exits);
     }
     return writer;
   },
@@ -947,14 +943,6 @@ export const GetAccessUrlResp: MessageFns<GetAccessUrlResp> = {
           message.access_url = reader.string();
           continue;
         }
-        case 2: {
-          if (tag !== 16) {
-            break;
-          }
-
-          message.is_exits = reader.bool();
-          continue;
-        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -971,11 +959,6 @@ export const GetAccessUrlResp: MessageFns<GetAccessUrlResp> = {
         : isSet(object.access_url)
         ? globalThis.String(object.access_url)
         : "",
-      is_exits: isSet(object.isExits)
-        ? globalThis.Boolean(object.isExits)
-        : isSet(object.is_exits)
-        ? globalThis.Boolean(object.is_exits)
-        : false,
     };
   },
 
@@ -983,9 +966,6 @@ export const GetAccessUrlResp: MessageFns<GetAccessUrlResp> = {
     const obj: any = {};
     if (message.access_url !== "") {
       obj.accessUrl = message.access_url;
-    }
-    if (message.is_exits !== false) {
-      obj.isExits = message.is_exits;
     }
     return obj;
   },
@@ -996,7 +976,6 @@ export const GetAccessUrlResp: MessageFns<GetAccessUrlResp> = {
   fromPartial<I extends Exact<DeepPartial<GetAccessUrlResp>, I>>(object: I): GetAccessUrlResp {
     const message = createBaseGetAccessUrlResp();
     message.access_url = object.access_url ?? "";
-    message.is_exits = object.is_exits ?? false;
     return message;
   },
 };

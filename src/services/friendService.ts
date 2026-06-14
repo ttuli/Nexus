@@ -64,7 +64,13 @@ class FriendService {
      * 发起好友申请
      */
     async applyFriend(data: ApiTypes.user.NewFriendApplyReq) {
-        return applyFriend(data)
+        let res = await applyFriend(data)
+        if (res.data.friend) {
+            await cacheService.updateItems(UpdateAction.Add, ResourceType.FRIEND, [res.data.friend]);
+        } else if (res.data.data) {
+            await cacheService.updateItems(UpdateAction.Add, ResourceType.FRIEND_REQUEST, [res.data.data]);
+        }
+        return res;
     }
 
     /**

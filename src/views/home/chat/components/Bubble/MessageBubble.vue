@@ -205,7 +205,7 @@ const formatTime = (timestamp: number) => {
 
         .bubble-row {
             display: flex;
-            align-items: center;
+            align-items: flex-end;
             gap: 8px;
             /* Space between status and bubble */
 

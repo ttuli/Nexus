@@ -3,7 +3,7 @@
         <!-- eslint-disable-next-line vue/valid-v-else-if -->
         <div class="image-wrapper" :style="wrapperStyle" @click="handleClick">
             <!-- 图片主体 -->
-            <img v-if="displayUrl" :src="displayUrl" class="image-content" @error="handleImageError"
+            <img v-show="imageLoaded" v-if="displayUrl" :src="displayUrl" class="image-content" @error="handleImageError"
                 alt="图片消息" @load="imageLoaded = true" />
 
             <!-- 图片加载过程中的 loading spinner -->
@@ -42,10 +42,10 @@ import { APP_CONSTANTS as config } from '@/src/config/constants';
 import { toResourceUrl } from '@/src/utils/chat';
 import { CacheOptionType, ImTypes } from '@/src/types';
 import { fileService } from '@/src/services/fileService';
-import { messageStorageService } from '@/src/services/messageStorageService';
 import { openPhotoViewer } from '@/src/utils/window';
 import { ElMessage } from 'element-plus';
 import { useUserStore } from '@/src/store/user';
+import { messageStorageService } from '@/src/services/messageStorageService';
 
 interface Props {
     message: ILocalImageMessage;
@@ -57,7 +57,6 @@ const userStore = useUserStore();
 const isSelf = computed(() => props.message.fromUserId === userStore.userID);
 
 const isError = ref(false);
-const isLoading = ref(false);
 const errorRetryCount = ref(0);
 const imageLoaded = ref(false);
 
@@ -72,28 +71,6 @@ const isFinishing = computed(() => {
 
 // 实际渲染的 URL，响应式
 const displayUrl = ref(props.message.thumbnailUrl || '');
-
-// 获取缩略图签名 URL 并缓存
-// async function fetchThumbnail(msg: ILocalImageMessage) {
-//     if (isLoading.value) return;
-//     isLoading.value = true;
-//     try {
-//         const targetW = msg.thumbnailWidth || msg.width;
-//         const targetH = msg.thumbnailHeight || msg.height;
-//         const thumbUrl = await fileService.getImageThumbnailUrl(msg.url, targetW, targetH);
-//         if (thumbUrl) {
-//             // 用 imcache 协议包裹，触发主进程磁盘缓存
-//             msg.thumbnailUrl = toResourceUrl(thumbUrl);
-//             displayUrl.value = msg.thumbnailUrl;
-//             // 持久化到本地数据库
-//             messageStorageService.saveMessage(msg);
-//         }
-//     } catch (e) {
-//         console.error('[ImageBubble] Failed to get thumbnail url:', e);
-//     } finally {
-//         isLoading.value = false;
-//     }
-// }
 
 // 监听消息变化，决定 displayUrl 来源
 watch(() => props.message, (msg) => {
@@ -116,6 +93,8 @@ watch(() => props.message, (msg) => {
             width: msg.thumbnailWidth,
             height: msg.thumbnailHeight
         });
+        props.message.thumbnailUrl = displayUrl.value;
+        messageStorageService.saveMessage(props.message);
     }
 }, { immediate: true });
 
@@ -157,6 +136,8 @@ const handleImageError = async () => {
     if (errorRetryCount.value < 1 && props.message.url) {
         errorRetryCount.value++;
         props.message.thumbnailUrl = '';
+    } else {
+        isError.value = true;
     }
 };
 

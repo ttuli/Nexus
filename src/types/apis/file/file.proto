@@ -77,7 +77,6 @@ message GetAccessUrlReq {
 message GetAccessUrlResp {
   // @gotags: json:"access_url"
   string access_url = 1;
-  bool is_exits = 2;
 }
 
 enum FileType {

@@ -469,6 +469,8 @@ export interface PersistAck {
   ack_status: AckStatus;
   /** 时间戳 */
   timestamp: number;
+  /** 消息序号 */
+  seq: number;
 }
 
 /** 消息已读 */
@@ -2198,7 +2200,7 @@ export const MessageAck: MessageFns<MessageAck> = {
 };
 
 function createBasePersistAck(): PersistAck {
-  return { msg_id: "", client_id: "", session_id: "", target: 0, ack_status: 0, timestamp: 0 };
+  return { msg_id: "", client_id: "", session_id: "", target: 0, ack_status: 0, timestamp: 0, seq: 0 };
 }
 
 export const PersistAck: MessageFns<PersistAck> = {
@@ -2220,6 +2222,9 @@ export const PersistAck: MessageFns<PersistAck> = {
     }
     if (message.timestamp !== 0) {
       writer.uint32(48).int64(message.timestamp);
+    }
+    if (message.seq !== 0) {
+      writer.uint32(56).uint64(message.seq);
     }
     return writer;
   },
@@ -2279,6 +2284,14 @@ export const PersistAck: MessageFns<PersistAck> = {
           message.timestamp = longToNumber(reader.int64());
           continue;
         }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.seq = longToNumber(reader.uint64());
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -2312,6 +2325,7 @@ export const PersistAck: MessageFns<PersistAck> = {
         ? ackStatusFromJSON(object.ack_status)
         : 0,
       timestamp: isSet(object.timestamp) ? globalThis.Number(object.timestamp) : 0,
+      seq: isSet(object.seq) ? globalThis.Number(object.seq) : 0,
     };
   },
 
@@ -2335,6 +2349,9 @@ export const PersistAck: MessageFns<PersistAck> = {
     if (message.timestamp !== 0) {
       obj.timestamp = Math.round(message.timestamp);
     }
+    if (message.seq !== 0) {
+      obj.seq = Math.round(message.seq);
+    }
     return obj;
   },
 
@@ -2349,6 +2366,7 @@ export const PersistAck: MessageFns<PersistAck> = {
     message.target = object.target ?? 0;
     message.ack_status = object.ack_status ?? 0;
     message.timestamp = object.timestamp ?? 0;
+    message.seq = object.seq ?? 0;
     return message;
   },
 };

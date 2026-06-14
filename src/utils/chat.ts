@@ -4,8 +4,7 @@ import {
     CacheOption
 } from '@/src/types';
 import {
-    APP_CONSTANTS, Renderer_Config as config, IMCACHE_SCHEME,
-    IMLOCAL_SCHEME, IMLOCALRAW_SCHEME, LOCAL_CACHE_SCHEME
+    APP_CONSTANTS, Renderer_Config as config, LOCAL_CACHE_SCHEME
 } from '@/src/config/constants';
 import { useUserStore } from '@/src/store/user';
 import { ulid } from 'ulid';
@@ -39,56 +38,6 @@ export function toResourceUrl(pathOrUrl: string, opts?: CacheOption): string {
 
     return result;
 }
-
-// /**
-//  * 将本地文件绝对路径转换为 imlocalraw:// 协议地址（原样返回，不裁剪）
-//  */
-// export function toLocalPreviewUrlRaw(filePath: string): string {
-//     const encoded = btoa(encodeURIComponent(filePath).replace(/%([0-9A-F]{2})/g, (_, p1) =>
-//         String.fromCharCode(parseInt(p1, 16))
-//     )).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-//     return `${IMLOCALRAW_SCHEME}://${encoded}`;
-// }
-
-// /**
-//  * 将本地文件绝对路径转换为 imlocal:// 协议地址（渲染进程侧）
-//  * 主进程会拦截此协议，用 nativeImage 缩放后返回图片 buffer
-//  * @param filePath 本地文件绝对路径（Electron File.path 字段）
-//  */
-// export function toLocalPreviewUrl(filePath: string, width?: number, height?: number): string {
-//     // 使用 URL-safe Base64（浏览器原生 btoa 只支持 latin1，需转义 unicode）
-//     const encoded = btoa(encodeURIComponent(filePath).replace(/%([0-9A-F]{2})/g, (_, p1) =>
-//         String.fromCharCode(parseInt(p1, 16))
-//     )).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-
-//     let url = `${IMLOCAL_SCHEME}://${encoded}`;
-//     const params = new URLSearchParams();
-//     if (width) params.append('width', width.toString());
-//     if (height) params.append('height', height.toString());
-//     const qs = params.toString();
-//     if (qs) url += `?${qs}`;
-//     return url;
-// }
-
-// /**
-//  * 将网络 OSS URL 转换为 imcache:// 协议地址（渲染进程侧）
-//  * 主进程会拦截此协议，下载文件、存入磁盘缓存，并返回。
-//  * @param url 网络图片地址
-//  * @param width 图片推荐的渲染宽度
-//  * @param height 图片推荐的渲染高度
-//  */
-// export function toNetworkPreviewUrl(url: string): string {
-//     if (!url) return '';
-//     // 如果已经是 imcache 协议了，就直接返回
-//     if (url.startsWith(`${IMCACHE_SCHEME}://`)) return url;
-
-//     // Base64Url 编码
-//     const encoded = btoa(encodeURIComponent(url).replace(/%([0-9A-F]{2})/g, (_, p1) =>
-//         String.fromCharCode(parseInt(p1, 16))
-//     )).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-
-//     return `${IMCACHE_SCHEME}://${encoded}`;
-// }
 
 /**
  * Convert WSMessage to IChatMessage (Local Message format)
@@ -565,7 +514,6 @@ export function buildFileWsPayload(
 }
 
 
-
 /**
  * 构建音频消息的 WS 包和占位本地消息
  * content.url 为空时表示占位消息（上传前），有值时表示结果消息（上传后）
@@ -659,44 +607,6 @@ export function buildVideoWsPayload(
     }).finish();
 
     return wsMsg;
-}
-
-export function buildVerifyWsMsg(type: ImTypes.MessageType, data:
-    ImTypes.FriendRequest |
-    ImTypes.GroupApply |
-    ImTypes.Friend
-    , targetId: number, targetType: ImTypes.TargetType): { msg: ImTypes.WSMessage, clientId?: string } {
-    const wsMsg: ImTypes.WSMessage = {
-        type,
-        timestamp: Date.now(),
-        version: config.wsMessageVersion,
-        payload: new Uint8Array(),
-        sender_id: 0,
-        route_target: [targetId],
-        route_target_type: targetType,
-    };
-
-    let payload: Uint8Array = new Uint8Array();
-
-    switch (type) {
-        case ImTypes.MessageType.FRIEND_REQUEST:
-            console.log(data)
-            payload = ImTypes.FriendRequest.encode(data as ImTypes.FriendRequest).finish();
-            console.log('finish')
-            break;
-        case ImTypes.MessageType.GROUP_REQUEST:
-            payload = ImTypes.GroupApply.encode(data as ImTypes.GroupApply).finish();
-            break;
-        case ImTypes.MessageType.FRIEND_ADD:
-            payload = ImTypes.Friend.encode(data as ImTypes.Friend).finish();
-            break;
-        default:
-            // Should not happen for handled types, but need a fallback or throw
-            throw new Error(`Unsupported message type: ${type}`);
-    }
-
-    wsMsg.payload = payload;
-    return { msg: wsMsg, clientId: ulid() };
 }
 
 export function convertApplySrc2FriendSrc(src: ImTypes.ApplySource): ImTypes.FriendSource {

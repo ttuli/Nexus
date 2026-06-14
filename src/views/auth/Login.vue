@@ -81,6 +81,7 @@ import EyeOpenIcon from '@/src/assets/input/eye_open.svg?url'
 import EyeClosedIcon from '@/src/assets/input/eye_closed.svg?url'
 import { signalWindowReady } from '@/src/utils/windowReady'
 import AccountSelector, { AccountOption } from './components/AccountSelector.vue';
+import { toResourceUrl } from '@/src/utils/chat.ts'
 
 interface LoginForm {
     account: string
@@ -185,17 +186,11 @@ const goToRegister = (): void => {
 onMounted(async () => {
     autologin.value = await tokenService.ableToAutoLogin()
     let history = await userService.getLoginHistory()
-    const toImcacheUrl = (url: string): string => {
-        if (!url || url.startsWith('data:') || url.startsWith('blob:') || url.startsWith('imcache://')) return url;
-        const encoded = btoa(unescape(encodeURIComponent(url)))
-            .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-        return `imcache://${encoded}`;
-    };
 
     accountOptions.value = history.map((item) => ({
         account: item.account || item.userId?.toString() || '',
         name: item.name,
-        avatar: toImcacheUrl(item.avatarUrl || '')
+        avatar: toResourceUrl(item.avatarUrl || '')
     }));
 
     // Default select first account if available and not empty
@@ -205,7 +200,7 @@ onMounted(async () => {
 
     if (history.length > 0 && autologin.value) {
         autoLoginInfo.value = {
-            avatar: toImcacheUrl(history[0].avatarUrl || ''),
+            avatar: toResourceUrl(history[0].avatarUrl || ''),
             name: history[0].name
         }
     }

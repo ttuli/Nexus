@@ -64,7 +64,7 @@ export function initWsMessageListener(): void {
         if (data.ack.ack_status === ImTypes.AckStatus.ACK_STATUS_FAILED) {
             chatStore.updateMessageStatus(data.ack.session_id, data.ack.client_id, ImTypes.MessageStatus.MESSAGE_STATUS_FAILED, data.timestamp)
         } else if (data.ack.ack_status === ImTypes.AckStatus.ACK_STATUS_SUCCESS) {
-            chatStore.updateMessageStatus(data.ack.session_id, data.ack.client_id, ImTypes.MessageStatus.MESSAGE_STATUS_DELIVERED, data.timestamp)
+            chatStore.updateMessageStatus(data.ack.session_id, data.ack.client_id, ImTypes.MessageStatus.MESSAGE_STATUS_DELIVERED, data.timestamp, undefined, data.ack.seq)
         }
     })
 }

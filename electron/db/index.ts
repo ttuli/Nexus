@@ -17,4 +17,4 @@ export { groupStore } from './groupStore';
 export { groupMemberStore } from './groupMemberStore';
 export { kvCache } from './kvCache';
 export { messageStore } from './messageStore';
-export { getDb, closeDb } from './database';
+export { openDb, getDb, closeDb } from './database';

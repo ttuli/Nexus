@@ -21,15 +21,18 @@
                 </div>
             </div>
 
-            <!-- 时间角标 -->
-            <div class="duration-badge" v-if="props.message.duration > 0">
-                {{ formatDuration(props.message.duration) }}
+            <!-- 底部信息栏（悬浮显示） -->
+            <div class="video-info-bar">
+                <span class="file-name">{{ props.message.fileName || '视频文件' }}</span>
+                <span class="duration" v-if="props.message.duration > 0">
+                    {{ formatDuration(props.message.duration) }}
+                </span>
             </div>
 
             <!-- 上传进度蒙层（仅对自己发送且处于上传状态的消息显示） -->
             <transition name="fade-reveal">
                 <div class="upload-mask" :class="{ 'is-finishing': isFinishing }" v-show="!isFinishing">
-                    <div class="custom-progress" :class="{ 'can-cancel': isDownloading }">
+                    <div class="custom-progress" :class="{ 'can-cancel': isDownloading || isUploading }">
                         <div class="progress-display">
                             <svg class="progress-ring" width="44" height="44">
                                 <!-- 背景环 -->
@@ -43,7 +46,7 @@
                             </svg>
                             <span class="progress-text">{{ props.message.uploadProgress || 0 }}%</span>
                         </div>
-                        <div class="cancel-btn" v-if="isDownloading">
+                        <div class="cancel-btn" v-if="isDownloading || isUploading">
                             <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
                                 <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
                             </svg>
@@ -65,6 +68,7 @@ import { ElMessage } from 'element-plus';
 import { messageStorageService } from '@/src/services/messageStorageService';
 import { toResourceUrl } from '@/src/utils/chat';
 import fileService from '@/src/services/fileService';
+import { websocketService } from '@/src/services/websocketService';
 
 interface Props {
     message: ILocalVideoMessage;
@@ -75,6 +79,12 @@ const props = defineProps<Props>();
 
 // 控制下载状态
 const isDownloading = ref(false);
+
+// 判断是否处于上传状态
+const isUploading = computed(() => {
+    return props.message.status === ImTypes.MessageStatus.MESSAGE_STATUS_SENDING 
+        && props.message.uploadProgress !== 100;
+});
 
 // 控制遮罩显示及无上传进度时的状态
 const isFinishing = computed(() => {
@@ -204,6 +214,9 @@ const handleClick = async () => {
     if (!isFinishing.value) {
         if (isDownloading.value) {
             currentDownloadAbort.value?.();
+        } else if (isUploading.value) {
+            websocketService.cancelUpload(props.message.clientId || '');
+            ElMessage.error("已取消上传")
         }
         return;
     }
@@ -237,7 +250,6 @@ const formatDuration = (seconds: number) => {
         border-radius: 8px;
         overflow: hidden;
         cursor: pointer;
-        background-color: #000; // 视频底部黑边用纯黑比较合适
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         display: flex;
         align-items: center;
@@ -259,10 +271,9 @@ const formatDuration = (seconds: number) => {
         }
 
         .video-content {
-            display: block;
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            padding: -5px;
             transition: opacity 0.3s ease;
             pointer-events: none; // 禁止用户在气泡中交互原生的视频控件
         }
@@ -299,18 +310,42 @@ const formatDuration = (seconds: number) => {
             transform: scale(1.1);
         }
 
-        .duration-badge {
+        .video-info-bar {
             position: absolute;
-            bottom: 6px;
-            right: 8px;
-            background-color: rgba(0, 0, 0, 0.6);
-            color: white;
-            padding: 2px 6px;
-            border-radius: 10px;
-            font-size: 11px;
-            font-family: monospace;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 24px 8px 6px; // 顶部多留点渐变空间使之自然
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.4) 0%, transparent 100%);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            opacity: 0;
+            transition: opacity 0.2s ease;
             z-index: 5;
             pointer-events: none;
+
+            .file-name {
+                color: #fff;
+                font-size: 11px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                margin-right: 10px;
+                text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3); // 增加文字清晰度
+            }
+
+            .duration {
+                color: #fff;
+                font-size: 11px;
+                font-family: monospace;
+                flex-shrink: 0;
+                text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+            }
+        }
+
+        &:hover .video-info-bar {
+            opacity: 1;
         }
 
         .upload-mask {
