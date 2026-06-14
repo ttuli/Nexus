@@ -14,6 +14,7 @@ declare module 'vue' {
     Avatar: typeof import('./src/components/Avatar.vue')['default']
     AvatarUpload: typeof import('./src/components/AvatarUpload.vue')['default']
     BlankPage: typeof import('./src/components/BlankPage.vue')['default']
+    BoxReveal: typeof import('./src/components/BoxReveal.vue')['default']
     ContextMenu: typeof import('./src/components/ContextMenu.vue')['default']
     CreateGroup: typeof import('./src/components/CreateGroup.vue')['default']
     CusButton: typeof import('./src/components/CusButton.vue')['default']

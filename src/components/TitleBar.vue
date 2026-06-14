@@ -50,8 +50,7 @@ const props = withDefaults(
         title: '',
         theme: 'light',
         onClose: () => {
-            // Trigger the App.vue unmount logic locally bypassing main process
-            ipcService.emitLocal(IpcChannels.APP_QUIT)
+            windowService.quit()
         }
     }
 )
@@ -81,6 +80,8 @@ onUnmounted(() => {
 <style lang="scss" scoped>
 .main-container {
     position: relative;
+    top: 0;
+    left: 0;
     width: 100%;
     height: v-bind('props.height');
     display: flex;

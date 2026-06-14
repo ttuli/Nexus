@@ -77,8 +77,41 @@ const handleClick = () => {
 
   // --- Primary 风格 ---
   &.primary {
+    position: relative;
+    overflow: hidden;
     background: var(--el-color-primary, #409eff);
     color: #ffffff;
+
+    .bottom-gradient-line {
+      display: block;
+      position: absolute;
+      height: 2px;
+      width: 100%;
+      bottom: 0;
+      left: 0;
+      background: linear-gradient(90deg, transparent, #00f2fe, transparent);
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+
+    .bottom-gradient-blur {
+      display: block;
+      position: absolute;
+      height: 4px;
+      width: 50%;
+      left: 25%;
+      bottom: 0;
+      background: linear-gradient(90deg, transparent, #4facfe, transparent);
+      filter: blur(4px);
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+
+    &:hover:not(:disabled) {
+      .bottom-gradient-line, .bottom-gradient-blur {
+        opacity: 1;
+      }
+    }
   }
 
   // --- Normal 风格 ---

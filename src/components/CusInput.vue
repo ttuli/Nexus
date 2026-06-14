@@ -88,45 +88,45 @@ defineExpose({
   display: flex;
   align-items: center;
   gap: 8px;
-  overflow: hidden;
 
   // 聊天软件风格外观
   width: 100%;
   min-height: 48px;
-  border-radius: 14px;
-  padding: 6px 10px;
+  border-radius: 8px;
+  padding: 0 16px;
   box-sizing: border-box;
-  transition: background-color 0.2s, box-shadow 0.2s;
-  background-color: #ffffff;
+  transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+  background-color: #fcfcfc;
+  border: 1px solid #e5e7eb;
 
   &:focus-within {
+    border-color: #1890ff;
+    box-shadow: 0 0 0 3px rgba(24, 144, 255, 0.1);
     background-color: #ffffff;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); // 聚焦时微微浮起
   }
 
   .chat-input-field {
-    flex: 1; // 占满剩余空间
+    flex: 1;
+    min-width: 0; // 允许在 flex 容器中收缩至 0，为右侧内容让出空间
     border: none;
     outline: none;
     background: transparent;
     font-size: 15px;
-    color: #333;
+    color: #0f172a;
     line-height: 1.5;
-    padding: 4px 0;
-    background-color: #ffffff;
+    padding: 12px 0;
 
     &::placeholder {
-      color: #999;
+      color: #94a3b8;
     }
   }
 
   .chat-input-actions {
     width: fit-content;
     height: 100%;
-    flex-grow: 0;
+    // flex-grow: 0;
     display: flex;
-    // align-items: center;
-    // flex-shrink: 0; // 防止按钮被挤压
+    align-items: center;
   }
 }
 </style>

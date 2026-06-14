@@ -141,16 +141,17 @@ const selectOption = (item: AccountOption) => {
     gap: 8px;
     width: 100%;
     min-height: 48px;
-    border-radius: 14px;
-    padding: 6px 10px;
+    border-radius: 8px;
+    padding: 0 16px;
     box-sizing: border-box;
-    transition: background-color 0.2s, box-shadow 0.2s;
-    background-color: #ffffff;
-    //   border: 1px solid transparent;
+    transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+    background-color: #fcfcfc;
+    border: 1px solid #e5e7eb;
 
     &.is-focus {
+        border-color: #1890ff;
+        box-shadow: 0 0 0 3px rgba(24, 144, 255, 0.1);
         background-color: #ffffff;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     }
 
     .left-icon {
@@ -168,12 +169,12 @@ const selectOption = (item: AccountOption) => {
         outline: none;
         background: transparent;
         font-size: 15px;
-        color: #333;
+        color: #0f172a;
         line-height: 1.5;
-        padding: 0;
+        padding: 12px 0;
 
         &::placeholder {
-            color: #999;
+            color: #94a3b8;
         }
     }
 
