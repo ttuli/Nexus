@@ -100,9 +100,9 @@
     <BoxReveal width="100%" :duration="0.5" :delay="0.6">
       <CusCheckBox v-model="form.agreeTerms" class="check-box">
         我已阅读并同意
-        <button type="button" class="link-text" @click="showTerms">《用户服务协议》</button>
+        <button type="button" class="link-text" @click="showTerms" :disabled="isLoading">《用户服务协议》</button>
         和
-        <button type="button" class="link-text" @click="showPrivacy">《隐私政策》</button>
+        <button type="button" class="link-text" @click="showPrivacy" :disabled="isLoading">《隐私政策》</button>
       </CusCheckBox>
     </BoxReveal>
 
@@ -115,7 +115,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { authService } from '@/src/services'
 import BoxReveal from '@/src/components/BoxReveal.vue'
@@ -133,6 +133,7 @@ import CodeIcon from '@/src/assets/input/input_code.svg?url'
 
 const emit = defineEmits<{
     (e: 'switchView', view: 'login'): void
+    (e: 'update:loading', value: boolean): void
 }>()
 
 interface RegisterForm {
@@ -161,6 +162,10 @@ const phoneInput = ref<any>()
 const passwordInput = ref<any>()
 const confirmPasswordInput = ref<any>()
 const codeInput = ref<any>()
+
+watch(isLoading, (val) => {
+    emit('update:loading', val)
+})
 
 let finish = false
 
@@ -248,12 +253,13 @@ const handleRegister = async (): Promise<void> => {
     isLoading.value = true
 
     try {
-        await authService.register({
+        let res = await authService.register({
             phone: form.value.phone,
             name: form.value.nickname,
             password: form.value.password,
             auth_code: form.value.code
         })
+        res.data.id
 
         finish = true
         ElMessage.success('注册成功！')
@@ -406,8 +412,13 @@ const showPrivacy = (e: Event): void => {
     font-size: 0.9rem;
     font-weight: 500;
 
-    &:hover {
+    &:not(:disabled):hover {
         text-decoration: underline;
+    }
+
+    &:disabled {
+        color: #94a3b8;
+        cursor: not-allowed;
     }
   }
 

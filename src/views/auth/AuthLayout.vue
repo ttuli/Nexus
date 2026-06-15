@@ -7,6 +7,7 @@
         v-if="currentView === 'register'" 
         class="back-btn" 
         @click="currentView = 'login'"
+        :disabled="isProcessing"
         aria-label="返回登录"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="back-icon">
@@ -49,34 +50,23 @@
     <!-- Right Pane -->
     <div class="right-pane">
       <div class="form-wrapper">
-        <AnimatedLoginForm v-if="currentView === 'login'" @switchView="currentView = $event" />
-        <AnimatedRegisterForm v-else-if="currentView === 'register'" @switchView="currentView = $event" />
+        <AnimatedLoginForm v-if="currentView === 'login'" @switchView="currentView = $event" @update:loading="isProcessing = $event" />
+        <AnimatedRegisterForm v-else-if="currentView === 'register'" @switchView="currentView = $event" @update:loading="isProcessing = $event" />
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { ref } from 'vue'
 import TitleBar from '@/src/components/TitleBar.vue';
 import AnimatedLoginForm from './components/AnimatedLoginForm.vue';
 import AnimatedRegisterForm from './components/AnimatedRegisterForm.vue';
 import { APP_CONSTANTS } from '@/src/config/constants';
-import CusDialog from '@/src/components/CusDialog/CusDialog.ts';
 
 const icon = '/icon/icon_' + import.meta.env.VITE_ICON_VERSION + '.png'
 const currentView = ref<'login' | 'register'>('login')
-
-onMounted(() => {
-  CusDialog.open({
-    title: '提示',
-    content: '您的账号为: 10000002000',
-    showCancel: true,
-    showClose: true,
-    confirmText: '确定',
-    status: 'info'
-  })
-})
+const isProcessing = ref(false)
 </script>
 
 <style scoped lang="scss">
@@ -118,7 +108,7 @@ onMounted(() => {
     transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     -webkit-app-region: no-drag;
 
-    &:hover {
+    &:not(:disabled):hover {
       color: #1890ff;
       border-color: #bae0ff;
       background-color: #e6f7ff;
@@ -126,8 +116,13 @@ onMounted(() => {
       box-shadow: 0 6px 16px rgba(24, 144, 255, 0.15);
     }
 
-    &:active {
+    &:not(:disabled):active {
       transform: scale(0.95);
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
     }
 
     .back-icon {

@@ -199,11 +199,11 @@ class TokenManager {
         });
     }
 
-    public operateLocalRefreshToken(remove: boolean) {
-        if (remove) {
-            storage.delete(StorageKeys.REFRESH_TOKEN);
-        } else {
+    public operateLocalRefreshToken(save: boolean) {
+        if (save) {
             storage.set(StorageKeys.REFRESH_TOKEN, this.refreshToken);
+        } else {
+            storage.delete(StorageKeys.REFRESH_TOKEN);
         }
     }
 

@@ -51,7 +51,7 @@
 
     <BoxReveal width="100%" :duration="0.5" :delay="0.6" style="margin-top: 0.5rem;">
       <div class="forgot-wrapper" style="margin-top: 0;">
-        <button class="forgot-btn" type="button" @click="goToRegister">注册账户</button>
+        <button class="forgot-btn" type="button" @click="goToRegister" :disabled="isLoading">注册账户</button>
       </div>
     </BoxReveal>
   </form>
@@ -83,7 +83,7 @@
 
       <BoxReveal :duration="0.5" :delay="0.4" style="margin-top: 0.5rem;">
           <div class="forgot-wrapper" style="margin-top: 0;">
-              <button type="button" class="forgot-btn switch-account-btn" @click="autologin = !autologin">切换账号</button>
+              <button type="button" class="forgot-btn switch-account-btn" @click="autologin = !autologin" :disabled="isLoading">切换账号</button>
           </div>
       </BoxReveal>
   </div>
@@ -91,7 +91,7 @@
 
 <script setup lang="ts">
 import BoxReveal from '@/src/components/BoxReveal.vue';
-import { nextTick, onMounted, ref } from 'vue'
+import { nextTick, onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { windowService, authService, userService, tokenService } from '@/src/services'
 import AccountIcon from '@/src/assets/input/input_name.svg?url'
@@ -101,9 +101,11 @@ import EyeClosedIcon from '@/src/assets/input/eye_closed.svg?url'
 import { signalWindowReady } from '@/src/utils/windowReady'
 import AccountSelector, { AccountOption } from './AccountSelector.vue';
 import { toResourceUrl } from '@/src/utils/chat.ts'
+import { CacheOptionType } from '@/src/types/resourceCache.ts';
 
 const emit = defineEmits<{
     (e: 'switchView', view: 'register'): void
+    (e: 'update:loading', value: boolean): void
 }>()
 
 interface LoginForm {
@@ -127,6 +129,10 @@ const passwordInput = ref<HTMLInputElement>()
 const autologin = ref(false)
 const autoLoginInfo = ref<AutoLoginInfo | null>(null)
 const accountOptions = ref<AccountOption[]>([])
+
+watch(isLoading, (val) => {
+    emit('update:loading', val)
+})
 
 const handleAccountChange = (_val: string) => {
     // Optional: Auto-fill password if remembered?
@@ -206,7 +212,9 @@ onMounted(async () => {
     accountOptions.value = history.map((item) => ({
         account: item.account || item.userId?.toString() || '',
         name: item.name,
-        avatar: toResourceUrl(item.avatarUrl || '')
+        avatar: toResourceUrl(item.avatarUrl || '',{
+            cacheType:CacheOptionType.AVATAR
+        })
     }));
 
     // Default select first account if available and not empty
@@ -216,7 +224,9 @@ onMounted(async () => {
 
     if (history.length > 0 && autologin.value) {
         autoLoginInfo.value = {
-            avatar: toResourceUrl(history[0].avatarUrl || ''),
+            avatar: toResourceUrl(history[0].avatarUrl || '',{
+                cacheType:CacheOptionType.AVATAR
+            }),
             name: history[0].name
         }
     }
@@ -345,27 +355,27 @@ onMounted(async () => {
       }
     }
   }
+}
 
-  .submit-btn-new, .auto-login-btn {
-    width: 100%;
-    height: 3rem;
-    background: linear-gradient(90deg, #40a9ff, #1890ff);
-    color: #fff;
-    border: none;
-    border-radius: 0.5rem;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-top: 1rem;
-    box-shadow: 0 4px 12px rgba(24, 144, 255, 0.2);
+.submit-btn-new, .auto-login-btn {
+  width: 100%;
+  height: 3rem;
+  background: linear-gradient(90deg, #40a9ff, #1890ff);
+  color: #fff;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 1rem;
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.2);
 
-    &:hover {
-      opacity: 0.9;
-      box-shadow: 0 6px 16px rgba(24, 144, 255, 0.3);
-    }
+  &:hover {
+    opacity: 0.9;
+    box-shadow: 0 6px 16px rgba(24, 144, 255, 0.3);
   }
 }
 
@@ -388,8 +398,13 @@ onMounted(async () => {
     cursor: pointer;
     -webkit-app-region: no-drag;
 
-    &:hover {
+    &:not(:disabled):hover {
       text-decoration: underline;
+    }
+
+    &:disabled {
+      color: #94a3b8;
+      cursor: not-allowed;
     }
   }
 }
