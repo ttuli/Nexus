@@ -2,7 +2,7 @@ import { protocol } from 'electron'
 import { fileCacheManager } from '@/electron/resource/fileCacheManager'
 import { LOCAL_CACHE_SCHEME } from '@/src/config/constants'
 
-export function registerProtocols() {
+export function setupProtocolHandler() {
 
     protocol.handle(LOCAL_CACHE_SCHEME, async (request) => {
         try {

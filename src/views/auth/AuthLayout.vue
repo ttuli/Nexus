@@ -57,14 +57,26 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import TitleBar from '@/src/components/TitleBar.vue';
 import AnimatedLoginForm from './components/AnimatedLoginForm.vue';
 import AnimatedRegisterForm from './components/AnimatedRegisterForm.vue';
 import { APP_CONSTANTS } from '@/src/config/constants';
+import CusDialog from '@/src/components/CusDialog/CusDialog.ts';
 
 const icon = '/icon/icon_' + import.meta.env.VITE_ICON_VERSION + '.png'
 const currentView = ref<'login' | 'register'>('login')
+
+onMounted(() => {
+  CusDialog.open({
+    title: '提示',
+    content: '您的账号为: 10000002000',
+    showCancel: true,
+    showClose: true,
+    confirmText: '确定',
+    status: 'info'
+  })
+})
 </script>
 
 <style scoped lang="scss">

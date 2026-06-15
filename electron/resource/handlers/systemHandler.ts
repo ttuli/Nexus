@@ -4,7 +4,7 @@ import { wsManager } from "@/electron/websocket";
 export function setupSystemHandlers() {
     powerMonitor.on('suspend', handleSuspend);
 
-    powerMonitor.on('resume', handleResume);
+    powerMonitor.on('resume', handleResume); 
 }
 
 function handleSuspend() {

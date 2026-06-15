@@ -5,7 +5,6 @@ import { cacheManager } from '@/electron/resource/cacheManager';
 import { userService } from '@/electron/resource/userManager';
 import { storage, StorageKeys } from '@/electron/utils/storage';
 import { IpcChannels } from '@/src/types/ipc';
-
 /**
  * Auth 相关 IPC 处理器
  */
@@ -17,12 +16,9 @@ export function setupAuthHandlers(): void {
                 // 登录成功：先打开该用户的数据库，再执行其他初始化
                 cacheManager.onLogin(result.userId);
                 userService.cacheLoginAccount(result.userId, data.account).then(() => {
-                    if (tokenManager.getStoreRefreshToken()) {
-                        storage.set(StorageKeys.REFRESH_TOKEN, tokenManager.getRefreshToken())
-                    }
-                    tokenManager.setStoreRefreshToken(data.remember);
+                    tokenManager.operateLocalRefreshToken(data.remember);
                 }).catch(() => {
-                    tokenManager.setStoreRefreshToken(false);
+                    tokenManager.operateLocalRefreshToken(false);
                 });
             }
             return result;

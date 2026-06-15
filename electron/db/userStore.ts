@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3';
-import { getDb } from './database';
+import { getSharedDb } from './database';
 import type { ImTypes } from '@/src/types';
 
 type UserInfo = ImTypes.UserInfo;
@@ -15,7 +15,7 @@ type UserInfo = ImTypes.UserInfo;
  */
 class UserStore {
     private get db(): Database.Database {
-        return getDb();
+        return getSharedDb();
     }
 
     // ── 预编译语句（懒初始化，避免 getDb() 未准备好时调用） ──────────

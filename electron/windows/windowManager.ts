@@ -4,7 +4,6 @@ import { fileURLToPath } from 'node:url';
 import { WindowConfig, ManagedWindow, CreateWindowRequest, WindowState } from './windowAttribute';
 import configs from './windowAttribute';
 import { windowStateManager } from '@/electron/utils/windowState';
-import { resourceManager } from '@/electron/resource';
 import { TrayManager } from './trayManager';
 import { IpcChannels } from '@/src/types';
 import { Main_Config as config } from '@/src/config/constants';
@@ -43,7 +42,7 @@ class WindowManager {
               this.showWindow('home');
             },
             onQuit: () => {
-              this.closeAllWindows(false).finally(() => {
+              this.closeAllWindows().finally(() => {
                 app.quit();
               });
             }
@@ -431,7 +430,7 @@ class WindowManager {
   /**
    * 关闭所有窗口（真正退出应用）
    */
-  public closeAllWindows(shouldCleanout: boolean = false): Promise<void> {
+  public closeAllWindows(): Promise<void> {
 
     // 收集需要关闭的窗口
     const windowsToClose: ManagedWindow[] = [];
@@ -489,9 +488,6 @@ class WindowManager {
 
       Promise.all([...closePromises]).then(() => {
         clearTimeout(timeout);
-        if (shouldCleanout) {
-          resourceManager.cleanout();
-        }
         this.windows.clear();
         this.trayManager?.destroy();
         this.trayManager = null;

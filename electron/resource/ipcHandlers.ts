@@ -5,6 +5,7 @@ import { setupUserHandlers } from './handlers/userHandler';
 import { setupGroupHandlers } from './handlers/groupHandler';
 import { setupSettingsHandlers } from './handlers/settingsHandler';
 import { setupMessageHandlers } from './handlers/messageHandler';
+import { setupProtocolHandler } from './handlers/protocolHandler';
 
 /**
  * 设置所有 IPC 处理器
@@ -17,4 +18,5 @@ export function setupIpcHandlers(): void {
     setupGroupHandlers();
     setupSettingsHandlers();
     setupMessageHandlers();
+    setupProtocolHandler();
 }

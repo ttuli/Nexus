@@ -1,14 +1,11 @@
 <template>
-  <BoxReveal width="100%" :duration="0.5" :delay="0" style="margin-bottom: 2.5rem;">
-    <h2 class="title" style="margin: 0;">创建账户</h2>
-  </BoxReveal>
 
-  <form @submit.prevent="handleRegister" class="register-form">
+  <div class="register-form">
     <!-- 昵称输入框 -->
     <BoxReveal width="100%" :duration="0.5" :delay="0.1">
       <div class="input-group">
         <label>名称 <span class="required">*</span></label>
-        <CusInput v-model="form.nickname" placeholder="请输入昵称" @submit="focusPhoneInput">
+        <CusInput v-model="form.nickname" placeholder="请输入昵称" @keydown.enter.prevent="focusPhoneInput">
           <template #left-area>
             <img :src="NameIcon" class="input-icon" />
           </template>
@@ -23,16 +20,12 @@
     <BoxReveal width="100%" :duration="0.5" :delay="0.2">
       <div class="input-group">
         <label>手机号 <span class="required">*</span></label>
-        <CusInput ref="phoneInput" v-model="form.phone" placeholder="请输入手机号" @submit="focusPasswordInput">
+        <CusInput ref="phoneInput" v-model="form.phone" placeholder="请输入手机号" @keydown.enter.prevent="focusCodeInput">
           <template #left-area>
             <img :src="PhoneIcon" class="input-icon" />
           </template>
           <template #right-area>
             <div class="phone-input-area">
-              <span v-if="phoneStatus" :class="['status-icon', phoneStatus]">
-                <img v-if="phoneStatus === 'valid'" :src="CheckValidIcon" class="icon" />
-                <img v-else :src="CheckInvalidIcon" class="icon" />
-              </span>
               <button type="button" class="send-code-btn" @click="sendAuthCode"
                   :disabled="codeCD !== 0 || isLoading">
                 <span v-if="codeCD !== 0">({{ codeCD }}s)验证码已发送</span>
@@ -48,7 +41,7 @@
     <BoxReveal width="100%" :duration="0.5" :delay="0.3">
       <div class="input-group">
         <label>验证码 <span class="required">*</span></label>
-        <CusInput ref="codeInput" v-model="form.code" placeholder="请输入验证码" @submit="focusPasswordInput">
+        <CusInput ref="codeInput" v-model="form.code" placeholder="请输入验证码" @keydown.enter.prevent="focusPasswordInput">
           <template #left-area>
             <img :src="CodeIcon" class="input-icon" />
           </template>
@@ -61,7 +54,7 @@
       <div class="input-group relative-group">
         <label>密码 <span class="required">*</span></label>
         <CusInput ref="passwordInput" v-model="form.password" type="password" :visible="passwordVisible"
-            placeholder="请输入密码 (至少8位)" @submit="focusConfirmPasswordInput" @focus="handlePasswordFocus"
+            placeholder="请输入密码 (至少8位)" @keydown.enter.prevent="focusConfirmPasswordInput" @focus="handlePasswordFocus"
             @blur="handlePasswordBlur">
           <template #left-area>
             <img :src="PasswordIcon" class="input-icon" />
@@ -88,7 +81,7 @@
       <div class="input-group">
         <label>确认密码 <span class="required">*</span></label>
         <CusInput ref="confirmPasswordInput" v-model="form.confirmPassword" type="password"
-            :visible="confirmPasswordVisible" placeholder="请再次输入密码" @submit="handleRegister">
+            :visible="confirmPasswordVisible" placeholder="请再次输入密码" @keydown.enter.prevent="handleRegister">
           <template #left-area>
             <img :src="PasswordIcon" class="input-icon" />
           </template>
@@ -114,13 +107,11 @@
     </BoxReveal>
 
     <BoxReveal width="100%" :duration="0.5" :delay="0.7" style="margin-top: 1rem;" overflow="visible">
-      <CusButton html-type="submit" :loading="isLoading" :showIcon="false" class="submit-btn-new" style="margin-top: 0;">
+      <CusButton @click="handleRegister" :loading="isLoading" :showIcon="false" class="submit-btn-new" style="margin-top: 0;">
         注 册
       </CusButton>
     </BoxReveal>
-
-
-  </form>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -201,6 +192,10 @@ const canRegister = computed(() => {
 // 聚焦事件
 const focusPhoneInput = (): void => {
     phoneInput.value?.focus()
+}
+
+const focusCodeInput = (): void => {
+    codeInput.value?.focus()
 }
 
 const focusPasswordInput = (): void => {
@@ -291,17 +286,11 @@ const showPrivacy = (e: Event): void => {
 </script>
 
 <style scoped lang="scss">
-.title {
-  font-size: 2.2rem;
-  font-weight: 800;
-  color: #0f172a;
-  margin: 0 0 0.5rem 0;
-}
 
 .register-form {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 8px;
 
   .input-group {
     display: flex;
@@ -370,19 +359,19 @@ const showPrivacy = (e: Event): void => {
     .phone-input-area {
       display: flex;
       align-items: center;
+      width: 100%;
       height: 100%;
-      // background-color: #1890ff;
 
       .send-code-btn {
-        // width: min-content;
         height: 100%;
+        padding: 0 10px;
         border: none;
         border-left: 1px solid #e5e7eb;
         display: flex;
         align-items: center;
         justify-content: center;
-        background: none;
-        color: #1890ff;
+        background-color: #1890ff;
+        color: #fff;
         font-size: 0.9rem;
         font-weight: 500;
         transition: background-color 0.3s ease;
@@ -391,11 +380,12 @@ const showPrivacy = (e: Event): void => {
 
         &:disabled {
             color: #94a3b8;
+            background-color: #f8fafc;
             cursor: not-allowed;
         }
 
         &:hover:not(:disabled) {
-            background-color: #f8fafc;
+            background-color: #40a9ff;
         }
       }
     }

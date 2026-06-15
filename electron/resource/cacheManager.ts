@@ -7,8 +7,9 @@ import {
     groupStore,
     groupMemberStore,
     kvCache,
+    openSharedDb,
     openDb,
-    closeDb
+    closeAllDb
 } from '@/electron/db';
 
 // ─── 需要持久化到磁盘的资源类型 ─────────────────────────────────
@@ -44,6 +45,9 @@ class CacheManager {
                 updateAgeOnGet: false,
             }));
         });
+
+        // 打开共享数据库（app 启动时调用一次，生命周期与 app 相同）
+        openSharedDb();
     }
 
     /**
@@ -271,42 +275,19 @@ class CacheManager {
         }
 
         if (type === ResourceType.GROUP_MEMBER) {
-            const cache = this.caches.get(type);
-            const idKey = ResourceIdKeyMap[type];
-            if (!cache || !idKey) return;
-
-            const id = item[idKey] as number;
-            const existing = cache.get(id);
-
-            // 如果已有缓存，进行合并
-            let mergedItem = item;
-            if (existing && existing.data && Array.isArray(existing.data.members)) {
-                const existingMembers = existing.data.members;
-                const newMembers = (item as any).members;
-
-                if (Array.isArray(newMembers)) {
-                    const memberMap = new Map(existingMembers.map((m: any) => [m.user_id, m]));
-                    newMembers.forEach((m: any) => {
-                        memberMap.set(m.user_id, m);
-                    });
-
-                    mergedItem = {
-                        ...item,
-                        members: Array.from(memberMap.values())
-                    } as any;
-                }
-            }
-
-            cache.set(id, { data: mergedItem, lastUpdated: Date.now() });
-
-            // 写入 SQLite
+            // 写入 SQLite (利用 groupMemberStore 的 upsert 特性)
             try {
-                const members = (mergedItem as any).members;
+                const members = (item as any).members;
                 if (Array.isArray(members)) {
                     groupMemberStore.upsertMany(members, expiresAt);
                 }
             } catch (err) {
                 console.error('[CacheManager] Failed to write group members to SQLite:', err);
+            }
+            // 清除内存缓存，下次读取时自动从 SQLite 中获取最新合并后的全量数据
+            const idKey = ResourceIdKeyMap[type];
+            if (idKey) {
+                this.caches.get(type)?.delete(item[idKey] as number);
             }
             return;
         }
@@ -360,7 +341,13 @@ class CacheManager {
             if (!cache || !idKey) return;
 
             const id = item[idKey] as number;
-            cache.set(id, { data: item, lastUpdated: Date.now() });
+            
+            if (type === ResourceType.GROUP_MEMBER) {
+                // GROUP_MEMBER 需要在 SQLite 中进行合并，直接清除内存缓存
+                cache.delete(id);
+            } else {
+                cache.set(id, { data: item, lastUpdated: Date.now() });
+            }
         });
 
         // 2. 批量写入 SQLite (使用事务，性能好)
@@ -485,45 +472,11 @@ class CacheManager {
     }
 
     /**
-     * 清除缓存
+     * 清理纯内存缓存（切换账号时调用，防止数据串改）
      */
-    public clearCache(type?: ResourceType): void {
-        if (type) {
-            this.caches.get(type)?.clear();
-            try {
-                switch (type) {
-                    case ResourceType.USER:
-                        userStore.clear();
-                        break;
-                    case ResourceType.GROUP:
-                        groupStore.clear();
-                        break;
-                    case ResourceType.GROUP_MEMBER:
-                        groupMemberStore.clear();
-                        break;
-                    case ResourceType.FRIEND:
-                        kvCache.clear('friend');
-                        break;
-                    case ResourceType.GROUP_JOINED:
-                        kvCache.clear('group_joined');
-                        this.userGroupIds = [];
-                        break;
-                }
-            } catch (err) {
-                console.error(`[CacheManager] Failed to clear disk cache for ${type}:`, err);
-            }
-        } else {
-            this.caches.forEach((cache) => cache.clear());
-            this.userGroupIds = [];
-            try {
-                userStore.clear();
-                groupStore.clear();
-                groupMemberStore.clear();
-                kvCache.clear();
-            } catch (err) {
-                console.error('[CacheManager] Failed to clear all SQLite tables:', err);
-            }
-        }
+    public clearMemory(): void {
+        this.caches.forEach((cache) => cache.clear());
+        this.userGroupIds = [];
     }
 
     /**
@@ -531,20 +484,6 @@ class CacheManager {
      */
     public broadcastUpdate<T>(type: ResourceType, items: T[]): void {
         windowManager.broadcastMessage(IpcChannels.RESOURCE_UPDATE, { type, items });
-    }
-
-    // ==================== 磁盘写入兼容方法 ====================
-
-    /**
-     * 保持与 main.ts 签名的兼容，在此处安全关闭 SQLite 连接
-     */
-    public flushToDisk(): void {
-        try {
-            closeDb();
-            console.log('[CacheManager] SQLite connection closed successfully on app quit.');
-        } catch (err) {
-            console.error('[CacheManager] Error closing SQLite connection on app quit:', err);
-        }
     }
 }
 

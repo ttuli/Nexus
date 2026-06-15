@@ -4,13 +4,9 @@ dotenv.config();
 import { app, ipcMain } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
-import { windowManager } from './windows/windowManager'
-import { resourceManager, cacheManager } from './resource'
-import { registerProtocols } from './protocol'
-import { wsManager } from './websocket'
+import { resourceManager } from './resource'
 import { IpcChannels } from '@/src/types/ipc'
 import { APP_CONSTANTS } from '@/src/config/constants'
-import { fileCacheManager } from './resource/fileCacheManager'
 
 export const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -32,44 +28,20 @@ export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
 
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 'public') : RENDERER_DIST
 
-function createWindow(): void {
-  windowManager.CreateWindow({
-    key: 'login',
-  });
-}
-
 // 设置全局应用名，影响窗口默认标题、任务栏和托盘等展示
 app.setName(APP_CONSTANTS.ApplicationName)
 
 app.whenReady().then(() => {
-  // 初始化本地文件缓存管理器
-  fileCacheManager.init();
-
-  // 注册自定义协议 (imcache://, imlocal://)
-  registerProtocols();
-
   // 初始化资源管理器
   resourceManager.init();
-  createWindow()
 
   // 直接关闭登录窗口触发
   ipcMain.on(IpcChannels.QUIT, () => {
-    resourceManager.setStoreRefreshToken(true);
-    cacheManager.flushToDisk();
-    windowManager.closeAllWindows(false).finally(() => {
-      wsManager.closeWs();
-      app.quit();
-    })
+    resourceManager.destroy();
   })
 
   ipcMain.on(IpcChannels.LOGOUT, () => {
-    resourceManager.setStoreRefreshToken(false);
-    windowManager.closeAllWindows(true).finally(() => {
-      wsManager.closeWs();
-      windowManager.CreateWindow({
-        key: 'login',
-      })
-    })
+    resourceManager.kickout();
   })
 })
 

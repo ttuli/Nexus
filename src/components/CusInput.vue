@@ -86,15 +86,16 @@ defineExpose({
   position: relative;
   -webkit-app-region: no-drag;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 8px;
 
   // 聊天软件风格外观
   width: 100%;
-  min-height: 48px;
+  height: 48px;
   border-radius: 8px;
-  padding: 0 16px;
+  padding: 0 0 0 16px;
   box-sizing: border-box;
+  overflow: hidden;
   transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
   background-color: #fcfcfc;
   border: 1px solid #e5e7eb;
@@ -115,6 +116,7 @@ defineExpose({
     color: #0f172a;
     line-height: 1.5;
     padding: 12px 0;
+    align-self: center;
 
     &::placeholder {
       color: #94a3b8;
@@ -124,9 +126,18 @@ defineExpose({
   .chat-input-actions {
     width: fit-content;
     height: 100%;
-    // flex-grow: 0;
     display: flex;
     align-items: center;
+
+    // 左侧 slot 保留左边的间距
+    &:first-child {
+      padding-right: 0;
+    }
+
+    // 右侧 slot 不需要额外内边距，让内容可以贴右边
+    &:last-child {
+      padding-right: 0;
+    }
   }
 }
 </style>

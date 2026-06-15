@@ -3,7 +3,11 @@ import { tokenManager } from './tokenManager';
 import { cacheManager } from './cacheManager';
 import { setupIpcHandlers } from './ipcHandlers';
 import { wsManager, setupWsIpcHandlers, setupWsEventForwarding } from '@/electron/websocket';
-import { Group, ResourceType } from '@/src/types';
+import { closePrivateDB, closeAllDb } from '@/electron/db';
+import settingManager from './settingManager';
+import { fileCacheManager } from './fileCacheManager';
+import { windowManager } from '@/electron/windows/windowManager'
+import { app } from 'electron';
 
 /**
  * 资源管理器（主入口）
@@ -17,8 +21,10 @@ class ResourceManager {
         this.initialized = true;
 
         // 初始化各模块
+        settingManager.init();
         authManager.init();
         cacheManager.init();
+        fileCacheManager.init();
 
         // 初始化 WebSocket 模块
         wsManager.init();
@@ -27,67 +33,37 @@ class ResourceManager {
 
         // 设置 IPC 处理器
         setupIpcHandlers();
+
+        windowManager.CreateWindow({
+            key: 'login',
+        });
     }
 
-    // ==================== Auth 代理方法 ====================
-
-    public setStoreRefreshToken(storeRefreshToken: boolean): void {
-        tokenManager.setStoreRefreshToken(storeRefreshToken);
-    }
-
-    public cleanout(): void {
+    public kickout(): void {
         tokenManager.cleanout();
-        cacheManager.clearCache();
+        // 清理纯内存缓存，保留磁盘缓存供下次加速
+        cacheManager.clearMemory();
+        // 关闭当前账号的私有数据库连接
+        closePrivateDB();
+        wsManager.closeWs();
+        windowManager.closeAllWindows().finally(() => {
+            windowManager.CreateWindow({
+                key: 'login',
+            })
+        });
     }
 
+    // ==================== App Lifecycle ====================
 
-    public getCurrentUserID(): number {
-        return tokenManager.getCurrentUserID();
-    }
-
-    // ==================== Cache 代理方法 ====================
-
-    public getItem<T>(type: ResourceType, id: number): T | null {
-        return cacheManager.getItem<T>(type, id);
-    }
-
-    public getItems<T>(type: ResourceType, ids: number[]): { items: T[]; missingIds: number[] } {
-        return cacheManager.getItems<T>(type, ids);
-    }
-
-    public setItem<T extends Record<string, any>>(type: ResourceType, item: T): void {
-        cacheManager.setItem(type, item);
-    }
-
-    public setItems<T extends Record<string, any>>(type: ResourceType, items: T[]): void {
-        cacheManager.setItemsAndBroadcast(type, items);
-    }
-
-    public deleteItem(type: ResourceType, id: number): void {
-        cacheManager.deleteItem(type, id);
-    }
-
-    public clearCache(type?: ResourceType): void {
-        cacheManager.clearCache(type);
-    }
-
-    // ==================== Group 便捷方法 ====================
-
-    public getGroupInfo(groupId: number): Group | null {
-        return this.getItem<Group>(ResourceType.GROUP, groupId);
-    }
-
-    public getGroupsInfo(groupIds: number[]): Group[] {
-        const { items } = this.getItems<Group>(ResourceType.GROUP, groupIds);
-        return items;
-    }
-
-    public setGroupInfo(group: Group): void {
-        this.setItem(ResourceType.GROUP, group);
-    }
-
-    public setGroupsInfo(groups: Group[]): void {
-        this.setItems(ResourceType.GROUP, groups);
+    public destroy(): void {
+        console.log('[ResourceManager] Destroying all resources...');
+        // 关闭所有数据库连接（包括共享库）
+        closeAllDb();
+        // 断开长连接
+        wsManager.closeWs();
+        windowManager.closeAllWindows().finally(() => {
+            app.quit();
+        });
     }
 }
 

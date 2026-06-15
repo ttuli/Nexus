@@ -1,13 +1,58 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
-import schemaSql from './schema.sql?raw';
+import sharedSchemaSql from './schema_shared.sql?raw';
+import userSchemaSql from './schema_user.sql?raw';
 import { settingManager } from '@/electron/resource/settingManager';
 
-let db: Database.Database | null = null;
+/**
+ * 双库架构：
+ *   sharedDb  → shared.db        存放公共数据（user_info, group_info, group_member）
+ *               所有账户共享同一个文件，跨账户命中率高
+ *   userDb    → {userId}.db      存放私有数据（resource_cache, chat_messages）
+ *               每个账户独立一个文件，切换账号时重新打开
+ */
+let sharedDb: Database.Database | null = null;
+let userDb: Database.Database | null = null;
+
+// ── 公共数据库（shared.db）────────────────────────────────────────────────────
 
 /**
- * 登录成功后调用，以 userId 为文件名打开（或创建）对应的 SQLite 数据库
+ * 初始化共享数据库，app 启动时调用一次即可
+ * shared.db 的生命周期与 app 相同，不随账号切换关闭
+ */
+export function openSharedDb(): void {
+    if (sharedDb) return;
+
+    const dbDir = settingManager.getStoragePath();
+    if (!fs.existsSync(dbDir)) {
+        fs.mkdirSync(dbDir, { recursive: true });
+    }
+
+    const dbPath = path.join(dbDir, 'shared.db');
+    sharedDb = new Database(dbPath);
+    sharedDb.pragma('journal_mode = WAL');
+    sharedDb.pragma('foreign_keys = ON');
+    sharedDb.exec(sharedSchemaSql);
+
+    console.log(`[Database] Opened shared database: ${dbPath}`);
+}
+
+/**
+ * 获取共享数据库实例
+ * 必须在 openSharedDb() 之后调用
+ */
+export function getSharedDb(): Database.Database {
+    if (!sharedDb) {
+        throw new Error('[Database] Shared database is not open. Call openSharedDb() at app start.');
+    }
+    return sharedDb;
+}
+
+// ── 用户私有数据库（{userId}.db）─────────────────────────────────────────────
+
+/**
+ * 登录成功后调用，以 userId 为文件名打开（或创建）对应的私有 SQLite 数据库
  * 若已有连接则先关闭旧连接再重新打开（切换账号场景）
  */
 export function openDb(userId: number): void {
@@ -16,9 +61,9 @@ export function openDb(userId: number): void {
     }
 
     // 切换账号时先关闭旧连接
-    if (db) {
-        db.close();
-        db = null;
+    if (userDb) {
+        userDb.close();
+        userDb = null;
     }
 
     const dbDir = settingManager.getStoragePath();
@@ -28,43 +73,45 @@ export function openDb(userId: number): void {
     }
 
     const dbPath = path.join(userDbDir, `${userId}.db`);
-    db = new Database(dbPath);
+    userDb = new Database(dbPath);
+    userDb.pragma('journal_mode = WAL');
+    userDb.pragma('foreign_keys = ON');
+    userDb.exec(userSchemaSql);
 
-    // WAL 模式：并发读写性能更好
-    db.pragma('journal_mode = WAL');
-    // 外键约束开启
-    db.pragma('foreign_keys = ON');
-
-    _initTables(db);
-
-    console.log(`[Database] Opened database for user ${userId}: ${dbPath}`);
+    console.log(`[Database] Opened user database for user ${userId}: ${dbPath}`);
 }
 
 /**
- * 获取当前已打开的数据库实例
+ * 获取当前已打开的用户私有数据库实例
  * 必须在 openDb() 之后调用，否则抛出错误
  */
 export function getDb(): Database.Database {
-    if (!db) {
-        throw new Error('[Database] Database is not open. Call openDb(userId) after login first.');
+    if (!userDb) {
+        throw new Error('[Database] User database is not open. Call openDb(userId) after login first.');
     }
-    return db;
+    return userDb;
 }
 
 /**
- * 关闭数据库连接（退出登录 / app 退出前调用）
+ * 关闭所有数据库连接（app 退出前调用）
  */
-export function closeDb(): void {
-    if (db) {
-        db.close();
-        db = null;
-        console.log('[Database] Database connection closed.');
+export function closeAllDb(): void {
+    if (userDb) {
+        userDb.close();
+        userDb = null;
+        console.log('[Database] User database connection closed.');
+    }
+    if (sharedDb) {
+        sharedDb.close();
+        sharedDb = null;
+        console.log('[Database] Shared database connection closed.');
     }
 }
 
-/**
- * 初始化所有表结构
- */
-function _initTables(db: Database.Database): void {
-    db.exec(schemaSql);
+export function closePrivateDB(): void {
+    if (userDb) {
+        userDb.close();
+        userDb = null;
+        console.log('[Database] User database connection closed.');
+    }
 }

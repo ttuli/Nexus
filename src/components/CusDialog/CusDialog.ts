@@ -21,11 +21,22 @@ const CusDialog = {
             ...config,
             // Pass props directly
             title: config.title,
-            content: config.content,
             showCancel: config.showCancel,
             showClose: config.showClose,
             confirmText: config.confirmText,
             cancelText: config.cancelText,
+            status: config.status,
+        }, {
+            default: () => {
+                if (!config.content) return null;
+                if (typeof config.content === 'string') {
+                    return h('p', { class: 'content' }, config.content);
+                }
+                if (typeof config.content === 'function') {
+                    return config.content();
+                }
+                return config.content;
+            }
         });
 
         // Mount to DOM

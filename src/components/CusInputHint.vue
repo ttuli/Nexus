@@ -72,36 +72,51 @@ watch(() => props.visible, (newVal) => {
 
 .hint-content {
   position: relative;
-  background: white;  
-  padding: 3px 8px;
-  border-radius: 8px;
-  font-size: 14px;
+  background: #ffffff;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.6;
   font-weight: 500;
-  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 10px 25px -5px rgba(24, 144, 255, 0.1), 0 8px 10px -6px rgba(24, 144, 255, 0.1);
   max-width: 280px;
   pointer-events: auto;
+  
+  /* 为了让 p 标签没有默认的多余边距 */
+  :deep(p) {
+    margin: 0 0 4px 0;
+    color: #475569;
+    &:first-child {
+      font-weight: 600;
+      color: #1e293b;
+      margin-bottom: 6px;
+    }
+  }
 }
 
 .hint-arrow {
   position: absolute;
   top: -6px;
   left: 20px;
-  width: 12px;
-  height: 12px;
-  border:none;
-  background: white;
+  width: 10px;
+  height: 10px;
+  background: #ffffff;
+  border-top: 1px solid #e2e8f0;
+  border-left: 1px solid #e2e8f0;
   transform: rotate(45deg);
   border-radius: 2px;
 }
 
 .hint-fade-enter-active,
 .hint-fade-leave-active {
-  transition: all 0.2s ease;
+  transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .hint-fade-enter-from,
 .hint-fade-leave-to {
   opacity: 0;
-  transform: translateY(-8px);
+  transform: translateY(-8px) scale(0.95);
 }
 </style>

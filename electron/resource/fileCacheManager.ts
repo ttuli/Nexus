@@ -94,7 +94,8 @@ class FileCacheManager {
                     break;
                 default:
             }
-            const localPath = this.getLocalPath(cacheKey);
+            const isShared = opts.cacheType === CacheOptionType.AVATAR;
+            const localPath = this.getLocalPath(cacheKey, isShared);
             if (fs.existsSync(localPath)) {
                 console.log('[FileCacheManager] Cache hit:', pathOrUrl, '->', localPath);
                 // 必须使用 fs.readFileSync！因为在 protocol.handle 内部，Electron 出于安全限制，
@@ -116,7 +117,7 @@ class FileCacheManager {
             }
             
             // 本地无缓存则触发下载，等待下载完成后读取缓存文件返回
-            await this.doFetch(pathOrUrl, cacheKey, ft);
+            await this.doFetch(pathOrUrl, cacheKey, ft, isShared);
             
             if (fs.existsSync(localPath)) {
                 const buffer = fs.readFileSync(localPath);
@@ -158,18 +159,28 @@ class FileCacheManager {
     }
 
     /**
-     * 获取某个网络 URL 对应的本地缓存文件路径
+     * 获取某个资源对应的本地缓存文件路径
      *
-     * 目录结构：cacheDir/{userId}/{fileCategory}/{YYYY_MM}/{sha256hash}{ext}
-     *   - userId      : 当前登录用户 ID（未登录时为 "anonymous"）
-     *   - fileCategory: picture | video | document | other
-     *   - YYYY_MM     : 当前年月，如 2026_06
+     * 目录结构：
+     *   共享资源（头像等公开数据）: cacheDir/shared/cache/{sha256hash}.bin
+     *   私有资源（聊天文件等）    : cacheDir/{userId}/cache/{sha256hash}.bin
+     *
+     * @param url      原始 URL 或 cacheKey，用于生成唯一哈希
+     * @param isShared 是否为多账户共享资源（默认 false）
      */
-    public getLocalPath(url: string): string {
+    public getLocalPath(url: string, isShared: boolean = false): string {
         const hash = crypto.createHash('sha256').update(url).digest('hex');
 
-        const userId = tokenManager.getCurrentUserID() || 'anonymous';
-        const dir = path.join(this.cacheDir, String(userId), 'cache');
+        let dir: string;
+        if (isShared) {
+            // 公共资源（头像、他人名片等）：所有账户共享同一份缓存
+            dir = path.join(this.cacheDir, 'shared', 'cache');
+        } else {
+            // 私有资源（聊天图片、文件等）：按登录账户隔离
+            const userId = tokenManager.getCurrentUserID() || 'anonymous';
+            dir = path.join(this.cacheDir, String(userId), 'cache');
+        }
+
         if (!fs.existsSync(dir)) {
             fs.mkdirSync(dir, { recursive: true });
         }
@@ -177,7 +188,7 @@ class FileCacheManager {
         return path.join(dir, `${hash}.bin`);
     }
 
-    private async doFetch(url: string, cacheKey: string, ft: ApiTypes.file.FileType) {
+    private async doFetch(url: string, cacheKey: string, ft: ApiTypes.file.FileType, isShared: boolean = false) {
         const process = cacheKey.split('|')[1] || '';
         try {
             let accessUrl = '';
@@ -196,11 +207,11 @@ class FileCacheManager {
                 console.warn('[FileCacheManager] doFetch: empty access_url for', url);
                 return;
             }
-            const path = this.getLocalPath(cacheKey);
+            const localPath = this.getLocalPath(cacheKey, isShared);
             const bytes = await net.fetch(accessUrl);
             const buffer = Buffer.from(await bytes.arrayBuffer());
-            fs.writeFileSync(path, buffer);
-            console.log('[FileCacheManager] Cached:', url, '->', path);
+            fs.writeFileSync(localPath, buffer);
+            console.log('[FileCacheManager] Cached:', url, '->', localPath);
         } catch (err) {
             console.error('[FileCacheManager] doFetch error:', url, err);
         }

@@ -199,15 +199,21 @@ class TokenManager {
         });
     }
 
+    public operateLocalRefreshToken(remove: boolean) {
+        if (remove) {
+            storage.delete(StorageKeys.REFRESH_TOKEN);
+        } else {
+            storage.set(StorageKeys.REFRESH_TOKEN, this.refreshToken);
+        }
+    }
+
     // ==================== 清理 ====================
 
     /**
      * 退出登录时清理 Token 状态
      */
     public cleanout(): void {
-        if (!this.storeRefreshToken) {
-            storage.delete(StorageKeys.REFRESH_TOKEN);
-        }
+        storage.delete(StorageKeys.REFRESH_TOKEN);
         this.token = '';
         this.refreshToken = '';
     }

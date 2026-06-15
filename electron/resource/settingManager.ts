@@ -13,23 +13,28 @@ import { storage, StorageKeys } from '@/electron/utils/storage';
 class SettingManager {
     // 跟踪正在进行的下载请求以便取消
     private activeDownloads = new Map<string, http.ClientRequest>();
+    private storagePath = '';
 
-    /**
-     * 获取当前资源存储根路径
-     */
-    getStoragePath(): string {
-        const customPath = storage.get<string>(StorageKeys.CUSTOM_RESOURCE_PATH);
+    init(): void {
+         const customPath = storage.get<string>(StorageKeys.CUSTOM_RESOURCE_PATH);
         if (customPath && fs.existsSync(customPath)) {
             try {
                 // 测试是否可写
                 fs.accessSync(customPath, fs.constants.R_OK | fs.constants.W_OK);
-                return customPath;
+                this.storagePath = customPath;
+                return;
             } catch (err) {
                 console.error('[SettingManager] Custom resource path has no read/write access, falling back to default:', err);
             }
         }
         // 回退默认路径：用户数据目录下
-        return path.join(app.getPath('userData'), `${APP_CONSTANTS.ApplicationName}Resources`);
+        this.storagePath = path.join(app.getPath('userData'), `${APP_CONSTANTS.ApplicationName}Resources`);
+    }
+    /**
+     * 获取当前资源存储根路径
+     */
+    getStoragePath(): string {
+        return this.storagePath;
     }
 
     /**

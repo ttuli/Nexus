@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3';
-import { getDb } from './database';
+import { getSharedDb } from './database';
 import type { ImTypes } from '@/src/types';
 
 type GroupInfo = ImTypes.GroupInfo;
@@ -16,7 +16,7 @@ type GroupInfo = ImTypes.GroupInfo;
  */
 class GroupStore {
     private get db(): Database.Database {
-        return getDb();
+        return getSharedDb();
     }
 
     private get stmtGet() {

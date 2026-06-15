@@ -1,0 +1,109 @@
+You are given a task to integrate an existing React component in the codebase
+
+The codebase should support:
+- shadcn project structure  
+- Tailwind CSS
+- Typescript
+
+If it doesn't, provide instructions on how to setup project via shadcn CLI, install Tailwind or Typescript.
+
+Determine the default path for components and styles. 
+If default path for components is not /components/ui, provide instructions on why it's important to create this folder
+Copy-paste this component to /components/ui folder:
+```tsx
+heroui-alert-dialog.tsx
+"use client"
+
+// HeroUI v3 AlertDialog — real package wrapper. Styles ship via @heroui/styles
+// (BEM CSS); importing them here makes Vite bundle the dialog/backdrop styles.
+// Requires `@heroui/react` + `@heroui/styles` in the consuming app.
+import "@heroui/styles/css"
+import { AlertDialog } from "@heroui/react"
+
+export { AlertDialog }
+export default AlertDialog
+
+
+demo.tsx
+"use client"
+
+import { AlertDialog } from "@/components/ui/heroui-alert-dialog"
+import { Button } from "@heroui/react"
+
+const examples = [
+  { trigger: "Sign Out", status: "accent", header: "Sign out of your account?", body: "You'll need to sign in again to access your account. Any unsaved changes will be lost.", cancel: "Stay Signed In", confirm: "Sign Out", className: "bg-accent-soft text-accent-soft-foreground" },
+  { trigger: "Complete Task", status: "success", header: "Complete this task?", body: "This will mark the task as complete and notify all team members. The task will be moved to your completed list.", cancel: "Not Yet", confirm: "Mark Complete", className: "bg-success-soft text-success-soft-foreground" },
+  { trigger: "Discard Changes", status: "warning", header: "Discard unsaved changes?", body: "You have unsaved changes that will be permanently lost. Are you sure you want to discard them?", cancel: "Keep Editing", confirm: "Discard", className: "bg-warning-soft text-warning-soft-foreground" },
+  { trigger: "Delete Account", status: "danger", header: "Delete your account?", body: "This will permanently delete your account and remove all your data from our servers. This action is irreversible.", cancel: "Cancel", confirm: "Delete Account", className: "bg-danger-soft text-danger-soft-foreground" },
+] as const
+
+export default function Statuses() {
+  return (
+    <div className="flex flex-wrap justify-center gap-4">
+      {examples.map((item) => (
+        <AlertDialog key={item.status}>
+          <Button className={item.className}>{item.trigger}</Button>
+          <AlertDialog.Backdrop>
+            <AlertDialog.Container>
+              <AlertDialog.Dialog className="sm:max-w-[400px]">
+                <AlertDialog.CloseTrigger />
+                <AlertDialog.Header>
+                  <AlertDialog.Icon status={item.status} />
+                  <AlertDialog.Heading>{item.header}</AlertDialog.Heading>
+                </AlertDialog.Header>
+                <AlertDialog.Body><p>{item.body}</p></AlertDialog.Body>
+                <AlertDialog.Footer>
+                  <Button slot="close" variant="tertiary">{item.cancel}</Button>
+                  <Button slot="close" variant={item.status === "danger" ? "danger" : "primary"}>{item.confirm}</Button>
+                </AlertDialog.Footer>
+              </AlertDialog.Dialog>
+            </AlertDialog.Container>
+          </AlertDialog.Backdrop>
+        </AlertDialog>
+      ))}
+    </div>
+  )
+}
+
+```
+
+Install NPM dependencies:
+```bash
+tailwindcss, @heroui/react, @heroui/styles
+```
+
+Extend existing Tailwind 4 index.css with this code (or if project uses Tailwind 3, extend tailwind.config.js or globals.css):
+```css
+@import "tailwindcss";
+@import "tw-animate-css";
+
+:root {
+  --accent: #0485f7;
+  --accent-hover: #0473d4;
+  --accent-foreground: #ffffff;
+}
+
+.dark {
+  --accent: #0485f7;
+  --accent-hover: #3197ff;
+  --accent-foreground: #ffffff;
+}
+
+```
+
+Implementation Guidelines
+ 1. Analyze the component structure and identify all required dependencies
+ 2. Review the component's argumens and state
+ 3. Identify any required context providers or hooks and install them
+ 4. Questions to Ask
+ - What data/props will be passed to this component?
+ - Are there any specific state management requirements?
+ - Are there any required assets (images, icons, etc.)?
+ - What is the expected responsive behavior?
+ - What is the best place to use this component in the app?
+
+Steps to integrate
+ 0. Copy paste all the code above in the correct directories
+ 1. Install external dependencies
+ 2. Fill image assets with Unsplash stock images you know exist
+ 3. Use lucide-react icons for svgs or logos if component requires them
