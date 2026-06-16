@@ -1,5 +1,5 @@
 <template>
-    <div class="main-container" :class="{ dark: props.theme === 'dark' }">
+    <div class="main-container" :class="{ dark: isDark }">
         <div class="center-content">
             <span class="title-content" v-if="props.title">{{ props.title }}</span>
             <div class="connection-status" v-if="wsState !== ConnectionState.CONNECTED && wsState !== ConnectionState.UNRECOGNIZED">
@@ -30,7 +30,7 @@ import Min from '@/src/assets/window/Minimize2.svg'
 import X from '@/src/assets/window/x.svg'
 import Max from '@/src/assets/window/Maximize1.svg'
 import UnMax from '@/src/assets/window/Maximize2.svg'
-import { onMounted, onUnmounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref, computed } from 'vue';
 import { windowService, ipcService } from '@/src/services';
 import { IpcChannels, ConnectionState } from '@/src/types';
 
@@ -40,18 +40,27 @@ const props = withDefaults(
         needMin?: boolean
         needMax?: boolean
         title?: string
-        theme?: 'dark' | 'light'
+        theme?: 'dark' | 'light' | 'auto'
     }>(),
     {
         height: '35px',
         needMin: true,
         needMax: false,
         title: '',
-        theme: 'light'
+        theme: 'auto'
     }
 )
 const isMax = ref(false)
 const wsState = ref(ConnectionState.UNRECOGNIZED)
+
+const globalTheme = ref<'light' | 'dark'>('light')
+let observer: MutationObserver | null = null
+
+const isDark = computed(() => {
+    if (props.theme === 'dark') return true
+    if (props.theme === 'light') return false
+    return globalTheme.value === 'dark'
+})
 
 const onMin = () => {
     windowService.minimize()
@@ -64,6 +73,24 @@ const handleClose = () => {
 }
 
 onMounted(() => {
+    // 1. Initial global theme check
+    const initialTheme = document.documentElement.getAttribute('data-theme') || localStorage.getItem('app_theme') || 'light'
+    globalTheme.value = initialTheme as 'light' | 'dark'
+
+    // 2. Dynamic global theme tracking
+    observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.attributeName === 'data-theme') {
+                const nextTheme = document.documentElement.getAttribute('data-theme') || 'light'
+                globalTheme.value = nextTheme as 'light' | 'dark'
+            }
+        })
+    })
+    observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['data-theme']
+    })
+
     windowService.onWindowState((state) => {
         isMax.value = state === 'maximized'
     })
@@ -71,7 +98,11 @@ onMounted(() => {
         wsState.value = state
     })
 })
+
 onUnmounted(() => {
+    if (observer) {
+        observer.disconnect()
+    }
     ipcService.off(IpcChannels.WS_STATE_CHANGE)
 })
 </script>
@@ -205,6 +236,26 @@ onUnmounted(() => {
 }
 
 .main-container.dark {
+    .title-content {
+        color: #e2e8f0; // Force white/light text when theme is dark
+    }
+
+    .center-content {
+        .connection-status {
+            .status-item {
+                &.loading {
+                    background-color: rgba(255, 255, 255, 0.08);
+                    color: #40a9ff;
+
+                    .spinner {
+                        border-color: #40a9ff;
+                        border-top-color: transparent;
+                    }
+                }
+            }
+        }
+    }
+
     button {
         img {
             filter: invert(1);

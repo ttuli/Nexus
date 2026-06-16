@@ -20,6 +20,7 @@ declare module 'vue' {
     CusButton: typeof import('./src/components/CusButton.vue')['default']
     CusCheckBox: typeof import('./src/components/CusCheckBox.vue')['default']
     CusDialog: typeof import('./src/components/CusDialog/CusDialog.vue')['default']
+    CusDropdown: typeof import('./src/components/CusDropdown.vue')['default']
     CusInput: typeof import('./src/components/CusInput.vue')['default']
     CusInputDialog: typeof import('./src/components/CusInputDialog/CusInputDialog.vue')['default']
     CusInputHint: typeof import('./src/components/CusInputHint.vue')['default']
@@ -32,6 +33,7 @@ declare module 'vue' {
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     TitleBar: typeof import('./src/components/TitleBar.vue')['default']
+    Toggle: typeof import('./src/components/Toggle.vue')['default']
     VanDialog: typeof import('vant/es')['Dialog']
     VanList: typeof import('vant/es')['List']
   }

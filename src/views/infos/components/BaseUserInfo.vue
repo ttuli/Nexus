@@ -65,21 +65,19 @@
                                 </div>
                                 <div class="form-item">
                                     <label>性别</label>
-                                    <div class="radio-group">
-                                        <label class="radio-label">
-                                            <input type="radio" :value="ImTypes.Gender.GENDER_MALE" v-model="editForm.gender"> 男
-                                        </label>
-                                        <label class="radio-label">
-                                            <input type="radio" :value="ImTypes.Gender.GENDER_FEMALE" v-model="editForm.gender"> 女
-                                        </label>
-                                    </div>
+                                    <CusDropdown
+                                        v-model="editForm.gender"
+                                        :options="genderOptions"
+                                        placeholder="选择性别"
+                                    />
                                 </div>
-                                <div class="form-item">
-                                    <label>加好友方式</label>
-                                    <select v-model="editForm.join_type">
-                                        <option :value="ImTypes.JoinType.JOIN_TYPE_DIRECT">直接添加</option>
-                                        <option :value="ImTypes.JoinType.JOIN_TYPE_AFTER_APPROVAL">需要验证</option>
-                                    </select>
+                                <div class="form-item row-layout">
+                                    <label>加好友需要验证</label>
+                                    <Toggle
+                                        v-model="editForm.join_type"
+                                        :active-value="ImTypes.JoinType.JOIN_TYPE_AFTER_APPROVAL"
+                                        :inactive-value="ImTypes.JoinType.JOIN_TYPE_DIRECT"
+                                    />
                                 </div>
                                 <div class="form-item">
                                     <label>个性签名</label>
@@ -108,6 +106,13 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useUserStore } from '@/src/store/user';
+import CusDropdown from '@/src/components/CusDropdown.vue';
+import Toggle from '@/src/components/Toggle.vue';
+
+const genderOptions = [
+    { value: ImTypes.Gender.GENDER_MALE, label: '男', icon: '👨' },
+    { value: ImTypes.Gender.GENDER_FEMALE, label: '女', icon: '👩' }
+];
 
 import { ImTypes, ResourceType, UpdateAction } from '@/src/types';
 import { ElMessage } from 'element-plus';
@@ -402,6 +407,17 @@ onMounted(async () => {
         display: flex;
         flex-direction: column;
         gap: 8px;
+
+        &.row-layout {
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+
+            label {
+                margin-bottom: 0;
+            }
+        }
 
         label {
             font-size: $font-size-sm;
