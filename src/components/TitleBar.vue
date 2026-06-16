@@ -19,7 +19,7 @@
             <img :src="UnMax" v-if="isMax"></img>
             <img :src="Max" v-else></img>
         </button>
-        <button class="close-btn" @click="onClose">
+        <button class="close-btn" @click="handleClose">
             <img :src="X"></img>
         </button>
     </div>
@@ -41,17 +41,13 @@ const props = withDefaults(
         needMax?: boolean
         title?: string
         theme?: 'dark' | 'light'
-        onClose?: () => void
     }>(),
     {
         height: '35px',
         needMin: true,
         needMax: false,
         title: '',
-        theme: 'light',
-        onClose: () => {
-            windowService.quit()
-        }
+        theme: 'light'
     }
 )
 const isMax = ref(false)
@@ -63,12 +59,15 @@ const onMin = () => {
 const onMax = () => {
     windowService.maximize()
 }
+const handleClose = () => {
+    window.close()
+}
 
 onMounted(() => {
     windowService.onWindowState((state) => {
         isMax.value = state === 'maximized'
     })
-    ipcService.on(IpcChannels.WS_STATE_CHANGE, (e,state) => {
+    ipcService.on(IpcChannels.WS_STATE_CHANGE, (_e,state) => {
         wsState.value = state
     })
 })
@@ -127,13 +126,13 @@ onUnmounted(() => {
                 font-size: 12px;
 
                 &.loading {
-                    background-color: rgba(24, 144, 255, 0.1);
-                    color: #1890ff;
+                    background-color: $color-primary-bg;
+                    color: $color-primary;
 
                     .spinner {
                         width: 12px;
                         height: 12px;
-                        border: 2px solid #1890ff;
+                        border: 2px solid $color-primary;
                         border-top-color: transparent;
                         border-radius: 50%;
                         animation: spin 1s linear infinite;
@@ -142,7 +141,7 @@ onUnmounted(() => {
 
                 &.error {
                     background-color: rgba(255, 77, 79, 0.1);
-                    color: #ff4d4f;
+                    color: #ff4d4f; // We can keep error colors as they are unless we define an error token
                 }
             }
         }

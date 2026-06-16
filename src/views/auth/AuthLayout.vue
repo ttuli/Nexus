@@ -70,6 +70,8 @@ const isProcessing = ref(false)
 </script>
 
 <style scoped lang="scss">
+@use "@/src/style/_constant.scss" as *;
+
 .titlebar {
   position: fixed;
   z-index: 100;
@@ -81,7 +83,7 @@ const isProcessing = ref(false)
   width: 100%;
   height: 100vh;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  color: #1e293b;
+  color: $color-text-primary;
   box-sizing: border-box;
 
   * {
@@ -97,23 +99,23 @@ const isProcessing = ref(false)
     width: 42px;
     height: 42px;
     border-radius: 50%;
-    background-color: #ffffff;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    background-color: var(--surface-default, #ffffff);
+    border: 1px solid $color-border-divider;
+    box-shadow: var(--shadow-sm);
     display: flex;
     justify-content: center;
     align-items: center;
-    color: #475569;
+    color: $color-text-secondary;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     -webkit-app-region: no-drag;
 
     &:not(:disabled):hover {
-      color: #1890ff;
-      border-color: #bae0ff;
-      background-color: #e6f7ff;
+      color: $color-primary;
+      border-color: var(--color-primary-light);
+      background-color: $color-primary-bg;
       transform: scale(1.1);
-      box-shadow: 0 6px 16px rgba(24, 144, 255, 0.15);
+      box-shadow: var(--shadow-md);
     }
 
     &:not(:disabled):active {
@@ -135,7 +137,7 @@ const isProcessing = ref(false)
   .left-pane {
     position: relative;
     width: 50%;
-    background-color: #f0f7ff;
+    background-color: $color-primary-bg;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -144,7 +146,7 @@ const isProcessing = ref(false)
     .dot-bg {
       position: absolute;
       inset: 0;
-      background-image: radial-gradient(#bae0ff 1.5px, transparent 1.5px);
+      background-image: radial-gradient(var(--color-primary-light) 1.5px, transparent 1.5px);
       background-size: 24px 24px;
       background-position: center;
       opacity: 0.8;
@@ -165,6 +167,14 @@ const isProcessing = ref(false)
         width: 200px;
         height: 120px;
         margin-bottom: 2rem;
+        color: $color-primary;
+
+        svg {
+          stroke: currentColor;
+          circle {
+            fill: currentColor;
+          }
+        }
       }
 
       .left-icon {
@@ -178,13 +188,13 @@ const isProcessing = ref(false)
       .brand-title {
         font-size: 2.2rem;
         font-weight: 800;
-        color: #1890ff;
+        color: $color-primary;
         margin: 0 0 0.5rem 0;
       }
 
       .brand-subtitle {
         font-size: 0.95rem;
-        color: #556075;
+        color: $color-text-secondary;
         line-height: 1.6;
         margin: 0;
       }
@@ -194,7 +204,7 @@ const isProcessing = ref(false)
   /* Right Pane */
   .right-pane {
     width: 50%;
-    background-color: #ffffff;
+    background-color: var(--surface-default, #ffffff);
     display: flex;
     justify-content: center;
     align-items: center;

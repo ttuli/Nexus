@@ -62,7 +62,7 @@ import picture from '@/src/assets/chat/picture.svg?url';
 import file from '@/src/assets/chat/file.svg?url';
 import bulb from '@/src/assets/chat/bulb.svg?url';
 
-const props = withDefaults(defineProps<{
+withDefaults(defineProps<{
     disableReason?: string;
 }>(), {
     disableReason: ''

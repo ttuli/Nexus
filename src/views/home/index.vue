@@ -27,7 +27,7 @@
                     </keep-alive>
                 </router-view>
             </div>
-            <TitleBar :needMax="true" :onClose="closeWindow" class="title-bar" />
+            <TitleBar :needMax="true" class="title-bar" />
         </div>
 
         <!-- Create ImTypes.GroupInfo Modal -->
@@ -85,10 +85,6 @@ const handleMouseMove = (e: MouseEvent) => {
 
 const handleMouseUp = () => {
     isResizing.value = false;
-};
-
-const closeWindow = () => {
-    windowService.hide();
 };
 
 // Menu selection handling

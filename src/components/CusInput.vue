@@ -82,6 +82,8 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
+@use "@/src/style/_constant.scss" as *;
+
 .chat-input-wrapper {
   position: relative;
   -webkit-app-region: no-drag;
@@ -92,18 +94,18 @@ defineExpose({
   // 聊天软件风格外观
   width: 100%;
   height: 48px;
-  border-radius: 8px;
+  border-radius: var(--radius-md, 8px);
   padding: 0 0 0 16px;
   box-sizing: border-box;
   overflow: hidden;
   transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
-  background-color: #fcfcfc;
-  border: 1px solid #e5e7eb;
+  background-color: var(--surface-default, #ffffff);
+  border: 1px solid $color-border-divider;
 
   &:focus-within {
-    border-color: #1890ff;
-    box-shadow: 0 0 0 3px rgba(24, 144, 255, 0.1);
-    background-color: #ffffff;
+    border-color: $color-primary;
+    // box-shadow: 0 0 0 3px rgba(24, 144, 255, 0.1);
+    background-color: var(--surface-default, #ffffff);
   }
 
   .chat-input-field {
@@ -113,13 +115,13 @@ defineExpose({
     outline: none;
     background: transparent;
     font-size: 15px;
-    color: #0f172a;
+    color: $color-text-title;
     line-height: 1.5;
     padding: 12px 0;
     align-self: center;
 
     &::placeholder {
-      color: #94a3b8;
+      color: $color-text-placeholder;
     }
   }
 

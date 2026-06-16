@@ -8,7 +8,7 @@
   </BoxReveal>
 
   <form class="login-form" @submit.prevent="handleLogin" v-if="!autologin">
-    <BoxReveal width="100%" :duration="0.5" :delay="0.2">
+    <BoxReveal width="100%" :duration="0.5" :delay="0.2" overflow="visible" style="z-index: 10;">
       <div class="input-group">
         <label>账号 <span class="required">*</span></label>
         <AccountSelector v-model="form.account" :options="accountOptions" placeholder="请输入账号"
@@ -239,16 +239,19 @@ onMounted(async () => {
 </script>
 
 <style scoped lang="scss">
+@use "@/src/style/_constant.scss" as *;
+@use "@/src/style/_mixins.scss" as *;
+
 .title {
   font-size: 2.2rem;
   font-weight: 800;
-  color: #0f172a;
+  color: $color-text-title;
   margin: 0 0 0.5rem 0;
 }
 
 .subtitle {
   font-size: 0.95rem;
-  color: #64748b;
+  color: $color-text-secondary;
   margin: 0 0 2.5rem 0;
 }
 
@@ -263,9 +266,9 @@ onMounted(async () => {
 
   .avatar-wrapper {
     padding: 4px;
-    background: #fff;
+    background: var(--surface-default, #fff);
     border-radius: 50%;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-sm);
 
     .avatar {
       width: 120px;
@@ -280,7 +283,7 @@ onMounted(async () => {
     margin-top: -10px;
     font-weight: 600;
     font-size: 1.2rem;
-    color: #0f172a;
+    color: $color-text-title;
   }
 
   .user-info {
@@ -290,22 +293,20 @@ onMounted(async () => {
     h3 {
       font-size: 1.5rem;
       font-weight: 800;
-      color: #0f172a;
+      color: $color-text-title;
       margin: 0 0 4px 0;
     }
 
     p {
       font-size: 0.95rem;
-      color: #64748b;
+      color: $color-text-secondary;
       margin: 0;
     }
   }
 }
 
 .login-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
+  @include form-layout;
 
   .input-group {
     display: flex;
@@ -313,13 +314,7 @@ onMounted(async () => {
     gap: 0.5rem;
 
     label {
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: #1e293b;
-
-      .required {
-        color: #1890ff;
-      }
+      @include form-label;
     }
 
     .check-box {
@@ -327,28 +322,12 @@ onMounted(async () => {
     }
 
     .input-icon {
-      width: 30px;
-      height: 30px;
-      border-radius: 8px;
-      box-sizing: border-box;
-      padding: 4px;
+      @include input-icon;
     }
 
     .password-toggle {
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #94a3b8;
-      transition: color 0.3s ease;
-
-      &:hover {
-          color: #1890ff;
-      }
-
+      @include icon-button(36px);
+      
       .icon {
           width: 18px;
           height: 18px;
@@ -358,25 +337,10 @@ onMounted(async () => {
 }
 
 .submit-btn-new, .auto-login-btn {
+  @include primary-button;
   width: 100%;
   height: 3rem;
-  background: linear-gradient(90deg, #40a9ff, #1890ff);
-  color: #fff;
-  border: none;
-  border-radius: 0.5rem;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: 1rem;
-  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.2);
-
-  &:hover {
-    opacity: 0.9;
-    box-shadow: 0 6px 16px rgba(24, 144, 255, 0.3);
-  }
+  // margin-top: 1rem;
 }
 
 .forgot-wrapper {
@@ -386,26 +350,13 @@ onMounted(async () => {
   gap: 16px;
 
   .divider {
-    color: #e5e7eb;
+    color: $color-border-divider;
   }
 
   .forgot-btn {
-    background: none;
-    border: none;
-    color: #1890ff;
-    font-size: 0.95rem;
-    font-weight: 500;
-    cursor: pointer;
+    @include link-button;
     -webkit-app-region: no-drag;
-
-    &:not(:disabled):hover {
-      text-decoration: underline;
-    }
-
-    &:disabled {
-      color: #94a3b8;
-      cursor: not-allowed;
-    }
+    font-size: 0.95rem;
   }
 }
 </style>

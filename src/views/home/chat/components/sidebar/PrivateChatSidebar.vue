@@ -115,7 +115,7 @@ const handleSaveRemark = async () => {
 const pinLoading = ref(false);
 const disturbLoading = ref(false);
 
-const handleUpdatePinned = async (val: string | number | boolean) => {
+const handleUpdatePinned = async (_val: string | number | boolean) => {
     if (pinLoading.value) return;
     pinLoading.value = true;
     try {
@@ -125,7 +125,7 @@ const handleUpdatePinned = async (val: string | number | boolean) => {
     }
 };
 
-const handleUpdateDisturb = async (val: string | number | boolean) => {
+const handleUpdateDisturb = async (_val: string | number | boolean) => {
     if (disturbLoading.value) return;
     disturbLoading.value = true;
     try {

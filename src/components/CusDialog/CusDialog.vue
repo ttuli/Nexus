@@ -88,9 +88,10 @@ defineExpose({ open });
 
 <style lang="scss" scoped>
 @use "@/src/style/_constant.scss" as *;
+@use "@/src/style/_mixins.scss" as *;
 
 .cus-dialog-card {
-    background: #ffffff;
+    background: var(--surface-default, #ffffff);
     width: 400px;
     max-width: 90vw;
     border-radius: 16px;
@@ -121,7 +122,7 @@ defineExpose({ open });
     right: 16px;
     background: transparent;
     border: none;
-    color: #9ca3af;
+    color: $color-text-placeholder;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -134,8 +135,8 @@ defineExpose({ open });
     padding: 0;
 
     &:hover {
-        background: rgba(0, 0, 0, 0.05);
-        color: #111827;
+        background: var(--bg-hover);
+        color: $color-text-title;
     }
 }
 
@@ -143,7 +144,7 @@ defineExpose({ open });
     display: flex;
     flex-direction: row;
     align-items: center;
-    margin-bottom: 16px;
+    margin-bottom: 10px;
 
     .status-icon-wrapper {
         width: 36px;
@@ -168,8 +169,8 @@ defineExpose({ open });
             color: #f5a524;
         }
         &.accent, &.info {
-            background: rgba(0, 111, 238, 0.15);
-            color: #006FEE;
+            background: $color-primary-bg;
+            color: $color-primary;
         }
     }
 
@@ -177,19 +178,18 @@ defineExpose({ open });
         margin: 0;
         font-size: 18px;
         font-weight: 600;
-        color: #111827;
+        color: $color-text-title;
         line-height: 1.4;
     }
 }
 
 .cus-dialog-body {
-    margin-bottom: 24px;
-
+    margin-bottom: 20px;
     .content {
         margin: 0;
         font-size: 14px;
         line-height: 1.5;
-        color: #4b5563;
+        color: $color-text-primary;
         white-space: pre-wrap;
     }
 }
@@ -207,7 +207,7 @@ defineExpose({ open });
 .btn {
     padding: 0 16px;
     height: 36px;
-    border-radius: 10px;
+    border-radius: var(--radius-md, 8px);
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
@@ -219,41 +219,19 @@ defineExpose({ open });
     justify-content: center;
 
     &.secondary {
-        background: #f3f4f6;
-        color: #374151;
+        background: var(--bg-disabled);
+        color: $color-text-primary;
 
         &:hover {
-            background: #e5e7eb;
-            color: #111827;
+            background: var(--bg-hover);
+            color: $color-text-title;
         }
     }
 
     &.primary {
-        background: #006FEE;
-        color: #ffffff;
-
-        &:hover {
-            opacity: 0.85;
-            transform: translateY(-1px);
-        }
-
-        &:active {
-            transform: translateY(0);
-        }
-
-        &.success {
-            background: #17c964;
-        }
-        &.danger {
-            background: #f31260;
-        }
-        &.warning {
-            background: #f5a524;
-            color: #fff;
-        }
-        &.accent, &.info {
-            background: #006FEE;
-        }
+        @include primary-button;
+        height: 36px; // Ensure height consistency
+        border-radius: var(--radius-md, 8px);
     }
 }
 </style>

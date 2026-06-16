@@ -40,6 +40,9 @@ const handleClick = () => {
 </script>
 
 <style lang="scss" scoped>
+@use "@/src/style/_constant.scss" as *;
+@use "@/src/style/_mixins.scss" as *;
+
 .custom-button {
   -webkit-app-region: no-drag;
   display: flex;
@@ -49,12 +52,12 @@ const handleClick = () => {
   width: 100%;
   height: 38px;
   padding: 0 16px;
-  border-radius: 6px;
+  border-radius: var(--radius-md, 6px);
   border: 1px solid transparent;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+  transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
   outline: none;
   box-sizing: border-box;
 
@@ -77,10 +80,13 @@ const handleClick = () => {
 
   // --- Primary 风格 ---
   &.primary {
+    @include primary-button;
+    // Overriding height to inherit from .custom-button
+    height: 38px;
+    
+    // Gradient lines for extra flair
     position: relative;
     overflow: hidden;
-    background: var(--el-color-primary, #409eff);
-    color: #ffffff;
 
     .bottom-gradient-line {
       display: block;
@@ -116,14 +122,14 @@ const handleClick = () => {
 
   // --- Normal 风格 ---
   &.normal {
-    background: #ffffff;
-    color: var(--el-text-color-regular, #606266);
-    border-color: var(--el-border-color, #dcdfe6);
+    background: var(--surface-default, #ffffff);
+    color: $color-text-secondary;
+    border-color: $color-border-divider;
 
     &:hover:not(:disabled) {
-      color: var(--el-color-primary, #409eff);
-      border-color: var(--el-color-primary-light-5, #c6e2ff);
-      background: var(--el-color-primary-light-9, #ecf5ff);
+      color: $color-primary;
+      border-color: var(--color-primary-light);
+      background: var(--color-primary-bg);
       opacity: 1;
     }
   }

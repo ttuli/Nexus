@@ -63,7 +63,7 @@ import { ref, computed, watch } from 'vue';
 import { ILocalVideoMessage } from '@/src/types/chatMessage';
 import { APP_CONSTANTS as config } from '@/src/config/constants';
 import { CacheOptionType, ImTypes } from '@/src/types';
-import { openVideoViewer } from '@/src/utils/window';
+// import { openVideoViewer } from '@/src/utils/window';
 import { ElMessage } from 'element-plus';
 import { messageStorageService } from '@/src/services/messageStorageService';
 import { toResourceUrl } from '@/src/utils/chat';
@@ -108,7 +108,9 @@ watch(() => props.message, async (msg) => {
     if (msg.url) {
         try {
             const thumbnailUrl = toResourceUrl(msg.url,{
-                cacheType: CacheOptionType.VIDEO_THUMB
+                cacheType: CacheOptionType.VIDEO_THUMB,
+                width: msg.thumbnailWidth,
+                height: msg.thumbnailHeight,
             })
             if (thumbnailUrl) {
                 displayThumb.value = thumbnailUrl;

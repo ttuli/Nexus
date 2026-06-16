@@ -1,18 +1,22 @@
 <template>
     <div class="account-selector" v-click-outside="closeDropdown" @keydown.enter.prevent="closeDropdown">
-        <!-- Input Field -->
-        <div class="input-container" :class="{ 'is-focus': isFocused }">
-            <div class="left-icon">
-                <slot name="left-area">
-                </slot>
-            </div>
-            <input ref="inputRef" class="custom-input" :value="modelValue" :placeholder="placeholder"
-                @input="handleInput" @focus="handleFocus" @click="openDropdown" />
-            <!-- Optional: Arrow icon to indicate dropdown -->
-            <div class="right-icon" @click.stop="toggleDropdown">
-                <img :src="ArrowDownIcon" class="arrow-icon" :class="{ 'is-open': visible }" />
-            </div>
-        </div>
+        <CusInput 
+            ref="inputRef" 
+            :modelValue="modelValue" 
+            :placeholder="placeholder"
+            @update:modelValue="handleCusInputUpdate" 
+            @focus="handleFocus" 
+            @click="openDropdown"
+        >
+            <template #left-area>
+                <slot name="left-area"></slot>
+            </template>
+            <template #right-area>
+                <div class="right-icon" @click.stop="toggleDropdown">
+                    <img :src="ArrowDownIcon" class="arrow-icon" :class="{ 'is-open': visible }" />
+                </div>
+            </template>
+        </CusInput>
 
         <!-- Custom Dropdown -->
         <transition name="slide-fade">
@@ -37,7 +41,8 @@ import { ClickOutside as vClickOutside } from 'element-plus';
 // Use a generic default avatar if specific one is missing
 import DefaultAvatar from '@/src/assets/avatar/default.png?url';
 // We might need an arrow icon
-import ArrowDownIcon from '@/src/assets/input/arrow_down.svg?url'; // Assuming this exists or I will use a simple svg content
+import ArrowDownIcon from '@/src/assets/input/arrow_down.svg?url';
+import CusInput from '@/src/components/CusInput.vue';
 
 export interface AccountOption {
     account: string;
@@ -64,7 +69,7 @@ const emit = defineEmits<{
 
 const visible = ref(false);
 const isFocused = ref(false);
-const inputRef = ref<HTMLInputElement>();
+const inputRef = ref<any>();
 const isExpandedAll = ref(false);
 
 // Filter options based on input
@@ -82,8 +87,7 @@ const filteredOptions = computed(() => {
     );
 });
 
-const handleInput = (event: Event) => {
-    const val = (event.target as HTMLInputElement).value;
+const handleCusInputUpdate = (val: string) => {
     emit('update:modelValue', val);
     emit('change', val);
     isExpandedAll.value = false; // Reset to allow filtering
@@ -135,49 +139,6 @@ const selectOption = (item: AccountOption) => {
     -webkit-app-region: no-drag;
 }
 
-.input-container {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-    min-height: 48px;
-    border-radius: 8px;
-    padding: 0 16px;
-    box-sizing: border-box;
-    transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
-    background-color: #fcfcfc;
-    border: 1px solid #e5e7eb;
-
-    &.is-focus {
-        border-color: #1890ff;
-        box-shadow: 0 0 0 3px rgba(24, 144, 255, 0.1);
-        background-color: #ffffff;
-    }
-
-    .left-icon {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 30px;
-        height: 30px;
-        flex-shrink: 0;
-    }
-
-    .custom-input {
-        flex: 1;
-        border: none;
-        outline: none;
-        background: transparent;
-        font-size: 15px;
-        color: #0f172a;
-        line-height: 1.5;
-        padding: 12px 0;
-
-        &::placeholder {
-            color: #94a3b8;
-        }
-    }
-
     .right-icon {
         cursor: pointer;
         display: flex;
@@ -185,19 +146,21 @@ const selectOption = (item: AccountOption) => {
         justify-content: center;
         width: 24px;
         height: 24px;
+        padding: 12px;
+        margin-right: 6px;
 
         .arrow-icon {
             width: 12px;
             height: 12px;
-            transition: transform 0.3s;
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
             opacity: 0.5;
+            transform: rotate(180deg); /* 默认箭头向上 */
 
             &.is-open {
-                transform: rotate(180deg);
+                transform: rotate(0deg); /* 点击展开后箭头向下 */
             }
         }
     }
-}
 
 .custom-dropdown {
     position: absolute;
@@ -208,7 +171,7 @@ const selectOption = (item: AccountOption) => {
     background: white;
     border-radius: 12px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-    z-index: 2000;
+    z-index: 3000;
     max-height: 110px;
     overflow-y: auto;
     -webkit-app-region: no-drag;

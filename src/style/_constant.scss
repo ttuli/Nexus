@@ -14,13 +14,23 @@ $font-weight-bold: 700;
 $line-height-tight: 1.25;
 $line-height-normal: 1.5;
 
-// 颜色
+// 颜色 (Brand)
 $color-primary: var(--color-primary);
 $color-primary-dark: var(--color-primary-dark);
+$color-primary-light: var(--color-primary-light);
+$color-primary-bg: var(--color-primary-bg);
+
+// 文字颜色 (Text)
+$color-text-title: var(--text-title);
 $color-text-primary: var(--text-primary);
 $color-text-secondary: var(--text-secondary);
 $color-text-placeholder: var(--text-placeholder);
+$color-text-disabled: var(--text-disabled);
+
+// 边框 (Border)
 $color-border: var(--border-color);
+$color-border-divider: var(--border-divider);
+$color-border-hover: var(--border-hover);
 
 // 背景
 $bg-body: var(--bg-body);

@@ -76,7 +76,7 @@ class FileCacheManager {
                     ft = ApiTypes.file.FileType.FileTypeChatImage;
                     break;
                 case CacheOptionType.VIDEO_THUMB:
-                    const videoProcess = `video/snapshot,t_0,f_jpg/image/quality,q_${quality}`;
+                    const videoProcess = `video/snapshot,t_0,f_jpg,w_${width},h_${height},m_fast`;
                     cacheKey += `|${videoProcess}`;
                     ft = ApiTypes.file.FileType.FileTypeChatFile;
                     break;

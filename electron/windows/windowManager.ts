@@ -3,7 +3,6 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WindowConfig, ManagedWindow, CreateWindowRequest, WindowState } from './windowAttribute';
 import configs from './windowAttribute';
-import { windowStateManager } from '@/electron/utils/windowState';
 import { TrayManager } from './trayManager';
 import { IpcChannels } from '@/src/types';
 import { Main_Config as config } from '@/src/config/constants';
@@ -151,10 +150,7 @@ class WindowManager {
         return existingWindow;
       }
 
-      // 加载保存的窗口状态
-      const savedState = windowStateManager.getState(key);
-      // const savedState = undefined;
-      const bounds = this.getSafeWindowBounds(savedState, defaultWidth, defaultHeight);
+      const bounds = this.getSafeWindowBounds(undefined, defaultWidth, defaultHeight);
 
       // 创建窗口
       const window = new BrowserWindow({
@@ -276,6 +272,9 @@ class WindowManager {
     const onMaximize = () => {
       if (this.isValidWindow(window) && resizable) {
         window.webContents.send(IpcChannels.WINDOW_STATE, 'maximized');
+        if (windowConfig.hooks?.onMaximize) {
+          try { windowConfig.hooks.onMaximize(window); } catch (e) { console.error(e); }
+        }
       }
     };
 
@@ -288,12 +287,18 @@ class WindowManager {
     const onMinimize = () => {
       if (this.isValidWindow(window)) {
         window.webContents.send(IpcChannels.WINDOW_STATE, 'minimized');
+        if (windowConfig.hooks?.onMinimize) {
+          try { windowConfig.hooks.onMinimize(window); } catch (e) { console.error(e); }
+        }
       }
     };
 
     const onRestore = () => {
       if (this.isValidWindow(window)) {
         window.webContents.send(IpcChannels.WINDOW_STATE, 'restored');
+        if (windowConfig.hooks?.onRestore) {
+          try { windowConfig.hooks.onRestore(window); } catch (e) { console.error(e); }
+        }
       }
     };
 
@@ -301,6 +306,17 @@ class WindowManager {
       if (this.isValidWindow(window)) {
         window.webContents.send(IpcChannels.WINDOW_STATE, 'focused');
         window.flashFrame(false);
+        if (windowConfig.hooks?.onFocus) {
+          try { windowConfig.hooks.onFocus(window); } catch (e) { console.error(e); }
+        }
+      }
+    };
+
+    // 窗口将要关闭时（window 还未销毁）
+    const onClose = (e: Electron.Event) => {
+      // 调用配置钩子（例如保存窗口状态）
+      if (windowConfig.hooks?.onClose && this.isValidWindow(window)) {
+        try { windowConfig.hooks.onClose(window, e); } catch (err) { console.error(err); }
       }
     };
 
@@ -311,6 +327,10 @@ class WindowManager {
       }
       this.pendingReadyWindows.delete(webContentsId);
       this.windows.delete(key);
+      // 调用配置钩子
+      if (windowConfig.hooks?.onClosed) {
+        try { windowConfig.hooks.onClosed(); } catch (e) { console.error(e); }
+      }
     };
 
     // 页面加载错误处理
@@ -327,6 +347,7 @@ class WindowManager {
     window.on('unmaximize', onUnmaximize);
     window.on('minimize', onMinimize);
     window.on('restore', onRestore);
+    window.on('close', onClose);
     window.on('closed', onClosed);
     window.on('focus', onFocus);
     window.webContents.on('did-fail-load', onDidFailLoad);
@@ -345,31 +366,10 @@ class WindowManager {
       window.removeListener('unmaximize', onUnmaximize);
       window.removeListener('minimize', onMinimize);
       window.removeListener('restore', onRestore);
+      window.removeListener('close', onClose);
       window.removeListener('closed', onClosed);
       window.removeListener('focus', onFocus);
     };
-  }
-
-  /**
-   * 保存窗口状态
-   */
-  private saveWindowState(key: string, window: BrowserWindow): void {
-    if (!this.isValidWindow(window)) return;
-
-    try {
-      const bounds = window.getBounds();
-      const state: WindowState = {
-        x: bounds.x,
-        y: bounds.y,
-        width: bounds.width,
-        height: bounds.height,
-        isMaximized: window.isMaximized(),
-        isMinimized: window.isMinimized(),
-      };
-      windowStateManager.saveState(key, state);
-    } catch (error) {
-      console.error(`Failed to save window state for "${key}":`, error);
-    }
   }
 
   /**
@@ -445,9 +445,7 @@ class WindowManager {
       return new Promise<void>((resolve) => {
         // 在窗口关闭前保存状态和执行清理（此时窗口还未销毁）
         managed.window.once('close', () => {
-          if (managed.key === 'home') {
-            this.saveWindowState(managed.key, managed.window);
-          }
+          // 调用配置钩子（保存状态等）——已通过 hooks.onClose 处理。
           // 在窗口销毁前执行清理
           if (managed.cleanup) {
             try {

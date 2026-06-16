@@ -1,0 +1,106 @@
+@use "./constant" as *;
+
+// 1. 图标按钮（如复制按钮、密码可见切换按钮）
+@mixin icon-button($size: 36px) {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  width: $size;
+  height: $size;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+  
+  &:hover {
+    background-color: var(--bg-hover);
+    color: var(--color-primary);
+    transform: scale(1.05);
+  }
+  
+  &:active {
+    background-color: var(--bg-active);
+    transform: scale(0.95);
+  }
+}
+
+// 2. 主操作按钮（带渐变蓝和阴影的按钮，如登录/注册按钮）
+@mixin primary-button {
+  background: linear-gradient(90deg, var(--color-primary-light), var(--color-primary));
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: var(--shadow-primary);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    opacity: 0.9;
+    box-shadow: 0 6px 16px rgba(24, 144, 255, 0.3);
+  }
+  
+  &:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 8px rgba(24, 144, 255, 0.2);
+  }
+
+  &:disabled {
+    background: var(--bg-disabled);
+    color: var(--text-disabled);
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+}
+
+// 3. 文本链接按钮（如“忘记密码”、“注册账户”）
+@mixin link-button {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  cursor: pointer;
+  font-weight: 500;
+  transition: color 0.3s ease;
+  
+  &:hover:not(:disabled) {
+    text-decoration: underline;
+    color: var(--color-primary-dark);
+  }
+  
+  &:disabled {
+    color: var(--text-disabled);
+    cursor: not-allowed;
+  }
+}
+
+// 4. 表单布局（输入框上下结构的通用布局）
+@mixin form-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+// 5. 表单 Label
+@mixin form-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  
+  .required {
+    color: var(--color-primary);
+  }
+}
+
+// 6. 表单内的小图标
+@mixin input-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-md);
+  box-sizing: border-box;
+  padding: 4px;
+}

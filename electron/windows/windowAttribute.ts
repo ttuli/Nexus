@@ -1,4 +1,4 @@
-import { BrowserWindow } from 'electron'
+import { BrowserWindow, app } from 'electron'
 
 // 窗口状态接口（用于持久化）
 export interface WindowState {
@@ -8,6 +8,22 @@ export interface WindowState {
     height: number;
     isMaximized?: boolean;
     isMinimized?: boolean;
+}
+
+// 窗口生命周期钩子接口
+export interface WindowHooks {
+    /** 窗口将要关闭时（window 还未销毁，可用于保存状态或阻止关闭） */
+    onClose?: (window: BrowserWindow, event: Electron.Event) => void;
+    /** 窗口已关闭销毁后 */
+    onClosed?: () => void;
+    /** 窗口获得焦点时 */
+    onFocus?: (window: BrowserWindow) => void;
+    /** 窗口最大化时 */
+    onMaximize?: (window: BrowserWindow) => void;
+    /** 窗口最小化时 */
+    onMinimize?: (window: BrowserWindow) => void;
+    /** 窗口还原时 */
+    onRestore?: (window: BrowserWindow) => void;
 }
 
 // 窗口创建配置接口
@@ -20,6 +36,8 @@ export interface WindowConfig extends Electron.BrowserWindowConstructorOptions {
     allowHideOnClose?: boolean;
     // 最大化时的背景色，用于替代默认背景色
     maximizeBackgroundColor?: string;
+    // 窗口专属生命周期钩子
+    hooks?: WindowHooks;
 }
 
 // 窗口创建请求接口
@@ -46,8 +64,6 @@ let configs: Map<string, WindowConfig> = new Map([
         {
             key: 'login',
             url: '',
-            // width: 400,
-            // height: 570,
             width: 850,
             height: 600,
             resizable: false,
@@ -55,21 +71,12 @@ let configs: Map<string, WindowConfig> = new Map([
             maximizable: false,
             data: {
                 key: 'login'
+            },
+            hooks: {
+                onClosed: () => {
+                    app.quit();
+                }
             }
-        }
-    ],
-    [
-        'register',
-        {
-            key: 'register',
-            url: '/register',
-            modal: true,
-            parentId: 'login',
-            frame: false,
-            resizable: false,
-            maximizable: false,
-            width: 620,
-            height: 780,
         }
     ],
     [
@@ -86,7 +93,13 @@ let configs: Map<string, WindowConfig> = new Map([
             minHeight: 430,
             transparent: false,
             backgroundColor: '#00000000',
-            backgroundMaterial: 'acrylic'
+            backgroundMaterial: 'acrylic',
+            hooks: {
+                onClose: (window: BrowserWindow, event: Electron.Event) => {
+                    event.preventDefault();
+                    window.hide();
+                }
+            }
         }
     ],
     [

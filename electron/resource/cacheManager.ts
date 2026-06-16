@@ -8,8 +8,7 @@ import {
     groupMemberStore,
     kvCache,
     openSharedDb,
-    openDb,
-    closeAllDb
+    openDb
 } from '@/electron/db';
 
 // ─── 需要持久化到磁盘的资源类型 ─────────────────────────────────

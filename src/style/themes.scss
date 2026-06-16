@@ -4,71 +4,87 @@
        ------------------------------ */
 
     /* Brand Colors */
-    --color-primary: #5879d7;
-    --color-primary-dark: #3d5cba;
+    --color-primary: #1890ff;
+    --color-primary-dark: #096dd9;
+    --color-primary-light: #40a9ff;
+    --color-primary-bg: #f0f7ff;
 
     /* Text Colors */
-    --text-primary: #515151;
-    --text-secondary: #666666;
-    --text-placeholder: #999999;
-    --text-disabled: #cccccc;
+    --text-title: #0f172a;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --text-placeholder: #94a3b8;
+    --text-disabled: #cbd5e1;
 
     /* Background Colors */
-    --bg-body: #f5f7fa;
+    --bg-body: #f8fafc;
     /* Overall app background, chat area background */
     --bg-card: #ffffff;
     --bg-list: #ffffff;
     /* Cards, sidebars, panels */
     --bg-overlay: rgba(0, 0, 0, 0.4);
     /* Masks, overlays */
-    --bg-auth: #ecf3ff;
+    --bg-auth: #f0f7ff;
     /* Auth screens */
 
     /* Interactive Backgrounds */
-    --bg-hover: #e0e0e0;
-    --bg-active: #e6e8eb;
-    --bg-disabled: #f5f7fa;
+    --bg-hover: #f1f5f9;
+    --bg-active: #e2e8f0;
+    --bg-disabled: #f8fafc;
 
     /* Border Colors */
-    --border-color: #e0e0e0;
-    --border-hover: #5879d7;
-    /* Often same as primary, but separated for flexibility */
+    --border-color: #e2e8f0;
+    --border-divider: #e5e7eb;
+    --border-hover: #1890ff;
 
     /* Shadows */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
     --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.05);
-    --shadow-primary: 0 4px 12px rgba(88, 121, 215, 0.3);
+    --shadow-primary: 0 4px 12px rgba(24, 144, 255, 0.2);
+
+    /* Radiuses */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-full: 9999px;
 }
 
 /* Dark Theme - Future Ready */
 [data-theme='dark'] {
     /* Brand Colors */
-    --color-primary: #5879d7;
-    /* Adjust for dark mode if needed */
-    --color-primary-dark: #3d5cba;
+    --color-primary: #177ddc;
+    --color-primary-dark: #1890ff;
+    --color-primary-light: #3c9ae8;
+    --color-primary-bg: #111b26;
 
     /* Text Colors */
-    --text-primary: #e0e0e0;
-    --text-secondary: #a0a0a0;
-    --text-placeholder: #666666;
-    --text-disabled: #4a4a4a;
+    --text-title: #f8fafc;
+    --text-primary: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --text-placeholder: #64748b;
+    --text-disabled: #475569;
 
     /* Background Colors */
-    --bg-body: #121212;
-    --bg-card: #1e1e1e;
-    --bg-list: #2c2c2c;
+    --bg-body: #0f172a;
+    --bg-card: #1e293b;
+    --bg-list: #1e293b;
     --bg-overlay: rgba(0, 0, 0, 0.7);
-    --bg-auth: #0a0a0a;
+    --bg-auth: #0f172a;
 
     /* Interactive Backgrounds */
-    --bg-hover: #262626;
-    --bg-active: #333333;
-    --bg-disabled: #1e1e1e;
+    --bg-hover: #334155;
+    --bg-active: #475569;
+    --bg-disabled: #1e293b;
 
     /* Border Colors */
-    --border-color: #333333;
-    --border-hover: #5879d7;
+    --border-color: #334155;
+    --border-divider: #475569;
+    --border-hover: #177ddc;
 
     /* Shadows */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
     --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.2);
-    --shadow-primary: 0 4px 12px rgba(88, 121, 215, 0.1);
+    --shadow-primary: 0 4px 12px rgba(23, 125, 220, 0.1);
 }
