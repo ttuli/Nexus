@@ -19,25 +19,34 @@
         <!-- Content Area (Relative for Sidebar) -->
         <div class="content-wrapper">
             <!-- Message List -->
-            <div class="message-area scroll-bar-thin" ref="messageListRef">
-                <van-list v-model:loading="isLoading" :finished="!hasMore" finished-text="" direction="up"
-                    @load="onLoad">
-                    <template v-if="messages.length > 0">
-                        <transition-group name="msg-fade" appear>
-                            <template v-for="msg in messages" :key="msg.clientId || msg.msgId">
-                                <!-- 系统 / 群通知消息气泡 -->
-                                <SystemMessageBubble v-if="isSystemMessage(msg.type)" :message="(msg as any)" />
-                                <!-- 普通用户聊天气泡 -->
-                                <MessageBubble v-else :message="msg" :is-self="isSelf(msg.fromUserId)"
-                                    @contextmenu="handleMessageContextMenu"
-                                    :class="{ 'is-self': isSelf(msg.fromUserId) }" />
-                            </template>
-                        </transition-group>
-                    </template>
-                    <div v-else class="empty-messages">
-                        开始聊天吧~
+            <div class="message-area scroll-bar-thin" ref="messageListRef" @scroll="handleScroll">
+                <div v-if="messages.length > 0" :style="{ height: `${virtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }">
+                    <div
+                        v-for="virtualRow in virtualizer.getVirtualItems()"
+                        :key="String(virtualRow.key)"
+                        :ref="el => { if (el) virtualizer.measureElement(el as Element) }"
+                        :data-index="virtualRow.index"
+                        class="virtual-item"
+                        :class="getMessageClass(messages[virtualRow.index])"
+                        :style="{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            transform: `translateY(${virtualRow.start}px)`
+                        }"
+                    >
+                        <!-- 系统 / 群通知消息气泡 -->
+                        <SystemMessageBubble v-if="isSystemMessage(messages[virtualRow.index].type)" :message="(messages[virtualRow.index] as any)" />
+                        <!-- 普通用户聊天气泡 -->
+                        <MessageBubble v-else :message="messages[virtualRow.index]" :is-self="isSelf(messages[virtualRow.index].fromUserId)"
+                            @contextmenu="handleMessageContextMenu"
+                            :class="{ 'is-self': isSelf(messages[virtualRow.index].fromUserId) }" />
                     </div>
-                </van-list>
+                </div>
+                <div v-else class="empty-messages">
+                    开始聊天吧~
+                </div>
             </div>
 
             <!-- Chat Sidebar -->
@@ -64,6 +73,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue';
+import { useVirtualizer } from '@tanstack/vue-virtual';
 import { useChatStore } from '@/src/store/chat';
 import { useUserStore } from '@/src/store/user';
 import { useGroupStore } from '@/src/store/group';
@@ -200,28 +210,127 @@ const chatDisableReason = computed(() => {
     return '';
 });
 
-// Messages (Local Mock)
-// Messages handled by store now
+// Messages Layout and Virtualizer
 const messageListRef = ref<HTMLElement | null>(null);
+
+// Virtualizer setup for dynamic height chat bubbles
+const virtualizer = useVirtualizer(computed(() => ({
+    count: messages.value.length,
+    getScrollElement: () => messageListRef.value,
+    estimateSize: () => 80,
+    overscan: 10,
+    paddingStart: 20,
+    paddingEnd: 20,
+    getItemKey: (index: number) => {
+        const msg = messages.value[index];
+        return msg ? (msg.clientId || msg.msgId) : index;
+    }
+})));
+
+// Animations for newly added messages
+const newAnimMessageIds = ref(new Set<string>());
+const seenMessageIds = new Set<string>();
+let lastMessageId = '';
+
+watch(currentSessionId, () => {
+    seenMessageIds.clear();
+    newAnimMessageIds.value.clear();
+    lastMessageId = '';
+});
+
+watch(messages, (newMsgs, oldMsgs) => {
+    if (!newMsgs || newMsgs.length === 0) {
+        seenMessageIds.clear();
+        newAnimMessageIds.value.clear();
+        lastMessageId = '';
+        return;
+    }
+    
+    // Check if we should scroll to bottom (last message changed)
+    const newLastMsg = newMsgs[newMsgs.length - 1];
+    const newLastMsgId = newLastMsg.clientId || newLastMsg.msgId;
+    if (newLastMsgId !== lastMessageId) {
+        lastMessageId = newLastMsgId;
+        scrollToBottom();
+    }
+    
+    // Initial load: mark all as seen
+    if (!oldMsgs || oldMsgs.length === 0) {
+        newMsgs.forEach(m => {
+            const id = m.clientId || m.msgId;
+            if (id) seenMessageIds.add(id);
+        });
+        return;
+    }
+    
+    const oldLength = oldMsgs.length;
+    const newLength = newMsgs.length;
+    
+    if (newLength > oldLength) {
+        const isPrepend = newMsgs[newMsgs.length - 1]?.msgId === oldMsgs[oldMsgs.length - 1]?.msgId;
+        
+        if (isPrepend) {
+            // Prepended (historical messages): add them to seen so they don't animate
+            for (let i = 0; i < newLength - oldLength; i++) {
+                const id = newMsgs[i].clientId || newMsgs[i].msgId;
+                if (id) seenMessageIds.add(id);
+            }
+        } else {
+            // Appended (new sent/received messages): animate them
+            for (let i = oldLength; i < newLength; i++) {
+                const id = newMsgs[i].clientId || newMsgs[i].msgId;
+                if (id && !seenMessageIds.has(id)) {
+                    newAnimMessageIds.value.add(id);
+                    seenMessageIds.add(id);
+                    setTimeout(() => {
+                        newAnimMessageIds.value.delete(id);
+                    }, 1000);
+                }
+            }
+        }
+    }
+}, { deep: true });
+
+const getMessageClass = (msg: IChatMessage) => {
+    if (!msg) return {};
+    const isSelfMsg = isSelf(msg.fromUserId);
+    const id = msg.clientId || msg.msgId;
+    return {
+        'is-self': isSelfMsg,
+        'is-new': id ? newAnimMessageIds.value.has(id) : false
+    };
+};
 
 const scrollToBottom = () => {
     nextTick(() => {
-        if (messageListRef.value) {
-            messageListRef.value.scrollTop = messageListRef.value.scrollHeight;
+        if (virtualizer.value && messages.value.length > 0) {
+            virtualizer.value.scrollToIndex(messages.value.length - 1, { align: 'end' });
         }
     });
 };
 
-const onLoad = () => {
-    chatStore.loadMoreMessages();
+const handleScroll = () => {
+    const el = messageListRef.value;
+    if (!el) return;
+    
+    // Check if scrolled near the top to load more historical messages
+    if (el.scrollTop < 100 && !isLoading.value && hasMore.value) {
+        const previousScrollHeight = el.scrollHeight;
+        const previousScrollTop = el.scrollTop;
+        
+        chatStore.loadMoreMessages().then(() => {
+            nextTick(() => {
+                if (messageListRef.value) {
+                    const newScrollHeight = messageListRef.value.scrollHeight;
+                    messageListRef.value.scrollTop = previousScrollTop + (newScrollHeight - previousScrollHeight);
+                }
+            });
+        });
+    }
 };
+// Auto scroll and load logic handled in messages watcher above
 
-// Auto scroll on first load or send
-watch(messages, () => {
-    scrollToBottom();
-}, { deep: true });
-
-// Watch chat change to scroll bottom
+// Watch chat change to scroll bottom / reset sidebar
 watch(currentSessionId, () => {
     if (currentSessionId.value) {
         sidebarVisible.value = false;
@@ -395,7 +504,7 @@ const startResize = (e: MouseEvent) => {
             -webkit-app-region: no-drag;
             flex: 1;
             overflow-y: auto;
-            padding: 20px 20px 0;
+            padding: 0 20px;
             background-color: #f7f7f7; // Light gray bg for chat area
 
             .empty-messages {
@@ -407,28 +516,38 @@ const startResize = (e: MouseEvent) => {
                 font-size: 14px;
             }
 
-            /* 消息入场/离场动画 */
-            .msg-fade-enter-active,
-            .msg-fade-leave-active {
-                transition: all 0.3s ease-out;
+            @keyframes msg-slide-in-left {
+                from {
+                    opacity: 0;
+                    transform: translateX(-20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateX(0);
+                }
             }
 
-            /* 默认状态 (左侧消息：别人发来的) */
-            .msg-fade-enter-from,
-            .msg-fade-leave-to {
-                opacity: 0;
-                transform: translateX(-20px);
+            @keyframes msg-slide-in-right {
+                from {
+                    opacity: 0;
+                    transform: translateX(20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateX(0);
+                }
             }
 
-            /* 自己的消息状态 (右侧消息) */
-            .msg-fade-enter-from.is-self,
-            .msg-fade-leave-to.is-self {
-                opacity: 0;
-                transform: translateX(20px);
-            }
-
-            .msg-fade-leave-active {
-                position: absolute;
+            .virtual-item {
+                will-change: transform;
+                
+                &.is-new {
+                    animation: msg-slide-in-left 0.3s ease-out forwards;
+                    
+                    &.is-self {
+                        animation: msg-slide-in-right 0.3s ease-out forwards;
+                    }
+                }
             }
         }
 

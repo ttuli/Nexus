@@ -122,10 +122,4 @@ const toggle = () => {
     transform: translateX(20px);
   }
 }
-
-// .premium-toggle.is-active:hover:not(.is-disabled) {
-//   .toggle-track {
-//     background-color: var(--color-primary-light, #40a9ff);
-//   }
-// }
 </style>

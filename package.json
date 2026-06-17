@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@bufbuild/protobuf": "^2.11.0",
+    "@tanstack/vue-virtual": "^3.13.29",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/ws": "^8.18.1",
     "axios": "^1.13.1",
