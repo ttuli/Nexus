@@ -235,7 +235,11 @@ class WebSocketService {
         const { clientId, localMsg } = buildVideoLocalMsg({
             url: '',
             localPath: filePath,
-            thumbnailUrl: toResourceUrl(videoMeta.thumbnailUrl),
+            thumbnailUrl: toResourceUrl(videoMeta.thumbnailUrl, { 
+                cacheType: CacheOptionType.IMAGE_THUMB,
+                width: thumbnailWidth,
+                height: thumbnailHeight
+            }),
             width: videoMeta.width,
             height: videoMeta.height,
             duration: videoMeta.duration,   

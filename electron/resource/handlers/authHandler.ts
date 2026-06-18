@@ -13,10 +13,14 @@ export function setupAuthHandlers(): void {
             const result = await authManager.doLogin(data.account, data.password, data.remember);
             if (result.success && result.userId) {
                 // 登录成功：先打开该用户的数据库，再执行其他初始化
-                cacheManager.onLogin(result.userId);
-                userService.cacheLoginAccount(result.userId, data.account).then(() => {
-                    tokenManager.operateLocalRefreshToken(data.remember);
-                }).catch(() => {
+                cacheManager.onLogin(result.userId).then(() => {
+                    userService.cacheLoginAccount(result.userId!, data.account).then(() => {
+                        tokenManager.operateLocalRefreshToken(data.remember);
+                    }).catch(() => {
+                        tokenManager.operateLocalRefreshToken(false);
+                    });
+                }).catch(err => {
+                    console.error('[authHandler] cacheManager.onLogin failed:', err);
                     tokenManager.operateLocalRefreshToken(false);
                 });
             }

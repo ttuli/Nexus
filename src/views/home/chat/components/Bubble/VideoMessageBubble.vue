@@ -63,7 +63,7 @@ import { ref, computed, watch } from 'vue';
 import { ILocalVideoMessage } from '@/src/types/chatMessage';
 import { APP_CONSTANTS as config } from '@/src/config/constants';
 import { CacheOptionType, ImTypes } from '@/src/types';
-// import { openVideoViewer } from '@/src/utils/window';
+import { openVideoViewer } from '@/src/utils/window';
 import { ElMessage } from 'element-plus';
 import { messageStorageService } from '@/src/services/messageStorageService';
 import { toResourceUrl } from '@/src/utils/chat';
@@ -164,7 +164,7 @@ const handlePlay = async () => {
         return;
     }
     console.log('[VideoBubble] 播放视频，本地路径:', props.message.localPath);
-    // TODO: 播放逻辑占位
+    openVideoViewer(toResourceUrl(props.message.localPath!, { cacheType: CacheOptionType.VIDEO }), props.message.width, props.message.height);
 };
 
 const currentDownloadAbort = ref<(() => void) | null>(null);
@@ -252,6 +252,7 @@ const formatDuration = (seconds: number) => {
         border-radius: 8px;
         overflow: hidden;
         cursor: pointer;
+        background-color: transparent;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         display: flex;
         align-items: center;

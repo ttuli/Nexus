@@ -156,7 +156,7 @@ let configs: Map<string, WindowConfig> = new Map([
             minHeight: 300,
             backgroundColor: '#00000000', // Transparent for custom background
             webPreferences: {
-                webSecurity: false // Allow loading local images
+                webSecurity: true
             }
         }
     ],
@@ -174,7 +174,7 @@ let configs: Map<string, WindowConfig> = new Map([
             minHeight: 300,
             backgroundColor: '#000000', // Black background for video player
             webPreferences: {
-                webSecurity: false
+                webSecurity: true
             }
         }
     ],

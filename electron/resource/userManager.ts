@@ -44,7 +44,7 @@ class UserService {
 
         // 1. 检查缓存（除非强制更新）
         if (!forceUpdate) {
-            const { items, missingIds } = cacheManager.getItems<UserInfo>(ResourceType.USER, ids);
+            const { items, missingIds } = await cacheManager.getItems<UserInfo>(ResourceType.USER, ids);
             cachedUsers = items;
             idsToFetch = missingIds;
 
@@ -74,7 +74,7 @@ class UserService {
         try {
             const usersApi = await this.doFetchUsersByIds(idsToFetch);
             const users = usersApi.map(u => u as unknown as UserInfo);
-            cacheManager.setItems(ResourceType.USER, users);
+            await cacheManager.setItems(ResourceType.USER, users);
             resolvePromise!(users);
             return [...cachedUsers, ...users];
         } catch (error) {
@@ -109,7 +109,7 @@ class UserService {
         try {
             const usersApi = await this.doFetchUserByQuery({ phone });
             const users = usersApi.map(u => u as unknown as UserInfo);
-            cacheManager.setItems(ResourceType.USER, users);
+            await cacheManager.setItems(ResourceType.USER, users);
             resolvePromise!(users);
             return users;
         } catch (error) {
@@ -147,7 +147,7 @@ class UserService {
         try {
             const usersApi = await this.doFetchUserByQuery({ name, limit, offset });
             const users = usersApi.map(u => u as unknown as UserInfo);
-            cacheManager.setItems(ResourceType.USER, users);
+            await cacheManager.setItems(ResourceType.USER, users);
             resolvePromise!(users);
             return users;
         } catch (error) {

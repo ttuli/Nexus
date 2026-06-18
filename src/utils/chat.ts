@@ -15,7 +15,7 @@ import { settingService } from '@/src/services/settingService';
  * @param pathOrUrl 资源的本地绝对路径，或是网络 http(s) URL
  * @param cacheKey 稳定标识，格式如 `fileKey` 或 `fileKey|ossProcess`
  */
-export function toResourceUrl(pathOrUrl: string, opts?: CacheOption): string {
+export function toResourceUrl(pathOrUrl: string, opts: CacheOption): string {
     if (!pathOrUrl) return '';
 
     // 如果已经是 localcache 协议了，就直接返回

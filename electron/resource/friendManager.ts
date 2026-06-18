@@ -23,7 +23,7 @@ class FriendService {
      */
     public async fetchFriendList(): Promise<ImTypes.Friend[]> {
         // 1. 优先读本地 SQLite 缓存
-        const cached = kvCache.getAll<ImTypes.Friend>('friend');
+        const cached = await kvCache.getAll<ImTypes.Friend>('friend');
         if (cached.length > 0) {
             return cached;
         }
@@ -40,7 +40,7 @@ class FriendService {
         try {
             const friends = await this.pendingFriendList;
             const imFriends = friends.map(f => f as unknown as ImTypes.Friend);
-            cacheManager.setItems(ResourceType.FRIEND, imFriends);
+            await cacheManager.setItems(ResourceType.FRIEND, imFriends);
             return imFriends;
         } finally {
             this.pendingFriendList = null;
@@ -62,7 +62,7 @@ class FriendService {
         try {
             const requests = await this.pendingRequests;
             const imRequests = requests.map(r => r as unknown as ImTypes.FriendRequest);
-            cacheManager.setItems(ResourceType.FRIEND_REQUEST, imRequests);
+            await cacheManager.setItems(ResourceType.FRIEND_REQUEST, imRequests);
             return imRequests;
         } finally {
             this.pendingRequests = null;

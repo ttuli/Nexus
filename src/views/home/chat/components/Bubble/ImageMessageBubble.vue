@@ -150,7 +150,7 @@ const handleClick = async () => {
 
     try {
         if (props.message.localPath && await fileService.checkLocalFileExists(props.message.localPath)) {
-            await openPhotoViewer([toResourceUrl(props.message.localPath)], 0, initialSize);
+            await openPhotoViewer([toResourceUrl(props.message.localPath, { cacheType: CacheOptionType.IMAGE })], 0, initialSize);
             return;
         }
         await openPhotoViewer([toResourceUrl(props.message.url,{

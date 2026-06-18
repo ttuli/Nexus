@@ -25,6 +25,11 @@ export default defineConfig(({ mode }) => {
           vite: {
             build: {
               rollupOptions: {
+                // db.worker.ts 需要作为独立产物打包，Worker 构造函数依赖 db.worker.js
+                input: {
+                  main: 'electron/main.ts',
+                  'db.worker': 'electron/db/db.worker.ts',
+                },
                 external: ['dotenv', 'koffi', 'better-sqlite3'],
               },
             },

@@ -26,15 +26,15 @@ export function setupResourceHandlers(): void {
                 return { success: true, items: membersWrapper, missingIds: [] };
             } else if (type === ResourceType.GROUP_JOINED) {
                 if (forceUpdate) {
-                    let ids = await groupService.fetchUserGroupIds();
-                    return { success: true, items: ids, missingIds: [] };
+                    const groupIds = await groupService.fetchUserGroupIds();
+                    return { success: true, items: groupIds, missingIds: [] };
                 }
                 const groupIds = cacheManager.getUserGroupIds();
                 return { success: true, items: groupIds, missingIds: [] };
             }
 
-            // For other types, just return from cache
-            const { items, missingIds } = cacheManager.getItems(type, ids);
+            // For other types, just return from cache (async now)
+            const { items, missingIds } = await cacheManager.getItems(type, ids);
             return { success: true, items, missingIds };
         } catch (error) {
             console.error(`Failed to get ${type}:`, error);
@@ -45,21 +45,24 @@ export function setupResourceHandlers(): void {
     ipcMain.handle(IpcChannels.RESOURCE_UPDATE, async (_event, action: number, type: ResourceType, items: any[]) => {
         try {
             if (action === UpdateAction.Delete) {
-                items.forEach(item => {
+                // deleteItem is now async — run all deletes in parallel
+                const deletePromises: Promise<void>[] = [];
+                for (const item of items) {
                     if (type === ResourceType.GROUP_JOINED) {
                         if (Array.isArray(item)) {
-                            item.forEach(id => cacheManager.deleteItem(type, id));
+                            item.forEach(id => deletePromises.push(cacheManager.deleteItem(type, id)));
                         }
                     } else {
                         const idKey = type === ResourceType.USER ? 'user_id' :
                             type === ResourceType.GROUP ? 'id' :
                                 type === ResourceType.FRIEND ? 'friend_id' :
                                     type === ResourceType.FRIEND_REQUEST ? 'request_id' : 'id';
-                        cacheManager.deleteItem(type, item[idKey]);
+                        deletePromises.push(cacheManager.deleteItem(type, item[idKey]));
                     }
-                });
+                }
+                await Promise.all(deletePromises);
             } else {
-                cacheManager.setItems(type, items);
+                await cacheManager.setItems(type, items);
             }
             // Broadcast to all renderers with action
             if (type === ResourceType.GROUP_JOINED) {

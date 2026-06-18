@@ -24,7 +24,7 @@ export function setupTokenHandlers(): void {
         if (!result.success) {
             tokenManager.operateLocalRefreshToken(false);
         } else {
-            cacheManager.onLogin(tokenManager.getCurrentUserID());
+            await cacheManager.onLogin(tokenManager.getCurrentUserID());
         }
         return { success: result.success, error: result.error };
     });

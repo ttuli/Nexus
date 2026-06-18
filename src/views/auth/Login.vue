@@ -82,6 +82,7 @@ import EyeClosedIcon from '@/src/assets/input/eye_closed.svg?url'
 import { signalWindowReady } from '@/src/utils/windowReady'
 import AccountSelector, { AccountOption } from './components/AccountSelector.vue';
 import { toResourceUrl } from '@/src/utils/chat.ts'
+import { CacheOptionType } from '@/src/types/resourceCache.ts'
 
 interface LoginForm {
     account: string
@@ -190,7 +191,7 @@ onMounted(async () => {
     accountOptions.value = history.map((item) => ({
         account: item.account || item.userId?.toString() || '',
         name: item.name,
-        avatar: toResourceUrl(item.avatarUrl || '')
+        avatar: toResourceUrl(item.avatarUrl || '', { cacheType: CacheOptionType.AVATAR })
     }));
 
     // Default select first account if available and not empty
@@ -200,7 +201,7 @@ onMounted(async () => {
 
     if (history.length > 0 && autologin.value) {
         autoLoginInfo.value = {
-            avatar: toResourceUrl(history[0].avatarUrl || ''),
+            avatar: toResourceUrl(history[0].avatarUrl || '', { cacheType: CacheOptionType.AVATAR }),
             name: history[0].name
         }
     }

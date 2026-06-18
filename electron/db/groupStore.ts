@@ -1,11 +1,10 @@
-import type Database from 'better-sqlite3';
-import { getSharedDb } from './database';
+import { dbBridge } from './dbWorkerBridge';
 import type { ImTypes } from '@/src/types';
 
 type GroupInfo = ImTypes.GroupInfo;
 
 /**
- * group_info 表操作
+ * group_info 表操作（async）
  *
  * 表结构：
  *   id         INTEGER PRIMARY KEY
@@ -15,53 +14,17 @@ type GroupInfo = ImTypes.GroupInfo;
  *   expires_at INTEGER
  */
 class GroupStore {
-    private get db(): Database.Database {
-        return getSharedDb();
-    }
-
-    private get stmtGet() {
-        return this.db.prepare<[number], { data: string; expires_at: number }>(
-            'SELECT data, expires_at FROM group_info WHERE id = ?'
-        );
-    }
-
-    private get stmtGetSingle() {
-        return this.db.prepare<[number], { data: string; expires_at: number }>(
-            'SELECT data, expires_at FROM group_info WHERE id = ?'
-        );
-    }
-
-    private get stmtUpsert() {
-        return this.db.prepare<[number, number, string, string, number]>(
-            'INSERT OR REPLACE INTO group_info (id, owner_id, name, data, expires_at) VALUES (?, ?, ?, ?, ?)'
-        );
-    }
-
-    private get stmtDelete() {
-        return this.db.prepare<[number]>(
-            'DELETE FROM group_info WHERE id = ?'
-        );
-    }
-
-    private get stmtDeleteExpired() {
-        return this.db.prepare<[number]>(
-            'DELETE FROM group_info WHERE expires_at <= ?'
-        );
-    }
-
-    private get stmtClear() {
-        return this.db.prepare('DELETE FROM group_info');
-    }
-
-    // ── 公开 API ────────────────────────────────────────────────────────
-
     /**
      * 获取单个群组，已过期返回 null
      */
-    get(groupId: number): GroupInfo | null {
-        const row = this.stmtGet.get(groupId);
+    async get(groupId: number): Promise<GroupInfo | null> {
+        const row = await dbBridge.get<{ data: string; expires_at: number }>(
+            'shared',
+            'SELECT data, expires_at FROM group_info WHERE id = ?',
+            [groupId]
+        );
         if (!row || row.expires_at <= Date.now()) {
-            if (row) this.stmtDelete.run(groupId);
+            if (row) await this.delete(groupId);
             return null;
         }
         return JSON.parse(row.data) as GroupInfo;
@@ -70,14 +33,17 @@ class GroupStore {
     /**
      * 批量获取群组，返回命中列表和缺失 ID 列表
      */
-    getMany(groupIds: number[]): { found: GroupInfo[]; missing: number[] } {
+    async getMany(groupIds: number[]): Promise<{ found: GroupInfo[]; missing: number[] }> {
         const now = Date.now();
         const found: GroupInfo[] = [];
         const missing: number[] = [];
-        const stmt = this.stmtGetSingle;
 
         for (const groupId of groupIds) {
-            const row = stmt.get(groupId);
+            const row = await dbBridge.get<{ data: string; expires_at: number }>(
+                'shared',
+                'SELECT data, expires_at FROM group_info WHERE id = ?',
+                [groupId]
+            );
             if (!row || row.expires_at <= now) {
                 missing.push(groupId);
             } else {
@@ -90,48 +56,45 @@ class GroupStore {
     /**
      * 写入单个群组
      */
-    set(group: GroupInfo, expiresAt: number): void {
-        this.stmtUpsert.run(
-            group.id,
-            group.owner_id,
-            group.name,
-            JSON.stringify(group),
-            expiresAt
+    async set(group: GroupInfo, expiresAt: number): Promise<void> {
+        await dbBridge.execute(
+            'shared',
+            'INSERT OR REPLACE INTO group_info (id, owner_id, name, data, expires_at) VALUES (?, ?, ?, ?, ?)',
+            [group.id, group.owner_id, group.name, JSON.stringify(group), expiresAt]
         );
     }
 
     /**
      * 批量写入群组（事务）
      */
-    setMany(groups: GroupInfo[], expiresAt: number): void {
-        const stmt = this.stmtUpsert;
-        const runAll = this.db.transaction((items: GroupInfo[]) => {
-            for (const group of items) {
-                stmt.run(group.id, group.owner_id, group.name, JSON.stringify(group), expiresAt);
-            }
-        });
-        runAll(groups);
+    async setMany(groups: GroupInfo[], expiresAt: number): Promise<void> {
+        if (!groups.length) return;
+        const ops = groups.map(group => ({
+            sql: 'INSERT OR REPLACE INTO group_info (id, owner_id, name, data, expires_at) VALUES (?, ?, ?, ?, ?)',
+            params: [group.id, group.owner_id, group.name, JSON.stringify(group), expiresAt] as unknown[],
+        }));
+        await dbBridge.transaction('shared', ops);
     }
 
     /**
      * 删除单个群组
      */
-    delete(groupId: number): void {
-        this.stmtDelete.run(groupId);
+    async delete(groupId: number): Promise<void> {
+        await dbBridge.execute('shared', 'DELETE FROM group_info WHERE id = ?', [groupId]);
     }
 
     /**
      * 清理所有过期记录
      */
-    deleteExpired(): void {
-        this.stmtDeleteExpired.run(Date.now());
+    async deleteExpired(): Promise<void> {
+        await dbBridge.execute('shared', 'DELETE FROM group_info WHERE expires_at <= ?', [Date.now()]);
     }
 
     /**
      * 清空整张表
      */
-    clear(): void {
-        this.stmtClear.run();
+    async clear(): Promise<void> {
+        await dbBridge.execute('shared', 'DELETE FROM group_info', []);
     }
 }
 

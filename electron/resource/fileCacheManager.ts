@@ -1,8 +1,7 @@
-// import { app } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
-import { nativeImage, net } from 'electron';
+import { nativeImage, net, app } from 'electron';
 
 import { tokenManager } from './tokenManager';
 import { settingManager } from './settingManager';
@@ -106,8 +105,8 @@ class FileCacheManager {
                     opts.cacheType === CacheOptionType.IMAGE ||
                     opts.cacheType === CacheOptionType.AVATAR) {
                     contentType = 'image/jpeg';
-                } else if (opts.cacheType === CacheOptionType.VIDEO || 
-                           opts.cacheType === CacheOptionType.VIDEO_THUMB) {
+                } else if (opts.cacheType === CacheOptionType.VIDEO ||
+                    opts.cacheType === CacheOptionType.VIDEO_THUMB) {
                     contentType = 'video/mp4';
                 }
                 return new Response(buffer, {
@@ -115,10 +114,10 @@ class FileCacheManager {
                     headers: { 'Content-Type': contentType }
                 });
             }
-            
+
             // 本地无缓存则触发下载，等待下载完成后读取缓存文件返回
             await this.doFetch(pathOrUrl, cacheKey, ft, isShared);
-            
+
             if (fs.existsSync(localPath)) {
                 const buffer = fs.readFileSync(localPath);
                 let contentType = 'application/octet-stream';
@@ -126,8 +125,8 @@ class FileCacheManager {
                     opts.cacheType === CacheOptionType.IMAGE ||
                     opts.cacheType === CacheOptionType.AVATAR) {
                     contentType = 'image/jpeg';
-                } else if (opts.cacheType === CacheOptionType.VIDEO || 
-                           opts.cacheType === CacheOptionType.VIDEO_THUMB) {
+                } else if (opts.cacheType === CacheOptionType.VIDEO ||
+                    opts.cacheType === CacheOptionType.VIDEO_THUMB) {
                     contentType = 'video/mp4';
                 }
                 return new Response(buffer, {
@@ -155,7 +154,7 @@ class FileCacheManager {
                 break;
             default:
         }
-        return this.doFetchLocal(cacheKey)
+        return this.doFetchLocal(cacheKey, opts.cacheType);
     }
 
     /**
@@ -217,12 +216,137 @@ class FileCacheManager {
         }
     }
 
-    private async doFetchLocal(cacheKey: string): Promise<Response> {
+    private getFileResponse(filePath: string, cacheType?: CacheOptionType): Response {
+        try {
+            const buffer = fs.readFileSync(filePath);
+            let contentType = 'application/octet-stream';
+
+            if (cacheType) {
+                if (cacheType === CacheOptionType.IMAGE_THUMB ||
+                    cacheType === CacheOptionType.IMAGE ||
+                    cacheType === CacheOptionType.AVATAR) {
+                    contentType = 'image/jpeg';
+                } else if (cacheType === CacheOptionType.VIDEO ||
+                           cacheType === CacheOptionType.VIDEO_THUMB) {
+                    contentType = 'video/mp4';
+                } else if (cacheType === CacheOptionType.AUDIO) {
+                    contentType = 'audio/mpeg';
+                }
+            }
+
+            // 如果 cacheType 推断不出，则通过后缀进行一次兜底
+            if (contentType === 'application/octet-stream') {
+                const ext = path.extname(filePath).toLowerCase();
+                switch (ext) {
+                    case '.jpg':
+                    case '.jpeg':
+                        contentType = 'image/jpeg';
+                        break;
+                    case '.png':
+                        contentType = 'image/png';
+                        break;
+                    case '.gif':
+                        contentType = 'image/gif';
+                        break;
+                    case '.webp':
+                        contentType = 'image/webp';
+                        break;
+                    case '.bmp':
+                        contentType = 'image/bmp';
+                        break;
+                    case '.mp4':
+                        contentType = 'video/mp4';
+                        break;
+                    case '.webm':
+                        contentType = 'video/webm';
+                        break;
+                    case '.ogg':
+                        contentType = 'video/ogg';
+                        break;
+                    case '.mp3':
+                        contentType = 'audio/mpeg';
+                        break;
+                    case '.wav':
+                        contentType = 'audio/wav';
+                        break;
+                    case '.m4a':
+                        contentType = 'audio/mp4';
+                        break;
+                }
+            }
+
+            return new Response(buffer, {
+                status: 200,
+                headers: {
+                    'Content-Type': contentType,
+                    'Cache-Control': 'max-age=31536000',
+                }
+            });
+        } catch (e) {
+            console.error('[FileCacheManager] getFileResponse error:', filePath, e);
+            return new Response(null, { status: 500 });
+        }
+    }
+
+    private isPathSafe(filePath: string): boolean {
+        if (!filePath || !path.isAbsolute(filePath)) {
+            return false;
+        }
+
+        const resolvedPath = path.resolve(filePath).toLowerCase();
+
+        // 1. 允许位于 App 资源存储根目录（缓存目录）的所有文件
+        const cacheDir = this.cacheDir.toLowerCase();
+        if (resolvedPath.startsWith(cacheDir)) {
+            return true;
+        }
+
+        // 2. 如果在缓存目录外，禁止访问关键系统目录
+        if (process.platform === 'win32') {
+            const systemRoot = (process.env.SystemRoot || 'C:\\Windows').toLowerCase();
+            const winDir = (process.env.windir || 'C:\\Windows').toLowerCase();
+            const programFiles = (process.env.ProgramFiles || 'C:\\Program Files').toLowerCase();
+            const programFilesX86 = (process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)').toLowerCase();
+
+            if (resolvedPath.startsWith(systemRoot) || 
+                resolvedPath.startsWith(winDir) || 
+                resolvedPath.startsWith(programFiles) || 
+                resolvedPath.startsWith(programFilesX86)) {
+                return false;
+            }
+
+            // 禁止访问其他 App 的 AppData（排除自身）
+            const selfUserData = app.getPath('userData').toLowerCase();
+            if ((resolvedPath.includes('\\appdata\\roaming\\') || resolvedPath.includes('\\appdata\\local\\')) && 
+                !resolvedPath.startsWith(selfUserData)) {
+                return false;
+            }
+        } else {
+            // macOS / Linux 平台
+            const forbiddenPrefixes = [
+                '/etc/', '/var/', '/usr/', '/bin/', '/sbin/', '/lib/', '/sys/', '/proc/', '/dev/', '/root/'
+            ];
+            for (const prefix of forbiddenPrefixes) {
+                if (resolvedPath.startsWith(prefix)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private async doFetchLocal(cacheKey: string, cacheType?: CacheOptionType): Promise<Response> {
         // cacheKey 格式：
         //   filePath                                          （无处理）
         //   filePath|image_w_{w}_h_{h}_q_{q}                 （图片缩略图）
         //   filePath|video_snapshoot_w_{w}_h_{h}_q_{q}       （视频缩略图）
         const [filePath, paramsStr] = cacheKey.split('|');
+
+        if (!this.isPathSafe(filePath)) {
+            console.warn('[FileCacheManager] Blocked unsafe file path request:', filePath);
+            return new Response(null, { status: 403 });
+        }
 
         if (!fs.existsSync(filePath)) {
             return new Response(null, { status: 404 });
@@ -230,7 +354,7 @@ class FileCacheManager {
 
         // 无附加参数：直接返回原文件
         if (!paramsStr) {
-            return net.fetch('file://' + filePath);
+            return this.getFileResponse(filePath, cacheType);
         }
 
         // IMAGE_THUMB：image_w_${width}_h_${height}_q_${quality}
@@ -245,7 +369,7 @@ class FileCacheManager {
             // 命中缓存则直接返回
             const cachePath = this.getLocalPath(cacheKey);
             if (fs.existsSync(cachePath)) {
-                return net.fetch('file://' + cachePath);
+                return this.getFileResponse(cachePath, cacheType);
             }
 
             try {
@@ -282,11 +406,11 @@ class FileCacheManager {
         // 本地视频截帧暂不支持（需引入 ffmpeg），直接返回原文件兜底
         if (paramsStr.startsWith('video_snapshoot')) {
             console.warn('[FileCacheManager] Local video thumbnail not supported, returning raw file:', filePath);
-            return net.fetch('file://' + filePath);
+            return this.getFileResponse(filePath, cacheType);
         }
 
         // 未知参数，兜底返回原文件
-        return net.fetch('file://' + filePath);
+        return this.getFileResponse(filePath, cacheType);
     }
 }
 

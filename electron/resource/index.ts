@@ -20,10 +20,12 @@ class ResourceManager {
         if (this.initialized) return;
         this.initialized = true;
 
-        // 初始化各模块
+        // 初始化各模块（cacheManager.init() 是 async，内部会启动 Worker 并打开 sharedDb）
         settingManager.init();
         authManager.init();
-        cacheManager.init();
+        cacheManager.init().catch(err => {
+            console.error('[ResourceManager] cacheManager.init() failed:', err);
+        });
         fileCacheManager.init();
 
         // 初始化 WebSocket 模块
@@ -43,8 +45,8 @@ class ResourceManager {
         tokenManager.cleanout();
         // 清理纯内存缓存，保留磁盘缓存供下次加速
         cacheManager.clearMemory();
-        // 关闭当前账号的私有数据库连接
-        closePrivateDB();
+        // 关闭当前账号的私有数据库连接（async，但无需等待）
+        closePrivateDB().catch(err => console.error('[ResourceManager] closePrivateDB error:', err));
         wsManager.closeWs();
         windowManager.closeAllWindows().finally(() => {
             windowManager.CreateWindow({
@@ -57,12 +59,12 @@ class ResourceManager {
 
     public destroy(): void {
         console.log('[ResourceManager] Destroying all resources...');
-        // 关闭所有数据库连接（包括共享库）
-        closeAllDb();
-        // 断开长连接
-        wsManager.closeWs();
-        windowManager.closeAllWindows().finally(() => {
-            app.quit();
+        // 关闭所有数据库连接（包括共享库，async，等待完成后再退出）
+        closeAllDb().finally(() => {
+            wsManager.closeWs();
+            windowManager.closeAllWindows().finally(() => {
+                app.quit();
+            });
         });
     }
 }

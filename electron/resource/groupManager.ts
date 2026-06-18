@@ -35,7 +35,7 @@ class GroupService {
         let idsToFetch: number[] = ids;
 
         if (!forceUpdate) {
-            const { items, missingIds } = cacheManager.getItems<Group>(ResourceType.GROUP, ids);
+            const { items, missingIds } = await cacheManager.getItems<Group>(ResourceType.GROUP, ids);
             cachedGroups = items;
             idsToFetch = missingIds;
             if (idsToFetch.length === 0) return cachedGroups;
@@ -60,7 +60,7 @@ class GroupService {
         try {
             const groupsApi = await this.doFetchGroupsByIds(idsToFetch);
             const groups = groupsApi.map(g => g as unknown as Group);
-            cacheManager.setItems(ResourceType.GROUP, groups);
+            await cacheManager.setItems(ResourceType.GROUP, groups);
             resolvePromise!(groups);
             return [...cachedGroups, ...groups];
         } catch (error) {
@@ -93,7 +93,7 @@ class GroupService {
         try {
             const groupsApi = await this.doFetchGroupsByQuery({ name, limit, offset });
             const groups = groupsApi.map(g => g as unknown as Group);
-            cacheManager.setItems(ResourceType.GROUP, groups);
+            await cacheManager.setItems(ResourceType.GROUP, groups);
             resolvePromise!(groups);
             return groups;
         } catch (error) {
@@ -111,7 +111,7 @@ class GroupService {
         if (!groupId) return [];
 
         if (!forceUpdate) {
-            const wrapper = cacheManager.getItem<any>(ResourceType.GROUP_MEMBER, groupId);
+            const wrapper = await cacheManager.getItem<any>(ResourceType.GROUP_MEMBER, groupId);
             if (wrapper && wrapper.members) return wrapper.members;
         }
 
@@ -130,7 +130,7 @@ class GroupService {
         try {
             const membersApi = await this.doFetchGroupMembers(groupId);
             const members = membersApi.map(m => m as unknown as GroupMember);
-            cacheManager.setItem(ResourceType.GROUP_MEMBER, { group_id: groupId, members });
+            await cacheManager.setItem(ResourceType.GROUP_MEMBER, { group_id: groupId, members });
             resolvePromise!(members);
             return members;
         } catch (error) {
@@ -181,7 +181,7 @@ class GroupService {
             if (response.code === 200) {
                 const decoded = decodeMainResponse(response, ApiTypes.group.GetUserGroupsResp.decode);
                 const groupIds = decoded.data?.data ?? [];
-                cacheManager.setUserGroupIds(groupIds);
+                await cacheManager.setUserGroupIds(groupIds);
                 resolvePromise!(groupIds);
                 return groupIds;
             } else {
@@ -221,7 +221,7 @@ class GroupService {
                 const decoded = decodeMainResponse(response, ApiTypes.group.GetPendingAppliesResp.decode);
                 const resultApi = decoded.data?.data ?? [];
                 const result = resultApi.map(r => r as unknown as GroupRequest);
-                cacheManager.setItems(ResourceType.GROUP_APPLY, result);
+                await cacheManager.setItems(ResourceType.GROUP_APPLY, result);
                 resolvePromise!(result);
                 return result;
             } else {

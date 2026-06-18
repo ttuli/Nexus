@@ -23,6 +23,7 @@ const PERSIST_TYPES = new Set<ResourceType>([
 /**
  * 缓存管理器
  * 内存 LRU + SQLite 双层缓存
+ * 注意：所有涉及 SQLite 的方法均为 async
  */
 class CacheManager {
     // ─── 内存层 ──────────────────────────────────────────────────
@@ -32,7 +33,7 @@ class CacheManager {
 
     // ==================== 初始化 ====================
 
-    public init(): void {
+    public async init(): Promise<void> {
         if (this.initialized) return;
         this.initialized = true;
 
@@ -46,23 +47,23 @@ class CacheManager {
         });
 
         // 打开共享数据库（app 启动时调用一次，生命周期与 app 相同）
-        openSharedDb();
+        await openSharedDb();
     }
 
     /**
      * 登录成功后调用：打开用户数据库并执行数据库相关的初始化
      * @param userId 当前登录用户 ID
      */
-    public onLogin(userId: number): void {
+    public async onLogin(userId: number): Promise<void> {
         // 打开（或切换至）该用户专属的数据库文件
-        openDb(userId);
+        await openDb(userId);
 
         // 清理 SQLite 中的过期数据
-        this.cleanExpiredDiskCache();
+        await this.cleanExpiredDiskCache();
 
         // 从 SQLite 恢复 userGroupIds
         try {
-            this.userGroupIds = kvCache.getAllIds('group_joined');
+            this.userGroupIds = await kvCache.getAllIds('group_joined');
             console.log(`[CacheManager] Restored ${this.userGroupIds.length} joined groups from SQLite`);
         } catch (err) {
             console.error('[CacheManager] Failed to restore userGroupIds from SQLite:', err);
@@ -72,12 +73,12 @@ class CacheManager {
     /**
      * 清理所有过期记录
      */
-    private cleanExpiredDiskCache(): void {
+    private async cleanExpiredDiskCache(): Promise<void> {
         try {
-            userStore.deleteExpired();
-            groupStore.deleteExpired();
-            groupMemberStore.deleteExpired();
-            kvCache.deleteExpired();
+            await userStore.deleteExpired();
+            await groupStore.deleteExpired();
+            await groupMemberStore.deleteExpired();
+            await kvCache.deleteExpired();
             console.log('[CacheManager] SQLite expired entries cleaned');
         } catch (err) {
             console.error('[CacheManager] Failed to clean expired entries:', err);
@@ -89,7 +90,7 @@ class CacheManager {
     /**
      * 获取单个资源（从缓存）
      */
-    public getItem<T>(type: ResourceType, id: number): T | null {
+    public async getItem<T>(type: ResourceType, id: number): Promise<T | null> {
         const cache = this.caches.get(type);
         const cached = cache?.get(id);
 
@@ -110,7 +111,7 @@ class CacheManager {
      * 批量获取资源（从缓存）
      * 返回找到的资源和缺失的 ID
      */
-    public getItems<T>(type: ResourceType, ids: number[]): { items: T[]; missingIds: number[] } {
+    public async getItems<T>(type: ResourceType, ids: number[]): Promise<{ items: T[]; missingIds: number[] }> {
         const cache = this.caches.get(type);
         if (!cache) return { items: [], missingIds: ids };
 
@@ -141,37 +142,37 @@ class CacheManager {
             try {
                 switch (type) {
                     case ResourceType.USER: {
-                        const res = userStore.getMany(dbQueryIds);
+                        const res = await userStore.getMany(dbQueryIds);
                         foundInDb = res.found;
                         missingInDb = res.missing;
                         break;
                     }
                     case ResourceType.GROUP: {
-                        const res = groupStore.getMany(dbQueryIds);
+                        const res = await groupStore.getMany(dbQueryIds);
                         foundInDb = res.found;
                         missingInDb = res.missing;
                         break;
                     }
                     case ResourceType.GROUP_MEMBER: {
                         // GROUP_MEMBER 通常按 group_id 批量获取成员列表
-                        dbQueryIds.forEach((groupId) => {
-                            const members = groupMemberStore.getByGroup(groupId);
+                        for (const groupId of dbQueryIds) {
+                            const members = await groupMemberStore.getByGroup(groupId);
                             if (members.length > 0) {
                                 foundInDb.push({ group_id: groupId, members });
                             } else {
                                 missingInDb.push(groupId);
                             }
-                        });
+                        }
                         break;
                     }
                     case ResourceType.FRIEND: {
-                        const res = kvCache.getMany<any>('friend', dbQueryIds);
+                        const res = await kvCache.getMany<any>('friend', dbQueryIds);
                         foundInDb = res.found;
                         missingInDb = res.missing;
                         break;
                     }
                     case ResourceType.GROUP_JOINED: {
-                        const res = kvCache.getMany<any>('group_joined', dbQueryIds);
+                        const res = await kvCache.getMany<any>('group_joined', dbQueryIds);
                         foundInDb = res.found;
                         missingInDb = res.missing;
                         break;
@@ -205,30 +206,30 @@ class CacheManager {
     /**
      * 从磁盘读取单条记录，命中则回填内存
      */
-    private getFromDisk<T>(type: ResourceType, id: number): T | null {
+    private async getFromDisk<T>(type: ResourceType, id: number): Promise<T | null> {
         if (!PERSIST_TYPES.has(type)) return null;
 
         let data: any = null;
         try {
             switch (type) {
                 case ResourceType.USER:
-                    data = userStore.get(id);
+                    data = await userStore.get(id);
                     break;
                 case ResourceType.GROUP:
-                    data = groupStore.get(id);
+                    data = await groupStore.get(id);
                     break;
                 case ResourceType.GROUP_MEMBER: {
-                    const members = groupMemberStore.getByGroup(id);
+                    const members = await groupMemberStore.getByGroup(id);
                     if (members.length > 0) {
                         data = { group_id: id, members } as GroupMembersWrapper;
                     }
                     break;
                 }
                 case ResourceType.FRIEND:
-                    data = kvCache.get('friend', id);
+                    data = await kvCache.get('friend', id);
                     break;
                 case ResourceType.GROUP_JOINED:
-                    data = kvCache.get('group_joined', id);
+                    data = await kvCache.get('group_joined', id);
                     break;
             }
         } catch (err) {
@@ -253,7 +254,7 @@ class CacheManager {
     /**
      * 设置单个资源（更新缓存）
      */
-    public setItem<T extends Record<string, any>>(type: ResourceType, item: T): void {
+    public async setItem<T extends Record<string, any>>(type: ResourceType, item: T): Promise<void> {
         const expiresAt = Date.now() + config.cacheExpirationMs;
 
         // GROUP_JOINED: 仅维护用户已加入群组 ID 列表
@@ -263,7 +264,7 @@ class CacheManager {
                     this.userGroupIds.push(item);
                 }
                 try {
-                    kvCache.set('group_joined', item, {}, expiresAt);
+                    await kvCache.set('group_joined', item, {}, expiresAt);
                 } catch (err) {
                     console.error('[CacheManager] Failed to write group_joined to SQLite:', err);
                 }
@@ -278,7 +279,7 @@ class CacheManager {
             try {
                 const members = (item as any).members;
                 if (Array.isArray(members)) {
-                    groupMemberStore.upsertMany(members, expiresAt);
+                    await groupMemberStore.upsertMany(members, expiresAt);
                 }
             } catch (err) {
                 console.error('[CacheManager] Failed to write group members to SQLite:', err);
@@ -302,13 +303,13 @@ class CacheManager {
         try {
             switch (type) {
                 case ResourceType.USER:
-                    userStore.set(item as any, expiresAt);
+                    await userStore.set(item as any, expiresAt);
                     break;
                 case ResourceType.GROUP:
-                    groupStore.set(item as any, expiresAt);
+                    await groupStore.set(item as any, expiresAt);
                     break;
                 case ResourceType.FRIEND:
-                    kvCache.set('friend', id, item, expiresAt);
+                    await kvCache.set('friend', id, item, expiresAt);
                     break;
             }
         } catch (err) {
@@ -319,7 +320,7 @@ class CacheManager {
     /**
      * 批量设置资源
      */
-    public setItems<T extends Record<string, any>>(type: ResourceType, items: T[]): void {
+    public async setItems<T extends Record<string, any>>(type: ResourceType, items: T[]): Promise<void> {
         if (items.length === 0) return;
 
         const expiresAt = Date.now() + config.cacheExpirationMs;
@@ -340,7 +341,7 @@ class CacheManager {
             if (!cache || !idKey) return;
 
             const id = item[idKey] as number;
-            
+
             if (type === ResourceType.GROUP_MEMBER) {
                 // GROUP_MEMBER 需要在 SQLite 中进行合并，直接清除内存缓存
                 cache.delete(id);
@@ -355,10 +356,10 @@ class CacheManager {
         try {
             switch (type) {
                 case ResourceType.USER:
-                    userStore.setMany(items as any[], expiresAt);
+                    await userStore.setMany(items as any[], expiresAt);
                     break;
                 case ResourceType.GROUP:
-                    groupStore.setMany(items as any[], expiresAt);
+                    await groupStore.setMany(items as any[], expiresAt);
                     break;
                 case ResourceType.GROUP_MEMBER: {
                     const allMembers: any[] = [];
@@ -368,7 +369,7 @@ class CacheManager {
                         }
                     });
                     if (allMembers.length > 0) {
-                        groupMemberStore.upsertMany(allMembers, expiresAt);
+                        await groupMemberStore.upsertMany(allMembers, expiresAt);
                     }
                     break;
                 }
@@ -377,7 +378,7 @@ class CacheManager {
                         const idKey = ResourceIdKeyMap[type]!;
                         return { id: item[idKey] as number, data: item };
                     });
-                    kvCache.setMany('friend', kvItems, expiresAt);
+                    await kvCache.setMany('friend', kvItems, expiresAt);
                     break;
                 }
                 case ResourceType.GROUP_JOINED: {
@@ -385,7 +386,7 @@ class CacheManager {
                         const id = typeof item === 'number' ? item : item[ResourceIdKeyMap[type]!] as number;
                         return { id, data: {} };
                     });
-                    kvCache.setMany('group_joined', kvItems, expiresAt);
+                    await kvCache.setMany('group_joined', kvItems, expiresAt);
                     break;
                 }
             }
@@ -397,8 +398,8 @@ class CacheManager {
     /**
      * 批量设置资源并广播更新
      */
-    public setItemsAndBroadcast<T extends Record<string, any>>(type: ResourceType, items: T[]): void {
-        this.setItems(type, items);
+    public async setItemsAndBroadcast<T extends Record<string, any>>(type: ResourceType, items: T[]): Promise<void> {
+        await this.setItems(type, items);
         if (items.length > 0) {
             this.broadcastUpdate(type, items);
         }
@@ -407,12 +408,12 @@ class CacheManager {
     /**
      * 删除资源
      */
-    public deleteItem(type: ResourceType, id: number): void {
+    public async deleteItem(type: ResourceType, id: number): Promise<void> {
         // GROUP_JOINED: 从用户群组列表中移除
         if (type === ResourceType.GROUP_JOINED) {
             this.userGroupIds = this.userGroupIds.filter(gid => gid !== id);
             try {
-                kvCache.delete('group_joined', id);
+                await kvCache.delete('group_joined', id);
             } catch (err) {
                 console.error('[CacheManager] Failed to delete group_joined from SQLite:', err);
             }
@@ -427,17 +428,17 @@ class CacheManager {
             try {
                 switch (type) {
                     case ResourceType.USER:
-                        userStore.delete(id);
+                        await userStore.delete(id);
                         break;
                     case ResourceType.GROUP:
-                        groupStore.delete(id);
+                        await groupStore.delete(id);
                         break;
                     case ResourceType.GROUP_MEMBER:
                         // 删除该群的所有成员缓存
-                        groupMemberStore.deleteByGroup(id);
+                        await groupMemberStore.deleteByGroup(id);
                         break;
                     case ResourceType.FRIEND:
-                        kvCache.delete('friend', id);
+                        await kvCache.delete('friend', id);
                         break;
                 }
             } catch (err) {
@@ -447,7 +448,7 @@ class CacheManager {
     }
 
     /**
-     * 获取用户加入的群组 ID 列表
+     * 获取用户加入的群组 ID 列表（同步，来自内存）
      */
     public getUserGroupIds(): number[] {
         return this.userGroupIds;
@@ -456,15 +457,15 @@ class CacheManager {
     /**
      * 设置用户加入的群组 ID 列表（初始全量同步）
      */
-    public setUserGroupIds(ids: number[]): void {
+    public async setUserGroupIds(ids: number[]): Promise<void> {
         this.userGroupIds = [...ids];
         const expiresAt = Date.now() + config.cacheExpirationMs;
 
         try {
             // 重置 group_joined 表
-            kvCache.clear('group_joined');
+            await kvCache.clear('group_joined');
             const items = ids.map(id => ({ id, data: {} }));
-            kvCache.setMany('group_joined', items, expiresAt);
+            await kvCache.setMany('group_joined', items, expiresAt);
         } catch (err) {
             console.error('[CacheManager] Failed to batch write userGroupIds to SQLite:', err);
         }
