@@ -3,7 +3,6 @@ import { resolve } from 'path'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import Components from 'unplugin-vue-components/vite'
-import { VantResolver } from 'unplugin-vue-components/resolvers'
 import electron from 'vite-plugin-electron/simple'
 import vue from '@vitejs/plugin-vue'
 
@@ -16,7 +15,6 @@ export default defineConfig(({ mode }) => {
     plugins: [
       vue(),
       Components({
-        resolvers: [VantResolver()],
       }),
       electron({
         main: {

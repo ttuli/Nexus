@@ -60,3 +60,27 @@ CREATE INDEX IF NOT EXISTS idx_messages_session_msgid
 CREATE INDEX IF NOT EXISTS idx_messages_session_clientid
     ON chat_messages (session_id, client_id)
     WHERE client_id != '';
+
+
+-- ============================================================
+-- 会话表（存储会话列表）
+-- ============================================================
+CREATE TABLE IF NOT EXISTS conversations (
+    conversation_id   TEXT,
+    type              INTEGER NOT NULL,
+    conv_key          TEXT PRIMARY KEY,
+    max_seq           INTEGER NOT NULL DEFAULT 0,
+    last_sender       INTEGER NOT NULL DEFAULT 0,
+    last_content      TEXT NOT NULL DEFAULT '',
+    last_message_time INTEGER NOT NULL DEFAULT 0,
+    unread_count      INTEGER NOT NULL DEFAULT 0,
+    is_top            INTEGER NOT NULL DEFAULT 1,
+    is_disturb        INTEGER NOT NULL DEFAULT 1,
+    create_time       INTEGER NOT NULL DEFAULT 0,
+    update_time       INTEGER NOT NULL DEFAULT 0,
+    is_in_list        INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_conversations_convid 
+    ON conversations(conversation_id) 
+    WHERE conversation_id != '';

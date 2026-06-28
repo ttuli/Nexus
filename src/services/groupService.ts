@@ -15,7 +15,8 @@ import { useUserStore } from '@/src/store/user'
 import { updateGroup, setMemberNickname, joinGroup, createGroup, leaveGroup, handleGroupApply as apiHandleGroupApply, dismissGroup } from '@/src/apis/group'
 import { ApiTypes } from '@/src/types'
 import cacheService from './cacheService'
-import { useChatStore } from '@/src/store/chat'
+import { useConversationStore } from '@/src/store/conversation'
+import { useMessageStore } from '@/src/store/message'
 import { generateGroupSessionId } from '@/src/utils/chat'
 import { MessageType, MessageStatus } from '@/src/types/proto'
 import { IChatMessage } from '@/src/types/chatMessage'
@@ -185,10 +186,11 @@ class GroupService {
             await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_JOINED, [groupInfo.id])
 
             // Add session and initial system message
-            const chatStore = useChatStore()
+            const conversationStore = useConversationStore()
+            const messageStore = useMessageStore()
             const userStore = useUserStore()
             const sessionId = generateGroupSessionId(groupInfo.id)
-            chatStore.addChat(sessionId)
+            conversationStore.addChat(sessionId)
 
             const message: IChatMessage = {
                 msgId: `local_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
@@ -201,14 +203,22 @@ class GroupService {
                 type: MessageType.GROUP_OP_NOTIFICATION,
                 content: `你邀请了${data.member_ids.length}位用户加入了群聊`,
             }
-            chatStore.addMessage(message)
+            messageStore.addMessage(message)
 
             // Navigate to the chat page if currently under /home
             const appStore = useAppStore()
             if (appStore.currentRoute !== CurrentRoute.Chat) {
                 appStore.currentRoute = CurrentRoute.Chat
                 useRouter().push('/home/chat')
-                chatStore.setCurrentChat(sessionId)
+                const oldSessionId = conversationStore.currentSessionId;
+                conversationStore.setCurrentChat(sessionId);
+                const messageStore = useMessageStore();
+                if (sessionId !== oldSessionId) {
+                    messageStore.resetMessageState();
+                    messageStore.loadMoreMessages();
+                } else if (messageStore.messages.length === 0) {
+                    messageStore.loadMoreMessages();
+                }
             }
         }
         return res

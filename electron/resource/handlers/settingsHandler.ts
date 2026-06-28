@@ -67,8 +67,9 @@ export function setupSettingsHandlers(): void {
         try {
             const onProgress = onProgressChannel
                 ? (percent: number) => {
-                    const sender = BrowserWindow.getAllWindows()[0]?.webContents;
-                    sender?.send(onProgressChannel, percent);
+                    if (!_event.sender.isDestroyed()) {
+                        _event.sender.send(onProgressChannel, percent);
+                    }
                 }
                 : undefined;
 

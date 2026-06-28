@@ -34,7 +34,5 @@ declare module 'vue' {
     RouterView: typeof import('vue-router')['RouterView']
     TitleBar: typeof import('./src/components/TitleBar.vue')['default']
     Toggle: typeof import('./src/components/Toggle.vue')['default']
-    VanDialog: typeof import('vant/es')['Dialog']
-    VanList: typeof import('vant/es')['List']
   }
 }

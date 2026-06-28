@@ -55,7 +55,7 @@ import { ref, watch, computed } from 'vue';
 import { Refresh, RefreshRight, Loading, Close } from '@element-plus/icons-vue';
 import bulbIcon from '@/src/assets/chat/bulb.svg?url';
 import llmService from '@/src/services/llmService';
-import { useChatStore } from '@/src/store/chat';
+import { useMessageStore } from '@/src/store/message';
 import { useUserStore } from '@/src/store/user';
 import { Role } from '@/src/types/apis/llm/llm';
 import { ImTypes } from '@/src/types';
@@ -70,7 +70,7 @@ const emit = defineEmits<{
     (e: 'close'): void;
 }>();
 
-const chatStore = useChatStore();
+const messageStore = useMessageStore();
 const userStore = useUserStore();
 
 const allSuggestions = ref<string[]>([]);
@@ -95,9 +95,9 @@ const fetchAiSuggestions = async () => {
 
     try {
         const messagesToSend = [];
-        const msgLen = chatStore.messages.length;
+        const msgLen = messageStore.messages.length;
         for (let i = msgLen - 1; i >= 0 && messagesToSend.length < 10; i--) {
-            const msg = chatStore.messages[i];
+            const msg = messageStore.messages[i];
             if (msg.type === ImTypes.MessageType.CHAT_TEXT || msg.type === ImTypes.MessageType.GROUP_TEXT) {
                 const role = msg.fromUserId === userStore.userID ? Role.ROLE_ME : Role.ROLE_OTHER;
                 messagesToSend.unshift({
@@ -133,7 +133,7 @@ watch(() => props.visible, (newVal) => {
 });
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-watch(() => chatStore.messages.length, (newLen, oldLen) => {
+watch(() => messageStore.messages.length, (newLen, oldLen) => {
     if (newLen > oldLen && props.visible && autoGenerate.value) {
         if (debounceTimer) {
             clearTimeout(debounceTimer);

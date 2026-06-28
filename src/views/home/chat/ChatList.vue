@@ -1,13 +1,13 @@
 <template>
     <div class="chat-list">
         <div class="scroll-container scroll-bar-thin">
-            <ChatCard v-for="chat in chatList" :key="chat.conversation_id" :data="chat"
-                :isActive="currentSessionId === chat.conversation_id" @click="onChatClick"
-                @contextmenu.prevent="handleContextMenu($event, chat)" />
+            <ChatCard v-for="chat in chatList" :key="chat.conv_key || chat.conversation_id" :data="chat"
+                 :isActive="currentConvKey === chat.conv_key" @click="onChatClick"
+                 @contextmenu.prevent="handleContextMenu($event, chat)" />
             <ContextMenu v-model:visible="menuVisible" :x="menuX" :y="menuY" :options="menuOptions"
-                @select="handleMenuSelect" />
+                 @select="handleMenuSelect" />
             <div v-if="chatList.length === 0" class="empty-state">
-                <span>暂无聊天</span>
+                 <span>暂无聊天</span>
             </div>
         </div>
     </div>
@@ -19,7 +19,9 @@ import { onMounted, onActivated, ref, computed } from 'vue';
 
 defineOptions({ name: 'ChatList' });
 import { useRouter } from 'vue-router';
-import { useChatStore } from '@/src/store/chat';
+import { useConversationStore } from '@/src/store/conversation';
+import { useMessageStore } from '@/src/store/message';
+import { useChatNavigation } from '@/src/composables/useChatNavigation';
 import ChatCard from './components/ChatCard.vue';
 import ContextMenu, { type MenuOption } from '@/src/components/ContextMenu.vue';
 import { ImTypes } from '@/src/types';
@@ -34,11 +36,13 @@ import setmsgunread from '@/src/assets/chat/setmsgunread.svg?raw';
 import setmsgread from '@/src/assets/chat/setmsgread.svg?raw';
 
 const router = useRouter();
-const store = useChatStore();
-const { chatList, currentSessionId } = storeToRefs(store);
+const conversationStore = useConversationStore();
+const messageStore = useMessageStore();
+const { chatList, currentSessionId, currentConvKey } = storeToRefs(conversationStore);
+const { navigateToChat } = useChatNavigation();
 
 const onChatClick = (sessionId: string) => {
-    store.setCurrentChat(sessionId);
+    navigateToChat(sessionId);
     router.push({ path: '/home/chat' });
 };
 
@@ -83,18 +87,17 @@ const handleMenuSelect = (option: MenuOption) => {
 
     switch (option.key) {
         case 'mark_unread':
-            store.incrementUnread(chat.conversation_id);
+            conversationStore.incrementUnread(chat.conv_key || chat.conversation_id);
             break;
         case 'mark_read':
-            store.clearUnread(chat.conversation_id);
+            conversationStore.clearUnread(chat.conv_key || chat.conversation_id);
             break;
         case 'delete':
-            store.removeChat(chat.conversation_id);
-            if (currentSessionId.value === chat.conversation_id) {
+            conversationStore.removeChat(chat.conv_key || chat.conversation_id);
+            if (currentConvKey.value === chat.conv_key) {
                 // 如果删除的是当前会话，需要清空当前会话
-                store.currentSessionId = '';
-                store.currentChatId = null;
-                store.resetMessageState();
+                conversationStore.setCurrentChat('');
+                messageStore.resetMessageState();
             }
             break;
         case 'toggle_top':
@@ -108,7 +111,7 @@ const handleMenuSelect = (option: MenuOption) => {
 
 const clearCurrentUnread = () => {
     if (currentSessionId.value) {
-        store.clearUnread(currentSessionId.value);
+        conversationStore.clearUnread(currentSessionId.value);
     }
 };
 

@@ -9,7 +9,8 @@ import { useUserStore } from '@/src/store/user'
 import { useGroupStore } from '@/src/store/group'
 import { useAppStore } from '@/src/store/app'
 import { ResourceType, IpcChannels, UpdateAction, ImTypes, ValidationType, CurrentRoute } from '@/src/types'
-import { useChatStore } from '@/src/store/chat'
+import { useConversationStore } from '@/src/store/conversation'
+import { useMessageStore } from '@/src/store/message'
 import { convertApplySrc2FriendSrc, generateGroupSessionId, generateSessionId } from '@/src/utils/chat'
 import windowService from '../windowService'
 import cacheService from '../cacheService'
@@ -19,7 +20,8 @@ import { chatService } from '../chatService'
 export function initWsNotificationListener(): void {
     ipcService.on(IpcChannels.WS_NOTIFICATION, async (_event, data: { type: ImTypes.MessageType; payload: ImTypes.WSMessage }) => {
         const userStore = useUserStore()
-        const chatStore = useChatStore()
+        const conversationStore = useConversationStore()
+        const messageStore = useMessageStore()
         const groupStore = useGroupStore()
         const appStore = useAppStore()
 
@@ -38,7 +40,7 @@ export function initWsNotificationListener(): void {
                         create_time: friendRequest.handle_time,
                         extra: '',
                     }])
-                    chatStore.addChat(generateSessionId(friendRequest.from_user_id, friendRequest.to_user_id))
+                    conversationStore.addChat(generateSessionId(friendRequest.from_user_id, friendRequest.to_user_id))
                 }
                 if (appStore.currentRoute === CurrentRoute.Contacts && await windowService.isFocused() && appStore.currentValidationTab === ValidationType.Friend) {
                     userStore.updateLastReadFriendRequestTime()
@@ -49,7 +51,7 @@ export function initWsNotificationListener(): void {
             case ImTypes.MessageType.FRIEND_ADD: {
                 const friend = ImTypes.Friend.decode(data.payload.payload)
                 await cacheService.updateItems(UpdateAction.Update, ResourceType.FRIEND, [friend])
-                chatStore.addChat(generateSessionId(friend.friend_id, friend.user_id))
+                conversationStore.addChat(generateSessionId(friend.friend_id, friend.user_id))
                 break
             }
 
@@ -73,18 +75,28 @@ export function initWsNotificationListener(): void {
                 if (appStore.currentRoute === CurrentRoute.Contacts && await windowService.isFocused() && appStore.currentValidationTab === ValidationType.Group) {
                     groupStore.updateLastReadGroupRequestTime(userStore.userID)
                 }
-                chatStore.addChat(generateGroupSessionId(groupRequest.group_id))
+                conversationStore.addChat(generateGroupSessionId(groupRequest.group_id))
                 break
             }
 
             case ImTypes.MessageType.GROUP_OP_NOTIFICATION: {
-                chatService.handleGroupNotification(data.payload)
+                const result = await chatService.parseGroupNotification(data.payload)
+                if (result.msg) {
+                    conversationStore.addChat(result.sessionId)
+                    messageStore.addMessage(result.msg)
+                    if (result.shouldIncrementUnread) {
+                        conversationStore.incrementUnread(result.sessionId)
+                    }
+                    if (result.shouldPlaySound) {
+                        windowService.playNotificationSound()
+                    }
+                }
                 break
             }
 
             case ImTypes.MessageType.MSG_OP_RECALL: {
                 const msgRecall = ImTypes.MessageRecall.decode(data.payload.payload)
-                chatStore.updateMessageStatus(msgRecall.conversation_id, '', ImTypes.MessageStatus.MESSAGE_STATUS_RECALLED, msgRecall.recall_time, msgRecall.msg_id)
+                messageStore.updateMessageStatus(msgRecall.conversation_id, '', ImTypes.MessageStatus.MESSAGE_STATUS_RECALLED, msgRecall.recall_time, msgRecall.msg_id)
                 break
             }
         }

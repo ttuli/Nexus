@@ -122,6 +122,12 @@ export const IpcChannels = {
     MSG_UPDATE_LOCAL_PATH: 'msg:update-local-path',
     MSG_GET_HISTORY: 'msg:get-history',
     MSG_CLEAR_SESSION: 'msg:clear-session',
+
+    // 会话列表存储相关
+    CONVERSATION_GET: 'conversation:get',
+    CONVERSATION_GET_LIST: 'conversation:get-list',
+    CONVERSATION_SAVE_LIST: 'conversation:save-list',
+    CONVERSATION_DELETE: 'conversation:delete',
 } as const
 
 export type IpcChannel = typeof IpcChannels[keyof typeof IpcChannels]

@@ -67,8 +67,8 @@ import { openVideoViewer } from '@/src/utils/window';
 import { ElMessage } from 'element-plus';
 import { messageStorageService } from '@/src/services/messageStorageService';
 import { toResourceUrl } from '@/src/utils/chat';
-import fileService from '@/src/services/fileService';
-import { websocketService } from '@/src/services/websocketService';
+import { fileService } from '@/src/services/fileService';
+import { messageSendService } from '@/src/services';
 
 interface Props {
     message: ILocalVideoMessage;
@@ -217,7 +217,7 @@ const handleClick = async () => {
         if (isDownloading.value) {
             currentDownloadAbort.value?.();
         } else if (isUploading.value) {
-            websocketService.cancelUpload(props.message.clientId || '');
+            messageSendService.cancelUpload(props.message.clientId || '');
             ElMessage.error("已取消上传")
         }
         return;

@@ -5,6 +5,7 @@ import { APP_CONSTANTS } from '@/src/config/constants';
 import * as https from 'https';
 import * as http from 'http';
 import { storage, StorageKeys } from '@/electron/utils/storage';
+import { tokenManager } from './tokenManager';
 
 /**
  * 设置管理器
@@ -16,7 +17,7 @@ class SettingManager {
     private storagePath = '';
 
     init(): void {
-         const customPath = storage.get<string>(StorageKeys.CUSTOM_RESOURCE_PATH);
+        const customPath = storage.get<string>(StorageKeys.CUSTOM_RESOURCE_PATH);
         if (customPath && fs.existsSync(customPath)) {
             try {
                 // 测试是否可写
@@ -118,8 +119,9 @@ class SettingManager {
     ): Promise<string> {
         if (!url || !fileName) throw new Error('url and fileName are required');
 
-        const basePath = this.getStoragePath();
-        const dir = path.join(basePath, 'files');
+        const basePath = this.storagePath;
+        const userId = tokenManager.getCurrentUserID();
+        const dir = path.join(basePath, (userId ? userId.toString() : 'shared'), 'files');
 
         // 确保目录存在
         if (!fs.existsSync(dir)) {
@@ -151,10 +153,10 @@ class SettingManager {
                 });
 
                 response.pipe(file);
-                file.on('finish', () => { 
-                    file.close(); 
+                file.on('finish', () => {
+                    file.close();
                     if (downloadId) this.activeDownloads.delete(downloadId);
-                    resolve(); 
+                    resolve();
                 });
                 file.on('error', (err: Error) => {
                     if (downloadId) this.activeDownloads.delete(downloadId);

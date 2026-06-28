@@ -26,7 +26,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { useUserStore } from '@/src/store/user';
 import { useGroupStore } from '@/src/store/group';
 import { useAppStore } from '@/src/store/app';
-import { useChatStore } from '@/src/store/chat';
+import { useConversationStore } from '@/src/store/conversation';
 
 import ChatIcon from '@/src/assets/sidebar/message.svg';
 import ContactsIcon from '@/src/assets/menu/contacts.svg';
@@ -44,14 +44,14 @@ const appStore = useAppStore();
 const activeRoute = computed(() => route.path);
 
 const groupStore = useGroupStore();
-const chatStore = useChatStore();
+const conversationStore = useConversationStore();
 
 const contactBadge = computed(() => {
     return userStore.unreadPendingRequestCount + groupStore.unreadPendingRequestCount;
 });
 
 const chatBadge = computed(() => {
-    return chatStore.totalUnreadCount;
+    return conversationStore.totalUnreadCount;
 });
 
 const navigateTo = (name: string) => {

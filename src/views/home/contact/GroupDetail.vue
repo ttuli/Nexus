@@ -82,7 +82,7 @@ import GroupMemberGrid from './components/GroupMemberGrid.vue';
 import { useUserStore } from '@/src/store/user';
 import { generateGroupSessionId } from '@/src/utils/chat';
 import { useGroupStore } from '@/src/store/group';
-import { useChatStore } from '@/src/store/chat';
+import { useChatNavigation } from '@/src/composables/useChatNavigation';
 import { ElMessage } from 'element-plus';
 import { CopyDocument } from '@element-plus/icons-vue';
 import CusDialog from '@/src/components/CusDialog/CusDialog';
@@ -95,7 +95,7 @@ const route = useRoute();
 const router = useRouter();
 const userStore = useUserStore();
 const groupStore = useGroupStore();
-const chatStore = useChatStore();
+const { navigateToChat } = useChatNavigation();
 
 const groupId = computed(() => parseInt(route.query.id as string));
 const groupInfo = computed(() => {
@@ -131,7 +131,7 @@ onMounted(async () => {
 const toChat = () => {
     if (!groupInfo.value) return;
     const sessionId = generateGroupSessionId(groupInfo.value.id);
-    chatStore.setCurrentChat(sessionId);
+    navigateToChat(sessionId);
     router.push('/home/chat');
 };
 

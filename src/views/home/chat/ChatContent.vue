@@ -74,7 +74,8 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue';
 import { useVirtualizer } from '@tanstack/vue-virtual';
-import { useChatStore } from '@/src/store/chat';
+import { useConversationStore } from '@/src/store/conversation';
+import { useMessageStore } from '@/src/store/message';
 import { useUserStore } from '@/src/store/user';
 import { useGroupStore } from '@/src/store/group';
 import { storeToRefs } from 'pinia';
@@ -92,13 +93,16 @@ import { ElMessage } from 'element-plus';
 import copyIcon from '@/src/assets/chat/copy.svg?raw';
 import phoneIcon from '@/src/assets/call/phone.svg?raw';
 import trashIcon from '@/src/assets/chat/trash.svg?raw'
-import { websocketService, windowService } from '@/src/services';
+import { windowService, messageSendService } from '@/src/services';
 
 
-const chatStore = useChatStore();
+const conversationStore = useConversationStore();
+const messageStore = useMessageStore();
 const userStore = useUserStore();
 const groupStore = useGroupStore();
-const { currentChat, currentSessionId, messages, isLoading, hasMore } = storeToRefs(chatStore);
+
+const { currentChat, currentSessionId } = storeToRefs(conversationStore);
+const { messages, isLoading, hasMore } = storeToRefs(messageStore);
 
 // Sidebar Logic
 const sidebarVisible = ref(false);
@@ -318,7 +322,7 @@ const handleScroll = () => {
         const previousScrollHeight = el.scrollHeight;
         const previousScrollTop = el.scrollTop;
         
-        chatStore.loadMoreMessages().then(() => {
+        messageStore.loadMoreMessages().then(() => {
             nextTick(() => {
                 if (messageListRef.value) {
                     const newScrollHeight = messageListRef.value.scrollHeight;
@@ -338,12 +342,12 @@ watch(currentSessionId, () => {
 });
 
 const handleSendMessage = async (content: string) => {
-    await websocketService.sendText(content);
+    await messageSendService.sendTextMessage(content);
 };
 
 const handleSendImage = async (file: File) => {
     try {
-        await websocketService.sendImage(file);
+        await messageSendService.sendImageMessage(file);
     } catch {
         ElMessage.error('上传图片失败');
     }
@@ -352,9 +356,9 @@ const handleSendImage = async (file: File) => {
 const handleSendFile = async (file: File) => {
     try {
         if (file.type.startsWith('video/')) {
-            await websocketService.sendVideo(file);
+            await messageSendService.sendVideoMessage(file);
         } else {
-            await websocketService.sendFile(file);
+            await messageSendService.sendFileMessage(file);
         }
     } catch {
         ElMessage.error(file.type.startsWith('video/') ? '上传视频失败' : '上传文件失败');

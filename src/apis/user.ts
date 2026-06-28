@@ -55,20 +55,6 @@ export async function deleteFriend(friend_id: number) {
   return res.data
 }
 
-/**
- * 创建好友 (直接添加)
- * POST /user/friend/create
- */
-export async function createFriend(data: ApiTypes.user.CreateFriendReq) {
-  const reqData = ApiTypes.user.CreateFriendReq.encode(data).finish()
-  let res = await instance<ApiResponse<ApiTypes.user.CreateFriendResp>>({
-    method: 'post',
-    url: config.userServer + '/user/friend/create',
-    data: reqData
-  })
-  return decodeResponse(res.data, ApiTypes.user.CreateFriendResp.decode)
-}
-
 // ==================== Friend Apply APIs ====================
 
 /**

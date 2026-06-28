@@ -31,26 +31,32 @@ function rowToMessage(row: MessageRow): IChatMessage {
     return JSON.parse(row.data) as IChatMessage;
 }
 
-/**
- * chat_messages 表操作
- *
- * 设计：
- *   - data 列存全量 JSON（IChatMessage），读取时直接 JSON.parse 还原
- *   - 其余列只提炼查询/索引必需的基础字段，写入时同步更新
- *   - 所有方法均为 async，通过 dbBridge 在 Worker Thread 执行
- */
 class MessageStore {
     // ── 私有辅助 ─────────────────────────────────────────────────────────────
+
+    /**
+     * 将可能的 conversation_id 转换解析为本地的 conv_key
+     */
+    private async resolveConvKey(sessionId: string): Promise<string> {
+        if (!sessionId) return '';
+        const row = await dbBridge.get<{ conv_key: string }>(
+            'user',
+            `SELECT conv_key FROM conversations WHERE conversation_id = ? OR conv_key = ? LIMIT 1`,
+            [sessionId, sessionId]
+        );
+        return row?.conv_key || sessionId;
+    }
 
     /**
      * 通过 msgId 或 clientId 找到已存在的主键（用于 upsert 去重）
      */
     private async findExistingPk(sessionId: string, msgId: string, clientId: string): Promise<string | null> {
+        const resolvedSessionId = await this.resolveConvKey(sessionId);
         if (msgId) {
             const row = await dbBridge.get<Pick<MessageRow, 'pk'>>(
                 'user',
                 `SELECT pk FROM chat_messages WHERE session_id = ? AND msg_id = ? AND msg_id != '' LIMIT 1`,
-                [sessionId, msgId]
+                [resolvedSessionId, msgId]
             );
             if (row) return row.pk;
         }
@@ -58,7 +64,7 @@ class MessageStore {
             const row = await dbBridge.get<Pick<MessageRow, 'pk'>>(
                 'user',
                 `SELECT pk FROM chat_messages WHERE session_id = ? AND client_id = ? AND client_id != '' LIMIT 1`,
-                [sessionId, clientId]
+                [resolvedSessionId, clientId]
             );
             if (row) return row.pk;
         }
@@ -74,12 +80,12 @@ class MessageStore {
     async saveMessage(message: IChatMessage): Promise<void> {
         if (!message?.sessionId) return;
 
-        const sessionId = message.sessionId;
+        const sessionId = await this.resolveConvKey(message.sessionId);
         const msgId = message.msgId || '';
         const clientId = message.clientId || '';
 
         const existingPk = await this.findExistingPk(sessionId, msgId, clientId);
-        const pk = existingPk ?? buildPk(message);
+        const pk = existingPk ?? buildPk({ ...message, sessionId });
 
         await dbBridge.execute(
             'user',
@@ -97,7 +103,7 @@ class MessageStore {
                 Number(message.type),
                 Number(message.status) || 0,
                 message.isRead ? 1 : 0,
-                JSON.stringify(message),
+                JSON.stringify({ ...message, sessionId }),
                 Date.now(),
             ]
         );
@@ -109,17 +115,67 @@ class MessageStore {
     async saveMessages(messages: IChatMessage[]): Promise<void> {
         if (!messages.length) return;
 
-        // 先并行查找所有已存在的 pk（避免重复写入）
+        // 解析每一个消息的 sessionId 为 conv_key
+        const resolvedList = await Promise.all(messages.map(async m => {
+            if (!m?.sessionId) return null;
+            const convKey = await this.resolveConvKey(m.sessionId);
+            return { message: m, convKey };
+        }));
+        const validList = resolvedList.filter((item): item is { message: IChatMessage; convKey: string } => item !== null);
+        if (!validList.length) return;
+
+        // 提取所有非空的 msgId 和 clientId，使用 Set 去重
+        const msgIds = Array.from(new Set(validList.map(m => m.message.msgId).filter(Boolean))) as string[];
+        const clientIds = Array.from(new Set(validList.map(m => m.message.clientId).filter(Boolean))) as string[];
+
+        const existingPkMap = new Map<string, string>();
+        const chunkSize = 900; // SQLite 一次 IN 查询变量安全上限
+
+        // 批量查询存在的 msgId
+        for (let i = 0; i < msgIds.length; i += chunkSize) {
+            const chunk = msgIds.slice(i, i + chunkSize);
+            const placeholders = chunk.map(() => '?').join(',');
+            const rows = await dbBridge.query<{ pk: string, session_id: string, msg_id: string }>(
+                'user',
+                `SELECT pk, session_id, msg_id FROM chat_messages WHERE msg_id IN (${placeholders})`,
+                chunk
+            );
+            for (const row of rows) {
+                existingPkMap.set(`${row.session_id}:msg:${row.msg_id}`, row.pk);
+            }
+        }
+
+        // 批量查询存在的 clientId
+        for (let i = 0; i < clientIds.length; i += chunkSize) {
+            const chunk = clientIds.slice(i, i + chunkSize);
+            const placeholders = chunk.map(() => '?').join(',');
+            const rows = await dbBridge.query<{ pk: string, session_id: string, client_id: string }>(
+                'user',
+                `SELECT pk, session_id, client_id FROM chat_messages WHERE client_id IN (${placeholders})`,
+                chunk
+            );
+            for (const row of rows) {
+                existingPkMap.set(`${row.session_id}:cli:${row.client_id}`, row.pk);
+            }
+        }
+
         const ops: Array<{ sql: string; params: unknown[] }> = [];
 
-        for (const message of messages) {
-            if (!message?.sessionId) continue;
-            const sessionId = message.sessionId;
+        for (const item of validList) {
+            const { message, convKey } = item;
             const msgId = message.msgId || '';
             const clientId = message.clientId || '';
 
-            const existingPk = await this.findExistingPk(sessionId, msgId, clientId);
-            const pk = existingPk ?? buildPk(message);
+            // 从 map 中快速匹配 existingPk
+            let existingPk: string | null = null;
+            if (msgId) {
+                existingPk = existingPkMap.get(`${convKey}:msg:${msgId}`) || null;
+            }
+            if (!existingPk && clientId) {
+                existingPk = existingPkMap.get(`${convKey}:cli:${clientId}`) || null;
+            }
+
+            const pk = existingPk ?? buildPk({ ...message, sessionId: convKey });
 
             ops.push({
                 sql: `INSERT OR REPLACE INTO chat_messages
@@ -127,7 +183,7 @@ class MessageStore {
                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 params: [
                     pk,
-                    sessionId,
+                    convKey,
                     msgId,
                     clientId,
                     Number(message.fromUserId) || 0,
@@ -136,7 +192,7 @@ class MessageStore {
                     Number(message.type),
                     Number(message.status) || 0,
                     message.isRead ? 1 : 0,
-                    JSON.stringify(message),
+                    JSON.stringify({ ...message, sessionId: convKey }),
                     Date.now(),
                 ],
             });
@@ -159,20 +215,44 @@ class MessageStore {
     ): Promise<void> {
         if (!sessionId || (!clientId && !msgId)) return;
 
-        const pk = await this.findExistingPk(sessionId, msgId || '', clientId);
-        if (!pk) return;
+        // 1. 先通过 clientId 或 msgId 定位已有的行和它当前对应的 session_id
+        let row: { pk: string; session_id: string } | null = null;
+        if (msgId) {
+            row = await dbBridge.get<{ pk: string; session_id: string }>(
+                'user',
+                `SELECT pk, session_id FROM chat_messages WHERE msg_id = ? AND msg_id != '' LIMIT 1`,
+                [msgId]
+            );
+        }
+        if (!row && clientId) {
+            row = await dbBridge.get<{ pk: string; session_id: string }>(
+                'user',
+                `SELECT pk, session_id FROM chat_messages WHERE client_id = ? AND client_id != '' LIMIT 1`,
+                [clientId]
+            );
+        }
 
+        if (!row) return;
+
+        // 彻底移除 SQL 迁移逻辑，仅更新当前消息的状态和 seq
+        const whereClause = clientId ? "WHERE client_id = ? AND client_id != ''" : "WHERE msg_id = ? AND msg_id != ''";
+        const whereParam = clientId || msgId || '';
+        
         if (seq !== undefined && seq > 0) {
             await dbBridge.execute(
                 'user',
-                `UPDATE chat_messages SET status = ?, seq = ?, data = json_set(data, '$.status', ?, '$.seq', ?), updated_at = ? WHERE pk = ?`,
-                [Number(status), Number(seq), Number(status), Number(seq), Date.now(), pk]
+                `UPDATE chat_messages 
+                 SET status = ?, seq = ?, msg_id = COALESCE(NULLIF(msg_id, ''), ?), data = json_set(data, '$.status', ?, '$.seq', ?, '$.msgId', COALESCE(NULLIF(json_extract(data, '$.msgId'), ''), ?)), updated_at = ? 
+                 ${whereClause}`,
+                [Number(status), Number(seq), msgId || '', Number(status), Number(seq), msgId || '', Date.now(), whereParam]
             );
         } else {
             await dbBridge.execute(
                 'user',
-                `UPDATE chat_messages SET status = ?, data = json_set(data, '$.status', ?), updated_at = ? WHERE pk = ?`,
-                [Number(status), Number(status), Date.now(), pk]
+                `UPDATE chat_messages 
+                 SET status = ?, msg_id = COALESCE(NULLIF(msg_id, ''), ?), data = json_set(data, '$.status', ?, '$.msgId', COALESCE(NULLIF(json_extract(data, '$.msgId'), ''), ?)), updated_at = ? 
+                 ${whereClause}`,
+                [Number(status), msgId || '', Number(status), msgId || '', Date.now(), whereParam]
             );
         }
     }
@@ -188,7 +268,8 @@ class MessageStore {
     ): Promise<void> {
         if (!sessionId || (!clientId && !msgId)) return;
 
-        const pk = await this.findExistingPk(sessionId, msgId || '', clientId);
+        const resolvedSessionId = await this.resolveConvKey(sessionId);
+        const pk = await this.findExistingPk(resolvedSessionId, msgId || '', clientId);
         if (!pk) return;
 
         await dbBridge.execute(
@@ -199,25 +280,27 @@ class MessageStore {
     }
 
     /**
-     * 获取会话历史消息（分页，倒序游标）
+     * 获取会话历史消息（分页，倒序 seq 游标）
      *
      * @param sessionId  会话 ID
-     * @param upper      send_time 上界（含），通常传入当前最老消息的 sendTime 或 Date.now()
+     * @param beforeSeq  排他性上界：只返回 seq > 0 且 seq < beforeSeq 的已确认消息；
+     *                   传入 Number.MAX_SAFE_INTEGER 表示从最新开始
      * @param pageSize   每页条数
-     * @returns          按 sendTime 升序排列的消息列表（已在内部翻转）
+     * @returns          按 seq 升序排列的消息列表（内部已翻转）
      */
-    async getLocalHistoryMessages(sessionId: string, upper: number, pageSize: number): Promise<IChatMessage[]> {
+    async getLocalHistoryMessages(sessionId: string, beforeSeq: number, pageSize: number): Promise<IChatMessage[]> {
         if (!sessionId || pageSize <= 0) return [];
 
+        const resolvedSessionId = await this.resolveConvKey(sessionId);
         const rows = await dbBridge.query<MessageRow>(
             'user',
             `SELECT * FROM chat_messages
-             WHERE session_id = ? AND send_time <= ?
-             ORDER BY send_time DESC
+             WHERE session_id = ? AND seq > 0 AND seq < ?
+             ORDER BY seq DESC
              LIMIT ?`,
-            [sessionId, upper, pageSize]
+            [resolvedSessionId, beforeSeq, pageSize]
         );
-        // DESC 查出来是最新→最旧，翻转为正序返回
+        // DESC 查出最新→最旧，翻转为升序返回
         return rows.reverse().map(rowToMessage);
     }
 
@@ -226,7 +309,8 @@ class MessageStore {
      */
     async clearMessagesBySessionId(sessionId: string): Promise<void> {
         if (!sessionId) return;
-        await dbBridge.execute('user', `DELETE FROM chat_messages WHERE session_id = ?`, [sessionId]);
+        const resolvedSessionId = await this.resolveConvKey(sessionId);
+        await dbBridge.execute('user', `DELETE FROM chat_messages WHERE session_id = ?`, [resolvedSessionId]);
     }
 }
 

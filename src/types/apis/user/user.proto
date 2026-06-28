@@ -111,22 +111,6 @@ message GetFriendsResp {
   repeated Friend data = 1;
 }
 
-// CreateFriendReq
-message CreateFriendReq {
-  // @gotags: json:"friend_id"
-  uint64 friend_id = 1;
-  // @gotags: json:"source,optional"
-  int32 source = 2;
-  // @gotags: json:"remark,optional"
-  string remark = 3;
-}
-
-// CreateFriendResp
-message CreateFriendResp {
-  // @gotags: json:"data"
-  Friend data = 1;
-}
-
 // UpdateFriendReq
 message UpdateFriendReq {
   // @gotags: json:"friend_id"
@@ -165,6 +149,8 @@ message NewFriendApplyResp {
   FriendRequest data = 1;
   // @gotags: json:"friend,omitempty"
   Friend friend = 2;
+  // @gotags: json:"conversation_id,omitempty"
+  string conversation_id = 3;
 }
 
 // HandleFriendApplyReq
@@ -181,6 +167,8 @@ message HandleFriendApplyReq {
 message HandleFriendApplyResp {
   // @gotags: json:"data"
   FriendRequest data = 1;
+  // @gotags: json:"conversation_id,omitempty"
+  string conversation_id = 2;
 }
 
 // GetPendingFriendAppliesReq

@@ -60,7 +60,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import ModalBackground from '@/src/components/ModalBackground/ModalBackground.vue';
-import { useChatStore } from '@/src/store/chat';
+import { useConversationStore } from '@/src/store/conversation';
 import { useUserStore } from '@/src/store/user';
 import { userService } from '@/src/services';
 import { extractTargetIdFromSessionId } from '@/src/utils/chat';
@@ -77,7 +77,7 @@ const emit = defineEmits<{
     (e: 'create', data: { name: string; userIds: number[] }): void;
 }>();
 
-const chatStore = useChatStore();
+const conversationStore = useConversationStore();
 const userStore = useUserStore();
 
 const groupName = ref('');
@@ -149,7 +149,7 @@ const loadData = async () => {
         }
 
         // 2. Load Chat List Users (Private Chats)
-        const privateChats = chatStore.chatList.filter(c => c.type === ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE);
+        const privateChats = conversationStore.chatList.filter(c => c.type === ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE);
         if (privateChats.length > 0) {
             const ids = privateChats.map(c => extractTargetIdFromSessionId(c.conversation_id, userStore.getUserID())).filter((id): id is number => id !== null); // Fix: Use targetId for private chat user ID
             // Ensure we have user info for these IDs

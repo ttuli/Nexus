@@ -6,10 +6,12 @@ import { ImTypes, ResourceType, UpdateAction } from '@/src/types';
 
 import { ipcService } from './ipcService'
 import { useUserStore } from '@/src/store/user'
+import { useConversationStore } from '@/src/store/conversation'
 import { IpcChannels } from '@/src/types'
-import { applyFriend, createFriend, deleteFriend, handleFriendApply, updateFriendInfo } from '@/src/apis/user'
+import { applyFriend, deleteFriend, handleFriendApply, updateFriendInfo } from '@/src/apis/user'
 import { ApiTypes } from '@/src/types'
 import cacheService from './cacheService';
+import { generateSessionId, convertApplySrc2FriendSrc } from '@/src/utils/chat';
 
 class FriendService {
     /**
@@ -66,6 +68,21 @@ class FriendService {
     async applyFriend(data: ApiTypes.user.NewFriendApplyReq) {
         let res = await applyFriend(data)
         if (res.data.friend) {
+            const conversationId = res.data.conversation_id;
+            const friend = res.data.friend;
+            const convKey = generateSessionId(friend.user_id, friend.friend_id);
+            
+            const store = useConversationStore();
+            const existing = store.getChat(conversationId || convKey);
+            store.upsertConversation({
+                conversation_id: conversationId || existing?.conversation_id || '',
+                conv_key: convKey,
+                type: ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE,
+                max_seq: existing?.max_seq || 0,
+                update_time: existing?.update_time || Date.now(),
+                last_content: existing?.last_content || '',
+                last_sender: existing?.last_sender || 0,
+            });
             await cacheService.updateItems(UpdateAction.Add, ResourceType.FRIEND, [res.data.friend]);
         } else if (res.data.data) {
             await cacheService.updateItems(UpdateAction.Add, ResourceType.FRIEND_REQUEST, [res.data.data]);
@@ -74,17 +91,59 @@ class FriendService {
     }
 
     /**
-     * 创建好友 (直接添加)
-     */
-    async createFriend(data: ApiTypes.user.CreateFriendReq) {
-        return createFriend(data)
-    }
-
-    /**
      * 处理好友申请
      */
     async handleFriendApply(data: ApiTypes.user.HandleFriendApplyReq) {
-        return handleFriendApply(data)
+        let res = await handleFriendApply(data);
+        
+        if (res.data.data) {
+            const req = res.data.data;
+            await cacheService.updateItems(UpdateAction.Update, ResourceType.FRIEND_REQUEST, [req as ImTypes.FriendRequest]);
+
+            if (data.result === ImTypes.ApplyStatus.APPLY_STATUS_AGREED) {
+                let source: ImTypes.ApplySource;
+                if (req.source === ImTypes.ApplySource.APPLY_SOURCE_SEARCH_ACCOUNT ||
+                    req.source === ImTypes.ApplySource.APPLY_SOURCE_SEARCH_PHONE ||
+                    req.source === ImTypes.ApplySource.APPLY_SOURCE_SEARCH_NAME) {
+                    source = ImTypes.ApplySource.APPLY_SOURCE_SEARCH_ACCOUNT;
+                } else if (req.source === ImTypes.ApplySource.APPLY_SOURCE_FROM_GROUP) {
+                    source = ImTypes.ApplySource.APPLY_SOURCE_FROM_GROUP;
+                } else {
+                    source = ImTypes.ApplySource.APPLY_SOURCE_FROM_RECOMMEND;
+                }
+
+                const userStore = useUserStore();
+                await cacheService.updateItems(UpdateAction.Add, ResourceType.FRIEND, [{
+                    user_id: userStore.getUserID(),
+                    friend_id: req.from_user_id,
+                    remark: '',
+                    blocked: false,
+                    starred: false,
+                    create_time: res.data.data?.handle_time,
+                    source: convertApplySrc2FriendSrc(source),
+                    extra: ""
+                } as ImTypes.Friend]);
+            }
+        }
+
+        if (res.data.conversation_id && res.data.data) {
+            const req = res.data.data;
+            const conversationId = res.data.conversation_id;
+            const convKey = generateSessionId(req.from_user_id, req.to_user_id);
+            
+            const store = useConversationStore();
+            const existing = store.getChat(conversationId || convKey);
+            store.upsertConversation({
+                conversation_id: conversationId || existing?.conversation_id || '',
+                conv_key: convKey,
+                type: ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE,
+                max_seq: existing?.max_seq || 0,
+                update_time: existing?.update_time || Date.now(),
+                last_content: existing?.last_content || '',
+                last_sender: existing?.last_sender || 0,
+            });
+        }
+        return res;
     }
 
     /**

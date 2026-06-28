@@ -62,13 +62,14 @@
 import { computed, onMounted } from 'vue';
 import { useGroupStore } from '@/src/store/group';
 import { generateGroupSessionId } from '@/src/utils/chat';
-import { useChatStore } from '@/src/store/chat';
+import { useChatNavigation } from '@/src/composables/useChatNavigation';
 import { groupService } from '@/src/services';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { ArrowLeft, CopyDocument, User } from '@element-plus/icons-vue';
 import Avatar from '@/src/components/Avatar.vue';
 import CusButton from '@/src/components/CusButton.vue';
+import { ImTypes } from '@/src/types';
 
 
 const props = defineProps<{
@@ -81,7 +82,7 @@ const emit = defineEmits<{
 }>();
 
 const groupStore = useGroupStore();
-const chatStore = useChatStore();
+const { navigateToChat } = useChatNavigation();
 const router = useRouter();
 
 const groupInfo = computed(() => groupStore.getGroup(props.groupId));
@@ -113,7 +114,7 @@ const copyId = async () => {
 
 const toChat = () => {
     const sessionId = generateGroupSessionId(props.groupId);
-    chatStore.setCurrentChat(sessionId);
+    navigateToChat(sessionId, ImTypes.ConversationType.CONVERSATION_TYPE_GROUP);
     router.push('/home/chat');
 };
 

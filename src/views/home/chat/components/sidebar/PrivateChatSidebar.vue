@@ -53,7 +53,8 @@ import CusSwitch from '@/src/components/CusSwitch.vue';
 import CusDialog from '@/src/components/CusDialog/CusDialog';
 import { DialogResult } from '@/src/components/CusDialog/types';
 import { useUserStore } from '@/src/store/user';
-import { useChatStore } from '@/src/store/chat';
+import { useConversationStore } from '@/src/store/conversation';
+import { useMessageStore } from '@/src/store/message';
 import { ImTypes } from '@/src/types';
 import { ElMessage } from 'element-plus';
 import { extractTargetIdFromSessionId } from '@/src/utils/chat';
@@ -68,7 +69,8 @@ const props = defineProps<{
 const emit = defineEmits(['close']);
 
 const userStore = useUserStore();
-const chatStore = useChatStore();
+const conversationStore = useConversationStore();
+const messageStore = useMessageStore();
 
 const targetId = computed(() => extractTargetIdFromSessionId(props.chat.conversation_id, userStore.getUserID()));
 const targetIdVal = computed(() => targetId.value || 0);
@@ -145,8 +147,8 @@ const clearChatData = async () => {
     });
 
     if (res === DialogResult.Confirm) {
-        if (chatStore.currentSessionId === props.chat.conversation_id) {
-            chatStore.messages = [];
+        if (conversationStore.currentConvKey === props.chat.conv_key) {
+            messageStore.messages = [];
         }
 
         await messageStorageService.clearMessagesBySessionId(props.chat.conversation_id);

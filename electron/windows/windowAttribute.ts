@@ -15,7 +15,7 @@ export interface WindowHooks {
     /** 窗口将要关闭时（window 还未销毁，可用于保存状态或阻止关闭） */
     onClose?: (window: BrowserWindow, event: Electron.Event) => void;
     /** 窗口已关闭销毁后 */
-    onClosed?: () => void;
+    onClosed?: (wm?: any) => void;
     /** 窗口获得焦点时 */
     onFocus?: (window: BrowserWindow) => void;
     /** 窗口最大化时 */
@@ -73,8 +73,11 @@ let configs: Map<string, WindowConfig> = new Map([
                 key: 'login'
             },
             hooks: {
-                onClosed: () => {
-                    app.quit();
+                onClosed: (wm?: any) => {
+                    // 如果不是在向 home 窗口过渡，则退出应用
+                    if (!wm || !wm.getWindow('home')) {
+                        app.quit();
+                    }
                 }
             }
         }

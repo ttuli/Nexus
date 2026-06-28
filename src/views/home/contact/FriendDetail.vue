@@ -86,7 +86,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useUserStore } from '@/src/store/user';
 import { generateSessionId } from '@/src/utils/chat';
-import { useChatStore } from '@/src/store/chat';
+import { useChatNavigation } from '@/src/composables/useChatNavigation';
 import MaleIcon from '@/src/assets/gender/male.svg';
 import FemaleIcon from '@/src/assets/gender/female.svg';
 import { ImTypes } from '@/src/types';
@@ -98,7 +98,7 @@ import { updateFriendInfo } from '@/src/apis/user';
 const route = useRoute();
 const router = useRouter();
 const userStore = useUserStore();
-const chatStore = useChatStore();
+const { navigateToChat } = useChatNavigation();
 
 const userId = computed(() => Number(route.query.uid));
 const userInfo = computed(() => userStore.getUser(userId.value));
@@ -156,7 +156,7 @@ const submitRemarkUpdate = async () => {
 
 const sendMsg = () => {
     const sessionId = generateSessionId(userId.value, userStore.getUserID());
-    chatStore.setCurrentChat(sessionId);
+    navigateToChat(sessionId);
     router.push('/home/chat');
 };
 

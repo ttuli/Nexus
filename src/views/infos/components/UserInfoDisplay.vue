@@ -73,7 +73,7 @@
 import { computed } from 'vue';
 import { useUserStore } from '@/src/store/user';
 import { generateSessionId } from '@/src/utils/chat';
-import { useChatStore } from '@/src/store/chat';
+import { useChatNavigation } from '@/src/composables/useChatNavigation';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { ArrowLeft, CopyDocument } from '@element-plus/icons-vue';
@@ -93,7 +93,7 @@ const emit = defineEmits<{
 }>();
 
 const userStore = useUserStore();
-const chatStore = useChatStore();
+const { navigateToChat } = useChatNavigation();
 const router = useRouter();
 
 const userInfo = computed(() => userStore.getUser(props.userId));
@@ -130,7 +130,7 @@ const copyId = async () => {
 
 const toChat = () => {
     const sessionId = generateSessionId(props.userId, userStore.getUserID());
-    chatStore.setCurrentChat(sessionId);
+    navigateToChat(sessionId, ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE);
     router.push('/home/chat');
 };
 

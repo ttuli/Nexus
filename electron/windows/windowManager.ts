@@ -329,7 +329,7 @@ class WindowManager {
       this.windows.delete(key);
       // 调用配置钩子
       if (windowConfig.hooks?.onClosed) {
-        try { windowConfig.hooks.onClosed(); } catch (e) { console.error(e); }
+        try { windowConfig.hooks.onClosed(this); } catch (e) { console.error(e); }
       }
     };
 

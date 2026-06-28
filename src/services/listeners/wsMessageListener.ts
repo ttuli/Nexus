@@ -8,7 +8,8 @@ import { ipcService } from '../ipcService'
 import { useAppStore } from '@/src/store/app'
 import { IpcChannels, ImTypes, CurrentRoute } from '@/src/types'
 import { ElMessage } from 'element-plus'
-import { useChatStore } from '@/src/store/chat'
+import { useConversationStore } from '@/src/store/conversation'
+import { useMessageStore } from '@/src/store/message'
 import { convertWSMessageToIChatMessage, checkAndClearInvalidLocalPath } from '@/src/utils/chat'
 import windowService from '../windowService'
 import { fileService } from '../fileService'
@@ -16,7 +17,8 @@ import { fileService } from '../fileService'
 export function initWsMessageListener(): void {
     // 新消息到达
     ipcService.on(IpcChannels.WS_MESSAGE, async (_event, data: { type: ImTypes.MessageType; payload: any }) => {
-        const chatStore = useChatStore()
+        const conversationStore = useConversationStore()
+        const messageStore = useMessageStore()
         const appStore = useAppStore()
 
         const chatMsg = convertWSMessageToIChatMessage(data.payload as ImTypes.WSMessage)
@@ -25,16 +27,19 @@ export function initWsMessageListener(): void {
             return
         }
         console.log('[WsMessageListener] Received WSMessage:', chatMsg)
-        chatStore.addMessage(chatMsg)
+        messageStore.addMessage(chatMsg)
 
         // 检查文件消息的 localPath 是否本地实际存在
         checkAndClearInvalidLocalPath(chatMsg, fileService, (sessionId, clientId, msgId, localPath) => {
-            chatStore.updateFileLocalPath(sessionId, clientId, msgId, localPath)
+            messageStore.updateFileLocalPath(sessionId, clientId, msgId, localPath)
         })
 
-        if (chatMsg.sessionId !== chatStore.currentSessionId || !await windowService.isFocused() || appStore.currentRoute !== CurrentRoute.Chat) {
-            chatStore.incrementUnread(chatMsg.sessionId)
-            if (chatStore.currentChat?.is_disturb !== 2)
+        const isCurrentChat = (chatMsg.convKey && chatMsg.convKey === conversationStore.currentConvKey) ||
+                              (chatMsg.sessionId === conversationStore.currentSessionId);
+
+        if (!isCurrentChat || !await windowService.isFocused() || appStore.currentRoute !== CurrentRoute.Chat) {
+            conversationStore.incrementUnread(chatMsg.sessionId)
+            if (conversationStore.currentChat?.is_disturb !== 2)
                 windowService.playNotificationSound()
         }
 
@@ -49,22 +54,29 @@ export function initWsMessageListener(): void {
 
     // 消息送达 ACK
     ipcService.on(IpcChannels.WS_MESSAGE_ACK, async (_event, data: { ack: ImTypes.MessageAck; timestamp: number }) => {
-        const chatStore = useChatStore()
         console.log('[WsMessageListener] Received MessageAck:', data)
-        if (data.ack.status === ImTypes.AckStatus.ACK_STATUS_FAILED) {
-            chatStore.updateMessageStatus(data.ack.session_id, data.ack.client_id, ImTypes.MessageStatus.MESSAGE_STATUS_FAILED, data.timestamp)
-        } else if (data.ack.status === ImTypes.AckStatus.ACK_STATUS_SUCCESS) {
-            chatStore.updateMessageStatus(data.ack.session_id, data.ack.client_id, ImTypes.MessageStatus.MESSAGE_STATUS_SENT, data.timestamp)
-        }
     })
 
     ipcService.on(IpcChannels.WS_MESSAGE_PERSIST_ACK, async (_event, data: { ack: ImTypes.PersistAck; timestamp: number }) => {
-        const chatStore = useChatStore()
+        const messageStore = useMessageStore()
+        const conversationStore = useConversationStore()
         console.log('[WsMessageListener] Received PersistAck:', data)
+
+        if (data.ack.session_id && data.ack.conv_key) {
+            const chat = conversationStore.getChat(data.ack.conv_key);
+            if (chat && !chat.conversation_id) {
+                chat.conversation_id = data.ack.session_id;
+                void conversationStore.saveToStorage();
+                if (conversationStore.currentConvKey === data.ack.conv_key) {
+                    conversationStore.currentSessionId = data.ack.session_id;
+                }
+            }
+        }
+
         if (data.ack.ack_status === ImTypes.AckStatus.ACK_STATUS_FAILED) {
-            chatStore.updateMessageStatus(data.ack.session_id, data.ack.client_id, ImTypes.MessageStatus.MESSAGE_STATUS_FAILED, data.timestamp)
+            messageStore.updateMessageStatus(data.ack.session_id, data.ack.client_id, ImTypes.MessageStatus.MESSAGE_STATUS_FAILED, data.timestamp)
         } else if (data.ack.ack_status === ImTypes.AckStatus.ACK_STATUS_SUCCESS) {
-            chatStore.updateMessageStatus(data.ack.session_id, data.ack.client_id, ImTypes.MessageStatus.MESSAGE_STATUS_DELIVERED, data.timestamp, undefined, data.ack.seq)
+            messageStore.updateMessageStatus(data.ack.session_id, data.ack.client_id, ImTypes.MessageStatus.MESSAGE_STATUS_DELIVERED, data.timestamp, data.ack.msg_id, data.ack.seq)
         }
     })
 }

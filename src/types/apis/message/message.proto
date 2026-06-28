@@ -31,13 +31,24 @@ message Message {
 }
 
 message Conversation {
-    string conversation_id = 1;
-    int32 conversation_type = 2;
-    int64 max_seq = 3;
-    int64 create_time = 4;
-    int64 update_time = 5;
-    string last_content = 6;
-    uint64 last_sender = 7;
+  // @gotags: json:"conversation_id"
+  string conversation_id = 1;
+  // @gotags: json:"type"
+  int32 type = 2;
+  // @gotags: json:"conv_key"
+  string conv_key = 3;
+  // @gotags: json:"max_seq"
+  uint64 max_seq = 4;
+  // @gotags: json:"actual_seq"
+  uint64 actual_seq = 5;
+  // @gotags: json:"last_content"
+  string last_content = 6;
+  // @gotags: json:"last_sender"
+  uint64 last_sender = 7;
+  // @gotags: json:"create_time"
+  int64 create_time = 8;
+  // @gotags: json:"update_time"
+  int64 update_time = 9;
 }
 
 // UserConversation
@@ -76,14 +87,6 @@ message GetHistoryResp {
   repeated Message list = 1;
 }
 
-// ReadMessageReq
-message ReadMessageReq {
-  // @gotags: json:"conversation_id"
-  string conversation_id = 1;
-  // @gotags: json:"seq"
-  uint64 seq = 2;
-}
-
 // UpdateConversationReq
 message UpdateConversationReq {
   // @gotags: json:"conversation_id"
@@ -110,9 +113,18 @@ message GetUserActiveConversationsResp {
   repeated Conversation conversations = 1;
 }
 
-message RecallMessageReq {
-  // @gotags: json:"msg_id"
-  string msg_id = 1;
-  // @gotags: json:"session_id"
-  string session_id = 2;
+// GetConversationReq 根据 conversation_id 或 conv_key 查询会话
+message GetConversationReq {
+  // @gotags: form:"conversation_id,optional" json:"conversation_id,optional"
+  string conversation_id = 1;
+  // @gotags: form:"conv_key,optional" json:"conv_key,optional"
+  string conv_key = 2;
+  // @gotags: form:"conv_type,optional" json:"conv_type,optional"
+  int32 conv_type = 3;
+}
+
+// GetConversationResp
+message GetConversationResp {
+  // @gotags: json:"conversation"
+  Conversation conversation = 1;
 }

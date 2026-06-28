@@ -119,25 +119,50 @@ export class WebSocketManager extends EventEmitter {
      * Send a message
      */
     send(message: WsMessage): boolean {
+        messageQueue.enqueue(message);
+
         if (this.state !== ConnectionState.CONNECTED || !this.ws) {
-            // Queue message for later
-            messageQueue.enqueue(message);
             console.log('[WebSocketManager] Message queued (offline):', message.clientId);
             return true;
         }
 
-        try {
-            const data = this.config.serializer.serialize(message);
-            messageQueue.enqueue(message);
-            messageQueue.flushPending();
+        this.flushQueue();
+        return true;
+    }
 
-            this.ws.send(data);
+    /**
+     * Send a message directly without queue management (for retries)
+     */
+    private sendDirect(message: WsMessage): void {
+        if (!this.ws || this.state !== ConnectionState.CONNECTED) {
+            throw new Error('WebSocket is not connected');
+        }
+        const data = this.config.serializer.serialize(message);
+        this.ws.send(data);
+    }
 
-            return true;
-        } catch (error) {
-            console.error('[WebSocketManager] Send error:', error);
-            messageQueue.enqueue(message);
-            return false;
+    /**
+     * Flush all pending messages in the queue
+     */
+    private flushQueue(): void {
+        if (this.state !== ConnectionState.CONNECTED || !this.ws) return;
+
+        const pending = messageQueue.flushPending();
+        if (pending.length === 0) return;
+
+        console.log(`[WebSocketManager] Flushing ${pending.length} pending messages`);
+        for (const item of pending) {
+            try {
+                this.sendDirect(item.msg);
+                console.log('[WebSocketManager] Sent message from queue:', item.clientId);
+            } catch (error) {
+                console.error('[WebSocketManager] Send error from queue:', error);
+                // Rollback unacknowledged state, put back to pending for retry/reconnect
+                if (item.clientId) {
+                    messageQueue.acknowledge(String(item.clientId));
+                    messageQueue.enqueue(item.msg);
+                }
+            }
         }
     }
 
@@ -286,7 +311,13 @@ export class WebSocketManager extends EventEmitter {
         // Listen for internal retries
         messageQueue.on('retry', (msg: WsMessage) => {
             console.log('[WebSocketManager] Retrying message (internal):', msg.clientId);
-            this.send(msg);
+            if (this.state === ConnectionState.CONNECTED && this.ws) {
+                try {
+                    this.sendDirect(msg);
+                } catch (error) {
+                    console.error('[WebSocketManager] Retry send error:', error);
+                }
+            }
         });
 
         // Listen for failures
@@ -327,13 +358,7 @@ export class WebSocketManager extends EventEmitter {
     }
 
     private flushPendingMessages(): void {
-        const pending = messageQueue.flushPending();
-        if (pending.length > 0) {
-            console.log(`[WebSocketManager] Flushing ${pending.length} pending messages`);
-            for (const item of pending) {
-                this.send(item.msg);
-            }
-        }
+        this.flushQueue();
     }
 
     private clearTimers(): void {

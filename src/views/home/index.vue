@@ -39,10 +39,9 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import SideBar from './components/SideBar.vue';
-import { windowService, ipcService, websocketService } from '@/src/services';
+import { ipcService, websocketService } from '@/src/services';
 import { signalWindowReady } from '@/src/utils/windowReady';
-import { useUserStore } from '@/src/store/user';
-import { useChatStore } from '@/src/store/chat';
+import { useConversationStore } from '@/src/store/conversation';
 import FilterColumn from '@/src/components/FilterColumn.vue';
 import CreateGroup from '@/src/components/CreateGroup.vue';
 import { createWindow } from '@/src/utils/window';
@@ -54,8 +53,7 @@ import GlobalLoading from '@/src/components/GlobalLoading/GlobalLoading';
 import messageService from '@/src/services/messageService';
 
 const router = useRouter();
-const userStore = useUserStore()
-const chatStore = useChatStore()
+const conversationStore = useConversationStore()
 
 const leftWidth = ref(250);
 const isResizing = ref(false);
@@ -119,7 +117,7 @@ onMounted(async () => {
     await import('@/src/views/home/contact/components/ContactSidebar.vue')
     await import('@/src/components/BlankPage.vue')
 
-    chatStore.loadFromStorage(userStore.getUserID());
+    conversationStore.loadFromStorage();
     websocketService.connect()
 
     await initRelationStore()
@@ -130,7 +128,7 @@ onMounted(async () => {
 });
 onUnmounted(async () => {
     storeOfflineTimestamp()
-    chatStore.saveToStorage(userStore.getUserID());
+    conversationStore.saveToStorage();
     ipcService.off(IpcChannels.ROUTE_NAVIGATE);
 });
 </script>

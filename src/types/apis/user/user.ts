@@ -117,22 +117,6 @@ export interface GetFriendsResp {
   data: Friend[];
 }
 
-/** CreateFriendReq */
-export interface CreateFriendReq {
-  /** @gotags: json:"friend_id" */
-  friend_id: number;
-  /** @gotags: json:"source,optional" */
-  source: number;
-  /** @gotags: json:"remark,optional" */
-  remark: string;
-}
-
-/** CreateFriendResp */
-export interface CreateFriendResp {
-  /** @gotags: json:"data" */
-  data: Friend | undefined;
-}
-
 /** UpdateFriendReq */
 export interface UpdateFriendReq {
   /** @gotags: json:"friend_id" */
@@ -172,7 +156,11 @@ export interface NewFriendApplyResp {
     | FriendRequest
     | undefined;
   /** @gotags: json:"friend,omitempty" */
-  friend: Friend | undefined;
+  friend:
+    | Friend
+    | undefined;
+  /** @gotags: json:"conversation_id,omitempty" */
+  conversation_id: string;
 }
 
 /** HandleFriendApplyReq */
@@ -188,7 +176,11 @@ export interface HandleFriendApplyReq {
 /** HandleFriendApplyResp */
 export interface HandleFriendApplyResp {
   /** @gotags: json:"data" */
-  data: FriendRequest | undefined;
+  data:
+    | FriendRequest
+    | undefined;
+  /** @gotags: json:"conversation_id,omitempty" */
+  conversation_id: string;
 }
 
 /** GetPendingFriendAppliesReq */
@@ -1296,160 +1288,6 @@ export const GetFriendsResp: MessageFns<GetFriendsResp> = {
   },
 };
 
-function createBaseCreateFriendReq(): CreateFriendReq {
-  return { friend_id: 0, source: 0, remark: "" };
-}
-
-export const CreateFriendReq: MessageFns<CreateFriendReq> = {
-  encode(message: CreateFriendReq, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.friend_id !== 0) {
-      writer.uint32(8).uint64(message.friend_id);
-    }
-    if (message.source !== 0) {
-      writer.uint32(16).int32(message.source);
-    }
-    if (message.remark !== "") {
-      writer.uint32(26).string(message.remark);
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): CreateFriendReq {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseCreateFriendReq();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 8) {
-            break;
-          }
-
-          message.friend_id = longToNumber(reader.uint64());
-          continue;
-        }
-        case 2: {
-          if (tag !== 16) {
-            break;
-          }
-
-          message.source = reader.int32();
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
-            break;
-          }
-
-          message.remark = reader.string();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): CreateFriendReq {
-    return {
-      friend_id: isSet(object.friendId)
-        ? globalThis.Number(object.friendId)
-        : isSet(object.friend_id)
-        ? globalThis.Number(object.friend_id)
-        : 0,
-      source: isSet(object.source) ? globalThis.Number(object.source) : 0,
-      remark: isSet(object.remark) ? globalThis.String(object.remark) : "",
-    };
-  },
-
-  toJSON(message: CreateFriendReq): unknown {
-    const obj: any = {};
-    if (message.friend_id !== 0) {
-      obj.friendId = Math.round(message.friend_id);
-    }
-    if (message.source !== 0) {
-      obj.source = Math.round(message.source);
-    }
-    if (message.remark !== "") {
-      obj.remark = message.remark;
-    }
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<CreateFriendReq>, I>>(base?: I): CreateFriendReq {
-    return CreateFriendReq.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<CreateFriendReq>, I>>(object: I): CreateFriendReq {
-    const message = createBaseCreateFriendReq();
-    message.friend_id = object.friend_id ?? 0;
-    message.source = object.source ?? 0;
-    message.remark = object.remark ?? "";
-    return message;
-  },
-};
-
-function createBaseCreateFriendResp(): CreateFriendResp {
-  return { data: undefined };
-}
-
-export const CreateFriendResp: MessageFns<CreateFriendResp> = {
-  encode(message: CreateFriendResp, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.data !== undefined) {
-      Friend.encode(message.data, writer.uint32(10).fork()).join();
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): CreateFriendResp {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseCreateFriendResp();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.data = Friend.decode(reader, reader.uint32());
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): CreateFriendResp {
-    return { data: isSet(object.data) ? Friend.fromJSON(object.data) : undefined };
-  },
-
-  toJSON(message: CreateFriendResp): unknown {
-    const obj: any = {};
-    if (message.data !== undefined) {
-      obj.data = Friend.toJSON(message.data);
-    }
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<CreateFriendResp>, I>>(base?: I): CreateFriendResp {
-    return CreateFriendResp.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<CreateFriendResp>, I>>(object: I): CreateFriendResp {
-    const message = createBaseCreateFriendResp();
-    message.data = (object.data !== undefined && object.data !== null) ? Friend.fromPartial(object.data) : undefined;
-    return message;
-  },
-};
-
 function createBaseUpdateFriendReq(): UpdateFriendReq {
   return { friend_id: 0, remark: "", blocked: false, starred: false };
 }
@@ -1785,7 +1623,7 @@ export const NewFriendApplyReq: MessageFns<NewFriendApplyReq> = {
 };
 
 function createBaseNewFriendApplyResp(): NewFriendApplyResp {
-  return { data: undefined, friend: undefined };
+  return { data: undefined, friend: undefined, conversation_id: "" };
 }
 
 export const NewFriendApplyResp: MessageFns<NewFriendApplyResp> = {
@@ -1795,6 +1633,9 @@ export const NewFriendApplyResp: MessageFns<NewFriendApplyResp> = {
     }
     if (message.friend !== undefined) {
       Friend.encode(message.friend, writer.uint32(18).fork()).join();
+    }
+    if (message.conversation_id !== "") {
+      writer.uint32(26).string(message.conversation_id);
     }
     return writer;
   },
@@ -1822,6 +1663,14 @@ export const NewFriendApplyResp: MessageFns<NewFriendApplyResp> = {
           message.friend = Friend.decode(reader, reader.uint32());
           continue;
         }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.conversation_id = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1835,6 +1684,11 @@ export const NewFriendApplyResp: MessageFns<NewFriendApplyResp> = {
     return {
       data: isSet(object.data) ? FriendRequest.fromJSON(object.data) : undefined,
       friend: isSet(object.friend) ? Friend.fromJSON(object.friend) : undefined,
+      conversation_id: isSet(object.conversationId)
+        ? globalThis.String(object.conversationId)
+        : isSet(object.conversation_id)
+        ? globalThis.String(object.conversation_id)
+        : "",
     };
   },
 
@@ -1845,6 +1699,9 @@ export const NewFriendApplyResp: MessageFns<NewFriendApplyResp> = {
     }
     if (message.friend !== undefined) {
       obj.friend = Friend.toJSON(message.friend);
+    }
+    if (message.conversation_id !== "") {
+      obj.conversationId = message.conversation_id;
     }
     return obj;
   },
@@ -1860,6 +1717,7 @@ export const NewFriendApplyResp: MessageFns<NewFriendApplyResp> = {
     message.friend = (object.friend !== undefined && object.friend !== null)
       ? Friend.fromPartial(object.friend)
       : undefined;
+    message.conversation_id = object.conversation_id ?? "";
     return message;
   },
 };
@@ -1965,13 +1823,16 @@ export const HandleFriendApplyReq: MessageFns<HandleFriendApplyReq> = {
 };
 
 function createBaseHandleFriendApplyResp(): HandleFriendApplyResp {
-  return { data: undefined };
+  return { data: undefined, conversation_id: "" };
 }
 
 export const HandleFriendApplyResp: MessageFns<HandleFriendApplyResp> = {
   encode(message: HandleFriendApplyResp, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.data !== undefined) {
       FriendRequest.encode(message.data, writer.uint32(10).fork()).join();
+    }
+    if (message.conversation_id !== "") {
+      writer.uint32(18).string(message.conversation_id);
     }
     return writer;
   },
@@ -1991,6 +1852,14 @@ export const HandleFriendApplyResp: MessageFns<HandleFriendApplyResp> = {
           message.data = FriendRequest.decode(reader, reader.uint32());
           continue;
         }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.conversation_id = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -2001,13 +1870,23 @@ export const HandleFriendApplyResp: MessageFns<HandleFriendApplyResp> = {
   },
 
   fromJSON(object: any): HandleFriendApplyResp {
-    return { data: isSet(object.data) ? FriendRequest.fromJSON(object.data) : undefined };
+    return {
+      data: isSet(object.data) ? FriendRequest.fromJSON(object.data) : undefined,
+      conversation_id: isSet(object.conversationId)
+        ? globalThis.String(object.conversationId)
+        : isSet(object.conversation_id)
+        ? globalThis.String(object.conversation_id)
+        : "",
+    };
   },
 
   toJSON(message: HandleFriendApplyResp): unknown {
     const obj: any = {};
     if (message.data !== undefined) {
       obj.data = FriendRequest.toJSON(message.data);
+    }
+    if (message.conversation_id !== "") {
+      obj.conversationId = message.conversation_id;
     }
     return obj;
   },
@@ -2020,6 +1899,7 @@ export const HandleFriendApplyResp: MessageFns<HandleFriendApplyResp> = {
     message.data = (object.data !== undefined && object.data !== null)
       ? FriendRequest.fromPartial(object.data)
       : undefined;
+    message.conversation_id = object.conversation_id ?? "";
     return message;
   },
 };

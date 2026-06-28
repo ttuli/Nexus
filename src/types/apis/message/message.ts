@@ -36,13 +36,24 @@ export interface Message {
 }
 
 export interface Conversation {
+  /** @gotags: json:"conversation_id" */
   conversation_id: string;
-  conversation_type: number;
+  /** @gotags: json:"type" */
+  type: number;
+  /** @gotags: json:"conv_key" */
+  conv_key: string;
+  /** @gotags: json:"max_seq" */
   max_seq: number;
-  create_time: number;
-  update_time: number;
+  /** @gotags: json:"actual_seq" */
+  actual_seq: number;
+  /** @gotags: json:"last_content" */
   last_content: string;
+  /** @gotags: json:"last_sender" */
   last_sender: number;
+  /** @gotags: json:"create_time" */
+  create_time: number;
+  /** @gotags: json:"update_time" */
+  update_time: number;
 }
 
 /** UserConversation */
@@ -81,14 +92,6 @@ export interface GetHistoryResp {
   list: Message[];
 }
 
-/** ReadMessageReq */
-export interface ReadMessageReq {
-  /** @gotags: json:"conversation_id" */
-  conversation_id: string;
-  /** @gotags: json:"seq" */
-  seq: number;
-}
-
 /** UpdateConversationReq */
 export interface UpdateConversationReq {
   /** @gotags: json:"conversation_id" */
@@ -115,11 +118,20 @@ export interface GetUserActiveConversationsResp {
   conversations: Conversation[];
 }
 
-export interface RecallMessageReq {
-  /** @gotags: json:"msg_id" */
-  msg_id: string;
-  /** @gotags: json:"session_id" */
-  session_id: string;
+/** GetConversationReq 根据 conversation_id 或 conv_key 查询会话 */
+export interface GetConversationReq {
+  /** @gotags: form:"conversation_id,optional" json:"conversation_id,optional" */
+  conversation_id: string;
+  /** @gotags: form:"conv_key,optional" json:"conv_key,optional" */
+  conv_key: string;
+  /** @gotags: form:"conv_type,optional" json:"conv_type,optional" */
+  conv_type: number;
+}
+
+/** GetConversationResp */
+export interface GetConversationResp {
+  /** @gotags: json:"conversation" */
+  conversation: Conversation | undefined;
 }
 
 function createBaseMessage(): Message {
@@ -385,12 +397,14 @@ export const Message: MessageFns<Message> = {
 function createBaseConversation(): Conversation {
   return {
     conversation_id: "",
-    conversation_type: 0,
+    type: 0,
+    conv_key: "",
     max_seq: 0,
-    create_time: 0,
-    update_time: 0,
+    actual_seq: 0,
     last_content: "",
     last_sender: 0,
+    create_time: 0,
+    update_time: 0,
   };
 }
 
@@ -399,23 +413,29 @@ export const Conversation: MessageFns<Conversation> = {
     if (message.conversation_id !== "") {
       writer.uint32(10).string(message.conversation_id);
     }
-    if (message.conversation_type !== 0) {
-      writer.uint32(16).int32(message.conversation_type);
+    if (message.type !== 0) {
+      writer.uint32(16).int32(message.type);
+    }
+    if (message.conv_key !== "") {
+      writer.uint32(26).string(message.conv_key);
     }
     if (message.max_seq !== 0) {
-      writer.uint32(24).int64(message.max_seq);
+      writer.uint32(32).uint64(message.max_seq);
     }
-    if (message.create_time !== 0) {
-      writer.uint32(32).int64(message.create_time);
-    }
-    if (message.update_time !== 0) {
-      writer.uint32(40).int64(message.update_time);
+    if (message.actual_seq !== 0) {
+      writer.uint32(40).uint64(message.actual_seq);
     }
     if (message.last_content !== "") {
       writer.uint32(50).string(message.last_content);
     }
     if (message.last_sender !== 0) {
       writer.uint32(56).uint64(message.last_sender);
+    }
+    if (message.create_time !== 0) {
+      writer.uint32(64).int64(message.create_time);
+    }
+    if (message.update_time !== 0) {
+      writer.uint32(72).int64(message.update_time);
     }
     return writer;
   },
@@ -440,15 +460,15 @@ export const Conversation: MessageFns<Conversation> = {
             break;
           }
 
-          message.conversation_type = reader.int32();
+          message.type = reader.int32();
           continue;
         }
         case 3: {
-          if (tag !== 24) {
+          if (tag !== 26) {
             break;
           }
 
-          message.max_seq = longToNumber(reader.int64());
+          message.conv_key = reader.string();
           continue;
         }
         case 4: {
@@ -456,7 +476,7 @@ export const Conversation: MessageFns<Conversation> = {
             break;
           }
 
-          message.create_time = longToNumber(reader.int64());
+          message.max_seq = longToNumber(reader.uint64());
           continue;
         }
         case 5: {
@@ -464,7 +484,7 @@ export const Conversation: MessageFns<Conversation> = {
             break;
           }
 
-          message.update_time = longToNumber(reader.int64());
+          message.actual_seq = longToNumber(reader.uint64());
           continue;
         }
         case 6: {
@@ -483,6 +503,22 @@ export const Conversation: MessageFns<Conversation> = {
           message.last_sender = longToNumber(reader.uint64());
           continue;
         }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+
+          message.create_time = longToNumber(reader.int64());
+          continue;
+        }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+
+          message.update_time = longToNumber(reader.int64());
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -499,25 +535,21 @@ export const Conversation: MessageFns<Conversation> = {
         : isSet(object.conversation_id)
         ? globalThis.String(object.conversation_id)
         : "",
-      conversation_type: isSet(object.conversationType)
-        ? globalThis.Number(object.conversationType)
-        : isSet(object.conversation_type)
-        ? globalThis.Number(object.conversation_type)
-        : 0,
+      type: isSet(object.type) ? globalThis.Number(object.type) : 0,
+      conv_key: isSet(object.convKey)
+        ? globalThis.String(object.convKey)
+        : isSet(object.conv_key)
+        ? globalThis.String(object.conv_key)
+        : "",
       max_seq: isSet(object.maxSeq)
         ? globalThis.Number(object.maxSeq)
         : isSet(object.max_seq)
         ? globalThis.Number(object.max_seq)
         : 0,
-      create_time: isSet(object.createTime)
-        ? globalThis.Number(object.createTime)
-        : isSet(object.create_time)
-        ? globalThis.Number(object.create_time)
-        : 0,
-      update_time: isSet(object.updateTime)
-        ? globalThis.Number(object.updateTime)
-        : isSet(object.update_time)
-        ? globalThis.Number(object.update_time)
+      actual_seq: isSet(object.actualSeq)
+        ? globalThis.Number(object.actualSeq)
+        : isSet(object.actual_seq)
+        ? globalThis.Number(object.actual_seq)
         : 0,
       last_content: isSet(object.lastContent)
         ? globalThis.String(object.lastContent)
@@ -529,6 +561,16 @@ export const Conversation: MessageFns<Conversation> = {
         : isSet(object.last_sender)
         ? globalThis.Number(object.last_sender)
         : 0,
+      create_time: isSet(object.createTime)
+        ? globalThis.Number(object.createTime)
+        : isSet(object.create_time)
+        ? globalThis.Number(object.create_time)
+        : 0,
+      update_time: isSet(object.updateTime)
+        ? globalThis.Number(object.updateTime)
+        : isSet(object.update_time)
+        ? globalThis.Number(object.update_time)
+        : 0,
     };
   },
 
@@ -537,23 +579,29 @@ export const Conversation: MessageFns<Conversation> = {
     if (message.conversation_id !== "") {
       obj.conversationId = message.conversation_id;
     }
-    if (message.conversation_type !== 0) {
-      obj.conversationType = Math.round(message.conversation_type);
+    if (message.type !== 0) {
+      obj.type = Math.round(message.type);
+    }
+    if (message.conv_key !== "") {
+      obj.convKey = message.conv_key;
     }
     if (message.max_seq !== 0) {
       obj.maxSeq = Math.round(message.max_seq);
     }
-    if (message.create_time !== 0) {
-      obj.createTime = Math.round(message.create_time);
-    }
-    if (message.update_time !== 0) {
-      obj.updateTime = Math.round(message.update_time);
+    if (message.actual_seq !== 0) {
+      obj.actualSeq = Math.round(message.actual_seq);
     }
     if (message.last_content !== "") {
       obj.lastContent = message.last_content;
     }
     if (message.last_sender !== 0) {
       obj.lastSender = Math.round(message.last_sender);
+    }
+    if (message.create_time !== 0) {
+      obj.createTime = Math.round(message.create_time);
+    }
+    if (message.update_time !== 0) {
+      obj.updateTime = Math.round(message.update_time);
     }
     return obj;
   },
@@ -564,12 +612,14 @@ export const Conversation: MessageFns<Conversation> = {
   fromPartial<I extends Exact<DeepPartial<Conversation>, I>>(object: I): Conversation {
     const message = createBaseConversation();
     message.conversation_id = object.conversation_id ?? "";
-    message.conversation_type = object.conversation_type ?? 0;
+    message.type = object.type ?? 0;
+    message.conv_key = object.conv_key ?? "";
     message.max_seq = object.max_seq ?? 0;
-    message.create_time = object.create_time ?? 0;
-    message.update_time = object.update_time ?? 0;
+    message.actual_seq = object.actual_seq ?? 0;
     message.last_content = object.last_content ?? "";
     message.last_sender = object.last_sender ?? 0;
+    message.create_time = object.create_time ?? 0;
+    message.update_time = object.update_time ?? 0;
     return message;
   },
 };
@@ -944,86 +994,6 @@ export const GetHistoryResp: MessageFns<GetHistoryResp> = {
   },
 };
 
-function createBaseReadMessageReq(): ReadMessageReq {
-  return { conversation_id: "", seq: 0 };
-}
-
-export const ReadMessageReq: MessageFns<ReadMessageReq> = {
-  encode(message: ReadMessageReq, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.conversation_id !== "") {
-      writer.uint32(10).string(message.conversation_id);
-    }
-    if (message.seq !== 0) {
-      writer.uint32(16).uint64(message.seq);
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): ReadMessageReq {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseReadMessageReq();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.conversation_id = reader.string();
-          continue;
-        }
-        case 2: {
-          if (tag !== 16) {
-            break;
-          }
-
-          message.seq = longToNumber(reader.uint64());
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): ReadMessageReq {
-    return {
-      conversation_id: isSet(object.conversationId)
-        ? globalThis.String(object.conversationId)
-        : isSet(object.conversation_id)
-        ? globalThis.String(object.conversation_id)
-        : "",
-      seq: isSet(object.seq) ? globalThis.Number(object.seq) : 0,
-    };
-  },
-
-  toJSON(message: ReadMessageReq): unknown {
-    const obj: any = {};
-    if (message.conversation_id !== "") {
-      obj.conversationId = message.conversation_id;
-    }
-    if (message.seq !== 0) {
-      obj.seq = Math.round(message.seq);
-    }
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<ReadMessageReq>, I>>(base?: I): ReadMessageReq {
-    return ReadMessageReq.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<ReadMessageReq>, I>>(object: I): ReadMessageReq {
-    const message = createBaseReadMessageReq();
-    message.conversation_id = object.conversation_id ?? "";
-    message.seq = object.seq ?? 0;
-    return message;
-  },
-};
-
 function createBaseUpdateConversationReq(): UpdateConversationReq {
   return { conversation_id: "", is_top: 0, is_disturb: 0 };
 }
@@ -1314,25 +1284,28 @@ export const GetUserActiveConversationsResp: MessageFns<GetUserActiveConversatio
   },
 };
 
-function createBaseRecallMessageReq(): RecallMessageReq {
-  return { msg_id: "", session_id: "" };
+function createBaseGetConversationReq(): GetConversationReq {
+  return { conversation_id: "", conv_key: "", conv_type: 0 };
 }
 
-export const RecallMessageReq: MessageFns<RecallMessageReq> = {
-  encode(message: RecallMessageReq, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.msg_id !== "") {
-      writer.uint32(10).string(message.msg_id);
+export const GetConversationReq: MessageFns<GetConversationReq> = {
+  encode(message: GetConversationReq, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.conversation_id !== "") {
+      writer.uint32(10).string(message.conversation_id);
     }
-    if (message.session_id !== "") {
-      writer.uint32(18).string(message.session_id);
+    if (message.conv_key !== "") {
+      writer.uint32(18).string(message.conv_key);
+    }
+    if (message.conv_type !== 0) {
+      writer.uint32(24).int32(message.conv_type);
     }
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): RecallMessageReq {
+  decode(input: BinaryReader | Uint8Array, length?: number): GetConversationReq {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseRecallMessageReq();
+    const message = createBaseGetConversationReq();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -1341,7 +1314,7 @@ export const RecallMessageReq: MessageFns<RecallMessageReq> = {
             break;
           }
 
-          message.msg_id = reader.string();
+          message.conversation_id = reader.string();
           continue;
         }
         case 2: {
@@ -1349,7 +1322,15 @@ export const RecallMessageReq: MessageFns<RecallMessageReq> = {
             break;
           }
 
-          message.session_id = reader.string();
+          message.conv_key = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.conv_type = reader.int32();
           continue;
         }
       }
@@ -1361,39 +1342,108 @@ export const RecallMessageReq: MessageFns<RecallMessageReq> = {
     return message;
   },
 
-  fromJSON(object: any): RecallMessageReq {
+  fromJSON(object: any): GetConversationReq {
     return {
-      msg_id: isSet(object.msgId)
-        ? globalThis.String(object.msgId)
-        : isSet(object.msg_id)
-        ? globalThis.String(object.msg_id)
+      conversation_id: isSet(object.conversationId)
+        ? globalThis.String(object.conversationId)
+        : isSet(object.conversation_id)
+        ? globalThis.String(object.conversation_id)
         : "",
-      session_id: isSet(object.sessionId)
-        ? globalThis.String(object.sessionId)
-        : isSet(object.session_id)
-        ? globalThis.String(object.session_id)
+      conv_key: isSet(object.convKey)
+        ? globalThis.String(object.convKey)
+        : isSet(object.conv_key)
+        ? globalThis.String(object.conv_key)
         : "",
+      conv_type: isSet(object.convType)
+        ? globalThis.Number(object.convType)
+        : isSet(object.conv_type)
+        ? globalThis.Number(object.conv_type)
+        : 0,
     };
   },
 
-  toJSON(message: RecallMessageReq): unknown {
+  toJSON(message: GetConversationReq): unknown {
     const obj: any = {};
-    if (message.msg_id !== "") {
-      obj.msgId = message.msg_id;
+    if (message.conversation_id !== "") {
+      obj.conversationId = message.conversation_id;
     }
-    if (message.session_id !== "") {
-      obj.sessionId = message.session_id;
+    if (message.conv_key !== "") {
+      obj.convKey = message.conv_key;
+    }
+    if (message.conv_type !== 0) {
+      obj.convType = Math.round(message.conv_type);
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<RecallMessageReq>, I>>(base?: I): RecallMessageReq {
-    return RecallMessageReq.fromPartial(base ?? ({} as any));
+  create<I extends Exact<DeepPartial<GetConversationReq>, I>>(base?: I): GetConversationReq {
+    return GetConversationReq.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<RecallMessageReq>, I>>(object: I): RecallMessageReq {
-    const message = createBaseRecallMessageReq();
-    message.msg_id = object.msg_id ?? "";
-    message.session_id = object.session_id ?? "";
+  fromPartial<I extends Exact<DeepPartial<GetConversationReq>, I>>(object: I): GetConversationReq {
+    const message = createBaseGetConversationReq();
+    message.conversation_id = object.conversation_id ?? "";
+    message.conv_key = object.conv_key ?? "";
+    message.conv_type = object.conv_type ?? 0;
+    return message;
+  },
+};
+
+function createBaseGetConversationResp(): GetConversationResp {
+  return { conversation: undefined };
+}
+
+export const GetConversationResp: MessageFns<GetConversationResp> = {
+  encode(message: GetConversationResp, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.conversation !== undefined) {
+      Conversation.encode(message.conversation, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetConversationResp {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetConversationResp();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.conversation = Conversation.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetConversationResp {
+    return { conversation: isSet(object.conversation) ? Conversation.fromJSON(object.conversation) : undefined };
+  },
+
+  toJSON(message: GetConversationResp): unknown {
+    const obj: any = {};
+    if (message.conversation !== undefined) {
+      obj.conversation = Conversation.toJSON(message.conversation);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetConversationResp>, I>>(base?: I): GetConversationResp {
+    return GetConversationResp.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetConversationResp>, I>>(object: I): GetConversationResp {
+    const message = createBaseGetConversationResp();
+    message.conversation = (object.conversation !== undefined && object.conversation !== null)
+      ? Conversation.fromPartial(object.conversation)
+      : undefined;
     return message;
   },
 };

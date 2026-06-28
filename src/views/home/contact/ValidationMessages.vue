@@ -87,15 +87,13 @@ import { UpdateAction, ResourceType, ImTypes, ValidationType } from '@/src/types
 import { cacheService, groupService } from '@/src/services';
 import { friendService } from '@/src/services'
 import GlobalLoading from '@/src/components/GlobalLoading/GlobalLoading';
-import { convertApplySrc2FriendSrc, generateSessionId } from '@/src/utils/chat';
-import { useChatStore } from '@/src/store/chat';
+import { convertApplySrc2FriendSrc } from '@/src/utils/chat';
 import { useAppStore } from '@/src/store/app';
 import { ElMessage } from 'element-plus';
 
 const type = ref<'friend' | 'group'>('friend');
 const userStore = useUserStore();
 const groupStore = useGroupStore();
-const chatStore = useChatStore();
 const appStore = useAppStore();
 
 const enterTimeFriend = ref(0);
@@ -194,39 +192,12 @@ const handleApply = async (req: ImTypes.FriendRequest, type: 'accept' | 'reject'
     const status: ImTypes.ApplyStatus = type === 'accept' ? ImTypes.ApplyStatus.APPLY_STATUS_AGREED : ImTypes.ApplyStatus.APPLY_STATUS_REJECTED;
     try {
         GlobalLoading.show();
-        let res = await friendService.handleFriendApply({
+        await friendService.handleFriendApply({
             request_id: req.id,
             result: status,
             reject_reason: ''
         });
 
-        // Cache update is handled by listenerService
-        if (res.data.data) {
-            await cacheService.updateItems(UpdateAction.Update, ResourceType.FRIEND_REQUEST, [res.data.data as ImTypes.FriendRequest])
-        }
-        if (status === ImTypes.ApplyStatus.APPLY_STATUS_AGREED) {
-            let source: ImTypes.ApplySource;
-            if (req.source === ImTypes.ApplySource.APPLY_SOURCE_SEARCH_ACCOUNT ||
-                req.source === ImTypes.ApplySource.APPLY_SOURCE_SEARCH_PHONE ||
-                req.source === ImTypes.ApplySource.APPLY_SOURCE_SEARCH_NAME) {
-                source = ImTypes.ApplySource.APPLY_SOURCE_SEARCH_ACCOUNT;
-            } else if (req.source === ImTypes.ApplySource.APPLY_SOURCE_FROM_GROUP) {
-                source = ImTypes.ApplySource.APPLY_SOURCE_FROM_GROUP;
-            } else {
-                source = ImTypes.ApplySource.APPLY_SOURCE_FROM_RECOMMEND;
-            }
-            await cacheService.updateItems(UpdateAction.Add, ResourceType.FRIEND, [{
-                user_id: userStore.getUserID(),
-                friend_id: req.from_user_id,
-                remark: '',
-                blocked: false,
-                starred: false,
-                create_time: res.data.data?.handle_time,
-                source: convertApplySrc2FriendSrc(source),
-                extra: ""
-            } as ImTypes.Friend])
-            chatStore.addChat(generateSessionId(req.from_user_id, userStore.getUserID()))
-        }
         userStore.updateLastReadFriendRequestTime()
     } finally {
         GlobalLoading.close();

@@ -87,6 +87,7 @@ parentPort.on('message', (msg: WorkerMessage) => {
                 userDb.pragma('journal_mode = WAL');
                 userDb.pragma('foreign_keys = ON');
                 userDb.exec(userSql);
+
                 console.log(`[db.worker] Opened user database for user ${userId}: ${dbPath}`);
                 reply(id, null);
                 break;

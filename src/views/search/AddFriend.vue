@@ -39,18 +39,18 @@
 
             <!-- Results Area -->
             <div v-else class="results-area">
-                <div class="result-list-wrapper">
-                    <van-list v-model:loading="loading" :finished="finished" finished-text="没有更多了" @load="onLoad"
-                        :immediate-check="false">
-                        <template v-if="searchType === 'user'">
-                            <UserCard v-for="user in (resultList as ImTypes.UserInfo[])" :key="user.user_id"
-                                :user-info="user" :keyword="lastKeyword" @add="handleAddUser" />
-                        </template>
-                        <template v-else>
-                            <GroupCard v-for="group in (resultList as ImTypes.GroupInfo[])" :key="group.id"
-                                :group-info="group" :keyword="lastKeyword" @join="handleAddGroup" />
-                        </template>
-                    </van-list>
+                <div class="result-list-wrapper" v-infinite-scroll="onLoad" :infinite-scroll-disabled="loading || finished" :infinite-scroll-distance="10" :infinite-scroll-immediate="false">
+                    <template v-if="searchType === 'user'">
+                        <UserCard v-for="user in (resultList as ImTypes.UserInfo[])" :key="user.user_id"
+                            :user-info="user" :keyword="lastKeyword" @add="handleAddUser" />
+                    </template>
+                    <template v-else>
+                        <GroupCard v-for="group in (resultList as ImTypes.GroupInfo[])" :key="group.id"
+                            :group-info="group" :keyword="lastKeyword" @join="handleAddGroup" />
+                    </template>
+
+                    <div v-if="loading" class="list-status">加载中...</div>
+                    <div v-if="finished && resultList.length > 0" class="list-status">没有更多了</div>
 
                     <!-- No Results -->
                     <div v-if="finished && resultList.length === 0" class="no-result">
@@ -61,9 +61,7 @@
         </div>
 
         <!-- Add Friend Dialog -->
-        <van-dialog v-model:show="showAddDialog" :title="searchType === 'user' ? '申请添加好友' : '申请加入群聊'" show-cancel-button
-            @confirm="confirmAddFriend" width="320px">
-            <!-- default slot for content -->
+        <el-dialog v-model="showAddDialog" :title="searchType === 'user' ? '申请添加好友' : '申请加入群聊'" width="320px" align-center>
             <div class="dialog-content" v-if="targetUser || targetGroup">
                 <div class="user-preview">
                     <Avatar :uid="targetUser ? targetUser.user_id : (targetGroup?.id || 0)"
@@ -89,7 +87,13 @@
                         rows="3"></textarea>
                 </div>
             </div>
-        </van-dialog>
+            <template #footer>
+                <div class="dialog-footer">
+                    <el-button @click="showAddDialog = false">取消</el-button>
+                    <el-button type="primary" @click="confirmAddFriend">确认</el-button>
+                </div>
+            </template>
+        </el-dialog>
     </div>
 </template>
 
@@ -433,6 +437,13 @@ onMounted(async () => {
                 text-align: center;
                 color: $color-text-secondary;
                 margin-top: 40px;
+            }
+
+            .list-status {
+                text-align: center;
+                color: $color-text-placeholder;
+                font-size: $font-size-sm;
+                padding: $spacing-md 0;
             }
         }
     }

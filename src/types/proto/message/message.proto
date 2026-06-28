@@ -20,9 +20,9 @@ message BaseMessage {
   string msg_id = 1;               // 消息ID
   string client_id = 2;           // 客户端ID
   string session_id = 3;          // 会话ID
-  uint64 from_user_id = 4;        // 发送者ID
-  uint64 target = 5;              // 目标ID (私聊=to_user_id, 群聊=group_id, 与ConversationType配套使用)
-  reserved 6;                     // 原 group_id 字段已合并至 target
+  string conv_key = 4;
+  uint64 from_user_id = 5;        // 发送者ID
+  uint64 target = 6;              // 目标ID (私聊=to_user_id, 群聊=group_id, 与ConversationType配套使用)
   int64 send_time = 7;            // 发送时间
   int32 msg_seq = 8;              // 消息序号
   MessageStatus status = 9;       // 消息状态
@@ -126,9 +126,9 @@ message CustomMessage {
 
 // 消息确认(ACK)
 message MessageAck {
-  string msg_id = 1;               // 消息ID
-  string client_id = 2;            // 客户端ID
-  string session_id = 3;           // 会话ID
+  string client_id = 1;            // 客户端ID
+  string session_id = 2;           // 会话ID
+  string conv_key = 3;
   AckStatus status = 4;           // 确认状态
 }
 
@@ -141,6 +141,7 @@ message PersistAck {
   AckStatus ack_status = 5;       // 确认状态
   int64 timestamp = 6;            // 时间戳
   uint64 seq = 7;                // 消息序号
+  string conv_key = 8;
 }
 
 enum AckStatus {
@@ -174,15 +175,16 @@ enum ConversationType {
 message Conversation {
   string conversation_id = 1;     // 会话ID
   ConversationType type = 2;      // 会话类型
-  string last_content = 3;        // 最后一条消息摘要文本
-  int64 max_seq = 4;
-  uint64 last_sender = 5;
-  int64 last_message_time = 6;    // 最后消息时间
-  int64 unread_count = 7;         // 未读消息数
-  int64 create_time = 8;          // 创建时间
-  int64 update_time = 9;         // 更新时间
-  int32 is_top = 10;                // 是否置顶
-  int32 is_disturb = 11;           // 是否免打扰
+  string conv_key = 3;
+  string last_content = 4;        // 最后一条消息摘要文本
+  int64 max_seq = 5;
+  uint64 last_sender = 6;
+  int64 last_message_time = 7;    // 最后消息时间
+  int64 unread_count = 8;         // 未读消息数
+  int64 create_time = 9;          // 创建时间
+  int64 update_time = 10;         // 更新时间
+  int32 is_top = 11;                // 是否置顶
+  int32 is_disturb = 12;           // 是否免打扰
 }
 
 enum NotificationType {

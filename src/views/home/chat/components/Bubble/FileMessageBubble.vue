@@ -71,10 +71,10 @@ import { computed, ref } from 'vue';
 import { ILocalFileMessage } from '@/src/types/chatMessage';
 import { fileService } from '@/src/services/fileService';
 import { settingService } from '@/src/services/settingService';
-import { websocketService } from '@/src/services/websocketService';
 import { ElMessage } from 'element-plus';
 import { ImTypes } from '@/src/types';
-import { useChatStore } from '@/src/store/chat';
+import { useMessageStore } from '@/src/store/message';
+import { messageSendService } from '@/src/services';
 
 interface Props {
     message: ILocalFileMessage;
@@ -84,7 +84,7 @@ interface Props {
 const props = defineProps<Props>();
 
 // --- 状态与文本计算 ---
-const chatStore = useChatStore();
+const messageStore = useMessageStore();
 const isFailed = computed(() => props.message.status === ImTypes.MessageStatus.MESSAGE_STATUS_FAILED);
 
 const isUploading = computed(() => {
@@ -201,7 +201,7 @@ const handleActionClick = () => {
         // 取消操作
         if (isUploading.value) {
             if (props.message.clientId) {
-                websocketService.cancelUpload(props.message.clientId);
+                messageSendService.cancelUpload(props.message.clientId);
                 ElMessage.success('已取消上传');
             }
         } else if (isDownloading.value) {
@@ -239,7 +239,7 @@ const startDownload = async () => {
         
         const localPath = await promise;
         // 更新内存和数据库中的 localPath
-        chatStore.updateFileLocalPath(props.message.sessionId, props.message.clientId || '', props.message.msgId, localPath);
+        messageStore.updateFileLocalPath(props.message.sessionId, props.message.clientId || '', props.message.msgId, localPath);
         isDownloading.value = false;
         currentDownloadAbort.value = null;
         ElMessage.success('下载完成');

@@ -65,9 +65,9 @@ export function setupMessageHandlers(): void {
     /** 获取会话历史消息 */
     ipcMain.handle(
         IpcChannels.MSG_GET_HISTORY,
-        async (_event, sessionId: string, upper: number, pageSize: number) => {
+        async (_event, sessionId: string, beforeSeq: number, pageSize: number) => {
             try {
-                const data = await messageStore.getLocalHistoryMessages(sessionId, upper, pageSize);
+                const data = await messageStore.getLocalHistoryMessages(sessionId, beforeSeq, pageSize);
                 return { success: true, data };
             } catch (err: any) {
                 console.error('[messageHandler] MSG_GET_HISTORY error:', err);

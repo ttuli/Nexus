@@ -44,7 +44,7 @@ const userStore = useUserStore();
 const groupStore = useGroupStore();
 
 const getTargetId = (chat: ImTypes.Conversation) => {
-    return extractTargetIdFromSessionId(chat.conversation_id, userStore.getUserID());
+    return extractTargetIdFromSessionId(chat.conv_key || chat.conversation_id || '', userStore.getUserID());
 }
 
 // 动态获取名称
@@ -68,7 +68,7 @@ const emit = defineEmits<{
 }>();
 
 const handleClick = () => {
-    emit('click', props.data.conversation_id);
+    emit('click', props.data.conv_key || props.data.conversation_id || '');
 };
 
 // Utils

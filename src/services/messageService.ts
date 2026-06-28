@@ -1,5 +1,5 @@
 import { getUserActiveConversation, updateConversation } from "@/src/apis/message"
-import { useChatStore } from "@/src/store/chat"
+import { useConversationStore } from "@/src/store/conversation"
 import { getOfflineTimestamp } from "@/src/store/init"
 
 class MessageService {
@@ -7,16 +7,16 @@ class MessageService {
         const timestamp = getOfflineTimestamp()
         const res = await getUserActiveConversation({ timestamp })
         if (res.code === 200) {
-            const chatStore = useChatStore()
+            const conversationStore = useConversationStore()
             res.data.conversations.forEach(conversation => {
-                chatStore.upsertConversation(conversation)
+                conversationStore.upsertConversation(conversation)
             })
         }
     }
 
     async updateConversion(sessionId: string, isTop?: number, isDisturb?: number) {
-        const chatStore = useChatStore()
-        const chat = chatStore.getChat(sessionId)
+        const conversationStore = useConversationStore()
+        const chat = conversationStore.getChat(sessionId)
         if (!chat) {
             return
         }
@@ -27,7 +27,7 @@ class MessageService {
         let isDisturbVal = isDisturb ?? chat.is_disturb
         chat.is_top = isTopVal
         chat.is_disturb = isDisturbVal
-        chatStore.sortChatList()
+        conversationStore.sortChatList()
         try {
             await updateConversation({
                 conversation_id: sessionId,

@@ -53,20 +53,6 @@ export async function getHistory(params: PartialExcept<ApiTypes.message.GetHisto
     return decodeResponse(res.data, ApiTypes.message.GetHistoryResp.decode)
 }
 
-/**
- * 消息已读上报
- * POST /message/read
- */
-export async function readMessage(data: ApiTypes.message.ReadMessageReq) {
-    const reqData = ApiTypes.message.ReadMessageReq.encode(data).finish()
-    const res = await instance<ApiResponse<null>>({
-        method: 'post',
-        url: config.messageServer + '/message/read',
-        data: reqData
-    })
-    return res.data
-}
-
 // 获取离线后的活跃列表
 export async function getUserActiveConversation(params: ApiTypes.message.GetUserActiveConversationsReq) {
     const res = await instance<ApiResponse<ApiTypes.message.GetUserActiveConversationsResp>>({
@@ -77,13 +63,12 @@ export async function getUserActiveConversation(params: ApiTypes.message.GetUser
     return decodeResponse(res.data, ApiTypes.message.GetUserActiveConversationsResp.decode)
 }
 
-// 撤回消息
-export async function recallMessage(data: ApiTypes.message.RecallMessageReq) {
-    const reqData = ApiTypes.message.RecallMessageReq.encode(data).finish()
-    const res = await instance<ApiResponse<null>>({
-        method: 'post',
-        url: config.messageServer + '/message/recall',
-        data: reqData
+// 获取会话详情
+export async function getConversation(params: ApiTypes.message.GetConversationReq) {
+    const res = await instance<ApiResponse<ApiTypes.message.GetConversationResp>>({
+        method: 'get',
+        url: config.messageServer + '/message/conversation',
+        params
     })
-    return res.data
+    return decodeResponse(res.data, ApiTypes.message.GetConversationResp.decode)
 }

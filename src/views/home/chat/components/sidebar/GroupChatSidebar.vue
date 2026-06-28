@@ -46,7 +46,8 @@
 import { computed, ref, watch, onMounted } from 'vue';
 import CusSwitch from '@/src/components/CusSwitch.vue';
 import { useUserStore } from '@/src/store/user';
-import { useChatStore } from '@/src/store/chat';
+import { useConversationStore } from '@/src/store/conversation';
+import { useMessageStore } from '@/src/store/message';
 import { useGroupStore } from '@/src/store/group';
 import { ImTypes } from '@/src/types';
 import { ElMessage, ElMessageBox } from 'element-plus';
@@ -62,7 +63,8 @@ const props = defineProps<{
 const emit = defineEmits(['close']);
 
 const userStore = useUserStore();
-const chatStore = useChatStore();
+const conversationStore = useConversationStore();
+const messageStore = useMessageStore();
 const groupStore = useGroupStore();
 
 const targetId = computed(() => extractTargetIdFromSessionId(props.chat.conversation_id, userStore.getUserID()));
@@ -118,12 +120,12 @@ const clearChatData = () => {
         cancelButtonText: '取消',
         type: 'warning'
     }).then(async () => {
-        if (chatStore.currentSessionId === props.chat.conversation_id) {
-            chatStore.messages = [];
+        if (conversationStore.currentConvKey === props.chat.conv_key) {
+            messageStore.messages = [];
         }
         props.chat.max_seq = 0;
         props.chat.last_content = '';
-        chatStore.removeChat(props.chat.conversation_id);
+        conversationStore.removeChat(props.chat.conversation_id);
         ElMessage.success('聊天记录已清除');
         emit('close');
     }).catch(() => { });
@@ -152,7 +154,7 @@ const confirmQuitGroup = () => {
                 } else {
                     groupStore.joinedGroupIds.delete(numTargetId);
                 }
-                chatStore.removeChat(props.chat.conversation_id);
+                conversationStore.removeChat(props.chat.conversation_id);
                 emit('close');
             } else {
                 ElMessage.error(res.message || '操作失败');

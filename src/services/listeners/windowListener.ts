@@ -6,14 +6,14 @@
 
 import { ipcService } from '../ipcService'
 import { IpcChannels } from '@/src/types'
-import { useChatStore } from '@/src/store/chat'
+import { useConversationStore } from '@/src/store/conversation'
 
 export function initWindowListener(): void {
     ipcService.on(IpcChannels.WINDOW_STATE, (_event, state) => {
-        const chatStore = useChatStore()
+        const conversationStore = useConversationStore()
         switch (state) {
             case 'focused':
-                chatStore.clearUnread(chatStore.currentSessionId)
+                conversationStore.clearUnread(conversationStore.currentSessionId)
                 break
             default:
                 break

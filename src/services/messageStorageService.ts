@@ -54,16 +54,17 @@ class MessageStorageService {
      * 获取会话历史消息（分页，倒序游标）
      *
      * @param sessionId  会话 ID
-     * @param upper      send_time 上界（含）
+     * @param beforeSeq  seq 排他性上界：只返回 seq < beforeSeq 且 seq > 0 的消息；
+     *                   传入 Number.MAX_SAFE_INTEGER 表示从最新消息开始
      * @param pageSize   每页条数
      */
     async getLocalHistoryMessages(
         sessionId: string,
-        upper: number,
+        beforeSeq: number,
         pageSize: number
     ): Promise<IChatMessage[]> {
         if (!sessionId || pageSize <= 0) return [];
-        return this.invoke<IChatMessage[]>(IpcChannels.MSG_GET_HISTORY, sessionId, upper, pageSize);
+        return this.invoke<IChatMessage[]>(IpcChannels.MSG_GET_HISTORY, sessionId, beforeSeq, pageSize);
     }
 
     /**

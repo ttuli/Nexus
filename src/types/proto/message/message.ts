@@ -293,6 +293,7 @@ export interface BaseMessage {
   client_id: string;
   /** 会话ID */
   session_id: string;
+  conv_key: string;
   /** 发送者ID */
   from_user_id: number;
   /** 目标ID (私聊=to_user_id, 群聊=group_id, 与ConversationType配套使用) */
@@ -446,12 +447,11 @@ export interface CustomMessage {
 
 /** 消息确认(ACK) */
 export interface MessageAck {
-  /** 消息ID */
-  msg_id: string;
   /** 客户端ID */
   client_id: string;
   /** 会话ID */
   session_id: string;
+  conv_key: string;
   /** 确认状态 */
   status: AckStatus;
 }
@@ -471,6 +471,7 @@ export interface PersistAck {
   timestamp: number;
   /** 消息序号 */
   seq: number;
+  conv_key: string;
 }
 
 /** 消息已读 */
@@ -504,6 +505,7 @@ export interface Conversation {
   conversation_id: string;
   /** 会话类型 */
   type: ConversationType;
+  conv_key: string;
   /** 最后一条消息摘要文本 */
   last_content: string;
   max_seq: number;
@@ -548,6 +550,7 @@ function createBaseBaseMessage(): BaseMessage {
     msg_id: "",
     client_id: "",
     session_id: "",
+    conv_key: "",
     from_user_id: 0,
     target: 0,
     send_time: 0,
@@ -568,11 +571,14 @@ export const BaseMessage: MessageFns<BaseMessage> = {
     if (message.session_id !== "") {
       writer.uint32(26).string(message.session_id);
     }
+    if (message.conv_key !== "") {
+      writer.uint32(34).string(message.conv_key);
+    }
     if (message.from_user_id !== 0) {
-      writer.uint32(32).uint64(message.from_user_id);
+      writer.uint32(40).uint64(message.from_user_id);
     }
     if (message.target !== 0) {
-      writer.uint32(40).uint64(message.target);
+      writer.uint32(48).uint64(message.target);
     }
     if (message.send_time !== 0) {
       writer.uint32(56).int64(message.send_time);
@@ -621,15 +627,23 @@ export const BaseMessage: MessageFns<BaseMessage> = {
           continue;
         }
         case 4: {
-          if (tag !== 32) {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.conv_key = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
             break;
           }
 
           message.from_user_id = longToNumber(reader.uint64());
           continue;
         }
-        case 5: {
-          if (tag !== 40) {
+        case 6: {
+          if (tag !== 48) {
             break;
           }
 
@@ -697,6 +711,11 @@ export const BaseMessage: MessageFns<BaseMessage> = {
         : isSet(object.session_id)
         ? globalThis.String(object.session_id)
         : "",
+      conv_key: isSet(object.convKey)
+        ? globalThis.String(object.convKey)
+        : isSet(object.conv_key)
+        ? globalThis.String(object.conv_key)
+        : "",
       from_user_id: isSet(object.fromUserId)
         ? globalThis.Number(object.fromUserId)
         : isSet(object.from_user_id)
@@ -737,6 +756,9 @@ export const BaseMessage: MessageFns<BaseMessage> = {
     if (message.session_id !== "") {
       obj.sessionId = message.session_id;
     }
+    if (message.conv_key !== "") {
+      obj.convKey = message.conv_key;
+    }
     if (message.from_user_id !== 0) {
       obj.fromUserId = Math.round(message.from_user_id);
     }
@@ -772,6 +794,7 @@ export const BaseMessage: MessageFns<BaseMessage> = {
     message.msg_id = object.msg_id ?? "";
     message.client_id = object.client_id ?? "";
     message.session_id = object.session_id ?? "";
+    message.conv_key = object.conv_key ?? "";
     message.from_user_id = object.from_user_id ?? 0;
     message.target = object.target ?? 0;
     message.send_time = object.send_time ?? 0;
@@ -2080,19 +2103,19 @@ export const CustomMessage: MessageFns<CustomMessage> = {
 };
 
 function createBaseMessageAck(): MessageAck {
-  return { msg_id: "", client_id: "", session_id: "", status: 0 };
+  return { client_id: "", session_id: "", conv_key: "", status: 0 };
 }
 
 export const MessageAck: MessageFns<MessageAck> = {
   encode(message: MessageAck, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.msg_id !== "") {
-      writer.uint32(10).string(message.msg_id);
-    }
     if (message.client_id !== "") {
-      writer.uint32(18).string(message.client_id);
+      writer.uint32(10).string(message.client_id);
     }
     if (message.session_id !== "") {
-      writer.uint32(26).string(message.session_id);
+      writer.uint32(18).string(message.session_id);
+    }
+    if (message.conv_key !== "") {
+      writer.uint32(26).string(message.conv_key);
     }
     if (message.status !== 0) {
       writer.uint32(32).int32(message.status);
@@ -2112,7 +2135,7 @@ export const MessageAck: MessageFns<MessageAck> = {
             break;
           }
 
-          message.msg_id = reader.string();
+          message.client_id = reader.string();
           continue;
         }
         case 2: {
@@ -2120,7 +2143,7 @@ export const MessageAck: MessageFns<MessageAck> = {
             break;
           }
 
-          message.client_id = reader.string();
+          message.session_id = reader.string();
           continue;
         }
         case 3: {
@@ -2128,7 +2151,7 @@ export const MessageAck: MessageFns<MessageAck> = {
             break;
           }
 
-          message.session_id = reader.string();
+          message.conv_key = reader.string();
           continue;
         }
         case 4: {
@@ -2150,11 +2173,6 @@ export const MessageAck: MessageFns<MessageAck> = {
 
   fromJSON(object: any): MessageAck {
     return {
-      msg_id: isSet(object.msgId)
-        ? globalThis.String(object.msgId)
-        : isSet(object.msg_id)
-        ? globalThis.String(object.msg_id)
-        : "",
       client_id: isSet(object.clientId)
         ? globalThis.String(object.clientId)
         : isSet(object.client_id)
@@ -2165,20 +2183,25 @@ export const MessageAck: MessageFns<MessageAck> = {
         : isSet(object.session_id)
         ? globalThis.String(object.session_id)
         : "",
+      conv_key: isSet(object.convKey)
+        ? globalThis.String(object.convKey)
+        : isSet(object.conv_key)
+        ? globalThis.String(object.conv_key)
+        : "",
       status: isSet(object.status) ? ackStatusFromJSON(object.status) : 0,
     };
   },
 
   toJSON(message: MessageAck): unknown {
     const obj: any = {};
-    if (message.msg_id !== "") {
-      obj.msgId = message.msg_id;
-    }
     if (message.client_id !== "") {
       obj.clientId = message.client_id;
     }
     if (message.session_id !== "") {
       obj.sessionId = message.session_id;
+    }
+    if (message.conv_key !== "") {
+      obj.convKey = message.conv_key;
     }
     if (message.status !== 0) {
       obj.status = ackStatusToJSON(message.status);
@@ -2191,16 +2214,16 @@ export const MessageAck: MessageFns<MessageAck> = {
   },
   fromPartial<I extends Exact<DeepPartial<MessageAck>, I>>(object: I): MessageAck {
     const message = createBaseMessageAck();
-    message.msg_id = object.msg_id ?? "";
     message.client_id = object.client_id ?? "";
     message.session_id = object.session_id ?? "";
+    message.conv_key = object.conv_key ?? "";
     message.status = object.status ?? 0;
     return message;
   },
 };
 
 function createBasePersistAck(): PersistAck {
-  return { msg_id: "", client_id: "", session_id: "", target: 0, ack_status: 0, timestamp: 0, seq: 0 };
+  return { msg_id: "", client_id: "", session_id: "", target: 0, ack_status: 0, timestamp: 0, seq: 0, conv_key: "" };
 }
 
 export const PersistAck: MessageFns<PersistAck> = {
@@ -2225,6 +2248,9 @@ export const PersistAck: MessageFns<PersistAck> = {
     }
     if (message.seq !== 0) {
       writer.uint32(56).uint64(message.seq);
+    }
+    if (message.conv_key !== "") {
+      writer.uint32(66).string(message.conv_key);
     }
     return writer;
   },
@@ -2292,6 +2318,14 @@ export const PersistAck: MessageFns<PersistAck> = {
           message.seq = longToNumber(reader.uint64());
           continue;
         }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.conv_key = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -2326,6 +2360,11 @@ export const PersistAck: MessageFns<PersistAck> = {
         : 0,
       timestamp: isSet(object.timestamp) ? globalThis.Number(object.timestamp) : 0,
       seq: isSet(object.seq) ? globalThis.Number(object.seq) : 0,
+      conv_key: isSet(object.convKey)
+        ? globalThis.String(object.convKey)
+        : isSet(object.conv_key)
+        ? globalThis.String(object.conv_key)
+        : "",
     };
   },
 
@@ -2352,6 +2391,9 @@ export const PersistAck: MessageFns<PersistAck> = {
     if (message.seq !== 0) {
       obj.seq = Math.round(message.seq);
     }
+    if (message.conv_key !== "") {
+      obj.convKey = message.conv_key;
+    }
     return obj;
   },
 
@@ -2367,6 +2409,7 @@ export const PersistAck: MessageFns<PersistAck> = {
     message.ack_status = object.ack_status ?? 0;
     message.timestamp = object.timestamp ?? 0;
     message.seq = object.seq ?? 0;
+    message.conv_key = object.conv_key ?? "";
     return message;
   },
 };
@@ -2651,6 +2694,7 @@ function createBaseConversation(): Conversation {
   return {
     conversation_id: "",
     type: 0,
+    conv_key: "",
     last_content: "",
     max_seq: 0,
     last_sender: 0,
@@ -2671,32 +2715,35 @@ export const Conversation: MessageFns<Conversation> = {
     if (message.type !== 0) {
       writer.uint32(16).int32(message.type);
     }
+    if (message.conv_key !== "") {
+      writer.uint32(26).string(message.conv_key);
+    }
     if (message.last_content !== "") {
-      writer.uint32(26).string(message.last_content);
+      writer.uint32(34).string(message.last_content);
     }
     if (message.max_seq !== 0) {
-      writer.uint32(32).int64(message.max_seq);
+      writer.uint32(40).int64(message.max_seq);
     }
     if (message.last_sender !== 0) {
-      writer.uint32(40).uint64(message.last_sender);
+      writer.uint32(48).uint64(message.last_sender);
     }
     if (message.last_message_time !== 0) {
-      writer.uint32(48).int64(message.last_message_time);
+      writer.uint32(56).int64(message.last_message_time);
     }
     if (message.unread_count !== 0) {
-      writer.uint32(56).int64(message.unread_count);
+      writer.uint32(64).int64(message.unread_count);
     }
     if (message.create_time !== 0) {
-      writer.uint32(64).int64(message.create_time);
+      writer.uint32(72).int64(message.create_time);
     }
     if (message.update_time !== 0) {
-      writer.uint32(72).int64(message.update_time);
+      writer.uint32(80).int64(message.update_time);
     }
     if (message.is_top !== 0) {
-      writer.uint32(80).int32(message.is_top);
+      writer.uint32(88).int32(message.is_top);
     }
     if (message.is_disturb !== 0) {
-      writer.uint32(88).int32(message.is_disturb);
+      writer.uint32(96).int32(message.is_disturb);
     }
     return writer;
   },
@@ -2729,15 +2776,15 @@ export const Conversation: MessageFns<Conversation> = {
             break;
           }
 
-          message.last_content = reader.string();
+          message.conv_key = reader.string();
           continue;
         }
         case 4: {
-          if (tag !== 32) {
+          if (tag !== 34) {
             break;
           }
 
-          message.max_seq = longToNumber(reader.int64());
+          message.last_content = reader.string();
           continue;
         }
         case 5: {
@@ -2745,7 +2792,7 @@ export const Conversation: MessageFns<Conversation> = {
             break;
           }
 
-          message.last_sender = longToNumber(reader.uint64());
+          message.max_seq = longToNumber(reader.int64());
           continue;
         }
         case 6: {
@@ -2753,7 +2800,7 @@ export const Conversation: MessageFns<Conversation> = {
             break;
           }
 
-          message.last_message_time = longToNumber(reader.int64());
+          message.last_sender = longToNumber(reader.uint64());
           continue;
         }
         case 7: {
@@ -2761,7 +2808,7 @@ export const Conversation: MessageFns<Conversation> = {
             break;
           }
 
-          message.unread_count = longToNumber(reader.int64());
+          message.last_message_time = longToNumber(reader.int64());
           continue;
         }
         case 8: {
@@ -2769,7 +2816,7 @@ export const Conversation: MessageFns<Conversation> = {
             break;
           }
 
-          message.create_time = longToNumber(reader.int64());
+          message.unread_count = longToNumber(reader.int64());
           continue;
         }
         case 9: {
@@ -2777,7 +2824,7 @@ export const Conversation: MessageFns<Conversation> = {
             break;
           }
 
-          message.update_time = longToNumber(reader.int64());
+          message.create_time = longToNumber(reader.int64());
           continue;
         }
         case 10: {
@@ -2785,11 +2832,19 @@ export const Conversation: MessageFns<Conversation> = {
             break;
           }
 
-          message.is_top = reader.int32();
+          message.update_time = longToNumber(reader.int64());
           continue;
         }
         case 11: {
           if (tag !== 88) {
+            break;
+          }
+
+          message.is_top = reader.int32();
+          continue;
+        }
+        case 12: {
+          if (tag !== 96) {
             break;
           }
 
@@ -2813,6 +2868,11 @@ export const Conversation: MessageFns<Conversation> = {
         ? globalThis.String(object.conversation_id)
         : "",
       type: isSet(object.type) ? conversationTypeFromJSON(object.type) : 0,
+      conv_key: isSet(object.convKey)
+        ? globalThis.String(object.convKey)
+        : isSet(object.conv_key)
+        ? globalThis.String(object.conv_key)
+        : "",
       last_content: isSet(object.lastContent)
         ? globalThis.String(object.lastContent)
         : isSet(object.last_content)
@@ -2869,6 +2929,9 @@ export const Conversation: MessageFns<Conversation> = {
     if (message.type !== 0) {
       obj.type = conversationTypeToJSON(message.type);
     }
+    if (message.conv_key !== "") {
+      obj.convKey = message.conv_key;
+    }
     if (message.last_content !== "") {
       obj.lastContent = message.last_content;
     }
@@ -2906,6 +2969,7 @@ export const Conversation: MessageFns<Conversation> = {
     const message = createBaseConversation();
     message.conversation_id = object.conversation_id ?? "";
     message.type = object.type ?? 0;
+    message.conv_key = object.conv_key ?? "";
     message.last_content = object.last_content ?? "";
     message.max_seq = object.max_seq ?? 0;
     message.last_sender = object.last_sender ?? 0;

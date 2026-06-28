@@ -1,24 +1,15 @@
-import { getHistory, getUserActiveConversation } from '@/src/apis/message';
+import { getHistory } from '@/src/apis/message';
 import { ApiTypes, ImTypes, PartialExcept, ResourceType, UpdateAction } from '@/src/types';
 import { MessageStatus, MessageType } from '@/src/types/proto';
 import { IChatMessage } from '@/src/types/chatMessage';
-import { useChatStore } from '@/src/store/chat';
+
 import { convertNotificationToChatMessage } from '@/src/utils/chat';
 import cacheService from './cacheService';
 import groupService from './groupService';
-import windowService from './windowService';
 import { messageStorageService } from './messageStorageService';
 
 class ChatService {
-    private normalizeCursor(cursor?: string | number): number | undefined {
-        if (typeof cursor === 'number') return Number.isNaN(cursor) ? undefined : cursor;
-        if (typeof cursor === 'string') {
-            const parsed = parseInt(cursor, 10);
-            return Number.isNaN(parsed) ? undefined : parsed;
-        }
-        return undefined;
-    }
-
+    
     private normalizeNumber(value: unknown): number {
         if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
         if (typeof value === 'string') {
@@ -211,64 +202,55 @@ class ChatService {
     /**
      * Get history messages for a session.
      * @param sessionId The session ID to fetch messages for.
-     * @param cursor The message timestamp used as an exclusive upper bound.
+     * @param beforeSeq 排他性上界，拉取 seq < beforeSeq 的消息；undefined 表示首次加载，拉取最新一页。
      * @param pageSize Number of messages to fetch.
-     * @param cursorSeq Message sequence cursor from current oldest loaded message.
      */
     async getHistoryMessages(
         sessionId: string,
-        cursor?: string | number,
+        beforeSeq?: number,
         pageSize: number = 20,
-        cursorSeq?: string | number
     ): Promise<IChatMessage[]> {
         if (!sessionId || pageSize <= 0) return [];
 
-        const beforeSeq = this.normalizeCursor(cursorSeq);
-        const beforeTime = this.normalizeCursor(cursor);
-        const upper = beforeTime !== undefined ? beforeTime - 1 : Number.MAX_SAFE_INTEGER;
-        if (upper < 0) return [];
-
-        const local = await messageStorageService.getLocalHistoryMessages(sessionId, upper, pageSize);
-
+        // 本地查询：seq < beforeSeq，只取有效的已确认消息
+        const local = await messageStorageService.getLocalHistoryMessages(
+            sessionId,
+            beforeSeq !== undefined ? beforeSeq - 1 : Number.MAX_SAFE_INTEGER,
+            pageSize
+        );
         if (local.length > 0) {
             return local;
         }
 
-        // 远程 API：与后端 FindByConversation 一致，负数表示无界
-        // 向旧消息拉取：startSeq=-1, endSeq=beforeSeq-1 → DESC
-        // 首次拉取：startSeq=-1, endSeq=-1 → DESC，取最新 limit 条
+        // 本地未命中，从远端 API 拉取
+        // beforeSeq 有值：endSeq = beforeSeq - 1；无值（首次加载）：endSeq = -1（后端取最新）
         const endSeq = beforeSeq !== undefined && beforeSeq > 0 ? beforeSeq - 1 : -1;
-        const startSeq = -1;
-        const remote = await this.fetchHistoryFromApi(sessionId, pageSize, { startSeq, endSeq });
-        if (beforeTime === undefined) {
-            return remote;
-        }
-        return remote.filter(item => this.normalizeNumber(item.sendTime) < beforeTime);
+        return this.fetchHistoryFromApi(sessionId, pageSize, { startSeq: -1, endSeq });
     }
 
-    async handleGroupNotification(wsMsg: ImTypes.WSMessage) {
-        const chatStore = useChatStore()
-        const groupNotification = ImTypes.GroupNotification.decode(wsMsg.payload)
-        chatStore.addChat(groupNotification.session_id)
-        const msg = convertNotificationToChatMessage(groupNotification)
-        chatStore.addMessage(msg)
+    async parseGroupNotification(wsMsg: ImTypes.WSMessage) {
+        const groupNotification = ImTypes.GroupNotification.decode(wsMsg.payload);
+        const msg = convertNotificationToChatMessage(groupNotification);
+
+        let shouldIncrementUnread = false;
+        let shouldPlaySound = false;
 
         switch (groupNotification.op_type) {
             case ImTypes.GroupOperationType.GROUP_OP_CREATE:
                 if (groupNotification.group_info) {
-                    await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP, [groupNotification.group_info as unknown as ImTypes.GroupInfo])
-                    await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_JOINED, [groupNotification.group_info.id])
+                    await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP, [groupNotification.group_info as unknown as ImTypes.GroupInfo]);
+                    await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_JOINED, [groupNotification.group_info.id]);
                 }
-                chatStore.incrementUnread(groupNotification.session_id)
-                windowService.playNotificationSound()
+                shouldIncrementUnread = true;
+                shouldPlaySound = true;
                 break;
             case ImTypes.GroupOperationType.GROUP_OP_DISMISS:
                 break;
             case ImTypes.GroupOperationType.GROUP_OP_JOIN:
-                let group = await groupService.fetchByIds([groupNotification.group_id])
+                let group = await groupService.fetchByIds([groupNotification.group_id]);
                 if (group.length > 0) {
                     group[0].member_count++;
-                    await cacheService.updateItems(UpdateAction.Update, ResourceType.GROUP, [group[0]])
+                    await cacheService.updateItems(UpdateAction.Update, ResourceType.GROUP, [group[0]]);
                 }
                 break;
             case ImTypes.GroupOperationType.GROUP_OP_LEAVE:
@@ -286,14 +268,15 @@ class ChatService {
             case ImTypes.GroupOperationType.UNRECOGNIZED:
                 break;
         }
+
+        return {
+            msg,
+            sessionId: msg.sessionId,
+            shouldIncrementUnread,
+            shouldPlaySound,
+        };
     }
 
-    async getOfflineActiveSessions(data: ApiTypes.message.GetUserActiveConversationsReq) {
-        let res = await getUserActiveConversation(data)
-        if (res.code === 200) {
-
-        }
-    }
 }
 
 export const chatService = new ChatService();
