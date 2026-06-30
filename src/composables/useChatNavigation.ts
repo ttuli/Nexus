@@ -1,4 +1,4 @@
-import { useConversationStore } from '@/src/store/conversation';
+import { useSessionStore } from '@/src/store/session';
 import { useMessageStore } from '@/src/store/message';
 import { ImTypes } from '@/src/types';
 import { ElMessage } from 'element-plus';
@@ -8,27 +8,27 @@ import { ElMessage } from 'element-plus';
  * 在 Vue 组件或 Service 中使用。
  */
 export function useChatNavigation() {
-    const conversationStore = useConversationStore();
+    const conversationStore = useSessionStore();
     const messageStore = useMessageStore();
 
     /**
      * 切换当前会话，并触发消息重新加载
      */
-    function navigateToChat(convKey: string, explicitType?: ImTypes.ConversationType) {
-        const oldSessionId = conversationStore.currentConvKey;
+    function navigateToChat(sessionKey: string, explicitType?: ImTypes.ConversationType) {
+        const oldSessionId = conversationStore.currentSessionKey;
 
-        conversationStore.setCurrentChat(convKey, explicitType);
+        conversationStore.setCurrentSession(sessionKey, explicitType);
 
-        if (convKey !== oldSessionId) {
+        if (sessionKey !== oldSessionId) {
             messageStore.resetMessageState();
         }
 
-        const currentChat = conversationStore.currentChat;
-        if (currentChat) {
+        const currentSession = conversationStore.currentSession;
+        if (currentSession) {
             // 确保解析出 conversation_id（如果没有会去本地/服务端拉取）
             conversationStore.resolveCurrentConversationId().then(() => {
                 // 确保仍处于该会话
-                if (conversationStore.currentConvKey === currentChat.conv_key) {
+                if (conversationStore.currentSessionKey === currentSession.conv_key) {
                     if (messageStore.messages.length === 0 && messageStore.hasMore) {
                         messageStore.loadMoreMessages();
                     }

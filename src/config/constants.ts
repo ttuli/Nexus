@@ -51,7 +51,7 @@ export const Renderer_Config = {
     /** WS消息版本 */
     get wsMessageVersion() { return getEnv('VITE_WS_VERSION') },
 
-    maxChatListCount: 40,
+    maxSessionListCount: 40,
 
     imageCompressQuality: 80,
 };

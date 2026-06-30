@@ -1,10 +1,10 @@
 <template>
-    <div class="chat-content" v-if="currentChat" @click="closeSidebar">
+    <div class="chat-content" v-if="currentSession" @click="closeSidebar">
         <!-- Header -->
         <div class="header">
             <span class="title">{{ title }}</span>
             <div class="actions">
-                <span v-if="currentChat.type === ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE" v-html="phoneIcon"
+                <span v-if="currentSession.type === ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE" v-html="phoneIcon"
                     class="icon-btn phone" title="语音通话" @click="startCall">
                 </span>
                 <div class="icon-btn" title="聊天信息" @click="toggleSidebar">⋮</div>
@@ -50,7 +50,7 @@
             </div>
 
             <!-- Chat Sidebar -->
-            <ChatSidebar :visible="sidebarVisible" :chat="currentChat" @close="sidebarVisible = false" @click.stop />
+            <ChatSidebar :visible="sidebarVisible" :chat="currentSession" @close="sidebarVisible = false" @click.stop />
 
             <ContextMenu v-model:visible="menuVisible" :x="menuX" :y="menuY" :options="menuOptions"
                 @select="handleMenuSelect" />
@@ -74,12 +74,12 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue';
 import { useVirtualizer } from '@tanstack/vue-virtual';
-import { useConversationStore } from '@/src/store/conversation';
+import { useSessionStore } from '@/src/store/session';
 import { useMessageStore } from '@/src/store/message';
 import { useUserStore } from '@/src/store/user';
 import { useGroupStore } from '@/src/store/group';
 import { storeToRefs } from 'pinia';
-import { extractTargetIdFromSessionId } from '@/src/utils/chat';
+import { extractTargetIdFromSessionId } from '@/src/utils/sessionUtils';
 import MessageBubble from '@/src/views/home/chat/components/Bubble/MessageBubble.vue';
 import SystemMessageBubble from '@/src/views/home/chat/components/Bubble/SystemMessageBubble.vue';
 import { IChatMessage, ILocalTextMessage } from '@/src/types/chatMessage';
@@ -96,12 +96,12 @@ import trashIcon from '@/src/assets/chat/trash.svg?raw'
 import { windowService, messageSendService } from '@/src/services';
 
 
-const conversationStore = useConversationStore();
+const conversationStore = useSessionStore();
 const messageStore = useMessageStore();
 const userStore = useUserStore();
 const groupStore = useGroupStore();
 
-const { currentChat, currentSessionId } = storeToRefs(conversationStore);
+const { currentSession, currentSessionId } = storeToRefs(conversationStore);
 const { messages, isLoading, hasMore } = storeToRefs(messageStore);
 
 // Sidebar Logic
@@ -181,11 +181,11 @@ const handleMenuSelect = async (option: MenuOption) => {
 // Computed
 
 const title = computed(() => {
-    if (!currentChat.value) return '';
-    const targetId = extractTargetIdFromSessionId(currentChat.value.conversation_id, userStore.getUserID());
+    if (!currentSession.value) return '';
+    const targetId = extractTargetIdFromSessionId(currentSession.value.conversation_id, userStore.getUserID());
     if (!targetId) return '';
 
-    if (currentChat.value.type === ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE) {
+    if (currentSession.value.type === ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE) {
         const friend = userStore.getFriend(targetId);
         const user = userStore.getUser(targetId);
         return friend?.remark || user?.user_name || `用户${targetId}`;
@@ -198,11 +198,11 @@ const title = computed(() => {
 const isSelf = (uid: number) => uid === userStore.userID;
 
 const chatDisableReason = computed(() => {
-    if (!currentChat.value) return '';
-    const targetId = extractTargetIdFromSessionId(currentChat.value.conversation_id, userStore.getUserID());
+    if (!currentSession.value) return '';
+    const targetId = extractTargetIdFromSessionId(currentSession.value.conversation_id, userStore.getUserID());
     if (!targetId) return '';
 
-    if (currentChat.value.type === ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE) {
+    if (currentSession.value.type === ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE) {
         if (!userStore.isFriend(targetId)) {
             return '您与对方非好友关系，无法发送消息';
         }
@@ -381,9 +381,9 @@ const handleSelectSuggestion = (text: string) => {
 };
 
 const startCall = () => {
-    if (!currentChat.value) return;
-    const targetId = extractTargetIdFromSessionId(currentChat.value.conversation_id, userStore.getUserID());
-    const targetType = currentChat.value.type === ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE ? 'private' : 'group';
+    if (!currentSession.value) return;
+    const targetId = extractTargetIdFromSessionId(currentSession.value.conversation_id, userStore.getUserID());
+    const targetType = currentSession.value.type === ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE ? 'private' : 'group';
 
     if (targetId) {
         windowService.createWindow('call', {

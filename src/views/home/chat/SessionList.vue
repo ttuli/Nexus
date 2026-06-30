@@ -1,12 +1,12 @@
 <template>
     <div class="chat-list">
         <div class="scroll-container scroll-bar-thin">
-            <ChatCard v-for="chat in chatList" :key="chat.conv_key || chat.conversation_id" :data="chat"
-                 :isActive="currentConvKey === chat.conv_key" @click="onChatClick"
+            <SessionCard v-for="chat in sessionList" :key="chat.conv_key || chat.conversation_id" :data="chat"
+                 :isActive="currentSessionKey === chat.conv_key" @click="onChatClick"
                  @contextmenu.prevent="handleContextMenu($event, chat)" />
             <ContextMenu v-model:visible="menuVisible" :x="menuX" :y="menuY" :options="menuOptions"
                  @select="handleMenuSelect" />
-            <div v-if="chatList.length === 0" class="empty-state">
+            <div v-if="sessionList.length === 0" class="empty-state">
                  <span>暂无聊天</span>
             </div>
         </div>
@@ -17,12 +17,12 @@
 import { storeToRefs } from 'pinia';
 import { onMounted, onActivated, ref, computed } from 'vue';
 
-defineOptions({ name: 'ChatList' });
+defineOptions({ name: 'SessionList' });
 import { useRouter } from 'vue-router';
-import { useConversationStore } from '@/src/store/conversation';
+import { useSessionStore } from '@/src/store/session';
 import { useMessageStore } from '@/src/store/message';
 import { useChatNavigation } from '@/src/composables/useChatNavigation';
-import ChatCard from './components/ChatCard.vue';
+import SessionCard from './components/SessionCard.vue';
 import ContextMenu, { type MenuOption } from '@/src/components/ContextMenu.vue';
 import { ImTypes } from '@/src/types';
 import { messageService } from '@/src/services';
@@ -36,9 +36,9 @@ import setmsgunread from '@/src/assets/chat/setmsgunread.svg?raw';
 import setmsgread from '@/src/assets/chat/setmsgread.svg?raw';
 
 const router = useRouter();
-const conversationStore = useConversationStore();
+const conversationStore = useSessionStore();
 const messageStore = useMessageStore();
-const { chatList, currentSessionId, currentConvKey } = storeToRefs(conversationStore);
+const { sessionList, currentSessionId, currentSessionKey } = storeToRefs(conversationStore);
 const { navigateToChat } = useChatNavigation();
 
 const onChatClick = (sessionId: string) => {
@@ -93,10 +93,10 @@ const handleMenuSelect = (option: MenuOption) => {
             conversationStore.clearUnread(chat.conv_key || chat.conversation_id);
             break;
         case 'delete':
-            conversationStore.removeChat(chat.conv_key || chat.conversation_id);
-            if (currentConvKey.value === chat.conv_key) {
+            conversationStore.removeSession(chat.conv_key || chat.conversation_id);
+            if (currentSessionKey.value === chat.conv_key) {
                 // 如果删除的是当前会话，需要清空当前会话
-                conversationStore.setCurrentChat('');
+                conversationStore.setCurrentSession('');
                 messageStore.resetMessageState();
             }
             break;

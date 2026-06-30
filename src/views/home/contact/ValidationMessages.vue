@@ -83,11 +83,9 @@ import { ref, computed, watch } from 'vue';
 
 import { useUserStore } from '@/src/store/user';
 import { useGroupStore } from '@/src/store/group';
-import { UpdateAction, ResourceType, ImTypes, ValidationType } from '@/src/types';
-import { cacheService, groupService } from '@/src/services';
-import { friendService } from '@/src/services'
+import { ImTypes, ValidationType } from '@/src/types';
+import { groupService, friendService } from '@/src/services';
 import GlobalLoading from '@/src/components/GlobalLoading/GlobalLoading';
-import { convertApplySrc2FriendSrc } from '@/src/utils/chat';
 import { useAppStore } from '@/src/store/app';
 import { ElMessage } from 'element-plus';
 

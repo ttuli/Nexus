@@ -85,7 +85,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useUserStore } from '@/src/store/user';
-import { generateSessionId } from '@/src/utils/chat';
+import { generateSessionId } from '@/src/utils/sessionUtils';
 import { useChatNavigation } from '@/src/composables/useChatNavigation';
 import MaleIcon from '@/src/assets/gender/male.svg';
 import FemaleIcon from '@/src/assets/gender/female.svg';

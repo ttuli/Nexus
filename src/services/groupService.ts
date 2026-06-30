@@ -15,9 +15,9 @@ import { useUserStore } from '@/src/store/user'
 import { updateGroup, setMemberNickname, joinGroup, createGroup, leaveGroup, handleGroupApply as apiHandleGroupApply, dismissGroup } from '@/src/apis/group'
 import { ApiTypes } from '@/src/types'
 import cacheService from './cacheService'
-import { useConversationStore } from '@/src/store/conversation'
+import { useSessionStore } from '@/src/store/session'
 import { useMessageStore } from '@/src/store/message'
-import { generateGroupSessionId } from '@/src/utils/chat'
+import { generateGroupSessionId } from '@/src/utils/sessionUtils';
 import { MessageType, MessageStatus } from '@/src/types/proto'
 import { IChatMessage } from '@/src/types/chatMessage'
 import { useRouter } from 'vue-router'
@@ -186,7 +186,7 @@ class GroupService {
             await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_JOINED, [groupInfo.id])
 
             // Add session and initial system message
-            const conversationStore = useConversationStore()
+            const conversationStore = useSessionStore()
             const messageStore = useMessageStore()
             const userStore = useUserStore()
             const sessionId = generateGroupSessionId(groupInfo.id)
@@ -211,7 +211,7 @@ class GroupService {
                 appStore.currentRoute = CurrentRoute.Chat
                 useRouter().push('/home/chat')
                 const oldSessionId = conversationStore.currentSessionId;
-                conversationStore.setCurrentChat(sessionId);
+                conversationStore.setCurrentSession(sessionId);
                 const messageStore = useMessageStore();
                 if (sessionId !== oldSessionId) {
                     messageStore.resetMessageState();

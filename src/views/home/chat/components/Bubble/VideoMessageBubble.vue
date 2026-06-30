@@ -66,7 +66,7 @@ import { CacheOptionType, ImTypes } from '@/src/types';
 import { openVideoViewer } from '@/src/utils/window';
 import { ElMessage } from 'element-plus';
 import { messageStorageService } from '@/src/services/messageStorageService';
-import { toResourceUrl } from '@/src/utils/chat';
+import { toResourceUrl } from '@/src/utils/resourceUrl';
 import { fileService } from '@/src/services/fileService';
 import { messageSendService } from '@/src/services';
 

@@ -73,7 +73,7 @@ export function convertWSMessageToIChatMessage(wsMsg: ImTypes.WSMessage): IChatM
     const commonFields = {
         msgId: base.msg_id || '',
         sessionId: base.session_id || base.conv_key || '',
-        convKey: base.conv_key || '',
+        sessionKey: base.conv_key || '',
         fromUserId: base.from_user_id || 0,
         target: base.target || 0,
         sendTime: base.send_time || 0,
@@ -159,7 +159,7 @@ export function convertWSMessageToIChatMessage(wsMsg: ImTypes.WSMessage): IChatM
  * 将群组操作通知转换为本地系统消息格式
  */
 export function convertNotificationToChatMessage(notification: ImTypes.GroupNotification): IChatMessage {
-    const convKey = String(notification.group_id);
+    const sessionKey = String(notification.group_id);
     const chatMsg: ILocalSystemMessage = {
         type: ImTypes.MessageType.GROUP_OP_NOTIFICATION,
         opType: notification.op_type,
@@ -168,8 +168,8 @@ export function convertNotificationToChatMessage(notification: ImTypes.GroupNoti
         reason: notification.reason,
 
         msgId: notification.msg_id,
-        sessionId: notification.session_id || convKey,
-        convKey: convKey,
+        sessionId: notification.session_id || sessionKey,
+        sessionKey: sessionKey,
         sendTime: notification.op_time,
         fromUserId: notification.operator_id,
         seq: 0,

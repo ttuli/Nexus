@@ -80,7 +80,7 @@ import AvatarUpload from '@/src/components/AvatarUpload.vue';
 import CusButton from '@/src/components/CusButton.vue';
 import GroupMemberGrid from './components/GroupMemberGrid.vue';
 import { useUserStore } from '@/src/store/user';
-import { generateGroupSessionId } from '@/src/utils/chat';
+import { generateGroupSessionId } from '@/src/utils/sessionUtils';
 import { useGroupStore } from '@/src/store/group';
 import { useChatNavigation } from '@/src/composables/useChatNavigation';
 import { ElMessage } from 'element-plus';

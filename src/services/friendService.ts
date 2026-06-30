@@ -6,12 +6,13 @@ import { ImTypes, ResourceType, UpdateAction } from '@/src/types';
 
 import { ipcService } from './ipcService'
 import { useUserStore } from '@/src/store/user'
-import { useConversationStore } from '@/src/store/conversation'
+import { useSessionStore } from '@/src/store/session'
 import { IpcChannels } from '@/src/types'
 import { applyFriend, deleteFriend, handleFriendApply, updateFriendInfo } from '@/src/apis/user'
 import { ApiTypes } from '@/src/types'
 import cacheService from './cacheService';
-import { generateSessionId, convertApplySrc2FriendSrc } from '@/src/utils/chat';
+import { generateSessionId } from '@/src/utils/sessionUtils';
+import { convertApplySrc2FriendSrc } from '@/src/utils/messageConverter';
 
 class FriendService {
     /**
@@ -70,13 +71,13 @@ class FriendService {
         if (res.data.friend) {
             const conversationId = res.data.conversation_id;
             const friend = res.data.friend;
-            const convKey = generateSessionId(friend.user_id, friend.friend_id);
+            const sessionKey = generateSessionId(friend.user_id, friend.friend_id);
             
-            const store = useConversationStore();
-            const existing = store.getChat(conversationId || convKey);
-            store.upsertConversation({
+            const store = useSessionStore();
+            const existing = store.getSession(conversationId || sessionKey);
+            store.upsertSession({
                 conversation_id: conversationId || existing?.conversation_id || '',
-                conv_key: convKey,
+                conv_key: sessionKey,
                 type: ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE,
                 max_seq: existing?.max_seq || 0,
                 update_time: existing?.update_time || Date.now(),
@@ -129,13 +130,13 @@ class FriendService {
         if (res.data.conversation_id && res.data.data) {
             const req = res.data.data;
             const conversationId = res.data.conversation_id;
-            const convKey = generateSessionId(req.from_user_id, req.to_user_id);
+            const sessionKey = generateSessionId(req.from_user_id, req.to_user_id);
             
-            const store = useConversationStore();
-            const existing = store.getChat(conversationId || convKey);
-            store.upsertConversation({
+            const store = useSessionStore();
+            const existing = store.getSession(conversationId || sessionKey);
+            store.upsertSession({
                 conversation_id: conversationId || existing?.conversation_id || '',
-                conv_key: convKey,
+                conv_key: sessionKey,
                 type: ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE,
                 max_seq: existing?.max_seq || 0,
                 update_time: existing?.update_time || Date.now(),

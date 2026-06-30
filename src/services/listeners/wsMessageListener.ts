@@ -8,16 +8,16 @@ import { ipcService } from '../ipcService'
 import { useAppStore } from '@/src/store/app'
 import { IpcChannels, ImTypes, CurrentRoute } from '@/src/types'
 import { ElMessage } from 'element-plus'
-import { useConversationStore } from '@/src/store/conversation'
+import { useSessionStore } from '@/src/store/session'
 import { useMessageStore } from '@/src/store/message'
-import { convertWSMessageToIChatMessage, checkAndClearInvalidLocalPath } from '@/src/utils/chat'
+import { convertWSMessageToIChatMessage, checkAndClearInvalidLocalPath } from '@/src/utils/messageConverter';
 import windowService from '../windowService'
 import { fileService } from '../fileService'
 
 export function initWsMessageListener(): void {
     // 新消息到达
     ipcService.on(IpcChannels.WS_MESSAGE, async (_event, data: { type: ImTypes.MessageType; payload: any }) => {
-        const conversationStore = useConversationStore()
+        const conversationStore = useSessionStore()
         const messageStore = useMessageStore()
         const appStore = useAppStore()
 
@@ -34,12 +34,12 @@ export function initWsMessageListener(): void {
             messageStore.updateFileLocalPath(sessionId, clientId, msgId, localPath)
         })
 
-        const isCurrentChat = (chatMsg.convKey && chatMsg.convKey === conversationStore.currentConvKey) ||
+        const isCurrentChat = (chatMsg.sessionKey && chatMsg.sessionKey === conversationStore.currentSessionKey) ||
                               (chatMsg.sessionId === conversationStore.currentSessionId);
 
         if (!isCurrentChat || !await windowService.isFocused() || appStore.currentRoute !== CurrentRoute.Chat) {
             conversationStore.incrementUnread(chatMsg.sessionId)
-            if (conversationStore.currentChat?.is_disturb !== 2)
+            if (conversationStore.currentSession?.is_disturb !== 2)
                 windowService.playNotificationSound()
         }
 
@@ -59,15 +59,15 @@ export function initWsMessageListener(): void {
 
     ipcService.on(IpcChannels.WS_MESSAGE_PERSIST_ACK, async (_event, data: { ack: ImTypes.PersistAck; timestamp: number }) => {
         const messageStore = useMessageStore()
-        const conversationStore = useConversationStore()
+        const conversationStore = useSessionStore()
         console.log('[WsMessageListener] Received PersistAck:', data)
 
         if (data.ack.session_id && data.ack.conv_key) {
-            const chat = conversationStore.getChat(data.ack.conv_key);
+            const chat = conversationStore.getSession(data.ack.conv_key);
             if (chat && !chat.conversation_id) {
                 chat.conversation_id = data.ack.session_id;
                 void conversationStore.saveToStorage();
-                if (conversationStore.currentConvKey === data.ack.conv_key) {
+                if (conversationStore.currentSessionKey === data.ack.conv_key) {
                     conversationStore.currentSessionId = data.ack.session_id;
                 }
             }

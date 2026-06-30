@@ -9,9 +9,10 @@ import { useUserStore } from '@/src/store/user'
 import { useGroupStore } from '@/src/store/group'
 import { useAppStore } from '@/src/store/app'
 import { ResourceType, IpcChannels, UpdateAction, ImTypes, ValidationType, CurrentRoute } from '@/src/types'
-import { useConversationStore } from '@/src/store/conversation'
+import { useSessionStore } from '@/src/store/session'
 import { useMessageStore } from '@/src/store/message'
-import { convertApplySrc2FriendSrc, generateGroupSessionId, generateSessionId } from '@/src/utils/chat'
+import { generateGroupSessionId, generateSessionId } from '@/src/utils/sessionUtils';
+import { convertApplySrc2FriendSrc } from '@/src/utils/messageConverter';
 import windowService from '../windowService'
 import cacheService from '../cacheService'
 import groupService from '../groupService'
@@ -20,7 +21,7 @@ import { chatService } from '../chatService'
 export function initWsNotificationListener(): void {
     ipcService.on(IpcChannels.WS_NOTIFICATION, async (_event, data: { type: ImTypes.MessageType; payload: ImTypes.WSMessage }) => {
         const userStore = useUserStore()
-        const conversationStore = useConversationStore()
+        const conversationStore = useSessionStore()
         const messageStore = useMessageStore()
         const groupStore = useGroupStore()
         const appStore = useAppStore()

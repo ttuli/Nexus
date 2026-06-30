@@ -3,6 +3,8 @@
  * 负责生成和解析私聊/群聊的 sessionId / conv_key
  */
 
+import { ImTypes } from "../types";
+
 /**
  * 生成单聊会话ID
  * 规则: smaller_uid_larger_uid
@@ -51,4 +53,11 @@ export function extractTargetIdFromSessionId(sessionId: string, currentUserId: n
     }
 
     return null;
+}
+
+export function judgeSessionType(sessionKey: string): ImTypes.SessionType {
+    if (sessionKey.includes('_')) {
+        return ImTypes.SessionType.SESSION_TYPE_PRIVATE;
+    }
+    return ImTypes.SessionType.SESSION_TYPE_GROUP;
 }

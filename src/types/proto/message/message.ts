@@ -201,36 +201,36 @@ export function ackStatusToJSON(object: AckStatus): string {
   }
 }
 
-export enum ConversationType {
-  /** CONVERSATION_TYPE_PRIVATE - 私聊 */
-  CONVERSATION_TYPE_PRIVATE = 0,
-  /** CONVERSATION_TYPE_GROUP - 群聊 */
-  CONVERSATION_TYPE_GROUP = 1,
+export enum SessionType {
+  /** SESSION_TYPE_PRIVATE - 私聊 */
+  SESSION_TYPE_PRIVATE = 0,
+  /** SESSION_TYPE_GROUP - 群聊 */
+  SESSION_TYPE_GROUP = 1,
   UNRECOGNIZED = -1,
 }
 
-export function conversationTypeFromJSON(object: any): ConversationType {
+export function sessionTypeFromJSON(object: any): SessionType {
   switch (object) {
     case 0:
-    case "CONVERSATION_TYPE_PRIVATE":
-      return ConversationType.CONVERSATION_TYPE_PRIVATE;
+    case "SESSION_TYPE_PRIVATE":
+      return SessionType.SESSION_TYPE_PRIVATE;
     case 1:
-    case "CONVERSATION_TYPE_GROUP":
-      return ConversationType.CONVERSATION_TYPE_GROUP;
+    case "SESSION_TYPE_GROUP":
+      return SessionType.SESSION_TYPE_GROUP;
     case -1:
     case "UNRECOGNIZED":
     default:
-      return ConversationType.UNRECOGNIZED;
+      return SessionType.UNRECOGNIZED;
   }
 }
 
-export function conversationTypeToJSON(object: ConversationType): string {
+export function sessionTypeToJSON(object: SessionType): string {
   switch (object) {
-    case ConversationType.CONVERSATION_TYPE_PRIVATE:
-      return "CONVERSATION_TYPE_PRIVATE";
-    case ConversationType.CONVERSATION_TYPE_GROUP:
-      return "CONVERSATION_TYPE_GROUP";
-    case ConversationType.UNRECOGNIZED:
+    case SessionType.SESSION_TYPE_PRIVATE:
+      return "SESSION_TYPE_PRIVATE";
+    case SessionType.SESSION_TYPE_GROUP:
+      return "SESSION_TYPE_GROUP";
+    case SessionType.UNRECOGNIZED:
     default:
       return "UNRECOGNIZED";
   }
@@ -291,12 +291,13 @@ export interface BaseMessage {
   msg_id: string;
   /** 客户端ID */
   client_id: string;
-  /** 会话ID */
+  /** 会话ID (服务端持久化 ID) */
   session_id: string;
-  conv_key: string;
+  /** 本地会话 Key (如 "uid1_uid2" 或 groupId) */
+  session_key: string;
   /** 发送者ID */
   from_user_id: number;
-  /** 目标ID (私聊=to_user_id, 群聊=group_id, 与ConversationType配套使用) */
+  /** 目标ID (私聊=to_user_id, 群聊=group_id, 与SessionType配套使用) */
   target: number;
   /** 发送时间 */
   send_time: number;
@@ -451,7 +452,8 @@ export interface MessageAck {
   client_id: string;
   /** 会话ID */
   session_id: string;
-  conv_key: string;
+  /** 本地会话 Key */
+  session_key: string;
   /** 确认状态 */
   status: AckStatus;
 }
@@ -471,7 +473,8 @@ export interface PersistAck {
   timestamp: number;
   /** 消息序号 */
   seq: number;
-  conv_key: string;
+  /** 本地会话 Key */
+  session_key: string;
 }
 
 /** 消息已读 */
@@ -479,7 +482,7 @@ export interface MessageRead {
   /** 用户ID */
   user_id: number;
   /** 会话ID */
-  conversation_id: string;
+  session_id: string;
   /** 已读消息ID列表 */
   msg_ids: number[];
   /** 已读时间 */
@@ -493,19 +496,20 @@ export interface MessageRecall {
   /** 撤回者ID */
   user_id: number;
   /** 会话ID */
-  conversation_id: string;
+  session_id: string;
   /** 撤回时间 */
   recall_time: number;
   /** 撤回原因 */
   reason: string;
 }
 
-export interface Conversation {
-  /** 会话ID */
-  conversation_id: string;
+export interface Session {
+  /** 会话ID (服务端持久化 ID) */
+  session_id: string;
   /** 会话类型 */
-  type: ConversationType;
-  conv_key: string;
+  type: SessionType;
+  /** 本地会话 Key */
+  session_key: string;
   /** 最后一条消息摘要文本 */
   last_content: string;
   max_seq: number;
@@ -550,7 +554,7 @@ function createBaseBaseMessage(): BaseMessage {
     msg_id: "",
     client_id: "",
     session_id: "",
-    conv_key: "",
+    session_key: "",
     from_user_id: 0,
     target: 0,
     send_time: 0,
@@ -571,8 +575,8 @@ export const BaseMessage: MessageFns<BaseMessage> = {
     if (message.session_id !== "") {
       writer.uint32(26).string(message.session_id);
     }
-    if (message.conv_key !== "") {
-      writer.uint32(34).string(message.conv_key);
+    if (message.session_key !== "") {
+      writer.uint32(34).string(message.session_key);
     }
     if (message.from_user_id !== 0) {
       writer.uint32(40).uint64(message.from_user_id);
@@ -631,7 +635,7 @@ export const BaseMessage: MessageFns<BaseMessage> = {
             break;
           }
 
-          message.conv_key = reader.string();
+          message.session_key = reader.string();
           continue;
         }
         case 5: {
@@ -711,10 +715,10 @@ export const BaseMessage: MessageFns<BaseMessage> = {
         : isSet(object.session_id)
         ? globalThis.String(object.session_id)
         : "",
-      conv_key: isSet(object.convKey)
-        ? globalThis.String(object.convKey)
-        : isSet(object.conv_key)
-        ? globalThis.String(object.conv_key)
+      session_key: isSet(object.sessionKey)
+        ? globalThis.String(object.sessionKey)
+        : isSet(object.session_key)
+        ? globalThis.String(object.session_key)
         : "",
       from_user_id: isSet(object.fromUserId)
         ? globalThis.Number(object.fromUserId)
@@ -756,8 +760,8 @@ export const BaseMessage: MessageFns<BaseMessage> = {
     if (message.session_id !== "") {
       obj.sessionId = message.session_id;
     }
-    if (message.conv_key !== "") {
-      obj.convKey = message.conv_key;
+    if (message.session_key !== "") {
+      obj.sessionKey = message.session_key;
     }
     if (message.from_user_id !== 0) {
       obj.fromUserId = Math.round(message.from_user_id);
@@ -794,7 +798,7 @@ export const BaseMessage: MessageFns<BaseMessage> = {
     message.msg_id = object.msg_id ?? "";
     message.client_id = object.client_id ?? "";
     message.session_id = object.session_id ?? "";
-    message.conv_key = object.conv_key ?? "";
+    message.session_key = object.session_key ?? "";
     message.from_user_id = object.from_user_id ?? 0;
     message.target = object.target ?? 0;
     message.send_time = object.send_time ?? 0;
@@ -2103,7 +2107,7 @@ export const CustomMessage: MessageFns<CustomMessage> = {
 };
 
 function createBaseMessageAck(): MessageAck {
-  return { client_id: "", session_id: "", conv_key: "", status: 0 };
+  return { client_id: "", session_id: "", session_key: "", status: 0 };
 }
 
 export const MessageAck: MessageFns<MessageAck> = {
@@ -2114,8 +2118,8 @@ export const MessageAck: MessageFns<MessageAck> = {
     if (message.session_id !== "") {
       writer.uint32(18).string(message.session_id);
     }
-    if (message.conv_key !== "") {
-      writer.uint32(26).string(message.conv_key);
+    if (message.session_key !== "") {
+      writer.uint32(26).string(message.session_key);
     }
     if (message.status !== 0) {
       writer.uint32(32).int32(message.status);
@@ -2151,7 +2155,7 @@ export const MessageAck: MessageFns<MessageAck> = {
             break;
           }
 
-          message.conv_key = reader.string();
+          message.session_key = reader.string();
           continue;
         }
         case 4: {
@@ -2183,10 +2187,10 @@ export const MessageAck: MessageFns<MessageAck> = {
         : isSet(object.session_id)
         ? globalThis.String(object.session_id)
         : "",
-      conv_key: isSet(object.convKey)
-        ? globalThis.String(object.convKey)
-        : isSet(object.conv_key)
-        ? globalThis.String(object.conv_key)
+      session_key: isSet(object.sessionKey)
+        ? globalThis.String(object.sessionKey)
+        : isSet(object.session_key)
+        ? globalThis.String(object.session_key)
         : "",
       status: isSet(object.status) ? ackStatusFromJSON(object.status) : 0,
     };
@@ -2200,8 +2204,8 @@ export const MessageAck: MessageFns<MessageAck> = {
     if (message.session_id !== "") {
       obj.sessionId = message.session_id;
     }
-    if (message.conv_key !== "") {
-      obj.convKey = message.conv_key;
+    if (message.session_key !== "") {
+      obj.sessionKey = message.session_key;
     }
     if (message.status !== 0) {
       obj.status = ackStatusToJSON(message.status);
@@ -2216,14 +2220,14 @@ export const MessageAck: MessageFns<MessageAck> = {
     const message = createBaseMessageAck();
     message.client_id = object.client_id ?? "";
     message.session_id = object.session_id ?? "";
-    message.conv_key = object.conv_key ?? "";
+    message.session_key = object.session_key ?? "";
     message.status = object.status ?? 0;
     return message;
   },
 };
 
 function createBasePersistAck(): PersistAck {
-  return { msg_id: "", client_id: "", session_id: "", target: 0, ack_status: 0, timestamp: 0, seq: 0, conv_key: "" };
+  return { msg_id: "", client_id: "", session_id: "", target: 0, ack_status: 0, timestamp: 0, seq: 0, session_key: "" };
 }
 
 export const PersistAck: MessageFns<PersistAck> = {
@@ -2249,8 +2253,8 @@ export const PersistAck: MessageFns<PersistAck> = {
     if (message.seq !== 0) {
       writer.uint32(56).uint64(message.seq);
     }
-    if (message.conv_key !== "") {
-      writer.uint32(66).string(message.conv_key);
+    if (message.session_key !== "") {
+      writer.uint32(66).string(message.session_key);
     }
     return writer;
   },
@@ -2323,7 +2327,7 @@ export const PersistAck: MessageFns<PersistAck> = {
             break;
           }
 
-          message.conv_key = reader.string();
+          message.session_key = reader.string();
           continue;
         }
       }
@@ -2360,10 +2364,10 @@ export const PersistAck: MessageFns<PersistAck> = {
         : 0,
       timestamp: isSet(object.timestamp) ? globalThis.Number(object.timestamp) : 0,
       seq: isSet(object.seq) ? globalThis.Number(object.seq) : 0,
-      conv_key: isSet(object.convKey)
-        ? globalThis.String(object.convKey)
-        : isSet(object.conv_key)
-        ? globalThis.String(object.conv_key)
+      session_key: isSet(object.sessionKey)
+        ? globalThis.String(object.sessionKey)
+        : isSet(object.session_key)
+        ? globalThis.String(object.session_key)
         : "",
     };
   },
@@ -2391,8 +2395,8 @@ export const PersistAck: MessageFns<PersistAck> = {
     if (message.seq !== 0) {
       obj.seq = Math.round(message.seq);
     }
-    if (message.conv_key !== "") {
-      obj.convKey = message.conv_key;
+    if (message.session_key !== "") {
+      obj.sessionKey = message.session_key;
     }
     return obj;
   },
@@ -2409,13 +2413,13 @@ export const PersistAck: MessageFns<PersistAck> = {
     message.ack_status = object.ack_status ?? 0;
     message.timestamp = object.timestamp ?? 0;
     message.seq = object.seq ?? 0;
-    message.conv_key = object.conv_key ?? "";
+    message.session_key = object.session_key ?? "";
     return message;
   },
 };
 
 function createBaseMessageRead(): MessageRead {
-  return { user_id: 0, conversation_id: "", msg_ids: [], read_time: 0 };
+  return { user_id: 0, session_id: "", msg_ids: [], read_time: 0 };
 }
 
 export const MessageRead: MessageFns<MessageRead> = {
@@ -2423,8 +2427,8 @@ export const MessageRead: MessageFns<MessageRead> = {
     if (message.user_id !== 0) {
       writer.uint32(8).uint64(message.user_id);
     }
-    if (message.conversation_id !== "") {
-      writer.uint32(18).string(message.conversation_id);
+    if (message.session_id !== "") {
+      writer.uint32(18).string(message.session_id);
     }
     writer.uint32(26).fork();
     for (const v of message.msg_ids) {
@@ -2457,7 +2461,7 @@ export const MessageRead: MessageFns<MessageRead> = {
             break;
           }
 
-          message.conversation_id = reader.string();
+          message.session_id = reader.string();
           continue;
         }
         case 3: {
@@ -2502,10 +2506,10 @@ export const MessageRead: MessageFns<MessageRead> = {
         : isSet(object.user_id)
         ? globalThis.Number(object.user_id)
         : 0,
-      conversation_id: isSet(object.conversationId)
-        ? globalThis.String(object.conversationId)
-        : isSet(object.conversation_id)
-        ? globalThis.String(object.conversation_id)
+      session_id: isSet(object.sessionId)
+        ? globalThis.String(object.sessionId)
+        : isSet(object.session_id)
+        ? globalThis.String(object.session_id)
         : "",
       msg_ids: globalThis.Array.isArray(object?.msgIds)
         ? object.msgIds.map((e: any) => globalThis.Number(e))
@@ -2525,8 +2529,8 @@ export const MessageRead: MessageFns<MessageRead> = {
     if (message.user_id !== 0) {
       obj.userId = Math.round(message.user_id);
     }
-    if (message.conversation_id !== "") {
-      obj.conversationId = message.conversation_id;
+    if (message.session_id !== "") {
+      obj.sessionId = message.session_id;
     }
     if (message.msg_ids?.length) {
       obj.msgIds = message.msg_ids.map((e) => Math.round(e));
@@ -2543,7 +2547,7 @@ export const MessageRead: MessageFns<MessageRead> = {
   fromPartial<I extends Exact<DeepPartial<MessageRead>, I>>(object: I): MessageRead {
     const message = createBaseMessageRead();
     message.user_id = object.user_id ?? 0;
-    message.conversation_id = object.conversation_id ?? "";
+    message.session_id = object.session_id ?? "";
     message.msg_ids = object.msg_ids?.map((e) => e) || [];
     message.read_time = object.read_time ?? 0;
     return message;
@@ -2551,7 +2555,7 @@ export const MessageRead: MessageFns<MessageRead> = {
 };
 
 function createBaseMessageRecall(): MessageRecall {
-  return { msg_id: "", user_id: 0, conversation_id: "", recall_time: 0, reason: "" };
+  return { msg_id: "", user_id: 0, session_id: "", recall_time: 0, reason: "" };
 }
 
 export const MessageRecall: MessageFns<MessageRecall> = {
@@ -2562,8 +2566,8 @@ export const MessageRecall: MessageFns<MessageRecall> = {
     if (message.user_id !== 0) {
       writer.uint32(16).uint64(message.user_id);
     }
-    if (message.conversation_id !== "") {
-      writer.uint32(26).string(message.conversation_id);
+    if (message.session_id !== "") {
+      writer.uint32(26).string(message.session_id);
     }
     if (message.recall_time !== 0) {
       writer.uint32(32).int64(message.recall_time);
@@ -2602,7 +2606,7 @@ export const MessageRecall: MessageFns<MessageRecall> = {
             break;
           }
 
-          message.conversation_id = reader.string();
+          message.session_id = reader.string();
           continue;
         }
         case 4: {
@@ -2642,10 +2646,10 @@ export const MessageRecall: MessageFns<MessageRecall> = {
         : isSet(object.user_id)
         ? globalThis.Number(object.user_id)
         : 0,
-      conversation_id: isSet(object.conversationId)
-        ? globalThis.String(object.conversationId)
-        : isSet(object.conversation_id)
-        ? globalThis.String(object.conversation_id)
+      session_id: isSet(object.sessionId)
+        ? globalThis.String(object.sessionId)
+        : isSet(object.session_id)
+        ? globalThis.String(object.session_id)
         : "",
       recall_time: isSet(object.recallTime)
         ? globalThis.Number(object.recallTime)
@@ -2664,8 +2668,8 @@ export const MessageRecall: MessageFns<MessageRecall> = {
     if (message.user_id !== 0) {
       obj.userId = Math.round(message.user_id);
     }
-    if (message.conversation_id !== "") {
-      obj.conversationId = message.conversation_id;
+    if (message.session_id !== "") {
+      obj.sessionId = message.session_id;
     }
     if (message.recall_time !== 0) {
       obj.recallTime = Math.round(message.recall_time);
@@ -2683,18 +2687,18 @@ export const MessageRecall: MessageFns<MessageRecall> = {
     const message = createBaseMessageRecall();
     message.msg_id = object.msg_id ?? "";
     message.user_id = object.user_id ?? 0;
-    message.conversation_id = object.conversation_id ?? "";
+    message.session_id = object.session_id ?? "";
     message.recall_time = object.recall_time ?? 0;
     message.reason = object.reason ?? "";
     return message;
   },
 };
 
-function createBaseConversation(): Conversation {
+function createBaseSession(): Session {
   return {
-    conversation_id: "",
+    session_id: "",
     type: 0,
-    conv_key: "",
+    session_key: "",
     last_content: "",
     max_seq: 0,
     last_sender: 0,
@@ -2707,16 +2711,16 @@ function createBaseConversation(): Conversation {
   };
 }
 
-export const Conversation: MessageFns<Conversation> = {
-  encode(message: Conversation, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.conversation_id !== "") {
-      writer.uint32(10).string(message.conversation_id);
+export const Session: MessageFns<Session> = {
+  encode(message: Session, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.session_id !== "") {
+      writer.uint32(10).string(message.session_id);
     }
     if (message.type !== 0) {
       writer.uint32(16).int32(message.type);
     }
-    if (message.conv_key !== "") {
-      writer.uint32(26).string(message.conv_key);
+    if (message.session_key !== "") {
+      writer.uint32(26).string(message.session_key);
     }
     if (message.last_content !== "") {
       writer.uint32(34).string(message.last_content);
@@ -2748,10 +2752,10 @@ export const Conversation: MessageFns<Conversation> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Conversation {
+  decode(input: BinaryReader | Uint8Array, length?: number): Session {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConversation();
+    const message = createBaseSession();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -2760,7 +2764,7 @@ export const Conversation: MessageFns<Conversation> = {
             break;
           }
 
-          message.conversation_id = reader.string();
+          message.session_id = reader.string();
           continue;
         }
         case 2: {
@@ -2776,7 +2780,7 @@ export const Conversation: MessageFns<Conversation> = {
             break;
           }
 
-          message.conv_key = reader.string();
+          message.session_key = reader.string();
           continue;
         }
         case 4: {
@@ -2860,18 +2864,18 @@ export const Conversation: MessageFns<Conversation> = {
     return message;
   },
 
-  fromJSON(object: any): Conversation {
+  fromJSON(object: any): Session {
     return {
-      conversation_id: isSet(object.conversationId)
-        ? globalThis.String(object.conversationId)
-        : isSet(object.conversation_id)
-        ? globalThis.String(object.conversation_id)
+      session_id: isSet(object.sessionId)
+        ? globalThis.String(object.sessionId)
+        : isSet(object.session_id)
+        ? globalThis.String(object.session_id)
         : "",
-      type: isSet(object.type) ? conversationTypeFromJSON(object.type) : 0,
-      conv_key: isSet(object.convKey)
-        ? globalThis.String(object.convKey)
-        : isSet(object.conv_key)
-        ? globalThis.String(object.conv_key)
+      type: isSet(object.type) ? sessionTypeFromJSON(object.type) : 0,
+      session_key: isSet(object.sessionKey)
+        ? globalThis.String(object.sessionKey)
+        : isSet(object.session_key)
+        ? globalThis.String(object.session_key)
         : "",
       last_content: isSet(object.lastContent)
         ? globalThis.String(object.lastContent)
@@ -2921,16 +2925,16 @@ export const Conversation: MessageFns<Conversation> = {
     };
   },
 
-  toJSON(message: Conversation): unknown {
+  toJSON(message: Session): unknown {
     const obj: any = {};
-    if (message.conversation_id !== "") {
-      obj.conversationId = message.conversation_id;
+    if (message.session_id !== "") {
+      obj.sessionId = message.session_id;
     }
     if (message.type !== 0) {
-      obj.type = conversationTypeToJSON(message.type);
+      obj.type = sessionTypeToJSON(message.type);
     }
-    if (message.conv_key !== "") {
-      obj.convKey = message.conv_key;
+    if (message.session_key !== "") {
+      obj.sessionKey = message.session_key;
     }
     if (message.last_content !== "") {
       obj.lastContent = message.last_content;
@@ -2962,14 +2966,14 @@ export const Conversation: MessageFns<Conversation> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<Conversation>, I>>(base?: I): Conversation {
-    return Conversation.fromPartial(base ?? ({} as any));
+  create<I extends Exact<DeepPartial<Session>, I>>(base?: I): Session {
+    return Session.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<Conversation>, I>>(object: I): Conversation {
-    const message = createBaseConversation();
-    message.conversation_id = object.conversation_id ?? "";
+  fromPartial<I extends Exact<DeepPartial<Session>, I>>(object: I): Session {
+    const message = createBaseSession();
+    message.session_id = object.session_id ?? "";
     message.type = object.type ?? 0;
-    message.conv_key = object.conv_key ?? "";
+    message.session_key = object.session_key ?? "";
     message.last_content = object.last_content ?? "";
     message.max_seq = object.max_seq ?? 0;
     message.last_sender = object.last_sender ?? 0;

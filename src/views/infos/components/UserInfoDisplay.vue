@@ -72,7 +72,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useUserStore } from '@/src/store/user';
-import { generateSessionId } from '@/src/utils/chat';
+import { generateSessionId } from '@/src/utils/sessionUtils';
 import { useChatNavigation } from '@/src/composables/useChatNavigation';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';

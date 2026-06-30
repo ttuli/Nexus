@@ -3,7 +3,7 @@ import { ApiTypes, ImTypes, PartialExcept, ResourceType, UpdateAction } from '@/
 import { MessageStatus, MessageType } from '@/src/types/proto';
 import { IChatMessage } from '@/src/types/chatMessage';
 
-import { convertNotificationToChatMessage } from '@/src/utils/chat';
+import { convertNotificationToChatMessage } from '@/src/utils/messageConverter';
 import cacheService from './cacheService';
 import groupService from './groupService';
 import { messageStorageService } from './messageStorageService';

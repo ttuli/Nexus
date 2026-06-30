@@ -53,11 +53,11 @@ import CusSwitch from '@/src/components/CusSwitch.vue';
 import CusDialog from '@/src/components/CusDialog/CusDialog';
 import { DialogResult } from '@/src/components/CusDialog/types';
 import { useUserStore } from '@/src/store/user';
-import { useConversationStore } from '@/src/store/conversation';
+import { useSessionStore } from '@/src/store/session';
 import { useMessageStore } from '@/src/store/message';
 import { ImTypes } from '@/src/types';
 import { ElMessage } from 'element-plus';
-import { extractTargetIdFromSessionId } from '@/src/utils/chat';
+import { extractTargetIdFromSessionId } from '@/src/utils/sessionUtils';
 import { Edit } from '@element-plus/icons-vue';
 import { friendService, messageService } from '@/src/services';
 import { messageStorageService } from '@/src/services/messageStorageService';
@@ -69,7 +69,7 @@ const props = defineProps<{
 const emit = defineEmits(['close']);
 
 const userStore = useUserStore();
-const conversationStore = useConversationStore();
+const conversationStore = useSessionStore();
 const messageStore = useMessageStore();
 
 const targetId = computed(() => extractTargetIdFromSessionId(props.chat.conversation_id, userStore.getUserID()));
@@ -147,7 +147,7 @@ const clearChatData = async () => {
     });
 
     if (res === DialogResult.Confirm) {
-        if (conversationStore.currentConvKey === props.chat.conv_key) {
+        if (conversationStore.currentSessionKey === props.chat.conv_key) {
             messageStore.messages = [];
         }
 

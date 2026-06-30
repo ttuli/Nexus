@@ -1,19 +1,19 @@
 import { dbBridge } from './dbWorkerBridge';
 import type { ImTypes } from '@/src/types';
 
-class ConversationStore {
+class SessionStore {
     /**
      * 获取所有会话列表
      */
-    async getAll(): Promise<(ImTypes.Conversation & { is_in_list?: number })[]> {
+    async getAll(): Promise<(ImTypes.Session & { is_in_list?: number })[]> {
         const rows = await dbBridge.query<any>(
             'user',
-            'SELECT conversation_id, type, conv_key, max_seq, last_sender, last_content, last_message_time, unread_count, is_top, is_disturb, create_time, update_time, is_in_list FROM conversations'
+            'SELECT session_id, type, session_key, max_seq, last_sender, last_content, last_message_time, unread_count, is_top, is_disturb, create_time, update_time, is_in_list FROM conversations'
         );
         return rows.map(r => ({
-            conversation_id: r.conversation_id,
+            session_id: r.session_id,
             type: r.type,
-            conv_key: r.conv_key || '',
+            session_key: r.session_key || '',
             max_seq: r.max_seq,
             last_sender: r.last_sender,
             last_content: r.last_content,
@@ -30,17 +30,17 @@ class ConversationStore {
     /**
      * 获取单个会话
      */
-    async get(keyOrId: string): Promise<(ImTypes.Conversation & { is_in_list?: number }) | null> {
+    async get(keyOrId: string): Promise<(ImTypes.Session & { is_in_list?: number }) | null> {
         const row = await dbBridge.get<any>(
             'user',
-            'SELECT conversation_id, type, conv_key, max_seq, last_sender, last_content, last_message_time, unread_count, is_top, is_disturb, create_time, update_time, is_in_list FROM conversations WHERE conv_key = ? OR conversation_id = ?',
+            'SELECT session_id, type, session_key, max_seq, last_sender, last_content, last_message_time, unread_count, is_top, is_disturb, create_time, update_time, is_in_list FROM conversations WHERE conv_key = ? OR conversation_id = ?',
             [keyOrId, keyOrId]
         );
         if (!row) return null;
         return {
-            conversation_id: row.conversation_id,
+            session_id: row.session_id,
             type: row.type,
-            conv_key: row.conv_key || '',
+            session_key: row.session_key || '',
             max_seq: row.max_seq,
             last_sender: row.last_sender,
             last_content: row.last_content,
@@ -54,11 +54,11 @@ class ConversationStore {
         };
     }
 
-    async save(conversation: ImTypes.Conversation & { is_in_list?: number }): Promise<void> {
+    async save(session: ImTypes.Session & { is_in_list?: number }): Promise<void> {
         await dbBridge.execute(
             'user',
             `INSERT INTO conversations (
-                conversation_id, type, conv_key, max_seq, last_sender, last_content, 
+                session_id, type, session_key, max_seq, last_sender, last_content, 
                 last_message_time, unread_count, is_top, is_disturb, create_time, update_time, is_in_list
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(conv_key) DO UPDATE SET
@@ -74,19 +74,19 @@ class ConversationStore {
                 update_time = EXCLUDED.update_time,
                 is_in_list = EXCLUDED.is_in_list`,
             [
-                conversation.conversation_id,
-                conversation.type,
-                conversation.conv_key,
-                conversation.max_seq,
-                conversation.last_sender,
-                conversation.last_content,
-                conversation.last_message_time,
-                conversation.unread_count,
-                conversation.is_top,
-                conversation.is_disturb,
-                conversation.create_time,
-                conversation.update_time,
-                conversation.is_in_list ?? 0
+                session.session_id,
+                session.type,
+                session.session_key,
+                session.max_seq,
+                session.last_sender,
+                session.last_content,
+                session.last_message_time,
+                session.unread_count,
+                session.is_top,
+                session.is_disturb,
+                session.create_time,
+                session.update_time,
+                session.is_in_list ?? 0
             ]
         );
     }
@@ -94,11 +94,11 @@ class ConversationStore {
     /**
      * 批量保存会话
      */
-    async saveMany(conversations: (ImTypes.Conversation & { is_in_list?: number })[]): Promise<void> {
-        if (!conversations.length) return;
-        const ops = conversations.map(c => ({
+    async saveMany(sessions: (ImTypes.Session & { is_in_list?: number })[]): Promise<void> {
+        if (!sessions.length) return;
+        const ops = sessions.map(s => ({
             sql: `INSERT INTO conversations (
-                conversation_id, type, conv_key, max_seq, last_sender, last_content, 
+                session_id, type, session_key, max_seq, last_sender, last_content, 
                 last_message_time, unread_count, is_top, is_disturb, create_time, update_time, is_in_list
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(conv_key) DO UPDATE SET
@@ -114,19 +114,19 @@ class ConversationStore {
                 update_time = EXCLUDED.update_time,
                 is_in_list = EXCLUDED.is_in_list`,
             params: [
-                c.conversation_id,
-                c.type,
-                c.conv_key,
-                c.max_seq,
-                c.last_sender,
-                c.last_content,
-                c.last_message_time,
-                c.unread_count,
-                c.is_top,
-                c.is_disturb,
-                c.create_time,
-                c.update_time,
-                c.is_in_list ?? 0
+                s.session_id,
+                s.type,
+                s.session_key,
+                s.max_seq,
+                s.last_sender,
+                s.last_content,
+                s.last_message_time,
+                s.unread_count,
+                s.is_top,
+                s.is_disturb,
+                s.create_time,
+                s.update_time,
+                s.is_in_list ?? 0
             ] as unknown[]
         }));
         await dbBridge.transaction('user', ops);
@@ -138,7 +138,7 @@ class ConversationStore {
     async delete(keyOrId: string): Promise<void> {
         await dbBridge.execute(
             'user',
-            'DELETE FROM conversations WHERE conv_key = ? OR conversation_id = ?',
+            'DELETE FROM conversations WHERE session_key = ? OR session_id = ?',
             [keyOrId, keyOrId]
         );
     }
@@ -151,4 +151,4 @@ class ConversationStore {
     }
 }
 
-export const conversationStore = new ConversationStore();
+export const sessionStore = new SessionStore();

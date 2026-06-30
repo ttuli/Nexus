@@ -6,11 +6,11 @@
 
 import { ipcService } from '../ipcService'
 import { IpcChannels } from '@/src/types'
-import { useConversationStore } from '@/src/store/conversation'
+import { useSessionStore } from '@/src/store/session'
 
 export function initWindowListener(): void {
     ipcService.on(IpcChannels.WINDOW_STATE, (_event, state) => {
-        const conversationStore = useConversationStore()
+        const conversationStore = useSessionStore()
         switch (state) {
             case 'focused':
                 conversationStore.clearUnread(conversationStore.currentSessionId)

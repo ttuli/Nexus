@@ -1,8 +1,8 @@
 import { friendService, groupService, userService } from "@/src/services";
 import { ImTypes } from '@/src/types';
 import { useUserStore } from "./user";
-import { useConversationStore } from "./conversation";
-import { extractTargetIdFromSessionId } from '@/src/utils/chat';
+import { useSessionStore } from "./session";
+import { extractTargetIdFromSessionId } from '@/src/utils/sessionUtils';
 
 export async function initRelationStore() {
     const userStore = useUserStore()
@@ -30,10 +30,10 @@ export async function initRelationStore() {
         if (reqIds.length) userService.fetchByIds([...new Set(reqIds)]);
     });
 
-    const conversationStore = useConversationStore()
+    const conversationStore = useSessionStore()
     const groupIdsToFetch: number[] = [];
 
-    conversationStore.chatList.forEach((chat: ImTypes.Conversation) => {
+    conversationStore.sessionList.forEach((chat: ImTypes.Conversation) => {
         const targetId = extractTargetIdFromSessionId(chat.conversation_id, userStore.getUserID());
         if (chat.type === ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE) {
             if (targetId && !isNaN(targetId)) ids.push(targetId);

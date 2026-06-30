@@ -8,7 +8,7 @@ export interface ILocalMessageBase {
     // 基础字段 (来自 BaseMessage)
     msgId: string;           // 消息ID (int64 转 string)
     sessionId: string;       // 会话ID
-    convKey?: string;        // 前端会话 Key (用于标识没有 ID 的会话)
+    sessionKey?: string;        // 前端会话 Key (用于标识没有 ID 的会话)
     fromUserId: number;      // 发送者ID
     sendTime: number;        // 发送时间
     seq: number;             // 消息序号

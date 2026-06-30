@@ -7,7 +7,7 @@
             <FilterColumn class="filter-column" @menu-select="handleMenuSelect" />
             <div class="sidebar-container">
                 <router-view name="list" v-slot="{ Component }">
-                    <keep-alive include="ChatList,ContactSidebar">
+                    <keep-alive include="SessionList,ContactSidebar">
                         <component :is="Component" />
                     </keep-alive>
                 </router-view>
@@ -41,7 +41,7 @@ import { useRouter } from 'vue-router';
 import SideBar from './components/SideBar.vue';
 import { ipcService, websocketService } from '@/src/services';
 import { signalWindowReady } from '@/src/utils/windowReady';
-import { useConversationStore } from '@/src/store/conversation';
+import { useSessionStore } from '@/src/store/session';
 import FilterColumn from '@/src/components/FilterColumn.vue';
 import CreateGroup from '@/src/components/CreateGroup.vue';
 import { createWindow } from '@/src/utils/window';
@@ -53,7 +53,7 @@ import GlobalLoading from '@/src/components/GlobalLoading/GlobalLoading';
 import messageService from '@/src/services/messageService';
 
 const router = useRouter();
-const conversationStore = useConversationStore()
+const conversationStore = useSessionStore()
 
 const leftWidth = ref(250);
 const isResizing = ref(false);

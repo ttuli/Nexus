@@ -9,7 +9,7 @@ import { computed, onMounted } from 'vue';
 import { ILocalSystemMessage } from '@/src/types/chatMessage';
 import { useUserStore } from '@/src/store/user';
 import { userService } from '@/src/services';
-import { formatSystemMessage } from '@/src/utils/chat';
+import { formatSystemMessage } from '@/src/utils/systemMessage';
 
 interface Props {
     message: ILocalSystemMessage;

@@ -46,13 +46,13 @@
 import { computed, ref, watch, onMounted } from 'vue';
 import CusSwitch from '@/src/components/CusSwitch.vue';
 import { useUserStore } from '@/src/store/user';
-import { useConversationStore } from '@/src/store/conversation';
+import { useSessionStore } from '@/src/store/session';
 import { useMessageStore } from '@/src/store/message';
 import { useGroupStore } from '@/src/store/group';
 import { ImTypes } from '@/src/types';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { leaveGroup, dismissGroup } from '@/src/apis/group';
-import { extractTargetIdFromSessionId } from '@/src/utils/chat';
+import { extractTargetIdFromSessionId } from '@/src/utils/sessionUtils';
 import GroupMembersCard from './GroupMembersCard.vue';
 import { groupService, messageService } from '@/src/services';
 
@@ -63,7 +63,7 @@ const props = defineProps<{
 const emit = defineEmits(['close']);
 
 const userStore = useUserStore();
-const conversationStore = useConversationStore();
+const conversationStore = useSessionStore();
 const messageStore = useMessageStore();
 const groupStore = useGroupStore();
 
@@ -120,12 +120,12 @@ const clearChatData = () => {
         cancelButtonText: '取消',
         type: 'warning'
     }).then(async () => {
-        if (conversationStore.currentConvKey === props.chat.conv_key) {
+        if (conversationStore.currentSessionKey === props.chat.conv_key) {
             messageStore.messages = [];
         }
         props.chat.max_seq = 0;
         props.chat.last_content = '';
-        conversationStore.removeChat(props.chat.conversation_id);
+        conversationStore.removeSession(props.chat.conversation_id);
         ElMessage.success('聊天记录已清除');
         emit('close');
     }).catch(() => { });
@@ -154,7 +154,7 @@ const confirmQuitGroup = () => {
                 } else {
                     groupStore.joinedGroupIds.delete(numTargetId);
                 }
-                conversationStore.removeChat(props.chat.conversation_id);
+                conversationStore.removeSession(props.chat.conversation_id);
                 emit('close');
             } else {
                 ElMessage.error(res.message || '操作失败');

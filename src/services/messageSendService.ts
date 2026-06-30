@@ -1,4 +1,4 @@
-import { useConversationStore } from '@/src/store/conversation';
+import { useSessionStore } from '@/src/store/session';
 import { useMessageStore } from '@/src/store/message';
 import { ApiTypes, ImTypes, CacheOptionType } from '@/src/types';
 import { ILocalImageMessage, ILocalFileMessage, ILocalVideoMessage } from '@/src/types/chatMessage';
@@ -6,11 +6,9 @@ import { websocketService } from './websocketService';
 import { fileService } from './fileService';
 import { messageStorageService } from './messageStorageService';
 import { APP_CONSTANTS } from '@/src/config/constants';
-import { 
-    buildTextWsMessage, buildImageLocalMsg, 
-    buildImageWsPayload, buildFileLocalMsg, buildFileWsPayload, 
-    buildVideoLocalMsg, buildVideoWsPayload, extractVideoFrame, toResourceUrl 
-} from '@/src/utils/chat';
+import { toResourceUrl } from '@/src/utils/resourceUrl';
+import { buildTextWsMessage, buildImageLocalMsg, buildImageWsPayload, buildFileLocalMsg, buildFileWsPayload, buildVideoLocalMsg, buildVideoWsPayload } from '@/src/utils/messageBuilder';
+import { extractVideoFrame } from '@/src/utils/mediaUtils';
 import { ElMessage } from 'element-plus';
 
 class MessageSendService {
@@ -31,9 +29,9 @@ class MessageSendService {
      * 构建并发送文本消息
      */
     async sendTextMessage(content: string): Promise<void> {
-        const conversationStore = useConversationStore();
+        const conversationStore = useSessionStore();
         const messageStore = useMessageStore();
-        const chatType = conversationStore.currentChatType;
+        const chatType = conversationStore.currentSessionType;
         if (chatType === null) return;
 
         let sessionId = conversationStore.currentSessionId;
@@ -61,9 +59,9 @@ class MessageSendService {
      * 构建并发送图片消息
      */
     async sendImageMessage(file: File): Promise<void> {
-        const conversationStore = useConversationStore();
+        const conversationStore = useSessionStore();
         const messageStore = useMessageStore();
-        const chatType = conversationStore.currentChatType;
+        const chatType = conversationStore.currentSessionType;
         if (chatType === null) return;
 
         let sessionId = conversationStore.currentSessionId;
@@ -155,9 +153,9 @@ class MessageSendService {
      * 构建并发送文件消息
      */
     async sendFileMessage(file: File): Promise<void> {
-        const conversationStore = useConversationStore();
+        const conversationStore = useSessionStore();
         const messageStore = useMessageStore();
-        const chatType = conversationStore.currentChatType;
+        const chatType = conversationStore.currentSessionType;
         if (chatType === null) return;
 
         let sessionId = conversationStore.currentSessionId;
@@ -224,9 +222,9 @@ class MessageSendService {
      * 构建并发送视频消息
      */
     async sendVideoMessage(file: File): Promise<void> {
-        const conversationStore = useConversationStore();
+        const conversationStore = useSessionStore();
         const messageStore = useMessageStore();
-        const chatType = conversationStore.currentChatType;
+        const chatType = conversationStore.currentSessionType;
         if (chatType === null) return;
 
         let sessionId = conversationStore.currentSessionId;

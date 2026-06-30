@@ -61,7 +61,7 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
 import { useGroupStore } from '@/src/store/group';
-import { generateGroupSessionId } from '@/src/utils/chat';
+import { generateGroupSessionId } from '@/src/utils/sessionUtils';
 import { useChatNavigation } from '@/src/composables/useChatNavigation';
 import { groupService } from '@/src/services';
 import { useRouter } from 'vue-router';

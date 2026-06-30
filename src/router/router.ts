@@ -27,8 +27,8 @@ const router = createRouter({
                     path: 'chat',
                     name: '消息',
                     components: {
-                        list: () => import('@/src/views/home/chat/ChatList.vue'),
-                        default: () => import('@/src/views/home/chat/ChatContent.vue')
+                        list: () => import('@/src/views/home/chat/SessionList.vue'),
+                        default: () => import('@/src/views/home/chat/SessionContent.vue')
                     }
                 },
                 {

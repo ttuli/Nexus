@@ -1,10 +1,10 @@
 import { defineStore } from 'pinia';
-import { useConversationStore } from './conversation';
+import { useSessionStore } from './session';
 import { ImTypes } from '@/src/types';
 import { IChatMessage } from '@/src/types/chatMessage';
 import { chatService } from '@/src/services';
 import { messageStorageService } from '@/src/services/messageStorageService';
-import { getLastContent } from '@/src/utils/chat';
+import { getLastContent } from '@/src/utils/systemMessage';
 
 export const useMessageStore = defineStore('message', {
     state: () => ({
@@ -58,11 +58,11 @@ export const useMessageStore = defineStore('message', {
          * @param progress 进度 0-100，undefined 表示上传完成
          */
         updateMessageProgress(sessionId: string, clientId: string, progress: number | undefined) {
-            const conversationStore = useConversationStore();
-            const currentChat = conversationStore.currentChat;
-            const matchesSession = currentChat && (
-                currentChat.conversation_id === sessionId || 
-                currentChat.conv_key === sessionId
+            const conversationStore = useSessionStore();
+            const currentSession = conversationStore.currentSession;
+            const matchesSession = currentSession && (
+                currentSession.conversation_id === sessionId || 
+                currentSession.conv_key === sessionId
             );
             if (matchesSession) {
                 const msg = this.messages.find(m => m.clientId === clientId) as any;
@@ -92,9 +92,9 @@ export const useMessageStore = defineStore('message', {
          * 加载更多消息
          */
         async loadMoreMessages() {
-            const conversationStore = useConversationStore();
+            const conversationStore = useSessionStore();
             const currentSessionId = conversationStore.currentSessionId;
-            const currentConvKey = conversationStore.currentConvKey;
+            const currentSessionKey = conversationStore.currentSessionKey;
 
             if (this.isLoading || !this.hasMore || !currentSessionId) return;
 
@@ -124,7 +124,7 @@ export const useMessageStore = defineStore('message', {
                     this.pageSize
                 );
 
-                if (conversationStore.currentConvKey !== currentConvKey) {
+                if (conversationStore.currentSessionKey !== currentSessionKey) {
                     return;
                 }
 
@@ -132,7 +132,7 @@ export const useMessageStore = defineStore('message', {
                     this.messages.unshift(...moreMessages);
 
                     // 获取消息后更新对应会话的 last_content 等信息
-                    const cur = conversationStore.chatList.find(c => c.conversation_id === currentSessionId);
+                    const cur = conversationStore.sessionList.find((c: any) => c.conversation_id === currentSessionId);
                     if (cur && this.messages.length > 0) {
                         const latestMsg = this.messages[this.messages.length - 1];
                         if (latestMsg) {
@@ -152,7 +152,7 @@ export const useMessageStore = defineStore('message', {
             } catch (e) {
                 console.error('[MessageStore] Failed to load messages', e);
             } finally {
-                if (conversationStore.currentConvKey === currentConvKey) {
+                if (conversationStore.currentSessionKey === currentSessionKey) {
                     this.isLoading = false;
                 }
             }
@@ -176,13 +176,13 @@ export const useMessageStore = defineStore('message', {
                 return this.updateMessageStatus(message.sessionId, message.clientId || '', message.status, message.sendTime);
             }
             
-            const conversationStore = useConversationStore();
+            const conversationStore = useSessionStore();
             
             // Check if message belongs to current session
-            const currentChat = conversationStore.currentChat;
-            const belongsToCurrent = currentChat && (
-                currentChat.conversation_id === message.sessionId ||
-                currentChat.conv_key === message.sessionId
+            const currentSession = conversationStore.currentSession;
+            const belongsToCurrent = currentSession && (
+                currentSession.conversation_id === message.sessionId ||
+                currentSession.conv_key === message.sessionId
             );
             if (belongsToCurrent) {
                 this.messages.push(message);
@@ -191,7 +191,7 @@ export const useMessageStore = defineStore('message', {
             // Generate last content string based on message type
             const lastContent = getLastContent(message);
 
-            const chat = conversationStore.getChat(message.sessionId);
+            const chat = conversationStore.getSession(message.sessionId);
             if (chat) {
                 chat.max_seq = message.seq;
             }
@@ -206,19 +206,19 @@ export const useMessageStore = defineStore('message', {
             ].includes(message.type);
             const conversationType = isGroupMessage ? ImTypes.ConversationType.CONVERSATION_TYPE_GROUP : ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE;
 
-            const conversationId = (message.sessionId !== message.convKey) ? message.sessionId : (chat?.conversation_id || '');
-            const convKey = message.convKey || chat?.conv_key || message.sessionId;
+            const conversationId = (message.sessionId !== message.sessionKey) ? message.sessionId : (chat?.conversation_id || '');
+            const sessionKey = message.sessionKey || chat?.conv_key || message.sessionId;
 
-            conversationStore.upsertConversation({
+            conversationStore.upsertSession({
                 conversation_id: conversationId,
-                conv_key: convKey,
+                conv_key: sessionKey,
                 type: conversationType,
                 max_seq: message.seq,
                 last_content: lastContent,
                 last_sender: message.fromUserId,
                 update_time: message.sendTime,
             });
-            conversationStore.sortChatList();
+            conversationStore.sortSessionList();
 
             void messageStorageService.saveMessage(message).catch((e) => {
                 console.error('[MessageStore] Failed to persist message', e);

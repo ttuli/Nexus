@@ -29,7 +29,7 @@ import { userService, groupService } from '@/src/services'
 import { openPhotoViewer } from '@/src/utils/window'
 import { useUserStore } from '@/src/store/user';
 import { useGroupStore } from '@/src/store/group';
-import { toResourceUrl } from '@/src/utils/chat'
+import { toResourceUrl } from '@/src/utils/resourceUrl';
 import { CacheOptionType } from '../types';
 
 const source = ref<string>('')

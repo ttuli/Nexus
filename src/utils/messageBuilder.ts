@@ -10,7 +10,7 @@ import {
 } from '@/src/types';
 import { Renderer_Config as config } from '@/src/config/constants';
 import { useUserStore } from '@/src/store/user';
-import { useConversationStore } from '@/src/store/conversation';
+import { useSessionStore } from '@/src/store/session';
 import { ulid } from 'ulid';
 import { extractTargetIdFromSessionId } from './sessionUtils';
 
@@ -75,10 +75,10 @@ export interface WsMessageResult<T extends IChatMessage = IChatMessage> {
 
 function buildBase(type: ImTypes.MessageType, sessionId: string, existingClientId?: string) {
     const userStore = useUserStore();
-    const conversationStore = useConversationStore();
-    const currentChat = conversationStore.getChat(sessionId);
-    const convKey = currentChat?.conv_key || sessionId;
-    const conversationId = currentChat?.conversation_id || '';
+    const conversationStore = useSessionStore();
+    const currentSession = conversationStore.getSession(sessionId);
+    const sessionKey = currentSession?.conv_key || sessionId;
+    const conversationId = currentSession?.conversation_id || '';
 
     const clientId = existingClientId ?? ulid();
 
@@ -99,12 +99,12 @@ function buildBase(type: ImTypes.MessageType, sessionId: string, existingClientI
         targetType = ImTypes.TargetType.USER;
     }
 
-    targetId = extractTargetIdFromSessionId(convKey, userStore.getUserID()) || 0;
+    targetId = extractTargetIdFromSessionId(sessionKey, userStore.getUserID()) || 0;
 
     const baseMsg: ImTypes.BaseMessage = {
         msg_id: '',
         session_id: conversationId,
-        conv_key: convKey,
+        conv_key: sessionKey,
         from_user_id: userStore.getUserID(),
         target: targetId,
         send_time: Date.now(),
@@ -126,8 +126,8 @@ function buildBase(type: ImTypes.MessageType, sessionId: string, existingClientI
 
     const commonFields = {
         msgId: '',
-        sessionId: conversationId || convKey,
-        convKey,
+        sessionId: conversationId || sessionKey,
+        sessionKey,
         fromUserId: userStore.getUserID(),
         sendTime: baseMsg.send_time,
         seq: 0,

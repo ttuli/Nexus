@@ -1,9 +1,9 @@
 <template>
     <div class="chat-sidebar-wrapper" :class="{ 'visible': visible }">
         <template v-if="chat">
-            <PrivateChatSidebar v-if="chat.type === ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE" :chat="chat"
+            <PrivateSessionSidebar v-if="chat.type === ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE" :chat="chat"
                 @close="$emit('close')" />
-            <GroupChatSidebar v-else-if="chat.type === ImTypes.ConversationType.CONVERSATION_TYPE_GROUP" :chat="chat"
+            <GroupSessionSidebar v-else-if="chat.type === ImTypes.ConversationType.CONVERSATION_TYPE_GROUP" :chat="chat"
                 @close="$emit('close')" />
         </template>
     </div>
@@ -11,8 +11,8 @@
 
 <script setup lang="ts">
 import { ImTypes } from '@/src/types';
-import PrivateChatSidebar from './PrivateChatSidebar.vue';
-import GroupChatSidebar from './GroupChatSidebar.vue';
+import PrivateSessionSidebar from './PrivateSessionSidebar.vue';
+import GroupSessionSidebar from './GroupSessionSidebar.vue';
 
 defineProps<{
     visible: boolean;

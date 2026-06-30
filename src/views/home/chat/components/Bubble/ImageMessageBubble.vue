@@ -39,7 +39,7 @@
 import { ref, computed, watch } from 'vue';
 import { ILocalImageMessage } from '@/src/types/chatMessage';
 import { APP_CONSTANTS as config } from '@/src/config/constants';
-import { toResourceUrl } from '@/src/utils/chat';
+import { toResourceUrl } from '@/src/utils/resourceUrl';
 import { CacheOptionType, ImTypes } from '@/src/types';
 import { fileService } from '@/src/services/fileService';
 import { openPhotoViewer } from '@/src/utils/window';

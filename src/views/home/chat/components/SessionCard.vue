@@ -29,7 +29,7 @@ import { computed } from 'vue';
 import { ImTypes } from '@/src/types';
 import { useUserStore } from '@/src/store/user';
 import { useGroupStore } from '@/src/store/group';
-import { extractTargetIdFromSessionId } from '@/src/utils/chat';
+import { extractTargetIdFromSessionId } from '@/src/utils/sessionUtils';
 
 import notdisturb from '@/src/assets/chat/notdisturb.svg?raw';
 
