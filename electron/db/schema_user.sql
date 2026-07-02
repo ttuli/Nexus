@@ -65,10 +65,10 @@ CREATE INDEX IF NOT EXISTS idx_messages_session_clientid
 -- ============================================================
 -- 会话表（存储会话列表）
 -- ============================================================
-CREATE TABLE IF NOT EXISTS conversations (
-    conversation_id   TEXT,
+CREATE TABLE IF NOT EXISTS sessions (
+    session_id        TEXT,
     type              INTEGER NOT NULL,
-    conv_key          TEXT PRIMARY KEY,
+    session_key       TEXT PRIMARY KEY,
     max_seq           INTEGER NOT NULL DEFAULT 0,
     last_sender       INTEGER NOT NULL DEFAULT 0,
     last_content      TEXT NOT NULL DEFAULT '',
@@ -81,6 +81,6 @@ CREATE TABLE IF NOT EXISTS conversations (
     is_in_list        INTEGER NOT NULL DEFAULT 0
 );
 
-CREATE INDEX IF NOT EXISTS idx_conversations_convid 
-    ON conversations(conversation_id) 
-    WHERE conversation_id != '';
+CREATE INDEX IF NOT EXISTS idx_sessions_sessionid 
+    ON sessions(session_id) 
+    WHERE session_id != '';

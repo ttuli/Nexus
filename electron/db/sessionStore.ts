@@ -8,7 +8,7 @@ class SessionStore {
     async getAll(): Promise<(ImTypes.Session & { is_in_list?: number })[]> {
         const rows = await dbBridge.query<any>(
             'user',
-            'SELECT session_id, type, session_key, max_seq, last_sender, last_content, last_message_time, unread_count, is_top, is_disturb, create_time, update_time, is_in_list FROM conversations'
+            'SELECT session_id, type, session_key, max_seq, last_sender, last_content, last_message_time, unread_count, is_top, is_disturb, create_time, update_time, is_in_list FROM sessions'
         );
         return rows.map(r => ({
             session_id: r.session_id,
@@ -33,7 +33,7 @@ class SessionStore {
     async get(keyOrId: string): Promise<(ImTypes.Session & { is_in_list?: number }) | null> {
         const row = await dbBridge.get<any>(
             'user',
-            'SELECT session_id, type, session_key, max_seq, last_sender, last_content, last_message_time, unread_count, is_top, is_disturb, create_time, update_time, is_in_list FROM conversations WHERE conv_key = ? OR conversation_id = ?',
+            'SELECT session_id, type, session_key, max_seq, last_sender, last_content, last_message_time, unread_count, is_top, is_disturb, create_time, update_time, is_in_list FROM sessions WHERE session_key = ? OR session_id = ?',
             [keyOrId, keyOrId]
         );
         if (!row) return null;
@@ -57,17 +57,17 @@ class SessionStore {
     async save(session: ImTypes.Session & { is_in_list?: number }): Promise<void> {
         await dbBridge.execute(
             'user',
-            `INSERT INTO conversations (
+            `INSERT INTO sessions (
                 session_id, type, session_key, max_seq, last_sender, last_content, 
                 last_message_time, unread_count, is_top, is_disturb, create_time, update_time, is_in_list
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(conv_key) DO UPDATE SET
-                conversation_id = CASE WHEN EXCLUDED.conversation_id != '' THEN EXCLUDED.conversation_id ELSE conversations.conversation_id END,
+            ON CONFLICT(session_key) DO UPDATE SET
+                session_id = CASE WHEN EXCLUDED.session_id != '' THEN EXCLUDED.session_id ELSE sessions.session_id END,
                 type = EXCLUDED.type,
-                max_seq = CASE WHEN EXCLUDED.max_seq > conversations.max_seq THEN EXCLUDED.max_seq ELSE conversations.max_seq END,
-                last_sender = CASE WHEN EXCLUDED.last_message_time >= conversations.last_message_time THEN EXCLUDED.last_sender ELSE conversations.last_sender END,
-                last_content = CASE WHEN EXCLUDED.last_message_time >= conversations.last_message_time THEN EXCLUDED.last_content ELSE conversations.last_content END,
-                last_message_time = CASE WHEN EXCLUDED.last_message_time >= conversations.last_message_time THEN EXCLUDED.last_message_time ELSE conversations.last_message_time END,
+                max_seq = CASE WHEN EXCLUDED.max_seq > sessions.max_seq THEN EXCLUDED.max_seq ELSE sessions.max_seq END,
+                last_sender = CASE WHEN EXCLUDED.last_message_time >= sessions.last_message_time THEN EXCLUDED.last_sender ELSE sessions.last_sender END,
+                last_content = CASE WHEN EXCLUDED.last_message_time >= sessions.last_message_time THEN EXCLUDED.last_content ELSE sessions.last_content END,
+                last_message_time = CASE WHEN EXCLUDED.last_message_time >= sessions.last_message_time THEN EXCLUDED.last_message_time ELSE sessions.last_message_time END,
                 unread_count = EXCLUDED.unread_count,
                 is_top = EXCLUDED.is_top,
                 is_disturb = EXCLUDED.is_disturb,
@@ -97,17 +97,17 @@ class SessionStore {
     async saveMany(sessions: (ImTypes.Session & { is_in_list?: number })[]): Promise<void> {
         if (!sessions.length) return;
         const ops = sessions.map(s => ({
-            sql: `INSERT INTO conversations (
+            sql: `INSERT INTO sessions (
                 session_id, type, session_key, max_seq, last_sender, last_content, 
                 last_message_time, unread_count, is_top, is_disturb, create_time, update_time, is_in_list
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(conv_key) DO UPDATE SET
-                conversation_id = CASE WHEN EXCLUDED.conversation_id != '' THEN EXCLUDED.conversation_id ELSE conversations.conversation_id END,
+            ON CONFLICT(session_key) DO UPDATE SET
+                session_id = CASE WHEN EXCLUDED.session_id != '' THEN EXCLUDED.session_id ELSE sessions.session_id END,
                 type = EXCLUDED.type,
-                max_seq = CASE WHEN EXCLUDED.max_seq > conversations.max_seq THEN EXCLUDED.max_seq ELSE conversations.max_seq END,
-                last_sender = CASE WHEN EXCLUDED.last_message_time >= conversations.last_message_time THEN EXCLUDED.last_sender ELSE conversations.last_sender END,
-                last_content = CASE WHEN EXCLUDED.last_message_time >= conversations.last_message_time THEN EXCLUDED.last_content ELSE conversations.last_content END,
-                last_message_time = CASE WHEN EXCLUDED.last_message_time >= conversations.last_message_time THEN EXCLUDED.last_message_time ELSE conversations.last_message_time END,
+                max_seq = CASE WHEN EXCLUDED.max_seq > sessions.max_seq THEN EXCLUDED.max_seq ELSE sessions.max_seq END,
+                last_sender = CASE WHEN EXCLUDED.last_message_time >= sessions.last_message_time THEN EXCLUDED.last_sender ELSE sessions.last_sender END,
+                last_content = CASE WHEN EXCLUDED.last_message_time >= sessions.last_message_time THEN EXCLUDED.last_content ELSE sessions.last_content END,
+                last_message_time = CASE WHEN EXCLUDED.last_message_time >= sessions.last_message_time THEN EXCLUDED.last_message_time ELSE sessions.last_message_time END,
                 unread_count = EXCLUDED.unread_count,
                 is_top = EXCLUDED.is_top,
                 is_disturb = EXCLUDED.is_disturb,
@@ -138,7 +138,7 @@ class SessionStore {
     async delete(keyOrId: string): Promise<void> {
         await dbBridge.execute(
             'user',
-            'DELETE FROM conversations WHERE session_key = ? OR session_id = ?',
+            'DELETE FROM sessions WHERE session_key = ? OR session_id = ?',
             [keyOrId, keyOrId]
         );
     }
@@ -147,7 +147,7 @@ class SessionStore {
      * 清空会话表
      */
     async clear(): Promise<void> {
-        await dbBridge.execute('user', 'DELETE FROM conversations', []);
+        await dbBridge.execute('user', 'DELETE FROM sessions', []);
     }
 }
 

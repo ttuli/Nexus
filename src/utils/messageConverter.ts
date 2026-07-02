@@ -72,8 +72,8 @@ export function convertWSMessageToIChatMessage(wsMsg: ImTypes.WSMessage): IChatM
 
     const commonFields = {
         msgId: base.msg_id || '',
-        sessionId: base.session_id || base.conv_key || '',
-        sessionKey: base.conv_key || '',
+        sessionId: base.session_id || '',
+        sessionKey: base.session_key || '',
         fromUserId: base.from_user_id || 0,
         target: base.target || 0,
         sendTime: base.send_time || 0,

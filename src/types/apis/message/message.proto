@@ -10,8 +10,8 @@ message Message {
   string msg_id = 1;
   // @gotags: json:"client_id"
   string client_id = 2;
-  // @gotags: json:"conversation_id"
-  string conversation_id = 3;
+  // @gotags: json:"session_id"
+  string session_id = 3;
   // @gotags: json:"from_user_id"
   uint64 from_user_id = 4;
   // @gotags: json:"msg_type"
@@ -30,13 +30,13 @@ message Message {
   int64 create_time = 11;
 }
 
-message Conversation {
-  // @gotags: json:"conversation_id"
-  string conversation_id = 1;
+message Session {
+  // @gotags: json:"session_id"
+  string session_id = 1;
   // @gotags: json:"type"
   int32 type = 2;
-  // @gotags: json:"conv_key"
-  string conv_key = 3;
+  // @gotags: json:"session_key"
+  string session_key = 3;
   // @gotags: json:"max_seq"
   uint64 max_seq = 4;
   // @gotags: json:"actual_seq"
@@ -51,12 +51,12 @@ message Conversation {
   int64 update_time = 9;
 }
 
-// UserConversation
-message UserConversation {
+// UserSession
+message UserSession {
   // @gotags: json:"user_id"
   uint64 user_id = 1;
-  // @gotags: json:"conversation_id"
-  string conversation_id = 2;
+  // @gotags: json:"session_id"
+  string session_id = 2;
   // @gotags: json:"is_top"
   int32 is_top = 3;
   // @gotags: json:"is_disturb"
@@ -71,8 +71,8 @@ message UserConversation {
 
 // GetHistoryReq
 message GetHistoryReq {
-  // @gotags: form:"conversation_id,optional" json:"conversation_id,optional"
-  string conversation_id = 1;
+  // @gotags: form:"session_id,optional" json:"session_id,optional"
+  string session_id = 1;
   // @gotags: form:"start_seq,optional" json:"start_seq,optional"
   int64 start_seq = 2;
   // @gotags: form:"end_seq,optional" json:"end_seq,optional"
@@ -87,44 +87,44 @@ message GetHistoryResp {
   repeated Message list = 1;
 }
 
-// UpdateConversationReq
-message UpdateConversationReq {
-  // @gotags: json:"conversation_id"
-  string conversation_id = 1;
+// UpdateSessionReq
+message UpdateSessionReq {
+  // @gotags: json:"session_id"
+  string session_id = 1;
   // @gotags: json:"is_top,optional"
   int32 is_top = 2;
   // @gotags: json:"is_disturb,optional"
   int32 is_disturb = 3;
 }
 
-// GetUserConversationsResp
-message GetUserConversationsResp {
-  // @gotags: json:"conversations"
-  repeated UserConversation conversations = 1;
+// GetUserSessionsResp
+message GetUserSessionsResp {
+  // @gotags: json:"sessions"
+  repeated UserSession sessions = 1;
 }
 
-message GetUserActiveConversationsReq {
+message GetUserActiveSessionsReq {
   // @gotags: form:"timestamp,optional" json:"timestamp,optional"
   int64 timestamp = 1;
 }
 
-message GetUserActiveConversationsResp {
-  // @gotags: json:"conversations"
-  repeated Conversation conversations = 1;
+message GetUserActiveSessionsResp {
+  // @gotags: json:"sessions"
+  repeated Session sessions = 1;
 }
 
-// GetConversationReq 根据 conversation_id 或 conv_key 查询会话
-message GetConversationReq {
-  // @gotags: form:"conversation_id,optional" json:"conversation_id,optional"
-  string conversation_id = 1;
-  // @gotags: form:"conv_key,optional" json:"conv_key,optional"
-  string conv_key = 2;
-  // @gotags: form:"conv_type,optional" json:"conv_type,optional"
-  int32 conv_type = 3;
+// GetSessionReq 根据 session_id 或 session_key 查询会话
+message GetSessionReq {
+  // @gotags: form:"session_id,optional" json:"session_id,optional"
+  string session_id = 1;
+  // @gotags: form:"session_key,optional" json:"session_key,optional"
+  string session_key = 2;
+  // @gotags: form:"session_type,optional" json:"session_type,optional"
+  int32 session_type = 3;
 }
 
-// GetConversationResp
-message GetConversationResp {
-  // @gotags: json:"conversation"
-  Conversation conversation = 1;
+// GetSessionResp
+message GetSessionResp {
+  // @gotags: json:"session"
+  Session session = 1;
 }

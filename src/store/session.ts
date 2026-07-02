@@ -5,7 +5,7 @@ import { Renderer_Config as config } from '@/src/config/constants';
 import { judgeSessionType } from '@/src/utils/sessionUtils';
 import { getConversation } from '@/src/apis/message';
 
-export const useSessionStore = defineStore('conversation', {
+export const useSessionStore = defineStore('session', {
     state: () => ({
         sessionList: [] as ImTypes.Session[],
         currentSessionKey: '', // 唯一的本地 conv_key
@@ -16,67 +16,84 @@ export const useSessionStore = defineStore('conversation', {
          * 已存在：更新 max_seq / update_time，并回填 conversation_id（如果有的话）
          * 不存在：新建条目，并加入侧边栏列表 (is_in_list = 1)
          */
-        upsertSession(conversation: {
-            conversation_id: string;
-            conversation_type?: number;
+        upsertSession(sessionObj: {
+            session_id?: string;
+            session_type?: number;
             type?: ImTypes.SessionType;
-            conv_key?: string;
-            max_seq: number;
-            update_time: number;
-            last_content: string;
-            last_sender: number;
+            session_key: string;
+            max_seq?: number;
+            update_time?: number;
+            last_content?: string;
+            last_sender?: number;
             unread_count?: number;
             create_time?: number;
             is_top?: number;
             is_disturb?: number;
         }) {
-            const conversationId = conversation.conversation_id;
-            const sessionKey = conversation.conv_key || conversationId;
-            const type = conversation.type !== undefined
-                ? conversation.type
-                : (conversation.conversation_type !== undefined
-                    ? (conversation.conversation_type as ImTypes.SessionType)
-                    : ImTypes.SessionType.SESSION_TYPE_PRIVATE);
+            const sessionId = sessionObj.session_id;
+            const sessionKey = sessionObj.session_key;
+            const type = sessionObj.type !== undefined
+                ? sessionObj.type
+                : (sessionObj.session_type !== undefined
+                    ? (sessionObj.session_type as ImTypes.SessionType)
+                    : undefined);
 
-            // 优先通过 conversation_id，其次通过 conv_key 检索本地已存在的会话
+            // 优先通过 session_id，其次通过 session_key 检索本地已存在的会话
             let existing = this.sessionList.find(
-                c => (conversationId && c.conversation_id === conversationId) ||
-                    (sessionKey && c.conv_key === sessionKey)
+                c => (sessionId && c.session_id === sessionId) ||
+                    (sessionKey && c.session_key === sessionKey)
             );
+
+            let sessionToUpdate: ImTypes.Session;
 
             if (existing) {
                 // 如果存在，回填缺少的 ID
-                if (conversationId && !existing.conversation_id) {
-                    existing.conversation_id = conversationId;
+                if (sessionId && !existing.session_id) {
+                    existing.session_id = sessionId;
                 }
-                if (sessionKey && !existing.conv_key) {
-                    existing.conv_key = sessionKey;
+                if (sessionKey && !existing.session_key) {
+                    existing.session_key = sessionKey;
                 }
 
-                const delta = Math.max(0, conversation.max_seq - (existing.max_seq || 0));
-                if (delta > 0) {
-                    windowService.playNotificationSound();
+                if (type !== undefined) existing.type = type;
+
+                if (sessionObj.max_seq !== undefined) {
+                    const delta = Math.max(0, sessionObj.max_seq - (existing.max_seq || 0));
+                    if (delta > 0) {
+                        windowService.playNotificationSound();
+                    }
+                    existing.unread_count = (existing.unread_count || 0) + delta;
+                    existing.max_seq = sessionObj.max_seq;
                 }
-                existing.unread_count = (existing.unread_count || 0) + delta;
-                existing.max_seq = conversation.max_seq;
-                existing.update_time = conversation.update_time;
-                existing.last_content = conversation.last_content;
-                existing.last_message_time = conversation.update_time;
+                
+                if (sessionObj.unread_count !== undefined) existing.unread_count = sessionObj.unread_count;
+                if (sessionObj.update_time !== undefined) {
+                    existing.update_time = sessionObj.update_time;
+                    existing.last_message_time = sessionObj.update_time;
+                }
+                if (sessionObj.last_content !== undefined) existing.last_content = sessionObj.last_content;
+                if (sessionObj.last_sender !== undefined) existing.last_sender = sessionObj.last_sender;
+                if (sessionObj.is_top !== undefined) existing.is_top = sessionObj.is_top;
+                if (sessionObj.is_disturb !== undefined) existing.is_disturb = sessionObj.is_disturb;
+                
+                sessionToUpdate = existing;
             } else {
+                if (!sessionKey && !sessionId) return; // 无法创建
+                
                 // 不存在，新建会话
-                const newChat: ImTypes.Conversation & { is_in_list?: number } = {
-                    conversation_id: conversationId,
-                    conv_key: sessionKey,
-                    type,
-                    max_seq: conversation.max_seq || 0,
-                    last_sender: conversation.last_sender || 0,
-                    last_content: conversation.last_content || '',
-                    last_message_time: conversation.update_time || Date.now(),
-                    unread_count: conversation.unread_count || 0,
-                    create_time: conversation.create_time || Date.now(),
-                    update_time: conversation.update_time || Date.now(),
-                    is_top: conversation.is_top || 1,
-                    is_disturb: conversation.is_disturb || 1,
+                const newChat: ImTypes.Session & { is_in_list?: number } = {
+                    session_id: sessionId || '',
+                    session_key: sessionKey || '',
+                    type: type || ImTypes.SessionType.SESSION_TYPE_PRIVATE,
+                    max_seq: sessionObj.max_seq || 0,
+                    last_sender: sessionObj.last_sender || 0,
+                    last_content: sessionObj.last_content || '',
+                    last_message_time: sessionObj.update_time || Date.now(),
+                    unread_count: sessionObj.unread_count || 0,
+                    create_time: sessionObj.create_time || Date.now(),
+                    update_time: sessionObj.update_time || Date.now(),
+                    is_top: sessionObj.is_top !== undefined ? sessionObj.is_top : 1,
+                    is_disturb: sessionObj.is_disturb !== undefined ? sessionObj.is_disturb : 1,
                     is_in_list: 1, // 服务端推送的活动会话默认加入列表
                 };
                 this.sessionList.unshift(newChat);
@@ -86,8 +103,13 @@ export const useSessionStore = defineStore('conversation', {
                 if (this.sessionList.length > config.maxSessionListCount) {
                     this.sessionList.pop();
                 }
+                sessionToUpdate = newChat;
             }
-            void this.saveToStorage();
+            
+            // 使用 IPC 批量更新（虽然这里只更新当前的一条）
+            void window.ipcRenderer.invoke(IpcChannels.SESSION_SAVE_LIST, [JSON.parse(JSON.stringify(sessionToUpdate))]).catch(e => {
+                console.error('[SessionStore] Failed to save session in SQLite:', e);
+            });
         },
 
         /**
@@ -168,9 +190,10 @@ export const useSessionStore = defineStore('conversation', {
         incrementUnread(sessionkey: string) {
             const chat = this.getSession(sessionkey);
             if (chat) {
-                const count = chat.unread_count || 0;
-                chat.unread_count = count + 1;
-                void this.saveToStorage();
+                this.upsertSession({
+                    session_key: sessionkey,
+                    unread_count: (chat.unread_count || 0) + 1
+                });
             }
         },
 
@@ -182,7 +205,7 @@ export const useSessionStore = defineStore('conversation', {
             if (index !== -1) {
                 this.sessionList.splice(index, 1);
             }
-            void window.ipcRenderer.invoke(IpcChannels.CONVERSATION_DELETE, sessionkey).catch((e) => {
+            void window.ipcRenderer.invoke(IpcChannels.SESSION_DELETE, sessionkey).catch((e) => {
                 console.error('[ConversationStore] Failed to delete conversation in SQLite:', e);
             });
         },
@@ -207,7 +230,7 @@ export const useSessionStore = defineStore('conversation', {
         async loadFromStorage(): Promise<void> {
             try {
                 console.log('[ConversationStore] Loading from SQLite');
-                const res = await window.ipcRenderer.invoke(IpcChannels.CONVERSATION_GET_LIST);
+                const res = await window.ipcRenderer.invoke(IpcChannels.SESSION_GET_LIST);
                 if (res.success && Array.isArray(res.data)) {
                     // 仅加载 is_in_list === 1 的活跃聊天列表
                     this.sessionList = res.data
@@ -235,13 +258,13 @@ export const useSessionStore = defineStore('conversation', {
         /**
          * 从 SQLite 加载单个会话
          */
-        async loadSessionFromStorage(keyOrId: string): Promise<ImTypes.Conversation | null> {
+        async loadSessionFromStorage(keyOrId: string): Promise<ImTypes.Session | null> {
             try {
-                const res = await window.ipcRenderer.invoke(IpcChannels.CONVERSATION_GET, keyOrId);
+                const res = await window.ipcRenderer.invoke(IpcChannels.SESSION_GET, keyOrId);
                 if (res.success && res.data) {
                     return {
                         ...res.data,
-                        type: res.data.type || ImTypes.SessionType.CONVERSATION_TYPE_PRIVATE,
+                        type: res.data.type || ImTypes.SessionType.SESSION_TYPE_PRIVATE,
                         conv_key: res.data.conv_key || res.data.conversation_id || '',
                         last_message_time: res.data.last_message_time || 0,
                         unread_count: res.data.unread_count || 0,
@@ -268,64 +291,13 @@ export const useSessionStore = defineStore('conversation', {
                     ...JSON.parse(JSON.stringify(c)),
                     is_in_list: 1
                 }));
-                const res = await window.ipcRenderer.invoke(IpcChannels.CONVERSATION_SAVE_LIST, sessionListRaw);
+                const res = await window.ipcRenderer.invoke(IpcChannels.SESSION_SAVE_LIST, sessionListRaw);
                 if (!res.success) {
                     console.error('[ConversationStore] Failed to save conversations to SQLite:', res.error);
                 }
             } catch (e) {
                 console.error('[ConversationStore] Failed to save to SQLite:', e);
             }
-        },
-
-        /**
-         * 尝试获取并更新当前会话的 conversation_id
-         * @returns 解析出的 conversation_id
-         */
-        async resolveCurrentConversationId(): Promise<string> {
-            const currentSession = this.currentSession;
-            if (!currentSession || !currentSession.conv_key) {
-                return '';
-            }
-
-            if (currentSession.conversation_id) {
-                return currentSession.conversation_id;
-            }
-
-            try {
-                // 1. 尝试从本地数据库中查询
-                const localChat = await this.loadSessionFromStorage(currentSession.conv_key);
-                if (localChat && localChat.conversation_id) {
-                    // await 后再确认会话未切换，才回写
-                    if (this.currentSessionKey === currentSession.conv_key) {
-                        currentSession.conversation_id = localChat.conversation_id;
-                        void this.saveToStorage();
-                        this.currentSessionId = localChat.conversation_id;
-                    }
-                    return localChat.conversation_id;
-                }
-
-                // 2. 本地没有，调用 API 从服务端获取
-                const res = await getConversation({
-                    conversation_id: '',
-                    conv_key: currentSession.conv_key,
-                    conv_type: currentSession.type
-                });
-
-                if (res.data?.conversation?.conversation_id) {
-                    const conversationId = res.data.conversation.conversation_id;
-                    // await 后再确认会话未切换，才回写
-                    if (this.currentSessionKey === currentSession.conv_key) {
-                        currentSession.conversation_id = conversationId;
-                        void this.saveToStorage();
-                        this.currentSessionId = conversationId;
-                    }
-                    return conversationId;
-                }
-            } catch (error) {
-                console.error('[ConversationStore] Failed to resolve conversation_id:', error);
-            }
-
-            return '';
         },
     },
     getters: {
@@ -355,5 +327,9 @@ export const useSessionStore = defineStore('conversation', {
             }
             return state.sessionList.find(c => c.session_key === keyOrId) || null;
         },
+
+        currentSessionType: (state) => {
+            return judgeSessionType(state.currentSessionKey);
+        }
     },
 });

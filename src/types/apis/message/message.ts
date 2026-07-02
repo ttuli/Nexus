@@ -15,8 +15,8 @@ export interface Message {
   msg_id: string;
   /** @gotags: json:"client_id" */
   client_id: string;
-  /** @gotags: json:"conversation_id" */
-  conversation_id: string;
+  /** @gotags: json:"session_id" */
+  session_id: string;
   /** @gotags: json:"from_user_id" */
   from_user_id: number;
   /** @gotags: json:"msg_type" */
@@ -35,13 +35,13 @@ export interface Message {
   create_time: number;
 }
 
-export interface Conversation {
-  /** @gotags: json:"conversation_id" */
-  conversation_id: string;
+export interface Session {
+  /** @gotags: json:"session_id" */
+  session_id: string;
   /** @gotags: json:"type" */
   type: number;
-  /** @gotags: json:"conv_key" */
-  conv_key: string;
+  /** @gotags: json:"session_key" */
+  session_key: string;
   /** @gotags: json:"max_seq" */
   max_seq: number;
   /** @gotags: json:"actual_seq" */
@@ -56,12 +56,12 @@ export interface Conversation {
   update_time: number;
 }
 
-/** UserConversation */
-export interface UserConversation {
+/** UserSession */
+export interface UserSession {
   /** @gotags: json:"user_id" */
   user_id: number;
-  /** @gotags: json:"conversation_id" */
-  conversation_id: string;
+  /** @gotags: json:"session_id" */
+  session_id: string;
   /** @gotags: json:"is_top" */
   is_top: number;
   /** @gotags: json:"is_disturb" */
@@ -76,8 +76,8 @@ export interface UserConversation {
 
 /** GetHistoryReq */
 export interface GetHistoryReq {
-  /** @gotags: form:"conversation_id,optional" json:"conversation_id,optional" */
-  conversation_id: string;
+  /** @gotags: form:"session_id,optional" json:"session_id,optional" */
+  session_id: string;
   /** @gotags: form:"start_seq,optional" json:"start_seq,optional" */
   start_seq: number;
   /** @gotags: form:"end_seq,optional" json:"end_seq,optional" */
@@ -92,53 +92,53 @@ export interface GetHistoryResp {
   list: Message[];
 }
 
-/** UpdateConversationReq */
-export interface UpdateConversationReq {
-  /** @gotags: json:"conversation_id" */
-  conversation_id: string;
+/** UpdateSessionReq */
+export interface UpdateSessionReq {
+  /** @gotags: json:"session_id" */
+  session_id: string;
   /** @gotags: json:"is_top,optional" */
   is_top: number;
   /** @gotags: json:"is_disturb,optional" */
   is_disturb: number;
 }
 
-/** GetUserConversationsResp */
-export interface GetUserConversationsResp {
-  /** @gotags: json:"conversations" */
-  conversations: UserConversation[];
+/** GetUserSessionsResp */
+export interface GetUserSessionsResp {
+  /** @gotags: json:"sessions" */
+  sessions: UserSession[];
 }
 
-export interface GetUserActiveConversationsReq {
+export interface GetUserActiveSessionsReq {
   /** @gotags: form:"timestamp,optional" json:"timestamp,optional" */
   timestamp: number;
 }
 
-export interface GetUserActiveConversationsResp {
-  /** @gotags: json:"conversations" */
-  conversations: Conversation[];
+export interface GetUserActiveSessionsResp {
+  /** @gotags: json:"sessions" */
+  sessions: Session[];
 }
 
-/** GetConversationReq 根据 conversation_id 或 conv_key 查询会话 */
-export interface GetConversationReq {
-  /** @gotags: form:"conversation_id,optional" json:"conversation_id,optional" */
-  conversation_id: string;
-  /** @gotags: form:"conv_key,optional" json:"conv_key,optional" */
-  conv_key: string;
-  /** @gotags: form:"conv_type,optional" json:"conv_type,optional" */
-  conv_type: number;
+/** GetSessionReq 根据 session_id 或 session_key 查询会话 */
+export interface GetSessionReq {
+  /** @gotags: form:"session_id,optional" json:"session_id,optional" */
+  session_id: string;
+  /** @gotags: form:"session_key,optional" json:"session_key,optional" */
+  session_key: string;
+  /** @gotags: form:"session_type,optional" json:"session_type,optional" */
+  session_type: number;
 }
 
-/** GetConversationResp */
-export interface GetConversationResp {
-  /** @gotags: json:"conversation" */
-  conversation: Conversation | undefined;
+/** GetSessionResp */
+export interface GetSessionResp {
+  /** @gotags: json:"session" */
+  session: Session | undefined;
 }
 
 function createBaseMessage(): Message {
   return {
     msg_id: "",
     client_id: "",
-    conversation_id: "",
+    session_id: "",
     from_user_id: 0,
     msg_type: 0,
     seq: 0,
@@ -158,8 +158,8 @@ export const Message: MessageFns<Message> = {
     if (message.client_id !== "") {
       writer.uint32(18).string(message.client_id);
     }
-    if (message.conversation_id !== "") {
-      writer.uint32(26).string(message.conversation_id);
+    if (message.session_id !== "") {
+      writer.uint32(26).string(message.session_id);
     }
     if (message.from_user_id !== 0) {
       writer.uint32(32).uint64(message.from_user_id);
@@ -216,7 +216,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.conversation_id = reader.string();
+          message.session_id = reader.string();
           continue;
         }
         case 4: {
@@ -304,10 +304,10 @@ export const Message: MessageFns<Message> = {
         : isSet(object.client_id)
         ? globalThis.String(object.client_id)
         : "",
-      conversation_id: isSet(object.conversationId)
-        ? globalThis.String(object.conversationId)
-        : isSet(object.conversation_id)
-        ? globalThis.String(object.conversation_id)
+      session_id: isSet(object.sessionId)
+        ? globalThis.String(object.sessionId)
+        : isSet(object.session_id)
+        ? globalThis.String(object.session_id)
         : "",
       from_user_id: isSet(object.fromUserId)
         ? globalThis.Number(object.fromUserId)
@@ -344,8 +344,8 @@ export const Message: MessageFns<Message> = {
     if (message.client_id !== "") {
       obj.clientId = message.client_id;
     }
-    if (message.conversation_id !== "") {
-      obj.conversationId = message.conversation_id;
+    if (message.session_id !== "") {
+      obj.sessionId = message.session_id;
     }
     if (message.from_user_id !== 0) {
       obj.fromUserId = Math.round(message.from_user_id);
@@ -381,7 +381,7 @@ export const Message: MessageFns<Message> = {
     const message = createBaseMessage();
     message.msg_id = object.msg_id ?? "";
     message.client_id = object.client_id ?? "";
-    message.conversation_id = object.conversation_id ?? "";
+    message.session_id = object.session_id ?? "";
     message.from_user_id = object.from_user_id ?? 0;
     message.msg_type = object.msg_type ?? 0;
     message.seq = object.seq ?? 0;
@@ -394,11 +394,11 @@ export const Message: MessageFns<Message> = {
   },
 };
 
-function createBaseConversation(): Conversation {
+function createBaseSession(): Session {
   return {
-    conversation_id: "",
+    session_id: "",
     type: 0,
-    conv_key: "",
+    session_key: "",
     max_seq: 0,
     actual_seq: 0,
     last_content: "",
@@ -408,16 +408,16 @@ function createBaseConversation(): Conversation {
   };
 }
 
-export const Conversation: MessageFns<Conversation> = {
-  encode(message: Conversation, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.conversation_id !== "") {
-      writer.uint32(10).string(message.conversation_id);
+export const Session: MessageFns<Session> = {
+  encode(message: Session, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.session_id !== "") {
+      writer.uint32(10).string(message.session_id);
     }
     if (message.type !== 0) {
       writer.uint32(16).int32(message.type);
     }
-    if (message.conv_key !== "") {
-      writer.uint32(26).string(message.conv_key);
+    if (message.session_key !== "") {
+      writer.uint32(26).string(message.session_key);
     }
     if (message.max_seq !== 0) {
       writer.uint32(32).uint64(message.max_seq);
@@ -440,10 +440,10 @@ export const Conversation: MessageFns<Conversation> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Conversation {
+  decode(input: BinaryReader | Uint8Array, length?: number): Session {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConversation();
+    const message = createBaseSession();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -452,7 +452,7 @@ export const Conversation: MessageFns<Conversation> = {
             break;
           }
 
-          message.conversation_id = reader.string();
+          message.session_id = reader.string();
           continue;
         }
         case 2: {
@@ -468,7 +468,7 @@ export const Conversation: MessageFns<Conversation> = {
             break;
           }
 
-          message.conv_key = reader.string();
+          message.session_key = reader.string();
           continue;
         }
         case 4: {
@@ -528,18 +528,18 @@ export const Conversation: MessageFns<Conversation> = {
     return message;
   },
 
-  fromJSON(object: any): Conversation {
+  fromJSON(object: any): Session {
     return {
-      conversation_id: isSet(object.conversationId)
-        ? globalThis.String(object.conversationId)
-        : isSet(object.conversation_id)
-        ? globalThis.String(object.conversation_id)
+      session_id: isSet(object.sessionId)
+        ? globalThis.String(object.sessionId)
+        : isSet(object.session_id)
+        ? globalThis.String(object.session_id)
         : "",
       type: isSet(object.type) ? globalThis.Number(object.type) : 0,
-      conv_key: isSet(object.convKey)
-        ? globalThis.String(object.convKey)
-        : isSet(object.conv_key)
-        ? globalThis.String(object.conv_key)
+      session_key: isSet(object.sessionKey)
+        ? globalThis.String(object.sessionKey)
+        : isSet(object.session_key)
+        ? globalThis.String(object.session_key)
         : "",
       max_seq: isSet(object.maxSeq)
         ? globalThis.Number(object.maxSeq)
@@ -574,16 +574,16 @@ export const Conversation: MessageFns<Conversation> = {
     };
   },
 
-  toJSON(message: Conversation): unknown {
+  toJSON(message: Session): unknown {
     const obj: any = {};
-    if (message.conversation_id !== "") {
-      obj.conversationId = message.conversation_id;
+    if (message.session_id !== "") {
+      obj.sessionId = message.session_id;
     }
     if (message.type !== 0) {
       obj.type = Math.round(message.type);
     }
-    if (message.conv_key !== "") {
-      obj.convKey = message.conv_key;
+    if (message.session_key !== "") {
+      obj.sessionKey = message.session_key;
     }
     if (message.max_seq !== 0) {
       obj.maxSeq = Math.round(message.max_seq);
@@ -606,14 +606,14 @@ export const Conversation: MessageFns<Conversation> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<Conversation>, I>>(base?: I): Conversation {
-    return Conversation.fromPartial(base ?? ({} as any));
+  create<I extends Exact<DeepPartial<Session>, I>>(base?: I): Session {
+    return Session.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<Conversation>, I>>(object: I): Conversation {
-    const message = createBaseConversation();
-    message.conversation_id = object.conversation_id ?? "";
+  fromPartial<I extends Exact<DeepPartial<Session>, I>>(object: I): Session {
+    const message = createBaseSession();
+    message.session_id = object.session_id ?? "";
     message.type = object.type ?? 0;
-    message.conv_key = object.conv_key ?? "";
+    message.session_key = object.session_key ?? "";
     message.max_seq = object.max_seq ?? 0;
     message.actual_seq = object.actual_seq ?? 0;
     message.last_content = object.last_content ?? "";
@@ -624,25 +624,17 @@ export const Conversation: MessageFns<Conversation> = {
   },
 };
 
-function createBaseUserConversation(): UserConversation {
-  return {
-    user_id: 0,
-    conversation_id: "",
-    is_top: 0,
-    is_disturb: 0,
-    last_read_seq: 0,
-    create_time: 0,
-    update_time: 0,
-  };
+function createBaseUserSession(): UserSession {
+  return { user_id: 0, session_id: "", is_top: 0, is_disturb: 0, last_read_seq: 0, create_time: 0, update_time: 0 };
 }
 
-export const UserConversation: MessageFns<UserConversation> = {
-  encode(message: UserConversation, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+export const UserSession: MessageFns<UserSession> = {
+  encode(message: UserSession, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.user_id !== 0) {
       writer.uint32(8).uint64(message.user_id);
     }
-    if (message.conversation_id !== "") {
-      writer.uint32(18).string(message.conversation_id);
+    if (message.session_id !== "") {
+      writer.uint32(18).string(message.session_id);
     }
     if (message.is_top !== 0) {
       writer.uint32(24).int32(message.is_top);
@@ -662,10 +654,10 @@ export const UserConversation: MessageFns<UserConversation> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): UserConversation {
+  decode(input: BinaryReader | Uint8Array, length?: number): UserSession {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseUserConversation();
+    const message = createBaseUserSession();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -682,7 +674,7 @@ export const UserConversation: MessageFns<UserConversation> = {
             break;
           }
 
-          message.conversation_id = reader.string();
+          message.session_id = reader.string();
           continue;
         }
         case 3: {
@@ -734,17 +726,17 @@ export const UserConversation: MessageFns<UserConversation> = {
     return message;
   },
 
-  fromJSON(object: any): UserConversation {
+  fromJSON(object: any): UserSession {
     return {
       user_id: isSet(object.userId)
         ? globalThis.Number(object.userId)
         : isSet(object.user_id)
         ? globalThis.Number(object.user_id)
         : 0,
-      conversation_id: isSet(object.conversationId)
-        ? globalThis.String(object.conversationId)
-        : isSet(object.conversation_id)
-        ? globalThis.String(object.conversation_id)
+      session_id: isSet(object.sessionId)
+        ? globalThis.String(object.sessionId)
+        : isSet(object.session_id)
+        ? globalThis.String(object.session_id)
         : "",
       is_top: isSet(object.isTop)
         ? globalThis.Number(object.isTop)
@@ -774,13 +766,13 @@ export const UserConversation: MessageFns<UserConversation> = {
     };
   },
 
-  toJSON(message: UserConversation): unknown {
+  toJSON(message: UserSession): unknown {
     const obj: any = {};
     if (message.user_id !== 0) {
       obj.userId = Math.round(message.user_id);
     }
-    if (message.conversation_id !== "") {
-      obj.conversationId = message.conversation_id;
+    if (message.session_id !== "") {
+      obj.sessionId = message.session_id;
     }
     if (message.is_top !== 0) {
       obj.isTop = Math.round(message.is_top);
@@ -800,13 +792,13 @@ export const UserConversation: MessageFns<UserConversation> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<UserConversation>, I>>(base?: I): UserConversation {
-    return UserConversation.fromPartial(base ?? ({} as any));
+  create<I extends Exact<DeepPartial<UserSession>, I>>(base?: I): UserSession {
+    return UserSession.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<UserConversation>, I>>(object: I): UserConversation {
-    const message = createBaseUserConversation();
+  fromPartial<I extends Exact<DeepPartial<UserSession>, I>>(object: I): UserSession {
+    const message = createBaseUserSession();
     message.user_id = object.user_id ?? 0;
-    message.conversation_id = object.conversation_id ?? "";
+    message.session_id = object.session_id ?? "";
     message.is_top = object.is_top ?? 0;
     message.is_disturb = object.is_disturb ?? 0;
     message.last_read_seq = object.last_read_seq ?? 0;
@@ -817,13 +809,13 @@ export const UserConversation: MessageFns<UserConversation> = {
 };
 
 function createBaseGetHistoryReq(): GetHistoryReq {
-  return { conversation_id: "", start_seq: 0, end_seq: 0, limit: 0 };
+  return { session_id: "", start_seq: 0, end_seq: 0, limit: 0 };
 }
 
 export const GetHistoryReq: MessageFns<GetHistoryReq> = {
   encode(message: GetHistoryReq, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.conversation_id !== "") {
-      writer.uint32(10).string(message.conversation_id);
+    if (message.session_id !== "") {
+      writer.uint32(10).string(message.session_id);
     }
     if (message.start_seq !== 0) {
       writer.uint32(16).int64(message.start_seq);
@@ -849,7 +841,7 @@ export const GetHistoryReq: MessageFns<GetHistoryReq> = {
             break;
           }
 
-          message.conversation_id = reader.string();
+          message.session_id = reader.string();
           continue;
         }
         case 2: {
@@ -887,10 +879,10 @@ export const GetHistoryReq: MessageFns<GetHistoryReq> = {
 
   fromJSON(object: any): GetHistoryReq {
     return {
-      conversation_id: isSet(object.conversationId)
-        ? globalThis.String(object.conversationId)
-        : isSet(object.conversation_id)
-        ? globalThis.String(object.conversation_id)
+      session_id: isSet(object.sessionId)
+        ? globalThis.String(object.sessionId)
+        : isSet(object.session_id)
+        ? globalThis.String(object.session_id)
         : "",
       start_seq: isSet(object.startSeq)
         ? globalThis.Number(object.startSeq)
@@ -908,8 +900,8 @@ export const GetHistoryReq: MessageFns<GetHistoryReq> = {
 
   toJSON(message: GetHistoryReq): unknown {
     const obj: any = {};
-    if (message.conversation_id !== "") {
-      obj.conversationId = message.conversation_id;
+    if (message.session_id !== "") {
+      obj.sessionId = message.session_id;
     }
     if (message.start_seq !== 0) {
       obj.startSeq = Math.round(message.start_seq);
@@ -928,7 +920,7 @@ export const GetHistoryReq: MessageFns<GetHistoryReq> = {
   },
   fromPartial<I extends Exact<DeepPartial<GetHistoryReq>, I>>(object: I): GetHistoryReq {
     const message = createBaseGetHistoryReq();
-    message.conversation_id = object.conversation_id ?? "";
+    message.session_id = object.session_id ?? "";
     message.start_seq = object.start_seq ?? 0;
     message.end_seq = object.end_seq ?? 0;
     message.limit = object.limit ?? 0;
@@ -994,14 +986,14 @@ export const GetHistoryResp: MessageFns<GetHistoryResp> = {
   },
 };
 
-function createBaseUpdateConversationReq(): UpdateConversationReq {
-  return { conversation_id: "", is_top: 0, is_disturb: 0 };
+function createBaseUpdateSessionReq(): UpdateSessionReq {
+  return { session_id: "", is_top: 0, is_disturb: 0 };
 }
 
-export const UpdateConversationReq: MessageFns<UpdateConversationReq> = {
-  encode(message: UpdateConversationReq, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.conversation_id !== "") {
-      writer.uint32(10).string(message.conversation_id);
+export const UpdateSessionReq: MessageFns<UpdateSessionReq> = {
+  encode(message: UpdateSessionReq, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.session_id !== "") {
+      writer.uint32(10).string(message.session_id);
     }
     if (message.is_top !== 0) {
       writer.uint32(16).int32(message.is_top);
@@ -1012,10 +1004,10 @@ export const UpdateConversationReq: MessageFns<UpdateConversationReq> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): UpdateConversationReq {
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdateSessionReq {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseUpdateConversationReq();
+    const message = createBaseUpdateSessionReq();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -1024,7 +1016,7 @@ export const UpdateConversationReq: MessageFns<UpdateConversationReq> = {
             break;
           }
 
-          message.conversation_id = reader.string();
+          message.session_id = reader.string();
           continue;
         }
         case 2: {
@@ -1052,12 +1044,12 @@ export const UpdateConversationReq: MessageFns<UpdateConversationReq> = {
     return message;
   },
 
-  fromJSON(object: any): UpdateConversationReq {
+  fromJSON(object: any): UpdateSessionReq {
     return {
-      conversation_id: isSet(object.conversationId)
-        ? globalThis.String(object.conversationId)
-        : isSet(object.conversation_id)
-        ? globalThis.String(object.conversation_id)
+      session_id: isSet(object.sessionId)
+        ? globalThis.String(object.sessionId)
+        : isSet(object.session_id)
+        ? globalThis.String(object.session_id)
         : "",
       is_top: isSet(object.isTop)
         ? globalThis.Number(object.isTop)
@@ -1072,10 +1064,10 @@ export const UpdateConversationReq: MessageFns<UpdateConversationReq> = {
     };
   },
 
-  toJSON(message: UpdateConversationReq): unknown {
+  toJSON(message: UpdateSessionReq): unknown {
     const obj: any = {};
-    if (message.conversation_id !== "") {
-      obj.conversationId = message.conversation_id;
+    if (message.session_id !== "") {
+      obj.sessionId = message.session_id;
     }
     if (message.is_top !== 0) {
       obj.isTop = Math.round(message.is_top);
@@ -1086,34 +1078,34 @@ export const UpdateConversationReq: MessageFns<UpdateConversationReq> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<UpdateConversationReq>, I>>(base?: I): UpdateConversationReq {
-    return UpdateConversationReq.fromPartial(base ?? ({} as any));
+  create<I extends Exact<DeepPartial<UpdateSessionReq>, I>>(base?: I): UpdateSessionReq {
+    return UpdateSessionReq.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<UpdateConversationReq>, I>>(object: I): UpdateConversationReq {
-    const message = createBaseUpdateConversationReq();
-    message.conversation_id = object.conversation_id ?? "";
+  fromPartial<I extends Exact<DeepPartial<UpdateSessionReq>, I>>(object: I): UpdateSessionReq {
+    const message = createBaseUpdateSessionReq();
+    message.session_id = object.session_id ?? "";
     message.is_top = object.is_top ?? 0;
     message.is_disturb = object.is_disturb ?? 0;
     return message;
   },
 };
 
-function createBaseGetUserConversationsResp(): GetUserConversationsResp {
-  return { conversations: [] };
+function createBaseGetUserSessionsResp(): GetUserSessionsResp {
+  return { sessions: [] };
 }
 
-export const GetUserConversationsResp: MessageFns<GetUserConversationsResp> = {
-  encode(message: GetUserConversationsResp, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    for (const v of message.conversations) {
-      UserConversation.encode(v!, writer.uint32(10).fork()).join();
+export const GetUserSessionsResp: MessageFns<GetUserSessionsResp> = {
+  encode(message: GetUserSessionsResp, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.sessions) {
+      UserSession.encode(v!, writer.uint32(10).fork()).join();
     }
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): GetUserConversationsResp {
+  decode(input: BinaryReader | Uint8Array, length?: number): GetUserSessionsResp {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseGetUserConversationsResp();
+    const message = createBaseGetUserSessionsResp();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -1122,7 +1114,7 @@ export const GetUserConversationsResp: MessageFns<GetUserConversationsResp> = {
             break;
           }
 
-          message.conversations.push(UserConversation.decode(reader, reader.uint32()));
+          message.sessions.push(UserSession.decode(reader, reader.uint32()));
           continue;
         }
       }
@@ -1134,48 +1126,48 @@ export const GetUserConversationsResp: MessageFns<GetUserConversationsResp> = {
     return message;
   },
 
-  fromJSON(object: any): GetUserConversationsResp {
+  fromJSON(object: any): GetUserSessionsResp {
     return {
-      conversations: globalThis.Array.isArray(object?.conversations)
-        ? object.conversations.map((e: any) => UserConversation.fromJSON(e))
+      sessions: globalThis.Array.isArray(object?.sessions)
+        ? object.sessions.map((e: any) => UserSession.fromJSON(e))
         : [],
     };
   },
 
-  toJSON(message: GetUserConversationsResp): unknown {
+  toJSON(message: GetUserSessionsResp): unknown {
     const obj: any = {};
-    if (message.conversations?.length) {
-      obj.conversations = message.conversations.map((e) => UserConversation.toJSON(e));
+    if (message.sessions?.length) {
+      obj.sessions = message.sessions.map((e) => UserSession.toJSON(e));
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetUserConversationsResp>, I>>(base?: I): GetUserConversationsResp {
-    return GetUserConversationsResp.fromPartial(base ?? ({} as any));
+  create<I extends Exact<DeepPartial<GetUserSessionsResp>, I>>(base?: I): GetUserSessionsResp {
+    return GetUserSessionsResp.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetUserConversationsResp>, I>>(object: I): GetUserConversationsResp {
-    const message = createBaseGetUserConversationsResp();
-    message.conversations = object.conversations?.map((e) => UserConversation.fromPartial(e)) || [];
+  fromPartial<I extends Exact<DeepPartial<GetUserSessionsResp>, I>>(object: I): GetUserSessionsResp {
+    const message = createBaseGetUserSessionsResp();
+    message.sessions = object.sessions?.map((e) => UserSession.fromPartial(e)) || [];
     return message;
   },
 };
 
-function createBaseGetUserActiveConversationsReq(): GetUserActiveConversationsReq {
+function createBaseGetUserActiveSessionsReq(): GetUserActiveSessionsReq {
   return { timestamp: 0 };
 }
 
-export const GetUserActiveConversationsReq: MessageFns<GetUserActiveConversationsReq> = {
-  encode(message: GetUserActiveConversationsReq, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+export const GetUserActiveSessionsReq: MessageFns<GetUserActiveSessionsReq> = {
+  encode(message: GetUserActiveSessionsReq, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.timestamp !== 0) {
       writer.uint32(8).int64(message.timestamp);
     }
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): GetUserActiveConversationsReq {
+  decode(input: BinaryReader | Uint8Array, length?: number): GetUserActiveSessionsReq {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseGetUserActiveConversationsReq();
+    const message = createBaseGetUserActiveSessionsReq();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -1196,11 +1188,11 @@ export const GetUserActiveConversationsReq: MessageFns<GetUserActiveConversation
     return message;
   },
 
-  fromJSON(object: any): GetUserActiveConversationsReq {
+  fromJSON(object: any): GetUserActiveSessionsReq {
     return { timestamp: isSet(object.timestamp) ? globalThis.Number(object.timestamp) : 0 };
   },
 
-  toJSON(message: GetUserActiveConversationsReq): unknown {
+  toJSON(message: GetUserActiveSessionsReq): unknown {
     const obj: any = {};
     if (message.timestamp !== 0) {
       obj.timestamp = Math.round(message.timestamp);
@@ -1208,34 +1200,32 @@ export const GetUserActiveConversationsReq: MessageFns<GetUserActiveConversation
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetUserActiveConversationsReq>, I>>(base?: I): GetUserActiveConversationsReq {
-    return GetUserActiveConversationsReq.fromPartial(base ?? ({} as any));
+  create<I extends Exact<DeepPartial<GetUserActiveSessionsReq>, I>>(base?: I): GetUserActiveSessionsReq {
+    return GetUserActiveSessionsReq.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetUserActiveConversationsReq>, I>>(
-    object: I,
-  ): GetUserActiveConversationsReq {
-    const message = createBaseGetUserActiveConversationsReq();
+  fromPartial<I extends Exact<DeepPartial<GetUserActiveSessionsReq>, I>>(object: I): GetUserActiveSessionsReq {
+    const message = createBaseGetUserActiveSessionsReq();
     message.timestamp = object.timestamp ?? 0;
     return message;
   },
 };
 
-function createBaseGetUserActiveConversationsResp(): GetUserActiveConversationsResp {
-  return { conversations: [] };
+function createBaseGetUserActiveSessionsResp(): GetUserActiveSessionsResp {
+  return { sessions: [] };
 }
 
-export const GetUserActiveConversationsResp: MessageFns<GetUserActiveConversationsResp> = {
-  encode(message: GetUserActiveConversationsResp, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    for (const v of message.conversations) {
-      Conversation.encode(v!, writer.uint32(10).fork()).join();
+export const GetUserActiveSessionsResp: MessageFns<GetUserActiveSessionsResp> = {
+  encode(message: GetUserActiveSessionsResp, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.sessions) {
+      Session.encode(v!, writer.uint32(10).fork()).join();
     }
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): GetUserActiveConversationsResp {
+  decode(input: BinaryReader | Uint8Array, length?: number): GetUserActiveSessionsResp {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseGetUserActiveConversationsResp();
+    const message = createBaseGetUserActiveSessionsResp();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -1244,7 +1234,7 @@ export const GetUserActiveConversationsResp: MessageFns<GetUserActiveConversatio
             break;
           }
 
-          message.conversations.push(Conversation.decode(reader, reader.uint32()));
+          message.sessions.push(Session.decode(reader, reader.uint32()));
           continue;
         }
       }
@@ -1256,56 +1246,52 @@ export const GetUserActiveConversationsResp: MessageFns<GetUserActiveConversatio
     return message;
   },
 
-  fromJSON(object: any): GetUserActiveConversationsResp {
+  fromJSON(object: any): GetUserActiveSessionsResp {
     return {
-      conversations: globalThis.Array.isArray(object?.conversations)
-        ? object.conversations.map((e: any) => Conversation.fromJSON(e))
-        : [],
+      sessions: globalThis.Array.isArray(object?.sessions) ? object.sessions.map((e: any) => Session.fromJSON(e)) : [],
     };
   },
 
-  toJSON(message: GetUserActiveConversationsResp): unknown {
+  toJSON(message: GetUserActiveSessionsResp): unknown {
     const obj: any = {};
-    if (message.conversations?.length) {
-      obj.conversations = message.conversations.map((e) => Conversation.toJSON(e));
+    if (message.sessions?.length) {
+      obj.sessions = message.sessions.map((e) => Session.toJSON(e));
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetUserActiveConversationsResp>, I>>(base?: I): GetUserActiveConversationsResp {
-    return GetUserActiveConversationsResp.fromPartial(base ?? ({} as any));
+  create<I extends Exact<DeepPartial<GetUserActiveSessionsResp>, I>>(base?: I): GetUserActiveSessionsResp {
+    return GetUserActiveSessionsResp.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetUserActiveConversationsResp>, I>>(
-    object: I,
-  ): GetUserActiveConversationsResp {
-    const message = createBaseGetUserActiveConversationsResp();
-    message.conversations = object.conversations?.map((e) => Conversation.fromPartial(e)) || [];
+  fromPartial<I extends Exact<DeepPartial<GetUserActiveSessionsResp>, I>>(object: I): GetUserActiveSessionsResp {
+    const message = createBaseGetUserActiveSessionsResp();
+    message.sessions = object.sessions?.map((e) => Session.fromPartial(e)) || [];
     return message;
   },
 };
 
-function createBaseGetConversationReq(): GetConversationReq {
-  return { conversation_id: "", conv_key: "", conv_type: 0 };
+function createBaseGetSessionReq(): GetSessionReq {
+  return { session_id: "", session_key: "", session_type: 0 };
 }
 
-export const GetConversationReq: MessageFns<GetConversationReq> = {
-  encode(message: GetConversationReq, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.conversation_id !== "") {
-      writer.uint32(10).string(message.conversation_id);
+export const GetSessionReq: MessageFns<GetSessionReq> = {
+  encode(message: GetSessionReq, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.session_id !== "") {
+      writer.uint32(10).string(message.session_id);
     }
-    if (message.conv_key !== "") {
-      writer.uint32(18).string(message.conv_key);
+    if (message.session_key !== "") {
+      writer.uint32(18).string(message.session_key);
     }
-    if (message.conv_type !== 0) {
-      writer.uint32(24).int32(message.conv_type);
+    if (message.session_type !== 0) {
+      writer.uint32(24).int32(message.session_type);
     }
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): GetConversationReq {
+  decode(input: BinaryReader | Uint8Array, length?: number): GetSessionReq {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseGetConversationReq();
+    const message = createBaseGetSessionReq();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -1314,7 +1300,7 @@ export const GetConversationReq: MessageFns<GetConversationReq> = {
             break;
           }
 
-          message.conversation_id = reader.string();
+          message.session_id = reader.string();
           continue;
         }
         case 2: {
@@ -1322,7 +1308,7 @@ export const GetConversationReq: MessageFns<GetConversationReq> = {
             break;
           }
 
-          message.conv_key = reader.string();
+          message.session_key = reader.string();
           continue;
         }
         case 3: {
@@ -1330,7 +1316,7 @@ export const GetConversationReq: MessageFns<GetConversationReq> = {
             break;
           }
 
-          message.conv_type = reader.int32();
+          message.session_type = reader.int32();
           continue;
         }
       }
@@ -1342,68 +1328,68 @@ export const GetConversationReq: MessageFns<GetConversationReq> = {
     return message;
   },
 
-  fromJSON(object: any): GetConversationReq {
+  fromJSON(object: any): GetSessionReq {
     return {
-      conversation_id: isSet(object.conversationId)
-        ? globalThis.String(object.conversationId)
-        : isSet(object.conversation_id)
-        ? globalThis.String(object.conversation_id)
+      session_id: isSet(object.sessionId)
+        ? globalThis.String(object.sessionId)
+        : isSet(object.session_id)
+        ? globalThis.String(object.session_id)
         : "",
-      conv_key: isSet(object.convKey)
-        ? globalThis.String(object.convKey)
-        : isSet(object.conv_key)
-        ? globalThis.String(object.conv_key)
+      session_key: isSet(object.sessionKey)
+        ? globalThis.String(object.sessionKey)
+        : isSet(object.session_key)
+        ? globalThis.String(object.session_key)
         : "",
-      conv_type: isSet(object.convType)
-        ? globalThis.Number(object.convType)
-        : isSet(object.conv_type)
-        ? globalThis.Number(object.conv_type)
+      session_type: isSet(object.sessionType)
+        ? globalThis.Number(object.sessionType)
+        : isSet(object.session_type)
+        ? globalThis.Number(object.session_type)
         : 0,
     };
   },
 
-  toJSON(message: GetConversationReq): unknown {
+  toJSON(message: GetSessionReq): unknown {
     const obj: any = {};
-    if (message.conversation_id !== "") {
-      obj.conversationId = message.conversation_id;
+    if (message.session_id !== "") {
+      obj.sessionId = message.session_id;
     }
-    if (message.conv_key !== "") {
-      obj.convKey = message.conv_key;
+    if (message.session_key !== "") {
+      obj.sessionKey = message.session_key;
     }
-    if (message.conv_type !== 0) {
-      obj.convType = Math.round(message.conv_type);
+    if (message.session_type !== 0) {
+      obj.sessionType = Math.round(message.session_type);
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetConversationReq>, I>>(base?: I): GetConversationReq {
-    return GetConversationReq.fromPartial(base ?? ({} as any));
+  create<I extends Exact<DeepPartial<GetSessionReq>, I>>(base?: I): GetSessionReq {
+    return GetSessionReq.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetConversationReq>, I>>(object: I): GetConversationReq {
-    const message = createBaseGetConversationReq();
-    message.conversation_id = object.conversation_id ?? "";
-    message.conv_key = object.conv_key ?? "";
-    message.conv_type = object.conv_type ?? 0;
+  fromPartial<I extends Exact<DeepPartial<GetSessionReq>, I>>(object: I): GetSessionReq {
+    const message = createBaseGetSessionReq();
+    message.session_id = object.session_id ?? "";
+    message.session_key = object.session_key ?? "";
+    message.session_type = object.session_type ?? 0;
     return message;
   },
 };
 
-function createBaseGetConversationResp(): GetConversationResp {
-  return { conversation: undefined };
+function createBaseGetSessionResp(): GetSessionResp {
+  return { session: undefined };
 }
 
-export const GetConversationResp: MessageFns<GetConversationResp> = {
-  encode(message: GetConversationResp, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.conversation !== undefined) {
-      Conversation.encode(message.conversation, writer.uint32(10).fork()).join();
+export const GetSessionResp: MessageFns<GetSessionResp> = {
+  encode(message: GetSessionResp, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.session !== undefined) {
+      Session.encode(message.session, writer.uint32(10).fork()).join();
     }
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): GetConversationResp {
+  decode(input: BinaryReader | Uint8Array, length?: number): GetSessionResp {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseGetConversationResp();
+    const message = createBaseGetSessionResp();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -1412,7 +1398,7 @@ export const GetConversationResp: MessageFns<GetConversationResp> = {
             break;
           }
 
-          message.conversation = Conversation.decode(reader, reader.uint32());
+          message.session = Session.decode(reader, reader.uint32());
           continue;
         }
       }
@@ -1424,25 +1410,25 @@ export const GetConversationResp: MessageFns<GetConversationResp> = {
     return message;
   },
 
-  fromJSON(object: any): GetConversationResp {
-    return { conversation: isSet(object.conversation) ? Conversation.fromJSON(object.conversation) : undefined };
+  fromJSON(object: any): GetSessionResp {
+    return { session: isSet(object.session) ? Session.fromJSON(object.session) : undefined };
   },
 
-  toJSON(message: GetConversationResp): unknown {
+  toJSON(message: GetSessionResp): unknown {
     const obj: any = {};
-    if (message.conversation !== undefined) {
-      obj.conversation = Conversation.toJSON(message.conversation);
+    if (message.session !== undefined) {
+      obj.session = Session.toJSON(message.session);
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetConversationResp>, I>>(base?: I): GetConversationResp {
-    return GetConversationResp.fromPartial(base ?? ({} as any));
+  create<I extends Exact<DeepPartial<GetSessionResp>, I>>(base?: I): GetSessionResp {
+    return GetSessionResp.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetConversationResp>, I>>(object: I): GetConversationResp {
-    const message = createBaseGetConversationResp();
-    message.conversation = (object.conversation !== undefined && object.conversation !== null)
-      ? Conversation.fromPartial(object.conversation)
+  fromPartial<I extends Exact<DeepPartial<GetSessionResp>, I>>(object: I): GetSessionResp {
+    const message = createBaseGetSessionResp();
+    message.session = (object.session !== undefined && object.session !== null)
+      ? Session.fromPartial(object.session)
       : undefined;
     return message;
   },

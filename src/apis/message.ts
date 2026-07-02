@@ -10,8 +10,8 @@ import { APP_CONSTANTS as config } from '@/src/config/constants'
  * 更新会话设置 (置顶、免打扰、静音等)
  * PUT /message/conversation
  */
-export async function updateConversation(data: ApiTypes.message.UpdateConversationReq) {
-    const reqData = ApiTypes.message.UpdateConversationReq.encode(data).finish()
+export async function updateConversation(data: ApiTypes.message.UpdateSessionReq) {
+    const reqData = ApiTypes.message.UpdateSessionReq.encode(data).finish()
     const res = await instance<ApiResponse<null>>({
         method: 'put',
         url: config.messageServer + '/message/conversation',
@@ -25,11 +25,11 @@ export async function updateConversation(data: ApiTypes.message.UpdateConversati
  * GET /message/conversations/user
  */
 export async function getUserConversations() {
-    const res = await instance<ApiResponse<ApiTypes.message.GetUserConversationsResp>>({
+    const res = await instance<ApiResponse<ApiTypes.message.GetUserSessionsResp>>({
         method: 'get',
         url: config.messageServer + '/message/conversations/user'
     })
-    return decodeResponse(res.data, ApiTypes.message.GetUserConversationsResp.decode)
+    return decodeResponse(res.data, ApiTypes.message.GetUserSessionsResp.decode)
 }
 
 // ==================== Message APIs ====================
@@ -44,7 +44,7 @@ export async function getUserConversations() {
  * | end_seq | uint64 | 否 | 0 | 结束序号（含） |
  * | limit | int | 否 | 20 | 每次拉取的消息条数 |
  */
-export async function getHistory(params: PartialExcept<ApiTypes.message.GetHistoryReq, 'conversation_id'>) {
+export async function getHistory(params: PartialExcept<ApiTypes.message.GetHistoryReq, 'session_id'>) {
     const res = await instance<ApiResponse<ApiTypes.message.GetHistoryResp>>({
         method: 'get',
         url: config.messageServer + '/message/history',
@@ -54,21 +54,21 @@ export async function getHistory(params: PartialExcept<ApiTypes.message.GetHisto
 }
 
 // 获取离线后的活跃列表
-export async function getUserActiveConversation(params: ApiTypes.message.GetUserActiveConversationsReq) {
-    const res = await instance<ApiResponse<ApiTypes.message.GetUserActiveConversationsResp>>({
+export async function getUserActiveConversation(params: ApiTypes.message.GetUserActiveSessionsReq) {
+    const res = await instance<ApiResponse<ApiTypes.message.GetUserActiveSessionsResp>>({
         method: 'get',
         url: config.messageServer + '/message/conversations/user/active',
         params
     })
-    return decodeResponse(res.data, ApiTypes.message.GetUserActiveConversationsResp.decode)
+    return decodeResponse(res.data, ApiTypes.message.GetUserActiveSessionsResp.decode)
 }
 
 // 获取会话详情
-export async function getConversation(params: ApiTypes.message.GetConversationReq) {
-    const res = await instance<ApiResponse<ApiTypes.message.GetConversationResp>>({
+export async function getConversation(params: ApiTypes.message.GetSessionReq) {
+    const res = await instance<ApiResponse<ApiTypes.message.GetSessionResp>>({
         method: 'get',
         url: config.messageServer + '/message/conversation',
         params
     })
-    return decodeResponse(res.data, ApiTypes.message.GetConversationResp.decode)
+    return decodeResponse(res.data, ApiTypes.message.GetSessionResp.decode)
 }

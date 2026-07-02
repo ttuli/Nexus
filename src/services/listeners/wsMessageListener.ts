@@ -27,12 +27,7 @@ export function initWsMessageListener(): void {
             return
         }
         console.log('[WsMessageListener] Received WSMessage:', chatMsg)
-        messageStore.addMessage(chatMsg)
-
-        // 检查文件消息的 localPath 是否本地实际存在
-        checkAndClearInvalidLocalPath(chatMsg, fileService, (sessionId, clientId, msgId, localPath) => {
-            messageStore.updateFileLocalPath(sessionId, clientId, msgId, localPath)
-        })
+        messageStore.upsertMessage(chatMsg)
 
         const isCurrentChat = (chatMsg.sessionKey && chatMsg.sessionKey === conversationStore.currentSessionKey) ||
                               (chatMsg.sessionId === conversationStore.currentSessionId);
@@ -62,14 +57,11 @@ export function initWsMessageListener(): void {
         const conversationStore = useSessionStore()
         console.log('[WsMessageListener] Received PersistAck:', data)
 
-        if (data.ack.session_id && data.ack.conv_key) {
-            const chat = conversationStore.getSession(data.ack.conv_key);
-            if (chat && !chat.conversation_id) {
-                chat.conversation_id = data.ack.session_id;
+        if (data.ack.session_id && data.ack.session_key) {
+            const chat = conversationStore.getSession(data.ack.session_key);
+            if (chat && !chat.session_id) {
+                chat.session_id = data.ack.session_id;
                 void conversationStore.saveToStorage();
-                if (conversationStore.currentSessionKey === data.ack.conv_key) {
-                    conversationStore.currentSessionId = data.ack.session_id;
-                }
             }
         }
 

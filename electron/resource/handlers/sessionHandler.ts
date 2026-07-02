@@ -26,7 +26,7 @@ export function setupSessionHandlers(): void {
         }
     });
 
-    /** 批量保存会话 */
+    /** 批量保存/更新会话 (Upsert) */
     ipcMain.handle(IpcChannels.SESSION_SAVE_LIST, async (_event, sessionList: ImTypes.Session[]) => {
         try {
             await sessionStore.saveMany(sessionList);

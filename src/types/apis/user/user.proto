@@ -149,8 +149,6 @@ message NewFriendApplyResp {
   FriendRequest data = 1;
   // @gotags: json:"friend,omitempty"
   Friend friend = 2;
-  // @gotags: json:"conversation_id,omitempty"
-  string conversation_id = 3;
 }
 
 // HandleFriendApplyReq
@@ -167,8 +165,6 @@ message HandleFriendApplyReq {
 message HandleFriendApplyResp {
   // @gotags: json:"data"
   FriendRequest data = 1;
-  // @gotags: json:"conversation_id,omitempty"
-  string conversation_id = 2;
 }
 
 // GetPendingFriendAppliesReq

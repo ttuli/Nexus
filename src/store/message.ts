@@ -170,11 +170,9 @@ export const useMessageStore = defineStore('message', {
         /**
          * 添加消息
          */
-        addMessage(message: IChatMessage) {
+        upsertMessage(message: IChatMessage) {
             // Deduplicate
-            if (this.messages.some(m => (message.msgId !== '' && m.msgId === message.msgId) || (message.clientId && m.clientId === message.clientId))) {
-                return this.updateMessageStatus(message.sessionId, message.clientId || '', message.status, message.sendTime);
-            }
+            this.updateMessageStatus(message.sessionId, message.clientId || '', message.status, message.sendTime);
             
             const conversationStore = useSessionStore();
             

@@ -29,19 +29,15 @@ class MessageSendService {
      * 构建并发送文本消息
      */
     async sendTextMessage(content: string): Promise<void> {
-        const conversationStore = useSessionStore();
+        const sessionStore = useSessionStore();
         const messageStore = useMessageStore();
-        const chatType = conversationStore.currentSessionType;
-        if (chatType === null) return;
-
-        let sessionId = conversationStore.currentSessionId;
-        if (!sessionId) {
-            sessionId = await conversationStore.resolveCurrentConversationId();
-        }
-        if (!sessionId) {
-            ElMessage.error('发送失败：无法获取会话信息');
+        const session = sessionStore.getSession(sessionStore.currentSessionKey);
+        if (!session) {
+            ElMessage.error('获取会话失败')
             return;
         }
+        const sessionId = session.session_id;
+        const chatType = session.type;
 
         const { msg, clientId, localMsg } = buildTextWsMessage(content, sessionId, chatType);
         messageStore.addMessage(localMsg);
@@ -59,19 +55,16 @@ class MessageSendService {
      * 构建并发送图片消息
      */
     async sendImageMessage(file: File): Promise<void> {
-        const conversationStore = useSessionStore();
+        const sessionStore = useSessionStore();
         const messageStore = useMessageStore();
-        const chatType = conversationStore.currentSessionType;
-        if (chatType === null) return;
 
-        let sessionId = conversationStore.currentSessionId;
-        if (!sessionId) {
-            sessionId = await conversationStore.resolveCurrentConversationId();
-        }
-        if (!sessionId) {
-            ElMessage.error('发送失败：无法获取会话信息');
+        const session = sessionStore.getSession(sessionStore.currentSessionKey);
+        if (!session) {
+            ElMessage.error('获取会话失败')
             return;
         }
+        const sessionId = session.session_id;
+        const chatType = session.type;
 
         const bitmap = await createImageBitmap(file);
         const imgWidth = bitmap.width;
@@ -153,19 +146,15 @@ class MessageSendService {
      * 构建并发送文件消息
      */
     async sendFileMessage(file: File): Promise<void> {
-        const conversationStore = useSessionStore();
+        const sessionStore = useSessionStore();
         const messageStore = useMessageStore();
-        const chatType = conversationStore.currentSessionType;
-        if (chatType === null) return;
-
-        let sessionId = conversationStore.currentSessionId;
-        if (!sessionId) {
-            sessionId = await conversationStore.resolveCurrentConversationId();
-        }
-        if (!sessionId) {
-            ElMessage.error('发送失败：无法获取会话信息');
+        const session = sessionStore.getSession(sessionStore.currentSessionKey);
+        if (!session) {
+            ElMessage.error('获取会话失败')
             return;
         }
+        const sessionId = session.session_id;
+        const chatType = session.type;
 
         const filePath = window.webUtils.getPathForFile(file);
 
@@ -222,19 +211,15 @@ class MessageSendService {
      * 构建并发送视频消息
      */
     async sendVideoMessage(file: File): Promise<void> {
-        const conversationStore = useSessionStore();
+        const sessionStore = useSessionStore();
         const messageStore = useMessageStore();
-        const chatType = conversationStore.currentSessionType;
-        if (chatType === null) return;
-
-        let sessionId = conversationStore.currentSessionId;
-        if (!sessionId) {
-            sessionId = await conversationStore.resolveCurrentConversationId();
-        }
-        if (!sessionId) {
-            ElMessage.error('发送失败：无法获取会话信息');
+        const session = sessionStore.getSession(sessionStore.currentSessionKey);
+        if (!session) {
+            ElMessage.error('获取会话失败')
             return;
         }
+        const sessionId = session.session_id;
+        const chatType = session.type;
 
         const videoMeta = await extractVideoFrame(file);
         const filePath = window.webUtils.getPathForFile(file);
