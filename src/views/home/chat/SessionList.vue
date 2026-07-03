@@ -1,8 +1,8 @@
 <template>
     <div class="chat-list">
         <div class="scroll-container scroll-bar-thin">
-            <SessionCard v-for="chat in sessionList" :key="chat.conv_key || chat.conversation_id" :data="chat"
-                 :isActive="currentSessionKey === chat.conv_key" @click="onChatClick"
+            <SessionCard v-for="chat in sessionList" :key="chat.session_id || chat.session_key" :data="chat"
+                 :isActive="currentSessionKey === chat.session_key" @click="onChatClick"
                  @contextmenu.prevent="handleContextMenu($event, chat)" />
             <ContextMenu v-model:visible="menuVisible" :x="menuX" :y="menuY" :options="menuOptions"
                  @select="handleMenuSelect" />

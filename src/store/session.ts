@@ -3,7 +3,6 @@ import { ImTypes, IpcChannels } from '@/src/types';
 import { windowService } from '@/src/services';
 import { Renderer_Config as config } from '@/src/config/constants';
 import { judgeSessionType } from '@/src/utils/sessionUtils';
-import { getConversation } from '@/src/apis/message';
 
 export const useSessionStore = defineStore('session', {
     state: () => ({
@@ -25,7 +24,6 @@ export const useSessionStore = defineStore('session', {
             update_time?: number;
             last_content?: string;
             last_sender?: number;
-            unread_count?: number;
             create_time?: number;
             is_top?: number;
             is_disturb?: number;
@@ -34,9 +32,7 @@ export const useSessionStore = defineStore('session', {
             const sessionKey = sessionObj.session_key;
             const type = sessionObj.type !== undefined
                 ? sessionObj.type
-                : (sessionObj.session_type !== undefined
-                    ? (sessionObj.session_type as ImTypes.SessionType)
-                    : undefined);
+                : judgeSessionType(sessionKey)
 
             // 优先通过 session_id，其次通过 session_key 检索本地已存在的会话
             let existing = this.sessionList.find(
@@ -66,7 +62,6 @@ export const useSessionStore = defineStore('session', {
                     existing.max_seq = sessionObj.max_seq;
                 }
                 
-                if (sessionObj.unread_count !== undefined) existing.unread_count = sessionObj.unread_count;
                 if (sessionObj.update_time !== undefined) {
                     existing.update_time = sessionObj.update_time;
                     existing.last_message_time = sessionObj.update_time;
@@ -89,7 +84,7 @@ export const useSessionStore = defineStore('session', {
                     last_sender: sessionObj.last_sender || 0,
                     last_content: sessionObj.last_content || '',
                     last_message_time: sessionObj.update_time || Date.now(),
-                    unread_count: sessionObj.unread_count || 0,
+                    unread_count: 0,
                     create_time: sessionObj.create_time || Date.now(),
                     update_time: sessionObj.update_time || Date.now(),
                     is_top: sessionObj.is_top !== undefined ? sessionObj.is_top : 1,
@@ -113,6 +108,16 @@ export const useSessionStore = defineStore('session', {
         },
 
         /**
+         * 增加未读数
+         */
+        incrementUnread(sessionkey: string) {
+            const chat = this.getSession(sessionkey);
+            if (chat) {
+                chat.unread_count++
+            }
+        },
+
+        /**
          * 添加或置顶聊天
          * 如果已存在则移到第一位，如果不存在则添加到第一位
          */
@@ -128,7 +133,6 @@ export const useSessionStore = defineStore('session', {
                     const [item] = this.sessionList.splice(existingIndex, 1);
                     this.sessionList.unshift(item);
                 }
-                void this.saveToStorage();
             } else {
                 // 添加新聊天
                 const newChat: ImTypes.Session & { is_in_list?: number } = {
@@ -153,7 +157,6 @@ export const useSessionStore = defineStore('session', {
                 if (this.sessionList.length > config.maxSessionListCount) {
                     this.sessionList.pop();
                 }
-                void this.saveToStorage();
             }
         },
 
@@ -181,19 +184,6 @@ export const useSessionStore = defineStore('session', {
             if (chat) {
                 chat.unread_count = 0;
                 void this.saveToStorage();
-            }
-        },
-
-        /**
-         * 增加未读数
-         */
-        incrementUnread(sessionkey: string) {
-            const chat = this.getSession(sessionkey);
-            if (chat) {
-                this.upsertSession({
-                    session_key: sessionkey,
-                    unread_count: (chat.unread_count || 0) + 1
-                });
             }
         },
 

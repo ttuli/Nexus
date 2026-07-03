@@ -3,7 +3,7 @@
         @click.capture.stop="handleClick">
         <div class="avatar-container">
             <Avatar :uid="getTargetId(props.data)"
-                :type="props.data.type === ImTypes.ConversationType.CONVERSATION_TYPE_GROUP ? 'group' : 'user'" />
+                :type="props.data.type === ImTypes.SessionType.SESSION_TYPE_GROUP ? 'group' : 'user'" />
         </div>
         <div class="content-container">
             <div class="top-row">
@@ -12,7 +12,7 @@
                     }}</span>
             </div>
             <div class="bottom-row">
-                <span class="message">{{ props.data.last_content || '' }}</span>
+                <span class="message">{{ displayContent }}</span>
                 <div class="badge" :class="{ 'disturb-badge': props.data.is_disturb === 2 }"
                     v-if="props.data.unread_count > 0">
                     {{ props.data.unread_count > 99 ? '99+' : props.data.unread_count }}
@@ -35,16 +35,21 @@ import notdisturb from '@/src/assets/chat/notdisturb.svg?raw';
 
 // Props
 interface Props {
-    data: ImTypes.Conversation;
+    data: ImTypes.Session;
     isActive?: boolean;
 }
 const props = defineProps<Props>();
 
+// Emits
+const emit = defineEmits<{
+    (e: 'click', sessionId: string): void;
+}>();
+
 const userStore = useUserStore();
 const groupStore = useGroupStore();
 
-const getTargetId = (chat: ImTypes.Conversation) => {
-    return extractTargetIdFromSessionId(chat.conv_key || chat.conversation_id || '', userStore.getUserID());
+const getTargetId = (chat: ImTypes.Session) => {
+    return extractTargetIdFromSessionId(chat.session_key || chat.session_id || '', userStore.getUserID());
 }
 
 // 动态获取名称
@@ -52,7 +57,7 @@ const displayName = computed(() => {
     const targetId = getTargetId(props.data);
     if (!targetId) return '';
 
-    if (props.data.type === ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE) {
+    if (props.data.type === ImTypes.SessionType.SESSION_TYPE_PRIVATE) {
         const user = userStore.getUser(targetId);
         const friend = userStore.getFriend(targetId);
         return friend?.remark || user?.user_name || `用户${targetId}`;
@@ -62,13 +67,16 @@ const displayName = computed(() => {
     }
 });
 
-// Emits
-const emit = defineEmits<{
-    (e: 'click', sessionId: string): void;
-}>();
+const displayContent = computed(() => {
+    if (props.data.type === ImTypes.SessionType.SESSION_TYPE_GROUP) {
+        const user = userStore.getUser(props.data.last_sender);
+        return `${user?.user_name}: ${props.data.last_content || ''}`;
+    }
+    return props.data.last_content
+})
 
 const handleClick = () => {
-    emit('click', props.data.conv_key || props.data.conversation_id || '');
+    emit('click', props.data.session_key || '');
 };
 
 // Utils

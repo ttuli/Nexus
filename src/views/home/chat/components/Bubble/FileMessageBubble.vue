@@ -239,7 +239,7 @@ const startDownload = async () => {
         
         const localPath = await promise;
         // 更新内存和数据库中的 localPath
-        messageStore.updateFileLocalPath(props.message.sessionId, props.message.clientId || '', props.message.msgId, localPath);
+        messageStore.updateFileLocalPath(props.message.sessionId, props.message.msgId, localPath);
         isDownloading.value = false;
         currentDownloadAbort.value = null;
         ElMessage.success('下载完成');

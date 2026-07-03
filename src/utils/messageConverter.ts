@@ -179,34 +179,6 @@ export function convertNotificationToChatMessage(notification: ImTypes.GroupNoti
     };
     return chatMsg;
 }
-
-/**
- * 检查文件消息的 localPath 是否实际存在，不存在则清空
- * 适用于接收到新消息时的处理（也适用于发送方查证本地文件是否仍存在）
- */
-export function checkAndClearInvalidLocalPath(
-    chatMsg: IChatMessage,
-    fileService: { checkLocalFileExists(path: string): Promise<boolean> },
-    updateLocalPath: (sessionId: string, clientId: string, msgId: string, localPath: string) => void
-) {
-    const isFileMsgType = (
-        chatMsg.type === ImTypes.MessageType.CHAT_FILE ||
-        chatMsg.type === ImTypes.MessageType.GROUP_FILE
-    );
-    if (!isFileMsgType) return;
-
-    const fileMsg = chatMsg as any;
-    if (!fileMsg.localPath) return;
-
-    // 漂浮异步检查，不阻塞主流程
-    void (async () => {
-        const exists = await fileService.checkLocalFileExists(fileMsg.localPath);
-        if (!exists) {
-            updateLocalPath(chatMsg.sessionId, chatMsg.clientId || '', chatMsg.msgId, '');
-        }
-    })();
-}
-
 /**
  * 将申请来源枚举转换为好友来源枚举
  */
@@ -224,4 +196,102 @@ export function convertApplySrc2FriendSrc(src: ImTypes.ApplySource): ImTypes.Fri
         default:
             return ImTypes.FriendSource.FRIEND_SOURCE_UNSPECIFIED;
     }
+}
+
+/**
+ * 格式化系统消息内容，返回可读的中文描述
+ */
+export function formatSystemMessage(
+    message: ILocalSystemMessage,
+    meId?: number,
+    getUserName?: (userId: number) => string
+): string {
+    const resolveUserName = (userId: number) => {
+        if (!userId) return '';
+        if (meId !== undefined && userId === meId) return '你';
+        if (getUserName) {
+            const name = getUserName(userId);
+            if (name) return name;
+        }
+        return `用户${userId}`;
+    };
+
+    if (message.content) {
+        return message.content;
+    }
+
+    const { opType, fromUserId, targetIds = [], reason } = message;
+    const operatorName = resolveUserName(fromUserId);
+    const isSelf = meId !== undefined && fromUserId === meId;
+
+    if (message.type === ImTypes.MessageType.MSG_RECALL) {
+        if (message.targetIds?.length && message.targetIds[0] === message.groupId) {
+            return `${operatorName} 撤回了一条消息`;
+        } else {
+            return isSelf ? '你撤回了一条消息' : '对方撤回了一条消息';
+        }
+    }
+
+    const firstTargetName = targetIds.length > 0 ? resolveUserName(targetIds[0]) : '';
+    const targetsDesc = targetIds.length > 1 ? `${firstTargetName}等` : firstTargetName;
+
+    switch (opType) {
+        case ImTypes.GroupOperationType.GROUP_OP_CREATE:
+            return `${operatorName} 邀请 ${targetsDesc} 加入了群聊`;
+        case ImTypes.GroupOperationType.GROUP_OP_DISMISS:
+            return `${operatorName} 解散了群组`;
+        case ImTypes.GroupOperationType.GROUP_OP_JOIN:
+            return `${operatorName} 加入了群聊`;
+        case ImTypes.GroupOperationType.GROUP_OP_LEAVE:
+            return `${operatorName} 退出了群聊`;
+        case ImTypes.GroupOperationType.GROUP_OP_KICK:
+            return `${targetsDesc} 被 ${operatorName} 移出群聊${reason ? ' (' + reason + ')' : ''}`;
+        case ImTypes.GroupOperationType.GROUP_OP_INVITE:
+            return `${operatorName} 邀请 ${targetsDesc} 加入了群聊`;
+        case ImTypes.GroupOperationType.GROUP_OP_UPDATE_INFO:
+            return `${operatorName} 修改了群信息`;
+        case ImTypes.GroupOperationType.GROUP_OP_MUTE:
+            return `${operatorName} 禁言了 ${targetsDesc}${reason ? ' (' + reason + ')' : ''}`;
+        case ImTypes.GroupOperationType.GROUP_OP_UNMUTE:
+            return `${operatorName} 解除了 ${targetsDesc} 的禁言`;
+        default:
+            return '系统消息';
+    }
+}
+
+/**
+ * 根据消息类型生成会话列表中展示的最后一条消息预览文字
+ * @param message 本地消息对象
+ * @returns 预览字符串，如 '[图片]'、'[文件]' 或文本内容
+ */
+export function getLastContent(
+    message: IChatMessage,
+): string {
+    let content: string = '';
+    switch (message.type) {
+        case ImTypes.MessageType.CHAT_TEXT:
+        case ImTypes.MessageType.GROUP_TEXT:
+            content = (message as any).content ?? '';
+            break;
+        case ImTypes.MessageType.CHAT_IMAGE:
+        case ImTypes.MessageType.GROUP_IMAGE:
+            content = '[图片]';
+            break;
+        case ImTypes.MessageType.CHAT_FILE:
+        case ImTypes.MessageType.GROUP_FILE:
+            content = '[文件]';
+            break;
+        case ImTypes.MessageType.CHAT_VIDEO:
+        case ImTypes.MessageType.GROUP_VIDEO:
+            content = '[视频]';
+            break;
+        case ImTypes.MessageType.CHAT_AUDIO:
+        case ImTypes.MessageType.GROUP_AUDIO:
+            content = '[音频]';
+            break;
+        default:
+            content = '[消息]';
+            break;
+    }
+    return content
 }

@@ -51,10 +51,6 @@ export const useUserStore = defineStore('user', {
       return this.userMap.get(id)
     },
 
-    hasUser(id: number): boolean {
-      return this.userMap.has(id)
-    },
-
     // ==================== Friend ====================
     setFriend(friendInfo: ImTypes.Friend) {
       this.friendMap.set(friendInfo.friend_id, friendInfo)
@@ -62,10 +58,6 @@ export const useUserStore = defineStore('user', {
 
     getFriend(id: number): ImTypes.Friend | undefined {
       return this.friendMap.get(id)
-    },
-
-    hasFriend(id: number): boolean {
-      return this.friendMap.has(id)
     },
 
     deleteFriend(friendId: number) {
@@ -98,14 +90,6 @@ export const useUserStore = defineStore('user', {
       this.friendRequestUserIds.add(friendRequest.to_user_id)
     },
 
-    getFriendRequest(id: number): ImTypes.FriendRequest | undefined {
-      return this.friendRequestMap.get(id)
-    },
-
-    hasFriendRequest(id: number): boolean {
-      return this.friendRequestMap.has(id)
-    },
-
     deleteFriendRequest(requestId: number) {
       const request = this.friendRequestMap.get(requestId)
       if (request) {
@@ -132,14 +116,6 @@ export const useUserStore = defineStore('user', {
     // ==================== Batch Operations ====================
     setUsers(users: ImTypes.UserInfo[]) {
       users.forEach(user => this.userMap.set(user.user_id, user))
-    },
-
-    setFriends(friends: ImTypes.Friend[]) {
-      friends.forEach(friend => this.friendMap.set(friend.friend_id, friend))
-    },
-
-    setFriendRequests(requests: ImTypes.FriendRequest[]) {
-      requests.forEach(request => this.setFriendRequest(request))
     },
 
     // ==================== Clear ====================

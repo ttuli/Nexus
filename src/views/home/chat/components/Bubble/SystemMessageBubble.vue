@@ -9,7 +9,7 @@ import { computed, onMounted } from 'vue';
 import { ILocalSystemMessage } from '@/src/types/chatMessage';
 import { useUserStore } from '@/src/store/user';
 import { userService } from '@/src/services';
-import { formatSystemMessage } from '@/src/utils/systemMessage';
+import { formatSystemMessage } from '@/src/utils/messageConverter';
 
 interface Props {
     message: ILocalSystemMessage;
@@ -43,7 +43,13 @@ onMounted(async () => {
 });
 
 const systemMessageText = computed(() => {
-    return formatSystemMessage(props.message);
+    const getUserName = (userId: number) => {
+        const friend = userStore.getFriend(userId);
+        if (friend?.remark) return friend.remark;
+        const user = userStore.getUser(userId);
+        return user?.user_name || '';
+    };
+    return formatSystemMessage(props.message, userStore.userID, getUserName);
 });
 </script>
 

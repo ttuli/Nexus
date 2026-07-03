@@ -1,10 +1,10 @@
 import { defineStore } from 'pinia';
 import { useSessionStore } from './session';
-import { ImTypes } from '@/src/types';
 import { IChatMessage } from '@/src/types/chatMessage';
 import { chatService } from '@/src/services';
-import { messageStorageService } from '@/src/services/messageStorageService';
-import { getLastContent } from '@/src/utils/systemMessage';
+import { messageService } from '@/src/services';
+import { getLastContent } from '@/src/utils/messageConverter';
+import { useUserStore } from '@/src/store/user';
 
 export const useMessageStore = defineStore('message', {
     state: () => ({
@@ -15,77 +15,17 @@ export const useMessageStore = defineStore('message', {
     }),
     actions: {
         /**
-         * 更新消息状态
-         */
-        updateMessageStatus(sessionId: string, clientId: string, status: ImTypes.MessageStatus, timestamp: number, msgId?: string, seq?: number) {
-            const msgIndex = this.messages.findIndex(m =>
-                (sessionId && sessionId === m.sessionId) ||
-                (clientId && clientId === m.clientId) ||
-                (msgId && msgId === m.msgId)
-            );
-            if (msgIndex !== -1) {
-                const oldSessionId = this.messages[msgIndex].sessionId;
-                this.messages[msgIndex].status = status;
-                this.messages[msgIndex].sendTime = timestamp;
-                if (seq !== undefined && seq > 0) {
-                    this.messages[msgIndex].seq = seq;
-                }
-                if (msgId) {
-                    this.messages[msgIndex].msgId = msgId;
-                }
-                // 如果发现之前的 sessionId 与最新的 sessionId (从服务端返回的真正 conversation_id) 不同，并且最新的 sessionId 有值，我们就更新它！
-                if (sessionId && oldSessionId !== sessionId) {
-                    console.log(`[MessageStore] Migrating message sessionId in store from ${oldSessionId} to ${sessionId}`);
-                    this.messages[msgIndex].sessionId = sessionId;
-                    
-                    // 并把内存中同属于该旧会话（即本地临时 conv_key）的所有消息的 sessionId 也全部刷新！
-                    this.messages.forEach(m => {
-                        if (m.sessionId === oldSessionId) {
-                            m.sessionId = sessionId;
-                        }
-                    });
-                }
-            }
-            // 无论是否在内存中，都同步更新本地数据库
-            void messageStorageService.updateMessageStatus(sessionId, clientId, status, msgId, seq).catch((e) => {
-                console.error('[MessageStore] Failed to persist message status', e);
-            });
-        },
-
-        /**
-         * 更新消息上传进度（图片/文件消息上传时使用）
-         * @param clientId 客户端消息ID
-         * @param progress 进度 0-100，undefined 表示上传完成
-         */
-        updateMessageProgress(sessionId: string, clientId: string, progress: number | undefined) {
-            const conversationStore = useSessionStore();
-            const currentSession = conversationStore.currentSession;
-            const matchesSession = currentSession && (
-                currentSession.conversation_id === sessionId || 
-                currentSession.conv_key === sessionId
-            );
-            if (matchesSession) {
-                const msg = this.messages.find(m => m.clientId === clientId) as any;
-                if (msg !== undefined) {
-                    msg.uploadProgress = progress;
-                }
-            }
-        },
-
-        /**
          * 更新文件消息的本地路径（下载完成后使用）
          */
-        updateFileLocalPath(sessionId: string, clientId: string, msgId: string, localPath: string) {
+        updateFileLocalPath(sessionkey: string, msgId: string, localPath: string) {
+            const conversationStore = useSessionStore();
+            if (conversationStore.currentSessionKey !== sessionkey) return;
             const msg = this.messages.find(m =>
-                (clientId && m.clientId === clientId) ||
                 (msgId && m.msgId === msgId)
             ) as any;
             if (msg) {
                 msg.localPath = localPath;
             }
-            void messageStorageService.updateMessageLocalPath(sessionId, clientId, msgId, localPath).catch((e) => {
-                console.error('[MessageStore] Failed to persist localPath', e);
-            });
         },
 
         /**
@@ -136,7 +76,14 @@ export const useMessageStore = defineStore('message', {
                     if (cur && this.messages.length > 0) {
                         const latestMsg = this.messages[this.messages.length - 1];
                         if (latestMsg) {
-                            cur.last_content = getLastContent(latestMsg);
+                            const userStore = useUserStore();
+                            const getUserName = (userId: number) => {
+                                const friend = userStore.getFriend(userId);
+                                if (friend?.remark) return friend.remark;
+                                const user = userStore.getUser(userId);
+                                return user?.user_name || '';
+                            };
+                            cur.last_content = getLastContent(latestMsg, userStore.userID, getUserName);
                             cur.last_message_time = latestMsg.sendTime;
                             if (latestMsg.fromUserId) {
                                 cur.last_sender = latestMsg.fromUserId;
@@ -168,59 +115,34 @@ export const useMessageStore = defineStore('message', {
         },
 
         /**
+         * 更新消息状态（供 Listener 更新服务端返回的 ack / recall 状态使用）
+         */
+        updateMessageStatus(msgId: string, clientId: string, status: number) {
+            const msg = this.messages.find(m =>
+                (clientId && m.clientId === clientId) ||
+                (msgId && m.msgId === msgId)
+            );
+            if (msg) {
+                msg.status = status;
+            }
+        },
+
+        /**
          * 添加消息
          */
         upsertMessage(message: IChatMessage) {
-            // Deduplicate
-            this.updateMessageStatus(message.sessionId, message.clientId || '', message.status, message.sendTime);
-            
-            const conversationStore = useSessionStore();
-            
-            // Check if message belongs to current session
-            const currentSession = conversationStore.currentSession;
-            const belongsToCurrent = currentSession && (
-                currentSession.conversation_id === message.sessionId ||
-                currentSession.conv_key === message.sessionId
+            const msg = this.messages.find(m =>
+                (message.clientId && message.clientId === m.clientId) ||
+                (message.msgId && message.msgId === m.msgId)
             );
-            if (belongsToCurrent) {
+            if (!msg) {
                 this.messages.push(message);
+            } else {
+                msg.seq = message.seq || msg.seq;
+                msg.msgId = message.msgId || msg.msgId;
+                msg.status = message.status || msg.status;
+                msg.sendTime = message.sendTime || msg.sendTime;
             }
-
-            // Generate last content string based on message type
-            const lastContent = getLastContent(message);
-
-            const chat = conversationStore.getSession(message.sessionId);
-            if (chat) {
-                chat.max_seq = message.seq;
-            }
-            
-            const isGroupMessage = [
-                ImTypes.MessageType.GROUP_TEXT,
-                ImTypes.MessageType.GROUP_IMAGE,
-                ImTypes.MessageType.GROUP_VIDEO,
-                ImTypes.MessageType.GROUP_FILE,
-                ImTypes.MessageType.GROUP_AUDIO,
-                ImTypes.MessageType.GROUP_OP_NOTIFICATION
-            ].includes(message.type);
-            const conversationType = isGroupMessage ? ImTypes.ConversationType.CONVERSATION_TYPE_GROUP : ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE;
-
-            const conversationId = (message.sessionId !== message.sessionKey) ? message.sessionId : (chat?.conversation_id || '');
-            const sessionKey = message.sessionKey || chat?.conv_key || message.sessionId;
-
-            conversationStore.upsertSession({
-                conversation_id: conversationId,
-                conv_key: sessionKey,
-                type: conversationType,
-                max_seq: message.seq,
-                last_content: lastContent,
-                last_sender: message.fromUserId,
-                update_time: message.sendTime,
-            });
-            conversationStore.sortSessionList();
-
-            void messageStorageService.saveMessage(message).catch((e) => {
-                console.error('[MessageStore] Failed to persist message', e);
-            });
         }
     }
 });

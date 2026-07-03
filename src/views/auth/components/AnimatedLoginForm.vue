@@ -11,7 +11,7 @@
     <BoxReveal width="100%" :duration="0.5" :delay="0.2" overflow="visible" style="z-index: 10;">
       <div class="input-group">
         <label>账号 <span class="required">*</span></label>
-        <AccountSelector v-model="form.account" :options="accountOptions" placeholder="请输入账号"
+        <AccountSelector v-model="form.account" :options="accountOptions" placeholder="请输入账�?
             @change="handleAccountChange" @keydown.enter.prevent="setPasswordInputFocus">
             <template #left-area>
                 <img :src="AccountIcon" class="input-icon" />
@@ -24,7 +24,7 @@
       <div class="input-group">
         <label>密码 <span class="required">*</span></label>
         <CusInput ref="passwordInput" v-model="form.password" type="password" :visible="passwordVisible"
-            placeholder="请输入密码" @keydown.enter.prevent="handleLogin">
+            placeholder="请输入密�? @keydown.enter.prevent="handleLogin">
             <template #left-area>
                 <img :src="PasswordIcon" class="input-icon" />
             </template>
@@ -40,12 +40,12 @@
     </BoxReveal>
 
     <BoxReveal width="100%" :duration="0.5" :delay="0.4">
-      <CusCheckBox v-model="form.rememberMe" label="记住我" class="check-box"/>
+      <CusCheckBox v-model="form.rememberMe" label="记住�? class="check-box"/>
     </BoxReveal>
 
     <BoxReveal width="100%" :duration="0.5" :delay="0.5" style="margin-top: 1rem;" overflow="visible">
       <CusButton html-type="submit" :loading="isLoading" :showIcon="false" class="submit-btn-new" style="margin-top: 0;">
-        登 录
+        �?�?
       </CusButton>
     </BoxReveal>
 
@@ -77,7 +77,7 @@
 
       <BoxReveal width="100%" :duration="0.5" :delay="0.3" style="margin-top: 1rem;" overflow="visible">
           <CusButton class="auto-login-btn submit-btn-new" :loading="isLoading" :showIcon="false" @click="handleAutoLogin" style="margin-top: 0;">
-              登 录
+              �?�?
           </CusButton>
       </BoxReveal>
 
@@ -98,7 +98,7 @@ import AccountIcon from '@/src/assets/input/input_name.svg?url'
 import PasswordIcon from '@/src/assets/input/input_password.svg?url'
 import EyeOpenIcon from '@/src/assets/input/eye_open.svg?url'
 import EyeClosedIcon from '@/src/assets/input/eye_closed.svg?url'
-import { signalWindowReady } from '@/src/utils/windowReady'
+import { signalWindowReady } from '@/src/utils/window'
 import AccountSelector, { AccountOption } from './AccountSelector.vue';
 import { toResourceUrl } from '@/src/utils/resourceUrl';
 import { CacheOptionType } from '@/src/types/resourceCache.ts';

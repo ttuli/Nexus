@@ -39,7 +39,7 @@ import LeftRotate from '@/src/assets/photoView/left-rotate.svg?url';
 import ZoomIn from '@/src/assets/photoView/zoom-in.svg?url';
 import ZoomOut from '@/src/assets/photoView/zoom-out.svg?url';
 import Download from '@/src/assets/photoView/download.svg?url';
-import { signalWindowReady } from '@/src/utils/windowReady';
+import { signalWindowReady } from '@/src/utils/window';
 import { ElMessage } from 'element-plus';
 
 // State

@@ -14,16 +14,16 @@
             <!-- 登录表单 -->
             <form @submit.prevent="handleLogin" class="login-form">
                 <!-- 手机号输入框 -->
-                <!-- 账号输入框 (下拉选择) -->
-                <AccountSelector v-model="form.account" :options="accountOptions" placeholder="请输入账号"
+                <!-- 账号输入�?(下拉选择) -->
+                <AccountSelector v-model="form.account" :options="accountOptions" placeholder="请输入账�?
                     @change="handleAccountChange" @keydown.enter.prevent="setPasswordInputFocus">
                     <template #left-area>
                         <img :src="AccountIcon" class="input-icon" />
                     </template>
                 </AccountSelector>
-                <!-- 密码输入框 -->
+                <!-- 密码输入�?-->
                 <CusInput ref="passwordInput" v-model="form.password" type="password" :visible="passwordVisible"
-                    placeholder="请输入密码" @keydown.enter.prevent="handleLogin">
+                    placeholder="请输入密�? @keydown.enter.prevent="handleLogin">
                     <template #left-area>
                         <img :src="PasswordIcon" class="input-icon" />
                     </template>
@@ -37,7 +37,7 @@
                 </CusInput>
 
                 <!-- 复选框区域 -->
-                <CusCheckBox v-model="form.rememberMe" label="记住我" class="check-box"/>
+                <CusCheckBox v-model="form.rememberMe" label="记住�? class="check-box"/>
 
                 <!-- 登录按钮 -->
                 <CusButton html-type="submit" :loading="isLoading" :showIcon="false">
@@ -79,7 +79,7 @@ import AccountIcon from '@/src/assets/input/input_name.svg?url'
 import PasswordIcon from '@/src/assets/input/input_password.svg?url'
 import EyeOpenIcon from '@/src/assets/input/eye_open.svg?url'
 import EyeClosedIcon from '@/src/assets/input/eye_closed.svg?url'
-import { signalWindowReady } from '@/src/utils/windowReady'
+import { signalWindowReady } from '@/src/utils/window'
 import AccountSelector, { AccountOption } from './components/AccountSelector.vue';
 import { toResourceUrl } from '@/src/utils/resourceUrl';
 import { CacheOptionType } from '@/src/types/resourceCache.ts'

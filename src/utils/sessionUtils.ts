@@ -27,6 +27,10 @@ export function generateGroupSessionId(groupId: number): string {
     return String(groupId);
 }
 
+export function isGroupSession(sessionKey: string): boolean {
+    return !sessionKey.includes('_');
+}
+
 /**
  * 从 sessionId 中提取目标 ID
  * 供组件、store 或工具函数统一使用

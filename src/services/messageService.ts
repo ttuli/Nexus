@@ -1,15 +1,24 @@
 import { getUserActiveConversation, updateConversation } from "@/src/apis/message"
 import { useSessionStore } from "@/src/store/session"
+import { useMessageStore } from '@/src/store/message'
 import { getOfflineTimestamp } from "@/src/store/init"
+import { IChatMessage } from '@/src/types/chatMessage';
+import { IpcChannels } from '@/src/types/ipc';
+import { ipcService } from './ipcService';
+import { getLastContent } from "../utils/messageConverter";
 
 class MessageService {
+    // ─────────────────────────────────────────────
+    //  会话（Session）相关
+    // ─────────────────────────────────────────────
+
     async getOfflineActiveSessions() {
         const timestamp = getOfflineTimestamp()
         const res = await getUserActiveConversation({ timestamp })
         if (res.code === 200) {
             const conversationStore = useSessionStore()
-            res.data.conversations.forEach(conversation => {
-                conversationStore.upsertSession(conversation)
+            res.data.sessions.forEach(ss => {
+                conversationStore.upsertSession(ss)
             })
         }
     }
@@ -30,7 +39,7 @@ class MessageService {
         conversationStore.sortSessionList()
         try {
             await updateConversation({
-                conversation_id: sessionId,
+                session_id: sessionId,
                 is_top: Number(isTopVal),
                 is_disturb: Number(isDisturbVal),
             })
@@ -38,7 +47,36 @@ class MessageService {
             console.error(error)
         }
     }
+
+    // ─────────────────────────────────────────────
+    //  消息持久化（原 MessageStorageService）
+    // ─────────────────────────────────────────────
+
+    /**
+     * 保存单条消息（upsert）
+     */
+    async saveMessage(message: IChatMessage): Promise<void> {
+        const sessionStore = useSessionStore()
+        const messgaeStore = useMessageStore()
+        if (sessionStore.currentSessionKey === message.sessionKey) {
+            messgaeStore.upsertMessage(message)
+        }
+        sessionStore.upsertSession({
+            session_key: message.sessionKey as string,
+            session_id: message.sessionId,
+            max_seq: message.seq,
+            last_content: getLastContent(message),
+            last_sender: message.fromUserId,
+            update_time: message.sendTime,
+        })
+        sessionStore.addOrPinToTop(message.sessionKey as string)
+        sessionStore.incrementUnread(message.sessionKey as string)
+        // 使用 JSON 序列化剥离 Vue Proxy，防止 IPC structured clone 报错
+        const res = await ipcService.invoke(IpcChannels.MSG_SAVE, JSON.parse(JSON.stringify(message)));
+        if (!res.success) throw new Error(res.error ?? `IPC call failed: ${IpcChannels.MSG_SAVE}`);
+    }
 }
 
-export const messageService = new MessageService()
-export default messageService
+export const messageService = new MessageService();
+
+export default messageService;

@@ -40,7 +40,7 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import SideBar from './components/SideBar.vue';
 import { ipcService, websocketService } from '@/src/services';
-import { signalWindowReady } from '@/src/utils/windowReady';
+import { signalWindowReady } from '@/src/utils/window';
 import { useSessionStore } from '@/src/store/session';
 import FilterColumn from '@/src/components/FilterColumn.vue';
 import CreateGroup from '@/src/components/CreateGroup.vue';
@@ -65,7 +65,7 @@ const handleMouseDown = () => {
 const handleMouseMove = (e: MouseEvent) => {
     if (!isResizing.value) return;
 
-    // 鼠标在 context-menu 上时不处理 resize，避免冲突
+    // 鼠标�?context-menu 上时不处�?resize，避免冲�?
     const target = e.target as HTMLElement;
     if (target.closest('.context-menu')) return;
 
@@ -89,7 +89,7 @@ const handleMouseUp = () => {
 const createGroupVisible = ref(false);
 
 const handleCreateGroup = async (data: { name: string; userIds: number[] }) => {
-    GlobalLoading.show("创建中...")
+    GlobalLoading.show("创建�?..")
     try {
         await groupService.createGroup({
             name: data.name,

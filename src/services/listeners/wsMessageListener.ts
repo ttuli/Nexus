@@ -10,9 +10,9 @@ import { IpcChannels, ImTypes, CurrentRoute } from '@/src/types'
 import { ElMessage } from 'element-plus'
 import { useSessionStore } from '@/src/store/session'
 import { useMessageStore } from '@/src/store/message'
-import { convertWSMessageToIChatMessage, checkAndClearInvalidLocalPath } from '@/src/utils/messageConverter';
+import { convertWSMessageToIChatMessage } from '@/src/utils/messageConverter';
 import windowService from '../windowService'
-import { fileService } from '../fileService'
+import { messageService } from '@/src/services'
 
 export function initWsMessageListener(): void {
     // 新消息到达
@@ -26,17 +26,19 @@ export function initWsMessageListener(): void {
             console.error('[WsMessageListener] Failed to convert WSMessage to IChatMessage')
             return
         }
+        void messageService.saveMessage(chatMsg).catch((e) => {
+            console.error('[MessageStore] Failed to persist message', e);
+        });
         console.log('[WsMessageListener] Received WSMessage:', chatMsg)
-        messageStore.upsertMessage(chatMsg)
 
-        const isCurrentChat = (chatMsg.sessionKey && chatMsg.sessionKey === conversationStore.currentSessionKey) ||
-                              (chatMsg.sessionId === conversationStore.currentSessionId);
+        // const isCurrentChat = (chatMsg.sessionKey && chatMsg.sessionKey === conversationStore.currentSessionKey) ||
+        //     (chatMsg.sessionId === conversationStore.currentSessionId);
 
-        if (!isCurrentChat || !await windowService.isFocused() || appStore.currentRoute !== CurrentRoute.Chat) {
-            conversationStore.incrementUnread(chatMsg.sessionId)
-            if (conversationStore.currentSession?.is_disturb !== 2)
-                windowService.playNotificationSound()
-        }
+        // if (!isCurrentChat || !await windowService.isFocused() || appStore.currentRoute !== CurrentRoute.Chat) {
+        //     conversationStore.incrementUnread(chatMsg.sessionId)
+        //     if (conversationStore.currentSession?.is_disturb !== 2)
+        //         windowService.playNotificationSound()
+        // }
 
         switch (data.type) {
             case ImTypes.MessageType.ERROR: {

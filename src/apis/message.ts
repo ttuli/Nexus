@@ -62,13 +62,3 @@ export async function getUserActiveConversation(params: ApiTypes.message.GetUser
     })
     return decodeResponse(res.data, ApiTypes.message.GetUserActiveSessionsResp.decode)
 }
-
-// 获取会话详情
-export async function getConversation(params: ApiTypes.message.GetSessionReq) {
-    const res = await instance<ApiResponse<ApiTypes.message.GetSessionResp>>({
-        method: 'get',
-        url: config.messageServer + '/message/conversation',
-        params
-    })
-    return decodeResponse(res.data, ApiTypes.message.GetSessionResp.decode)
-}
