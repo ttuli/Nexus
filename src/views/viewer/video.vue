@@ -47,13 +47,13 @@ const handleVideoError = (event: any) => {
     if (error) {
         switch (error.code) {
             case 1: // MEDIA_ERR_ABORTED
-                errorMsg.value = '播放被终�?;
+                errorMsg.value = '播放被终止';
                 break;
             case 2: // MEDIA_ERR_NETWORK
-                errorMsg.value = '网络错误，视频检索失�?;
+                errorMsg.value = '网络错误，视频检索失败';
                 break;
             case 3: // MEDIA_ERR_DECODE
-                errorMsg.value = '视频解码错误，文件可能损�?;
+                errorMsg.value = '视频解码错误，文件可能损坏';
                 break;
             case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
                 errorMsg.value = '不支持该视频格式或协议，或者文件不存在';
@@ -76,7 +76,7 @@ const currentTitle = computed(() => {
     const url = currentUrl.value;
     if (!url) return 'Video Player';
     
-    // 尝试�?URL 中解析文件名
+    // 尝试从 URL 中解析文件名
     try {
         const urlObj = new URL(url);
         const pathParts = urlObj.pathname.split('/');
@@ -86,7 +86,7 @@ const currentTitle = computed(() => {
             return `视频播放 - ${name}`;
         }
     } catch (e) {
-        // 如果不是标准 URL，简单处�?
+        // 如果不是标准 URL，简单处理?
     }
     
     const name = url.split('/').pop() || 'Video';
@@ -97,9 +97,9 @@ onMounted(() => {
     const queryUrl = route.query.url as string;
     const queryIndex = route.query.index as string;
     
-    // 如果直接传了 url 参数（兼�?openVideoViewer 的调用方式）
+    // 如果直接传了 url 参数（兼容 openVideoViewer 的调用方式）
     if (queryUrl) {
-        // 将单�?url 转为数组以复用后续逻辑
+        // 将单个 url 转为数组以复用后续逻辑
         urls.value = [queryUrl];
         currentIndex.value = 0;
     } 
@@ -136,7 +136,7 @@ onMounted(() => {
     .video-container {
         flex: 1;
         width: 100%;
-        height: 100%; // 取决于是否绝对定�?title-bar
+        height: 100%; // 取决于是否绝对定位 title-bar
         display: flex;
         align-items: center;
         justify-content: center;

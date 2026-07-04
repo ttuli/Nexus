@@ -14,16 +14,20 @@
             <!-- 登录表单 -->
             <form @submit.prevent="handleLogin" class="login-form">
                 <!-- 手机号输入框 -->
-                <!-- 账号输入�?(下拉选择) -->
-                <AccountSelector v-model="form.account" :options="accountOptions" placeholder="请输入账�?
-                    @change="handleAccountChange" @keydown.enter.prevent="setPasswordInputFocus">
+                <!-- 账号输入框(下拉选择) -->
+                <AccountSelector
+                    v-model="form.account"
+                    :options="accountOptions"
+                    placeholder="请输入账号"
+                    @keydown.enter.prevent="setPasswordInputFocus"
+                >
                     <template #left-area>
                         <img :src="AccountIcon" class="input-icon" />
                     </template>
                 </AccountSelector>
-                <!-- 密码输入�?-->
+                <!-- 密码输入框 -->
                 <CusInput ref="passwordInput" v-model="form.password" type="password" :visible="passwordVisible"
-                    placeholder="请输入密�? @keydown.enter.prevent="handleLogin">
+                    placeholder="请输入密码(至少8位)" @keydown.enter.prevent="handleLogin">
                     <template #left-area>
                         <img :src="PasswordIcon" class="input-icon" />
                     </template>
@@ -37,7 +41,7 @@
                 </CusInput>
 
                 <!-- 复选框区域 -->
-                <CusCheckBox v-model="form.rememberMe" label="记住�? class="check-box"/>
+                <CusCheckBox v-model="form.rememberMe" label="记住密码" class="check-box"/>
 
                 <!-- 登录按钮 -->
                 <CusButton html-type="submit" :loading="isLoading" :showIcon="false">
@@ -106,17 +110,17 @@ const autologin = ref(false)
 const autoLoginInfo = ref<AutoLoginInfo | null>(null)
 const accountOptions = ref<AccountOption[]>([])
 
-const handleAccountChange = (_val: string) => {
-    // Optional: Auto-fill password if remembered? (Not implemented here, but typically desired)
-}
+
 
 const closeLogic = () => {
     windowService.quit()
 }
 
 const setPasswordInputFocus = () => {
-    passwordInput.value?.focus()
+    passwordInput.value?.focus?.()
 }
+
+
 
 // 登录处理
 const handleLogin = async () => {

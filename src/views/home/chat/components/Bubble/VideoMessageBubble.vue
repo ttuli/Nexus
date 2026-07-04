@@ -65,7 +65,7 @@ import { APP_CONSTANTS as config } from '@/src/config/constants';
 import { CacheOptionType, ImTypes } from '@/src/types';
 import { openVideoViewer } from '@/src/utils/window';
 import { ElMessage } from 'element-plus';
-import { messageStorageService } from '@/src/services/messageStorageService';
+import { messageService } from '@/src/services/messageService';
 import { toResourceUrl } from '@/src/utils/resourceUrl';
 import { fileService } from '@/src/services/fileService';
 import { messageSendService } from '@/src/services';
@@ -75,7 +75,6 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-
 
 // 控制下载状态
 const isDownloading = ref(false);
@@ -114,7 +113,8 @@ watch(() => props.message, async (msg) => {
             })
             if (thumbnailUrl) {
                 displayThumb.value = thumbnailUrl;
-                messageStorageService.saveMessage(msg);
+                msg.thumbnailUrl = thumbnailUrl;
+                messageService.saveMessage(msg);
             }
         } catch (e) {
             console.error('[VideoBubble] Failed to get video full url:', e);
@@ -159,7 +159,7 @@ const wrapperStyle = computed(() => {
 const handlePlay = async () => {
     if (!(await fileService.checkLocalFileExists(props.message.localPath || ''))) {
         props.message.localPath = '';
-        messageStorageService.saveMessage(props.message);
+        messageService.saveMessage(props.message);
         ElMessage.error('视频文件不存在');
         return;
     }
@@ -192,7 +192,7 @@ const handleDownload = async () => {
         
         const localPath = await promise;
         props.message.localPath = localPath;
-        messageStorageService.saveMessage(props.message);
+        messageService.saveMessage(props.message);
         
         currentDownloadAbort.value = null;
         isDownloading.value = false;
@@ -201,7 +201,7 @@ const handleDownload = async () => {
         props.message.uploadProgress = undefined;
         isDownloading.value = false;
         
-        if (e?.message !== 'Download cancelled by user') {
+        if (e?.message !== config.ERR_DOWNLOAD_CANCELLED) {
             console.error('[VideoBubble] 下载失败:', e);
             ElMessage.error('视频下载失败');
         }

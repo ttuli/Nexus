@@ -84,6 +84,7 @@ export const IpcChannels = {
     WINDOW_NEW: 'window:new-window',
     WINDOW_MINIMIZE: 'window:minimize',
     WINDOW_MAXIMIZE: 'window:maximize',
+    WINDOW_CLOSE: 'window:close',
     WINDOW_HIDE: 'window:hide',
     WINDOW_SHOW: 'window:show',
     WINDOW_STATE: 'window:state',

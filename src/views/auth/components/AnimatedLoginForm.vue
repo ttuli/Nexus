@@ -11,8 +11,12 @@
     <BoxReveal width="100%" :duration="0.5" :delay="0.2" overflow="visible" style="z-index: 10;">
       <div class="input-group">
         <label>账号 <span class="required">*</span></label>
-        <AccountSelector v-model="form.account" :options="accountOptions" placeholder="请输入账�?
-            @change="handleAccountChange" @keydown.enter.prevent="setPasswordInputFocus">
+        <AccountSelector
+          v-model="form.account"
+          :options="accountOptions"
+          placeholder="请输入账号"
+          @keydown.enter.prevent="setPasswordInputFocus"
+        >
             <template #left-area>
                 <img :src="AccountIcon" class="input-icon" />
             </template>
@@ -24,7 +28,7 @@
       <div class="input-group">
         <label>密码 <span class="required">*</span></label>
         <CusInput ref="passwordInput" v-model="form.password" type="password" :visible="passwordVisible"
-            placeholder="请输入密�? @keydown.enter.prevent="handleLogin">
+            placeholder="请输入密码(至少8位)" @keydown.enter.prevent="handleLogin">
             <template #left-area>
                 <img :src="PasswordIcon" class="input-icon" />
             </template>
@@ -40,12 +44,12 @@
     </BoxReveal>
 
     <BoxReveal width="100%" :duration="0.5" :delay="0.4">
-      <CusCheckBox v-model="form.rememberMe" label="记住�? class="check-box"/>
+      <CusCheckBox v-model="form.rememberMe" label="记住密码" class="check-box"/>
     </BoxReveal>
 
     <BoxReveal width="100%" :duration="0.5" :delay="0.5" style="margin-top: 1rem;" overflow="visible">
       <CusButton html-type="submit" :loading="isLoading" :showIcon="false" class="submit-btn-new" style="margin-top: 0;">
-        �?�?
+        登录
       </CusButton>
     </BoxReveal>
 
@@ -77,7 +81,7 @@
 
       <BoxReveal width="100%" :duration="0.5" :delay="0.3" style="margin-top: 1rem;" overflow="visible">
           <CusButton class="auto-login-btn submit-btn-new" :loading="isLoading" :showIcon="false" @click="handleAutoLogin" style="margin-top: 0;">
-              �?�?
+              登录
           </CusButton>
       </BoxReveal>
 
@@ -102,6 +106,7 @@ import { signalWindowReady } from '@/src/utils/window'
 import AccountSelector, { AccountOption } from './AccountSelector.vue';
 import { toResourceUrl } from '@/src/utils/resourceUrl';
 import { CacheOptionType } from '@/src/types/resourceCache.ts';
+import defaultImg from '@/src/assets/avatar/default.png'
 
 const emit = defineEmits<{
     (e: 'switchView', view: 'register'): void
@@ -134,12 +139,8 @@ watch(isLoading, (val) => {
     emit('update:loading', val)
 })
 
-const handleAccountChange = (_val: string) => {
-    // Optional: Auto-fill password if remembered?
-}
-
 const setPasswordInputFocus = () => {
-    passwordInput.value?.focus()
+    passwordInput.value?.focus?.()
 }
 
 // 登录处理
@@ -226,7 +227,7 @@ onMounted(async () => {
         autoLoginInfo.value = {
             avatar: toResourceUrl(history[0].avatarUrl || '',{
                 cacheType:CacheOptionType.AVATAR
-            }),
+            }) || defaultImg,
             name: history[0].name
         }
     }

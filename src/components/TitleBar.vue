@@ -69,7 +69,7 @@ const onMax = () => {
     windowService.maximize()
 }
 const handleClose = () => {
-    window.close()
+    windowService.close()
 }
 
 onMounted(() => {

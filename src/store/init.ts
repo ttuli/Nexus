@@ -33,11 +33,11 @@ export async function initRelationStore() {
     const conversationStore = useSessionStore()
     const groupIdsToFetch: number[] = [];
 
-    conversationStore.sessionList.forEach((chat: ImTypes.Conversation) => {
-        const targetId = extractTargetIdFromSessionId(chat.conversation_id, userStore.getUserID());
-        if (chat.type === ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE) {
+    conversationStore.sessionList.forEach((chat: ImTypes.Session) => {
+        const targetId = extractTargetIdFromSessionId(chat.session_id, userStore.getUserID());
+        if (chat.type === ImTypes.SessionType.SESSION_TYPE_PRIVATE) {
             if (targetId && !isNaN(targetId)) ids.push(targetId);
-        } else if (chat.type === ImTypes.ConversationType.CONVERSATION_TYPE_GROUP) {
+        } else if (chat.type === ImTypes.SessionType.SESSION_TYPE_GROUP) {
             if (targetId && !isNaN(targetId)) groupIdsToFetch.push(targetId);
         }
     })

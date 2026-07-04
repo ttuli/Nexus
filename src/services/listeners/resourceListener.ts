@@ -17,6 +17,7 @@ function buildHandlerMap(
     return new Map<ResourceType, ResourceHandler>([
         [ResourceType.USER, (items) => {
             items.forEach((item: any) => {
+                console.log('received user', item)
                 const { action, ...user } = item
                 if (action === UpdateAction.Delete) {
                     userStore.userMap.delete(user.user_id)

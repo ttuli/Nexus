@@ -1,9 +1,9 @@
 <template>
     <div class="chat-sidebar-wrapper" :class="{ 'visible': visible }">
         <template v-if="chat">
-            <PrivateSessionSidebar v-if="chat.type === ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE" :chat="chat"
+            <PrivateSessionSidebar v-if="chat.type === ImTypes.SessionType.SESSION_TYPE_PRIVATE" :chat="chat"
                 @close="$emit('close')" />
-            <GroupSessionSidebar v-else-if="chat.type === ImTypes.ConversationType.CONVERSATION_TYPE_GROUP" :chat="chat"
+            <GroupSessionSidebar v-else-if="chat.type === ImTypes.SessionType.SESSION_TYPE_GROUP" :chat="chat"
                 @close="$emit('close')" />
         </template>
     </div>
@@ -16,7 +16,7 @@ import GroupSessionSidebar from './GroupSessionSidebar.vue';
 
 defineProps<{
     visible: boolean;
-    chat: ImTypes.Conversation | null;
+    chat: ImTypes.Session | null;
 }>();
 
 defineEmits(['close']);

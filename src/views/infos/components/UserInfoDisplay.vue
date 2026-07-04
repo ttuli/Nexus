@@ -102,6 +102,7 @@ const isMe = computed(() => userStore.userID === props.userId);
 const isFriend = computed(() => !!friendInfo.value);
 
 const displayName = computed(() => {
+    
     return friendInfo.value?.remark || userInfo.value?.user_name || `User ${props.userId}`;
 });
 
@@ -130,7 +131,7 @@ const copyId = async () => {
 
 const toChat = () => {
     const sessionId = generateSessionId(props.userId, userStore.getUserID());
-    navigateToChat(sessionId, ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE);
+    navigateToChat(sessionId);
     router.push('/home/chat');
 };
 
@@ -148,7 +149,6 @@ const toAdd = () => {
 const toEdit = () => {
     router.push('/userInfo');
 };
-
 </script>
 
 <style scoped lang="scss">

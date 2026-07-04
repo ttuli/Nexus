@@ -184,7 +184,7 @@ class SettingManager {
     cancelDownload(downloadId: string): void {
         const request = this.activeDownloads.get(downloadId);
         if (request) {
-            request.destroy(new Error('Download cancelled by user'));
+            request.destroy(new Error(APP_CONSTANTS.ERR_DOWNLOAD_CANCELLED));
             this.activeDownloads.delete(downloadId);
             console.log(`[SettingManager] Download ${downloadId} cancelled.`);
         }

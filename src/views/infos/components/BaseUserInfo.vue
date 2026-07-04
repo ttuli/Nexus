@@ -3,7 +3,7 @@
         <!-- Avatar Section -->
         <div class="avatar-section">
             <AvatarUpload :uid="userStore.getUserID()" @success="handleAvatarSuccess" />
-            <div class="user-name">{{ userInfo?.user_name || '加载�?..' }}</div>
+            <div class="user-name">{{ userInfo?.user_name || '加载中...' }}</div>
             <div class="user-signature" v-if="userInfo?.personal_signature">
                 {{ userInfo.personal_signature }}
             </div>
@@ -18,7 +18,7 @@
                     <span class="value">{{ userInfo?.user_id }}</span>
                 </div>
                 <div class="info-row">
-                    <span class="label">用户�?/span>
+                    <span class="label">用户名</span>
                     <span class="value">{{ userInfo?.user_name }}</span>
                 </div>
                 <div class="info-row">
@@ -26,7 +26,7 @@
                     <span class="value">{{ genderText }}</span>
                 </div>
                 <div class="info-row">
-                    <span class="label">手机�?/span>
+                    <span class="label">手机号</span>
                     <span class="value">{{ maskPhone(userInfo?.phone) }}</span>
                 </div>
             </div>
@@ -34,12 +34,12 @@
             <div class="info-card">
                 <div class="card-title">账号设置</div>
                 <div class="info-row">
-                    <span class="label">加好友方�?/span>
+                    <span class="label">加好友方式</span>
                     <span class="value">{{ joinTypeText }}</span>
                 </div>
                 <div class="info-row">
-                    <span class="label">个性签�?/span>
-                    <span class="value signature">{{ userInfo?.personal_signature || '未设�? }}</span>
+                    <span class="label">个性签名</span>
+                    <span class="value signature">{{ userInfo?.personal_signature || '未设置' }}</span>
                 </div>
             </div>
             <!-- Edit Button -->
@@ -60,7 +60,7 @@
                             </div>
                             <div class="modal-body">
                                 <div class="form-item">
-                                    <label>用户�?/label>
+                                    <label>用户名</label>
                                     <input v-model="editForm.user_name" type="text" placeholder="请输入用户名" />
                                 </div>
                                 <div class="form-item">
@@ -72,7 +72,7 @@
                                     />
                                 </div>
                                 <div class="form-item row-layout">
-                                    <label>加好友需要验�?/label>
+                                    <label>加好友需要验证</label>
                                     <Toggle
                                         v-model="editForm.join_type"
                                         :active-value="ImTypes.JoinType.JOIN_TYPE_AFTER_APPROVAL"
@@ -80,9 +80,8 @@
                                     />
                                 </div>
                                 <div class="form-item">
-                                    <label>个性签�?/label>
-                                    <textarea v-model="editForm.personal_signature" placeholder="请输入个性签�?
-                                        rows="3"></textarea>
+                                    <label>个性签名</label>
+                                    <textarea v-model="editForm.personal_signature" placeholder="请输入个性签名" rows="3"></textarea>
                                 </div>
                             </div>
                             <div class="modal-footer">
@@ -110,8 +109,8 @@ import CusDropdown from '@/src/components/CusDropdown.vue';
 import Toggle from '@/src/components/Toggle.vue';
 
 const genderOptions = [
-    { value: ImTypes.Gender.GENDER_MALE, label: '�?, icon: '👨' },
-    { value: ImTypes.Gender.GENDER_FEMALE, label: '�?, icon: '👩' }
+    { value: ImTypes.Gender.GENDER_MALE, label: '男', icon: '👨' },
+    { value: ImTypes.Gender.GENDER_FEMALE, label: '女', icon: '👩' }
 ];
 
 import { ImTypes, ResourceType, UpdateAction } from '@/src/types';
@@ -127,8 +126,8 @@ const userInfo = computed(() => userStore.getUser(userStore.getUserID()));
 const genderText = computed(() => {
     if (!userInfo.value) return '-';
     switch (userInfo.value.gender) {
-        case ImTypes.Gender.GENDER_MALE: return '�?;
-        case ImTypes.Gender.GENDER_FEMALE: return '�?;
+        case ImTypes.Gender.GENDER_MALE: return '男';
+        case ImTypes.Gender.GENDER_FEMALE: return '女';
         default: return '未知';
     }
 });
@@ -137,7 +136,7 @@ const joinTypeText = computed(() => {
     if (!userInfo.value) return '-';
     switch (userInfo.value.join_type) {
         case ImTypes.JoinType.JOIN_TYPE_DIRECT: return '直接添加';
-        case ImTypes.JoinType.JOIN_TYPE_AFTER_APPROVAL: return '需要验�?;
+        case ImTypes.JoinType.JOIN_TYPE_AFTER_APPROVAL: return '需要验证';
         default: return '未知';
     }
 });
@@ -153,7 +152,7 @@ const maskPhone = (phone?: string) => {
 
 const handleAvatarSuccess = async (url: string) => {
     if (!userInfo.value) {
-        ElMessage.error('用户信息不存�?);
+        ElMessage.error('用户信息不存在');
         return;
     }
     try {
@@ -189,11 +188,11 @@ const openEditDialog = () => {
 
 const handleUpdateProfile = async () => {
     if (!userInfo.value) {
-        ElMessage.error('用户信息不存�?);
+        ElMessage.error('用户信息不存在');
         return;
     }
     if (!editForm.value.user_name.trim()) {
-        ElMessage.warning('用户名不能为�?);
+        ElMessage.warning('用户名不能为空');
         return;
     }
 
@@ -238,6 +237,7 @@ const handleUpdateProfile = async () => {
 onMounted(async () => {
     await userService.fetchByIds([userStore.getUserID()]);
     signalWindowReady();
+    console.log(userInfo.value)
 });
 </script>
 

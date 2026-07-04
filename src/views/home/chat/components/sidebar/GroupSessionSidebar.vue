@@ -57,7 +57,7 @@ import GroupMembersCard from './GroupMembersCard.vue';
 import { groupService, messageService } from '@/src/services';
 
 const props = defineProps<{
-    chat: ImTypes.Conversation;
+    chat: ImTypes.Session;
 }>();
 
 const emit = defineEmits(['close']);
@@ -67,7 +67,7 @@ const conversationStore = useSessionStore();
 const messageStore = useMessageStore();
 const groupStore = useGroupStore();
 
-const targetId = computed(() => extractTargetIdFromSessionId(props.chat.conversation_id, userStore.getUserID()));
+const targetId = computed(() => extractTargetIdFromSessionId(props.chat.session_id, userStore.getUserID()));
 const targetIdVal = computed(() => targetId.value || 0);
 const groupInfo = computed(() => groupStore.getGroup(targetIdVal.value));
 
@@ -98,7 +98,7 @@ const handleUpdatePinned = async () => {
     if (pinLoading.value) return;
     pinLoading.value = true;
     try {
-        await messageService.updateConversion(props.chat.conversation_id, 3 - props.chat.is_top, undefined);
+        await messageService.updateConversion(props.chat.session_id, 3 - props.chat.is_top, undefined);
     } finally {
         pinLoading.value = false;
     }
@@ -108,7 +108,7 @@ const handleUpdateDisturb = async () => {
     if (disturbLoading.value) return;
     disturbLoading.value = true;
     try {
-        await messageService.updateConversion(props.chat.conversation_id, undefined, 3 - props.chat.is_disturb);
+        await messageService.updateConversion(props.chat.session_id, undefined, 3 - props.chat.is_disturb);
     } finally {
         disturbLoading.value = false;
     }
@@ -120,12 +120,12 @@ const clearChatData = () => {
         cancelButtonText: '取消',
         type: 'warning'
     }).then(async () => {
-        if (conversationStore.currentSessionKey === props.chat.conv_key) {
+        if (conversationStore.currentSessionKey === props.chat.session_key) {
             messageStore.messages = [];
         }
         props.chat.max_seq = 0;
         props.chat.last_content = '';
-        conversationStore.removeSession(props.chat.conversation_id);
+        conversationStore.removeSession(props.chat.session_id);
         ElMessage.success('聊天记录已清除');
         emit('close');
     }).catch(() => { });
@@ -154,7 +154,7 @@ const confirmQuitGroup = () => {
                 } else {
                     groupStore.joinedGroupIds.delete(numTargetId);
                 }
-                conversationStore.removeSession(props.chat.conversation_id);
+                conversationStore.removeSession(props.chat.session_id);
                 emit('close');
             } else {
                 ElMessage.error(res.message || '操作失败');

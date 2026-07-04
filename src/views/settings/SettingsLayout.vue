@@ -43,7 +43,7 @@
                                 </div>
                                 <div class="setting-text">
                                     <span class="label">外观模式</span>
-                                    <span class="description">调整客户端显示主题为浅色模式或深色模�?/span>
+                                    <span class="description">调整客户端显示主题为浅色模式或深色模式</span>
                                 </div>
                             </div>
                             <div class="card-right">
@@ -98,7 +98,7 @@
                     </div>
 
                     <div class="about-actions">
-                        <button class="text-action-btn" @click="checkUpdates">检查更�?/button>
+                        <button class="text-action-btn" @click="checkUpdates">检查更新</button>
                         <span class="divider">|</span>
                         <button class="text-action-btn" @click="viewLicense">服务条款</button>
                     </div>
@@ -119,7 +119,7 @@ import { IpcChannels } from '@/src/types';
 import { settingService } from '@/src/services';
 
 const isDark = ref(getTheme() === 'dark');
-const currentStoragePath = ref<string>('加载�?..');
+const currentStoragePath = ref<string>('加载�?..');
 const activeTab = ref<'general' | 'about'>('general');
 
 // App Logo path resolving, fallback to a local app logo fallback if error
@@ -147,7 +147,7 @@ const handleChangeStoragePath = async () => {
         const res = await ipcService.invoke<string>(IpcChannels.SETTINGS_SELECT_STORAGE_PATH);
         if (res?.success && res.data) {
             currentStoragePath.value = res.data;
-            ElMessage.success('存储路径修改成功，重启客户端后生�?);
+            ElMessage.success('存储路径修改成功，重启客户端后生效');
         } else if (res?.error && res.error !== 'User canceled') {
             ElMessage.error(res.error);
         }
@@ -157,10 +157,10 @@ const handleChangeStoragePath = async () => {
 };
 
 const copyPath = (path: string) => {
-    if (!path || path === '加载�?..' || path === '获取失败') return;
+    if (!path || path === '加载�?..' || path === '获取失败') return;
     navigator.clipboard.writeText(path)
         .then(() => {
-            ElMessage.success('路径已成功复�?);
+            ElMessage.success('路径已成功复制');
         })
         .catch(() => {
             ElMessage.error('复制失败');
@@ -168,7 +168,7 @@ const copyPath = (path: string) => {
 };
 
 const checkUpdates = () => {
-    ElMessage.success('当前已是最新版�?);
+    ElMessage.success('当前已是最新版本');
 };
 
 const viewLicense = () => {

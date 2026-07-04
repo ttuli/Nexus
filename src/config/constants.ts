@@ -80,4 +80,7 @@ export const APP_CONSTANTS = {
 
     /** 图片压缩质量 */
     imageCompressQuality: 85,
+
+    /** 下载取消错误信息 */
+    ERR_DOWNLOAD_CANCELLED: 'Download cancelled by user',
 };

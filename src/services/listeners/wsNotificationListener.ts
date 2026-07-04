@@ -21,7 +21,7 @@ import { chatService } from '../chatService'
 export function initWsNotificationListener(): void {
     ipcService.on(IpcChannels.WS_NOTIFICATION, async (_event, data: { type: ImTypes.MessageType; payload: ImTypes.WSMessage }) => {
         const userStore = useUserStore()
-        const conversationStore = useSessionStore()
+        const sessionStore = useSessionStore()
         const messageStore = useMessageStore()
         const groupStore = useGroupStore()
         const appStore = useAppStore()
@@ -41,7 +41,7 @@ export function initWsNotificationListener(): void {
                         create_time: friendRequest.handle_time,
                         extra: '',
                     }])
-                    conversationStore.addChat(generateSessionId(friendRequest.from_user_id, friendRequest.to_user_id))
+                    sessionStore.addOrPinToTop(generateSessionId(friendRequest.from_user_id, friendRequest.to_user_id))
                 }
                 if (appStore.currentRoute === CurrentRoute.Contacts && await windowService.isFocused() && appStore.currentValidationTab === ValidationType.Friend) {
                     userStore.updateLastReadFriendRequestTime()
@@ -52,7 +52,7 @@ export function initWsNotificationListener(): void {
             case ImTypes.MessageType.FRIEND_ADD: {
                 const friend = ImTypes.Friend.decode(data.payload.payload)
                 await cacheService.updateItems(UpdateAction.Update, ResourceType.FRIEND, [friend])
-                conversationStore.addChat(generateSessionId(friend.friend_id, friend.user_id))
+                sessionStore.addOrPinToTop(generateSessionId(friend.friend_id, friend.user_id))
                 break
             }
 
@@ -76,17 +76,17 @@ export function initWsNotificationListener(): void {
                 if (appStore.currentRoute === CurrentRoute.Contacts && await windowService.isFocused() && appStore.currentValidationTab === ValidationType.Group) {
                     groupStore.updateLastReadGroupRequestTime(userStore.userID)
                 }
-                conversationStore.addChat(generateGroupSessionId(groupRequest.group_id))
+                sessionStore.addOrPinToTop(generateGroupSessionId(groupRequest.group_id))
                 break
             }
 
             case ImTypes.MessageType.GROUP_OP_NOTIFICATION: {
                 const result = await chatService.parseGroupNotification(data.payload)
                 if (result.msg) {
-                    conversationStore.addChat(result.sessionId)
-                    messageStore.addMessage(result.msg)
+                    sessionStore.addOrPinToTop(result.sessionId)
+                    messageStore.upsertMessage(result.msg)
                     if (result.shouldIncrementUnread) {
-                        conversationStore.incrementUnread(result.sessionId)
+                        sessionStore.incrementUnread(result.sessionId)
                     }
                     if (result.shouldPlaySound) {
                         windowService.playNotificationSound()
@@ -97,7 +97,7 @@ export function initWsNotificationListener(): void {
 
             case ImTypes.MessageType.MSG_OP_RECALL: {
                 const msgRecall = ImTypes.MessageRecall.decode(data.payload.payload)
-                messageStore.updateMessageStatus(msgRecall.conversation_id, '', ImTypes.MessageStatus.MESSAGE_STATUS_RECALLED, msgRecall.recall_time, msgRecall.msg_id)
+                messageStore.updateMessageStatus(msgRecall.session_id, '', ImTypes.MessageStatus.MESSAGE_STATUS_RECALLED, msgRecall.recall_time, msgRecall.msg_id)
                 break
             }
         }

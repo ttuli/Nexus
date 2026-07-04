@@ -60,10 +60,9 @@ import { ElMessage } from 'element-plus';
 import { extractTargetIdFromSessionId } from '@/src/utils/sessionUtils';
 import { Edit } from '@element-plus/icons-vue';
 import { friendService, messageService } from '@/src/services';
-import { messageStorageService } from '@/src/services/messageStorageService';
 
 const props = defineProps<{
-    chat: ImTypes.Conversation;
+    chat: ImTypes.Session;
 }>();
 
 const emit = defineEmits(['close']);
@@ -72,7 +71,7 @@ const userStore = useUserStore();
 const conversationStore = useSessionStore();
 const messageStore = useMessageStore();
 
-const targetId = computed(() => extractTargetIdFromSessionId(props.chat.conversation_id, userStore.getUserID()));
+const targetId = computed(() => extractTargetIdFromSessionId(props.chat.session_id, userStore.getUserID()));
 const targetIdVal = computed(() => targetId.value || 0);
 const friendInfo = computed(() => userStore.getFriend(targetIdVal.value));
 const userInfo = computed(() => userStore.getUser(targetIdVal.value));
@@ -121,7 +120,7 @@ const handleUpdatePinned = async (_val: string | number | boolean) => {
     if (pinLoading.value) return;
     pinLoading.value = true;
     try {
-        await messageService.updateConversion(props.chat.conversation_id, 3 - props.chat.is_top, undefined);
+        await messageService.updateConversion(props.chat.session_id, 3 - props.chat.is_top, undefined);
     } finally {
         pinLoading.value = false;
     }
@@ -131,7 +130,7 @@ const handleUpdateDisturb = async (_val: string | number | boolean) => {
     if (disturbLoading.value) return;
     disturbLoading.value = true;
     try {
-        await messageService.updateConversion(props.chat.conversation_id, undefined, 3 - props.chat.is_disturb);
+        await messageService.updateConversion(props.chat.session_id, undefined, 3 - props.chat.is_disturb);
     } finally {
         disturbLoading.value = false;
     }
@@ -147,11 +146,11 @@ const clearChatData = async () => {
     });
 
     if (res === DialogResult.Confirm) {
-        if (conversationStore.currentSessionKey === props.chat.conv_key) {
+        if (conversationStore.currentSessionKey === props.chat.session_key) {
             messageStore.messages = [];
         }
 
-        await messageStorageService.clearMessagesBySessionId(props.chat.conversation_id);
+        await messageService.clearMessagesBySessionId(props.chat.session_id);
 
         props.chat.max_seq = 0;
         props.chat.last_content = '';

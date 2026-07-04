@@ -1,6 +1,6 @@
 /**
  * 会话 ID 工具函数
- * 负责生成和解析私聊/群聊的 sessionId / conv_key
+ * 负责生成和解析私聊/群聊的 sessionId / session_key
  */
 
 import { ImTypes } from "../types";
@@ -19,7 +19,7 @@ export function generateSessionId(uid1: number, uid2: number): string {
 }
 
 /**
- * 生成群聊会话ID (即 conv_key)
+ * 生成群聊会话ID (即 session_key)
  * 规则: groupId 字符串
  * @param groupId 群组ID
  */
@@ -35,7 +35,7 @@ export function isGroupSession(sessionKey: string): boolean {
  * 从 sessionId 中提取目标 ID
  * 供组件、store 或工具函数统一使用
  * 支持老的带前缀格式和新的无前缀格式
- * @param sessionId     会话ID（可能是 conv_key 或 conversation_id）
+ * @param sessionId     会话ID（可能是 session_key 或 session_id）
  * @param currentUserId 当前用户的 user_id
  * @returns 对方的 user_id 或者群组的 group_id，解析失败返回 null
  */

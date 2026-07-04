@@ -38,7 +38,7 @@ import setmsgread from '@/src/assets/chat/setmsgread.svg?raw';
 const router = useRouter();
 const conversationStore = useSessionStore();
 const messageStore = useMessageStore();
-const { sessionList, currentSessionId, currentSessionKey } = storeToRefs(conversationStore);
+const { sessionList, currentSessionKey } = storeToRefs(conversationStore);
 const { navigateToChat } = useChatNavigation();
 
 const onChatClick = (sessionId: string) => {
@@ -49,7 +49,7 @@ const onChatClick = (sessionId: string) => {
 const menuVisible = ref(false);
 const menuX = ref(0);
 const menuY = ref(0);
-const contextMenuTarget = ref<ImTypes.Conversation | null>(null);
+const contextMenuTarget = ref<ImTypes.Session | null>(null);
 
 const menuOptions = computed<MenuOption[]>(() => {
     const chat = contextMenuTarget.value;
@@ -74,7 +74,7 @@ const menuOptions = computed<MenuOption[]>(() => {
     ];
 });
 
-const handleContextMenu = (event: MouseEvent, chat: ImTypes.Conversation) => {
+const handleContextMenu = (event: MouseEvent, chat: ImTypes.Session) => {
     menuX.value = event.clientX;
     menuY.value = event.clientY;
     contextMenuTarget.value = chat;
@@ -87,31 +87,31 @@ const handleMenuSelect = (option: MenuOption) => {
 
     switch (option.key) {
         case 'mark_unread':
-            conversationStore.incrementUnread(chat.conv_key || chat.conversation_id);
+            conversationStore.incrementUnread(chat.session_key);
             break;
         case 'mark_read':
-            conversationStore.clearUnread(chat.conv_key || chat.conversation_id);
+            conversationStore.clearUnread(chat.session_key);
             break;
         case 'delete':
-            conversationStore.removeSession(chat.conv_key || chat.conversation_id);
-            if (currentSessionKey.value === chat.conv_key) {
+            conversationStore.removeSession(chat.session_key);
+            if (currentSessionKey.value === chat.session_key) {
                 // 如果删除的是当前会话，需要清空当前会话
                 conversationStore.setCurrentSession('');
                 messageStore.resetMessageState();
             }
             break;
         case 'toggle_top':
-            messageService.updateConversion(chat.conversation_id, 3 - chat.is_top, undefined);
+            messageService.updateConversion(chat.session_id, 3 - chat.is_top, undefined);
             break;
         case 'toggle_disturb':
-            messageService.updateConversion(chat.conversation_id, undefined, 3 - chat.is_disturb);
+            messageService.updateConversion(chat.session_id, undefined, 3 - chat.is_disturb);
             break;
     }
 };
 
 const clearCurrentUnread = () => {
-    if (currentSessionId.value) {
-        conversationStore.clearUnread(currentSessionId.value);
+    if (currentSessionKey.value) {
+        conversationStore.clearUnread(currentSessionKey.value);
     }
 };
 

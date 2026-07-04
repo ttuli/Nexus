@@ -77,8 +77,8 @@ function buildBase(type: ImTypes.MessageType, sessionId: string, existingClientI
     const userStore = useUserStore();
     const conversationStore = useSessionStore();
     const currentSession = conversationStore.getSession(sessionId);
-    const sessionKey = currentSession?.conv_key || sessionId;
-    const conversationId = currentSession?.conversation_id || '';
+    const sessionKey = currentSession?.session_key || sessionId;
+    const conversationId = currentSession?.session_id || '';
 
     const clientId = existingClientId ?? ulid();
 
@@ -104,7 +104,7 @@ function buildBase(type: ImTypes.MessageType, sessionId: string, existingClientI
     const baseMsg: ImTypes.BaseMessage = {
         msg_id: '',
         session_id: conversationId,
-        conv_key: sessionKey,
+        session_key: sessionKey,
         from_user_id: userStore.getUserID(),
         target: targetId,
         send_time: Date.now(),
@@ -149,9 +149,9 @@ function buildBase(type: ImTypes.MessageType, sessionId: string, existingClientI
 export function buildTextWsMessage(
     content: string,
     sessionId: string,
-    conversationType: ImTypes.ConversationType
+    conversationType: ImTypes.SessionType
 ): WsMessageResult<ILocalTextMessage> {
-    const isGroup = conversationType === ImTypes.ConversationType.CONVERSATION_TYPE_GROUP;
+    const isGroup = conversationType === ImTypes.SessionType.SESSION_TYPE_GROUP;
     const type = isGroup ? ImTypes.MessageType.GROUP_TEXT : ImTypes.MessageType.CHAT_TEXT;
     const { clientId, baseMsg, wsMsg, commonFields } = buildBase(type, sessionId);
 
@@ -166,9 +166,9 @@ export function buildTextWsMessage(
 export function buildImageLocalMsg(
     content: ImageContent,
     sessionId: string,
-    conversationType: ImTypes.ConversationType
+    conversationType: ImTypes.SessionType
 ): { clientId: string; localMsg: ILocalImageMessage } {
-    const isGroup = conversationType === ImTypes.ConversationType.CONVERSATION_TYPE_GROUP;
+    const isGroup = conversationType === ImTypes.SessionType.SESSION_TYPE_GROUP;
     const type = isGroup ? ImTypes.MessageType.GROUP_IMAGE : ImTypes.MessageType.CHAT_IMAGE;
     const { clientId, commonFields } = buildBase(type, sessionId);
 
@@ -198,9 +198,9 @@ export function buildImageWsPayload(
     localMsg: ILocalImageMessage,
     ossUrl: string,
     sessionId: string,
-    conversationType: ImTypes.ConversationType
+    conversationType: ImTypes.SessionType
 ): ImTypes.WSMessage {
-    const isGroup = conversationType === ImTypes.ConversationType.CONVERSATION_TYPE_GROUP;
+    const isGroup = conversationType === ImTypes.SessionType.SESSION_TYPE_GROUP;
     const type = isGroup ? ImTypes.MessageType.GROUP_IMAGE : ImTypes.MessageType.CHAT_IMAGE;
     const { baseMsg, wsMsg } = buildBase(type, sessionId, localMsg.clientId);
 
@@ -226,9 +226,9 @@ export function buildImageWsPayload(
 export function buildFileLocalMsg(
     content: FileContent,
     sessionId: string,
-    conversationType: ImTypes.ConversationType
+    conversationType: ImTypes.SessionType
 ): { clientId: string; localMsg: ILocalFileMessage } {
-    const isGroup = conversationType === ImTypes.ConversationType.CONVERSATION_TYPE_GROUP;
+    const isGroup = conversationType === ImTypes.SessionType.SESSION_TYPE_GROUP;
     const type = isGroup ? ImTypes.MessageType.GROUP_FILE : ImTypes.MessageType.CHAT_FILE;
     const { clientId, commonFields } = buildBase(type, sessionId);
 
@@ -253,9 +253,9 @@ export function buildFileWsPayload(
     localMsg: ILocalFileMessage,
     ossUrl: string,
     sessionId: string,
-    conversationType: ImTypes.ConversationType
+    conversationType: ImTypes.SessionType
 ): ImTypes.WSMessage {
-    const isGroup = conversationType === ImTypes.ConversationType.CONVERSATION_TYPE_GROUP;
+    const isGroup = conversationType === ImTypes.SessionType.SESSION_TYPE_GROUP;
     const type = isGroup ? ImTypes.MessageType.GROUP_FILE : ImTypes.MessageType.CHAT_FILE;
     const { baseMsg, wsMsg } = buildBase(type, sessionId, localMsg.clientId);
 
@@ -278,10 +278,10 @@ export function buildFileWsPayload(
 export function buildAudioWsMessage(
     content: AudioContent,
     sessionId: string,
-    conversationType: ImTypes.ConversationType,
+    conversationType: ImTypes.SessionType,
     existingClientId?: string
 ): WsMessageResult<ILocalAudioMessage> {
-    const isGroup = conversationType === ImTypes.ConversationType.CONVERSATION_TYPE_GROUP;
+    const isGroup = conversationType === ImTypes.SessionType.SESSION_TYPE_GROUP;
     const type = isGroup ? ImTypes.MessageType.GROUP_AUDIO : ImTypes.MessageType.CHAT_AUDIO;
     const { clientId, baseMsg, wsMsg, commonFields } = buildBase(type, sessionId, existingClientId);
 
@@ -313,9 +313,9 @@ export function buildAudioWsMessage(
 export function buildVideoLocalMsg(
     content: VideoContent,
     sessionId: string,
-    conversationType: ImTypes.ConversationType
+    conversationType: ImTypes.SessionType
 ): { clientId: string; localMsg: ILocalVideoMessage } {
-    const isGroup = conversationType === ImTypes.ConversationType.CONVERSATION_TYPE_GROUP;
+    const isGroup = conversationType === ImTypes.SessionType.SESSION_TYPE_GROUP;
     const type = isGroup ? ImTypes.MessageType.GROUP_VIDEO : ImTypes.MessageType.CHAT_VIDEO;
     const { clientId, commonFields } = buildBase(type, sessionId);
 
@@ -346,9 +346,9 @@ export function buildVideoWsPayload(
     localMsg: ILocalVideoMessage,
     ossUrl: string,
     sessionId: string,
-    conversationType: ImTypes.ConversationType
+    conversationType: ImTypes.SessionType
 ): ImTypes.WSMessage {
-    const isGroup = conversationType === ImTypes.ConversationType.CONVERSATION_TYPE_GROUP;
+    const isGroup = conversationType === ImTypes.SessionType.SESSION_TYPE_GROUP;
     const type = isGroup ? ImTypes.MessageType.GROUP_VIDEO : ImTypes.MessageType.CHAT_VIDEO;
     const { baseMsg, wsMsg } = buildBase(type, sessionId, localMsg.clientId);
 

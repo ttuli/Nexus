@@ -154,10 +154,9 @@ const selectOption = (item: AccountOption) => {
             height: 12px;
             transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
             opacity: 0.5;
-            transform: rotate(180deg); /* 默认箭头向上 */
 
             &.is-open {
-                transform: rotate(0deg); /* 点击展开后箭头向下 */
+                transform: rotate(180deg); /* 点击展开后箭头向下 */
             }
         }
     }

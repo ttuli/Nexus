@@ -73,8 +73,8 @@ import { fileService } from '@/src/services/fileService';
 import { settingService } from '@/src/services/settingService';
 import { ElMessage } from 'element-plus';
 import { ImTypes } from '@/src/types';
-import { useMessageStore } from '@/src/store/message';
-import { messageSendService } from '@/src/services';
+import { messageSendService, messageService } from '@/src/services';
+import { APP_CONSTANTS as config } from '@/src/config/constants';
 
 interface Props {
     message: ILocalFileMessage;
@@ -83,8 +83,6 @@ interface Props {
 
 const props = defineProps<Props>();
 
-// --- 状态与文本计算 ---
-const messageStore = useMessageStore();
 const isFailed = computed(() => props.message.status === ImTypes.MessageStatus.MESSAGE_STATUS_FAILED);
 
 const isUploading = computed(() => {
@@ -125,26 +123,25 @@ const currentSizeStr = computed(() => {
 
 // 操作栏显示逻辑
 const showActionBar = computed(() => {
-    // 自己的消息，如果在上传，显示取消
-    if (props.isSelf && isUploading.value) return true;
+    // 只要有进度，必须显示动作栏（提供取消操作）
+    if (showProgress.value) return true;
 
-    // 别人的消息：未下载显示下载，下载中显示取消，已下载显示打开
-    if (!props.isSelf) {
-        return true;
-    }
+    // 如果没有 localPath（不论是谁发的，比如多端同步的情况），都应该显示动作栏提供下载
+    if (!isDownloaded.value) return true;
+
+    // 如果已经有 localPath：接收方的消息保持显示“打开”；发送方的消息原逻辑隐藏动作栏（点击整个气泡打开）
+    if (!props.isSelf) return true;
+
     return false;
 });
 
 const actionText = computed(() => {
     if (showProgress.value) return '取消';
-    if (!props.isSelf) {
-        return isDownloaded.value ? '打开' : '下载';
-    }
-    return '';
+    return isDownloaded.value ? '打开' : '下载';
 });
 
 const actionIcon = computed(() => {
-    if (!props.isSelf && !isDownloaded.value && !showProgress.value) return 'download';
+    if (!isDownloaded.value && !showProgress.value) return 'download';
     return '';
 });
 
@@ -188,8 +185,8 @@ const formatSize = (bytes: number) => {
 const handleClick = async () => {
     if (showProgress.value) return; // 进度中点击无效 (操作通过下方按钮)
 
-    // 已发送成功或已下载，点击空白处默认触发下载/打开
-    if (!props.isSelf && !isDownloaded.value) {
+    // 如果本地还没下载，则走正常下载流；否则打开文件
+    if (!isDownloaded.value) {
         startDownload();
     } else {
         openFile();
@@ -213,7 +210,7 @@ const handleActionClick = () => {
         }
     } else {
         // 下载或打开
-        if (!props.isSelf && !isDownloaded.value) {
+        if (!isDownloaded.value) {
             startDownload();
         } else {
             openFile();
@@ -239,18 +236,17 @@ const startDownload = async () => {
         
         const localPath = await promise;
         // 更新内存和数据库中的 localPath
-        messageStore.updateFileLocalPath(props.message.sessionId, props.message.msgId, localPath);
+        props.message.localPath = localPath;
+        messageService.saveMessage(props.message);
+
         isDownloading.value = false;
         currentDownloadAbort.value = null;
-        ElMessage.success('下载完成');
-        // 下载完成后在资源管理器中打开
-        openFile();
     } catch (e: any) {
         isDownloading.value = false;
         downloadProgress.value = 0;
         currentDownloadAbort.value = null;
         console.error('[FileBubble] Download failed:', e);
-        if (e?.message !== 'Download cancelled by user') {
+        if (e?.message !== config.ERR_DOWNLOAD_CANCELLED) {
             ElMessage.error('下载失败：' + (e?.message || ''));
         }
     }
@@ -263,29 +259,16 @@ const openFile = async () => {
             const ok = await settingService.showInFolder(props.message.localPath);
             if (!ok) {
                 ElMessage.error('文件已过期或已删除');
+                props.message.localPath = ''
+                messageService.saveMessage(props.message)
             }
         } catch (error) {
             console.error('[FileBubble] Failed to show in folder:', error);
             ElMessage.error('文件已过期或已删除');
+            props.message.localPath = ''
+            messageService.saveMessage(props.message)
         }
         return;
-    }
-
-    if (props.message.url) {
-        try {
-            const downloadUrl = await fileService.getFileUrl(props.message.url);
-            if (downloadUrl) {
-                const link = document.createElement('a');
-                link.href = downloadUrl;
-                link.download = props.message.fileName;
-                link.target = '_blank';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            }
-        } catch (e) {
-            console.error('[FileBubble] Failed to get download url:', e);
-        }
     }
 };
 </script>

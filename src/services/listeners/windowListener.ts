@@ -13,7 +13,7 @@ export function initWindowListener(): void {
         const conversationStore = useSessionStore()
         switch (state) {
             case 'focused':
-                conversationStore.clearUnread(conversationStore.currentSessionId)
+                conversationStore.clearUnread(conversationStore.currentSessionKey)
                 break
             default:
                 break

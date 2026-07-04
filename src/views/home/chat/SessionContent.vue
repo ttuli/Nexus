@@ -4,7 +4,7 @@
         <div class="header">
             <span class="title">{{ title }}</span>
             <div class="actions">
-                <span v-if="currentSession.type === ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE" v-html="phoneIcon"
+                <span v-if="currentSession.type === ImTypes.SessionType.SESSION_TYPE_PRIVATE" v-html="phoneIcon"
                     class="icon-btn phone" title="语音通话" @click="startCall">
                 </span>
                 <div class="icon-btn" title="聊天信息" @click="toggleSidebar">⋮</div>
@@ -101,7 +101,7 @@ const messageStore = useMessageStore();
 const userStore = useUserStore();
 const groupStore = useGroupStore();
 
-const { currentSession, currentSessionId } = storeToRefs(conversationStore);
+const { currentSession, currentSessionKey } = storeToRefs(conversationStore);
 const { messages, isLoading, hasMore } = storeToRefs(messageStore);
 
 // Sidebar Logic
@@ -149,7 +149,6 @@ const handleMessageContextMenu = (event: MouseEvent, message: IChatMessage) => {
 
     // 后续可以根据需要的消息类型（如图片等）添加其他菜单
     options.push({ label: '删除', key: 'remove', icon: trashIcon });
-    if (options.length === 0) return;
 
     menuOptions.value = options;
     menuX.value = event.clientX;
@@ -182,10 +181,10 @@ const handleMenuSelect = async (option: MenuOption) => {
 
 const title = computed(() => {
     if (!currentSession.value) return '';
-    const targetId = extractTargetIdFromSessionId(currentSession.value.conversation_id, userStore.getUserID());
+    const targetId = extractTargetIdFromSessionId(currentSession.value.session_id, userStore.getUserID());
     if (!targetId) return '';
 
-    if (currentSession.value.type === ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE) {
+    if (currentSession.value.type === ImTypes.SessionType.SESSION_TYPE_PRIVATE) {
         const friend = userStore.getFriend(targetId);
         const user = userStore.getUser(targetId);
         return friend?.remark || user?.user_name || `用户${targetId}`;
@@ -199,10 +198,10 @@ const isSelf = (uid: number) => uid === userStore.userID;
 
 const chatDisableReason = computed(() => {
     if (!currentSession.value) return '';
-    const targetId = extractTargetIdFromSessionId(currentSession.value.conversation_id, userStore.getUserID());
+    const targetId = extractTargetIdFromSessionId(currentSession.value.session_id, userStore.getUserID());
     if (!targetId) return '';
 
-    if (currentSession.value.type === ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE) {
+    if (currentSession.value.type === ImTypes.SessionType.SESSION_TYPE_PRIVATE) {
         if (!userStore.isFriend(targetId)) {
             return '您与对方非好友关系，无法发送消息';
         }
@@ -236,7 +235,7 @@ const newAnimMessageIds = ref(new Set<string>());
 const seenMessageIds = new Set<string>();
 let lastMessageId = '';
 
-watch(currentSessionId, () => {
+watch(currentSessionKey, () => {
     seenMessageIds.clear();
     newAnimMessageIds.value.clear();
     lastMessageId = '';
@@ -335,8 +334,8 @@ const handleScroll = () => {
 // Auto scroll and load logic handled in messages watcher above
 
 // Watch chat change to scroll bottom / reset sidebar
-watch(currentSessionId, () => {
-    if (currentSessionId.value) {
+watch(currentSessionKey, () => {
+    if (currentSessionKey.value) {
         sidebarVisible.value = false;
     }
 });
@@ -382,8 +381,8 @@ const handleSelectSuggestion = (text: string) => {
 
 const startCall = () => {
     if (!currentSession.value) return;
-    const targetId = extractTargetIdFromSessionId(currentSession.value.conversation_id, userStore.getUserID());
-    const targetType = currentSession.value.type === ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE ? 'private' : 'group';
+    const targetId = extractTargetIdFromSessionId(currentSession.value.session_id, userStore.getUserID());
+    const targetType = currentSession.value.type === ImTypes.SessionType.SESSION_TYPE_PRIVATE ? 'private' : 'group';
 
     if (targetId) {
         windowService.createWindow('call', {

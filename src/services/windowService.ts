@@ -48,6 +48,10 @@ class WindowService {
         ipcService.send(IpcChannels.WINDOW_MAXIMIZE)
     }
 
+    close(): void {
+        ipcService.send(IpcChannels.WINDOW_CLOSE)
+    }
+
     /**
      * 隐藏当前窗口
      */

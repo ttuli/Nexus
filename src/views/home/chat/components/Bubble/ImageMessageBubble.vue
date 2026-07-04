@@ -45,7 +45,7 @@ import { fileService } from '@/src/services/fileService';
 import { openPhotoViewer } from '@/src/utils/window';
 import { ElMessage } from 'element-plus';
 import { useUserStore } from '@/src/store/user';
-import { messageStorageService } from '@/src/services/messageStorageService';
+import { messageService } from '@/src/services/messageService';
 
 interface Props {
     message: ILocalImageMessage;
@@ -94,7 +94,7 @@ watch(() => props.message, (msg) => {
             height: msg.thumbnailHeight
         });
         props.message.thumbnailUrl = displayUrl.value;
-        messageStorageService.saveMessage(props.message);
+        messageService.saveMessage(props.message);
     }
 }, { immediate: true });
 

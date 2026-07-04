@@ -12,9 +12,9 @@
 
             <!-- 注册表单 -->
             <form @submit.prevent="handleRegister" class="register-form">
-                <!-- 昵称输入�?-->
+                <!-- 昵称输入�?-->
                 <div class="form-group">
-                    <CusInput v-model="form.nickname" placeholder="请输入昵�? @submit="focusPhoneInput">
+                    <CusInput v-model="form.nickname" placeholder="请输入昵称" >
                         <template #left-area>
                             <img :src="NameIcon" class="input-icon" />
                         </template>
@@ -24,10 +24,10 @@
                     </CusInput>
                 </div>
 
-                <!-- 密码输入�?-->
+                <!-- 密码输入�?-->
                 <div class="form-group">
                     <CusInput ref="passwordInput" v-model="form.password" type="password" :visible="passwordVisible"
-                        placeholder="请输入密�?(至少8�?" @submit="focusConfirmPasswordInput" @focus="handlePasswordFocus"
+                        placeholder="请输入密码(至少8位)" @submit="focusConfirmPasswordInput" @focus="handlePasswordFocus"
                         @blur="handlePasswordBlur">
                         <template #left-area>
                             <img :src="PasswordIcon" class="input-icon" />
@@ -41,17 +41,17 @@
                         </template>
                     </CusInput>
                     <CusInputHint :visible="passwordFocused" :targetRef="passwordInput">
-                        <p>密码要求�?/p>
-                        <p>请输入至�?8 个字符，</p>
+                        <p>密码要求：</p>
+                        <p>请输入至少 8 个字符，</p>
                         可包含大小写字母、数字和特殊符号
                         <PasswordStrenth :password="form.password" />
                     </CusInputHint>
                 </div>
 
-                <!-- 确认密码输入�?-->
+                <!-- 确认密码输入框 -->
                 <div class="form-group">
                     <CusInput ref="confirmPasswordInput" v-model="form.confirmPassword" type="password"
-                        :visible="confirmPasswordVisible" placeholder="请再次输入密�? @submit="handleRegister">
+                        :visible="confirmPasswordVisible" placeholder="请再次输入密码" @submit="handleRegister">
                         <template #left-area>
                             <img :src="PasswordIcon" class="input-icon" />
                         </template>
@@ -78,7 +78,7 @@
                             </span>
                             <button type="button" class="send-code-btn" @click="sendAuthCode"
                                 :disabled="codeCD !== 0 || isLoading">
-                                <span v-if="codeCD !== 0">({{ codeCD }}s)验证码已发�?/span>
+                                <span v-if="codeCD !== 0">({{ codeCD }}s)验证码已发送</span>
                                 <span v-else>发送验证码</span>
                             </button>
                         </template>
@@ -96,10 +96,10 @@
 
                 <!-- 同意协议复选框 -->
                 <CusCheckBox v-model="form.agreeTerms">
-                    我已阅读并同�?
-                    <button type="button" class="link-text" @click="showTerms">《用户服务协议�?/button>
-                    �?
-                    <button type="button" class="link-text" @click="showPrivacy">《隐私政策�?/button>
+                    我已阅读并同意
+                    <button type="button" class="link-text" @click="showTerms">《用户服务协议》</button>
+                    及
+                    <button type="button" class="link-text" @click="showPrivacy">《隐私政策》</button>
                 </CusCheckBox>
                 <span style="width: 100%; height: 12px;"></span>
                 <CusButton html-type="submit" :loading="isLoading" :showIcon="false">
@@ -161,10 +161,10 @@ const confirmPasswordInput = ref<{ focus: () => void }>()
 
 let finish = false;
 
-// 输入框聚焦状�?
+// 输入框聚焦状�?
 const passwordFocused = ref(false)
 
-// 手机号状�?
+// 手机号状�?
 const phoneStatus = computed(() => {
     if (!form.value.phone) return null
     return /^1[3-9]\d{9}$/.test(form.value.phone) ? 'valid' : 'invalid'
@@ -187,9 +187,7 @@ const canRegister = computed(() => {
 })
 
 // 聚焦事件
-const focusPhoneInput = (): void => {
-    phoneInput.value?.focus()
-}
+
 
 const focusPasswordInput = (): void => {
     passwordInput.value?.focus()
@@ -199,7 +197,7 @@ const focusConfirmPasswordInput = (): void => {
     confirmPasswordInput.value?.focus()
 }
 
-// 处理密码输入框聚�?失焦事件
+// 处理密码输入框聚�?失焦事件
 const handlePasswordFocus = () => {
     passwordFocused.value = true
 }
@@ -207,18 +205,18 @@ const handlePasswordBlur = () => {
     passwordFocused.value = false
 }
 
-//验证码发�?
+//验证码发�?
 const sendAuthCode = async () => {
     codeCD.value = 60
     if (phoneStatus.value !== 'valid') {
-        ElMessage.error('请输入正确的手机�?)
+        ElMessage.error('请输入正确的手机号')
         codeCD.value = 0
         return
     }
 
     try {
         await authService.sendCode(form.value.phone)
-        ElMessage.success('验证码发送成�?)
+        ElMessage.success('验证码发送成功')
         const timer = setInterval(() => {
             codeCD.value--
             if (codeCD.value === 0) {
@@ -250,7 +248,7 @@ const handleRegister = async (): Promise<void> => {
         console.log(res)
 
         finish = true;
-        ElMessage.success('注册成功�?)
+        ElMessage.success('注册成功')
         const timer = setInterval(() => {
             clearInterval(timer);
             window.close();

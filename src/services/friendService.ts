@@ -69,16 +69,14 @@ class FriendService {
     async applyFriend(data: ApiTypes.user.NewFriendApplyReq) {
         let res = await applyFriend(data)
         if (res.data.friend) {
-            const conversationId = res.data.conversation_id;
             const friend = res.data.friend;
             const sessionKey = generateSessionId(friend.user_id, friend.friend_id);
             
             const store = useSessionStore();
-            const existing = store.getSession(conversationId || sessionKey);
+            const existing = store.getSession(sessionKey);
             store.upsertSession({
-                conversation_id: conversationId || existing?.conversation_id || '',
-                conv_key: sessionKey,
-                type: ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE,
+                session_key: sessionKey,
+                type: ImTypes.SessionType.SESSION_TYPE_PRIVATE,
                 max_seq: existing?.max_seq || 0,
                 update_time: existing?.update_time || Date.now(),
                 last_content: existing?.last_content || '',
@@ -127,17 +125,15 @@ class FriendService {
             }
         }
 
-        if (res.data.conversation_id && res.data.data) {
+        if (res.data.data) {
             const req = res.data.data;
-            const conversationId = res.data.conversation_id;
             const sessionKey = generateSessionId(req.from_user_id, req.to_user_id);
             
             const store = useSessionStore();
-            const existing = store.getSession(conversationId || sessionKey);
+            const existing = store.getSession(sessionKey);
             store.upsertSession({
-                conversation_id: conversationId || existing?.conversation_id || '',
-                conv_key: sessionKey,
-                type: ImTypes.ConversationType.CONVERSATION_TYPE_PRIVATE,
+                session_key: sessionKey,
+                type: ImTypes.SessionType.SESSION_TYPE_PRIVATE,
                 max_seq: existing?.max_seq || 0,
                 update_time: existing?.update_time || Date.now(),
                 last_content: existing?.last_content || '',

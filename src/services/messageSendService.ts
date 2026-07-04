@@ -4,7 +4,7 @@ import { ApiTypes, ImTypes, CacheOptionType, IpcChannels } from '@/src/types';
 import { ILocalImageMessage, ILocalFileMessage, ILocalVideoMessage } from '@/src/types/chatMessage';
 import { websocketService } from './websocketService';
 import { fileService } from './fileService';
-import { ipcService, messageService } from '.';
+import { ipcService } from '.';
 import { APP_CONSTANTS } from '@/src/config/constants';
 import { toResourceUrl } from '@/src/utils/resourceUrl';
 import { buildTextWsMessage, buildImageLocalMsg, buildImageWsPayload, buildFileLocalMsg, buildFileWsPayload, buildVideoLocalMsg, buildVideoWsPayload } from '@/src/utils/messageBuilder';
@@ -40,14 +40,19 @@ class MessageSendService {
         const chatType = session.type;
 
         const { msg, clientId, localMsg } = buildTextWsMessage(content, sessionId, chatType);
-        messageStore.upsertMessage(localMsg);
-        const storedMsg = messageStore.messages.find(m => m.clientId === clientId);
+        const storedMsg = messageStore.upsertMessage(localMsg);
 
-        const result = await websocketService.send(msg, clientId, sessionId);
-        if (!result.success || !result.data?.sent) {
-            storedMsg!.status = ImTypes.MessageStatus.MESSAGE_STATUS_FAILED;
+        try {
+            const result = await websocketService.send(msg, clientId, sessionId);
+            if (!result.success || !result.data?.sent) {
+                storedMsg.status = ImTypes.MessageStatus.MESSAGE_STATUS_FAILED;
+            }
+        } catch (e) {
+            console.error('[MessageSendService] sendTextMessage failed:', e);
+            storedMsg.status = ImTypes.MessageStatus.MESSAGE_STATUS_FAILED;
+        } finally {
+            ipcService.invoke(IpcChannels.MSG_SAVE, JSON.parse(JSON.stringify(storedMsg)));
         }
-        ipcService.invoke(IpcChannels.MSG_SAVE, JSON.parse(JSON.stringify(storedMsg)));
     }
 
     /**
@@ -96,15 +101,14 @@ class MessageSendService {
             }),
             fileName: file.name
         }, sessionId, chatType);
-        messageStore.upsertMessage(localMsg);
-        const storedMsg = messageStore.messages.find(m => m.clientId === clientId) as ILocalImageMessage | undefined;
+        const storedMsg = messageStore.upsertMessage(localMsg) as ILocalImageMessage;
 
         try {
             const { promise, abort } = fileService.uploadFile(
                 file,
                 ApiTypes.file.FileType.FileTypeChatImage,
                 (progress) => {
-                    storedMsg!.uploadProgress = progress;
+                    storedMsg.uploadProgress = progress;
                 }
             );
             this.uploadAbortControllers.set(clientId, abort);
@@ -112,7 +116,7 @@ class MessageSendService {
             const ossUrl = await promise;
             this.uploadAbortControllers.delete(clientId);
             
-            storedMsg!.url = ossUrl;
+            storedMsg.url = ossUrl;
 
             let localMsg_copy = { ...localMsg };
             localMsg_copy.localPath = undefined;
@@ -121,14 +125,14 @@ class MessageSendService {
             const finalMsg = buildImageWsPayload(localMsg_copy, ossUrl, sessionId, chatType);
             const result = await websocketService.send(finalMsg, clientId, sessionId);
             if (!result.success || !result.data?.sent) {
-                storedMsg!.status = ImTypes.MessageStatus.MESSAGE_STATUS_FAILED;
+                storedMsg.status = ImTypes.MessageStatus.MESSAGE_STATUS_FAILED;
             }
             
             ipcService.invoke(IpcChannels.MSG_SAVE, JSON.parse(JSON.stringify(storedMsg)));
         } catch (e) {
             console.error('[MessageSendService] sendImageMessage failed:', e);
-            storedMsg!.status = ImTypes.MessageStatus.MESSAGE_STATUS_FAILED;
-            storedMsg!.uploadProgress = 0;
+            storedMsg.status = ImTypes.MessageStatus.MESSAGE_STATUS_FAILED;
+            storedMsg.uploadProgress = 0;
             this.uploadAbortControllers.delete(clientId);
         }
     }
@@ -157,8 +161,7 @@ class MessageSendService {
             size: file.size,
             format: file.type,
         }, sessionId, chatType);
-        messageStore.upsertMessage(localMsg);
-        const storedMsg = messageStore.messages.find(m => m.clientId === clientId) as ILocalFileMessage | undefined;
+        const storedMsg = messageStore.upsertMessage(localMsg) as ILocalFileMessage;
 
         try {
             const { promise, abort } = fileService.uploadFile(
@@ -178,14 +181,14 @@ class MessageSendService {
             const finalMsg = buildFileWsPayload(localMsg, ossUrl, sessionId, chatType);
             const result = await websocketService.send(finalMsg, clientId, sessionId);
             if (!result.success || !result.data?.sent) {
-                storedMsg!.status = ImTypes.MessageStatus.MESSAGE_STATUS_FAILED;
+                storedMsg.status = ImTypes.MessageStatus.MESSAGE_STATUS_FAILED;
             }
             
             ipcService.invoke(IpcChannels.MSG_SAVE, JSON.parse(JSON.stringify(storedMsg)));
         } catch (e) {
             console.error('[MessageSendService] sendFileMessage failed:', e);
-            storedMsg!.status = ImTypes.MessageStatus.MESSAGE_STATUS_FAILED;
-            storedMsg!.uploadProgress = 0;
+            storedMsg.status = ImTypes.MessageStatus.MESSAGE_STATUS_FAILED;
+            storedMsg.uploadProgress = 0;
             this.uploadAbortControllers.delete(clientId);
         }
     }
@@ -233,9 +236,7 @@ class MessageSendService {
             format: file.type,
             fileName: file.name
         }, sessionId, chatType);
-        messageStore.upsertMessage(localMsg);
-
-        const storedMsg = messageStore.messages.find(m => m.clientId === clientId) as ILocalVideoMessage | undefined;
+        const storedMsg = messageStore.upsertMessage(localMsg) as ILocalVideoMessage;
 
         try {
             const { promise, abort } = fileService.uploadFile(
@@ -256,17 +257,17 @@ class MessageSendService {
             localMsg_copy.localPath = undefined;
             localMsg_copy.thumbnailUrl = undefined;
 
-            const finalMsg = buildVideoWsPayload(localMsg, ossUrl, sessionId, chatType);
+            const finalMsg = buildVideoWsPayload(localMsg_copy, ossUrl, sessionId, chatType);
             const result = await websocketService.send(finalMsg, clientId, sessionId);
             if (!result.success || !result.data?.sent) {
-                storedMsg!.status = ImTypes.MessageStatus.MESSAGE_STATUS_FAILED;
+                storedMsg.status = ImTypes.MessageStatus.MESSAGE_STATUS_FAILED;
             }
             
             ipcService.invoke(IpcChannels.MSG_SAVE, JSON.parse(JSON.stringify(storedMsg)));
         } catch (e) {
             console.error('[MessageSendService] sendVideoMessage failed:', e);
-            storedMsg!.status = ImTypes.MessageStatus.MESSAGE_STATUS_FAILED;
-            storedMsg!.uploadProgress = 0;
+            storedMsg.status = ImTypes.MessageStatus.MESSAGE_STATUS_FAILED;
+            storedMsg.uploadProgress = 0;
             this.uploadAbortControllers.delete(clientId);
         }
     }

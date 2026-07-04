@@ -15,7 +15,7 @@
                 </div>
 
                 <div class="search-input-wrapper">
-                    <CusInput v-model="keyword" :placeholder="searchType === 'user' ? '请输入手机号/账号/名字' : '请输入群�?群名�?"
+                    <CusInput v-model="keyword" :placeholder="searchType === 'user' ? '请输入手机号/账号/名字' : '请输入群号/群名称'"
                         @submit="startSearch">
                         <template #left-area>
                             <img :src="SearchIcon" class="search-icon" />
@@ -34,7 +34,7 @@
             <!-- Empty State (No search yet) -->
             <div v-if="!hasSearched" class="empty-state">
                 <div class="illustration">🔍</div>
-                <p>搜索好友，开启聊天之�?/p>
+                <p>搜索好友，开启聊天之旅</p>
             </div>
 
             <!-- Results Area -->
@@ -49,8 +49,8 @@
                             :group-info="group" :keyword="lastKeyword" @join="handleAddGroup" />
                     </template>
 
-                    <div v-if="loading" class="list-status">加载�?..</div>
-                    <div v-if="finished && resultList.length > 0" class="list-status">没有更多�?/div>
+                    <div v-if="loading" class="list-status">加载中...</div>
+                    <div v-if="finished && resultList.length > 0" class="list-status">没有更多了</div>
 
                     <!-- No Results -->
                     <div v-if="finished && resultList.length === 0" class="no-result">
@@ -67,7 +67,7 @@
                     <Avatar :uid="targetUser ? targetUser.user_id : (targetGroup?.id || 0)"
                         :type="targetUser ? 'user' : 'group'" class="avatar" />
                     <div class="info">
-                        <div class="name">{{ (targetUser ? targetUser.user_name : targetGroup?.name) || '未命�? }}</div>
+                        <div class="name">{{ (targetUser ? targetUser.user_name : targetGroup?.name) || '未命名' }}</div>
                         <div class="sub-info">
                             <span>{{ targetUser ? '账号: ' + targetUser.user_id : '群号: ' + targetGroup?.id }}</span>
                             <template v-if="targetUser">
@@ -83,7 +83,7 @@
 
                 <div class="input-form">
                     <div class="label">验证信息</div>
-                    <textarea v-model="applyMessage" class="msg-input" placeholder="请输入验证信息，例如：我�?.."
+                    <textarea v-model="applyMessage" class="msg-input" placeholder="请输入验证信息，例如：我是..."
                         rows="3"></textarea>
                 </div>
             </div>
@@ -259,7 +259,7 @@ const confirmAddFriend = async () => {
             if (res.data.friend) {
                 ElMessage.success("添加成功");
             } else if (res.data.data) {
-                ElMessage.success("发送好友申请成�?);
+                ElMessage.success("发送好友申请成功");
             }
         } else if (targetGroup.value) {
             await groupService.joinGroup({
@@ -267,7 +267,7 @@ const confirmAddFriend = async () => {
                 message: applyMessage.value
             });
             
-            ElMessage.success("发送入群申请成�?);
+            ElMessage.success("发送入群申请成功");
         }
     } finally {
         GlobalLoading.close();

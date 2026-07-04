@@ -69,7 +69,6 @@ import { ElMessage } from 'element-plus';
 import { ArrowLeft, CopyDocument, User } from '@element-plus/icons-vue';
 import Avatar from '@/src/components/Avatar.vue';
 import CusButton from '@/src/components/CusButton.vue';
-import { ImTypes } from '@/src/types';
 
 
 const props = defineProps<{
@@ -114,7 +113,7 @@ const copyId = async () => {
 
 const toChat = () => {
     const sessionId = generateGroupSessionId(props.groupId);
-    navigateToChat(sessionId, ImTypes.ConversationType.CONVERSATION_TYPE_GROUP);
+    navigateToChat(sessionId);
     router.push('/home/chat');
 };
 

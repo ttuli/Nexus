@@ -6,6 +6,17 @@ import { APP_CONSTANTS as config } from '@/src/config/constants'
 
 // ==================== Conversation APIs ====================
 
+export async function getSession(data: ApiTypes.message.GetSessionReq) {
+    const reqData = ApiTypes.message.GetSessionReq.encode(data).finish()
+    const res = await instance<ApiResponse<ApiTypes.message.GetSessionResp>>({
+        method: 'get',
+        url: config.messageServer + '/message/session',
+        data: reqData
+    })
+    return decodeResponse(res.data, ApiTypes.message.GetSessionResp.decode)
+}
+
+
 /**
  * 更新会话设置 (置顶、免打扰、静音等)
  * PUT /message/conversation
@@ -14,7 +25,7 @@ export async function updateConversation(data: ApiTypes.message.UpdateSessionReq
     const reqData = ApiTypes.message.UpdateSessionReq.encode(data).finish()
     const res = await instance<ApiResponse<null>>({
         method: 'put',
-        url: config.messageServer + '/message/conversation',
+        url: config.messageServer + '/message/session',
         data: reqData
     })
     return res.data
@@ -22,12 +33,12 @@ export async function updateConversation(data: ApiTypes.message.UpdateSessionReq
 
 /**
  * 获取用户的会话列表
- * GET /message/conversations/user
+ * GET /message/session/user
  */
 export async function getUserConversations() {
     const res = await instance<ApiResponse<ApiTypes.message.GetUserSessionsResp>>({
         method: 'get',
-        url: config.messageServer + '/message/conversations/user'
+        url: config.messageServer + '/message/sessions/user'
     })
     return decodeResponse(res.data, ApiTypes.message.GetUserSessionsResp.decode)
 }
@@ -39,7 +50,7 @@ export async function getUserConversations() {
  * GET /message/history
  * | 参数名 | 类型 | 必填 | 默认 | 说明 |
  * | --- | --- | --- | --- | --- |
- * | conversation_id | string | 否 | - | 会话ID |
+ * | session_id | string | 否 | - | 会话ID |
  * | start_seq | uint64 | 否 | 0 | 起始序号（含） |
  * | end_seq | uint64 | 否 | 0 | 结束序号（含） |
  * | limit | int | 否 | 20 | 每次拉取的消息条数 |
@@ -57,7 +68,7 @@ export async function getHistory(params: PartialExcept<ApiTypes.message.GetHisto
 export async function getUserActiveConversation(params: ApiTypes.message.GetUserActiveSessionsReq) {
     const res = await instance<ApiResponse<ApiTypes.message.GetUserActiveSessionsResp>>({
         method: 'get',
-        url: config.messageServer + '/message/conversations/user/active',
+        url: config.messageServer + '/message/sessions/user/active',
         params
     })
     return decodeResponse(res.data, ApiTypes.message.GetUserActiveSessionsResp.decode)

@@ -316,6 +316,7 @@ class WindowManager {
     const onClose = (e: Electron.Event) => {
       // 调用配置钩子（例如保存窗口状态）
       if (windowConfig.hooks?.onClose && this.isValidWindow(window)) {
+        e.preventDefault()
         try { windowConfig.hooks.onClose(window, e); } catch (err) { console.error(err); }
       }
     };
@@ -580,6 +581,18 @@ class WindowManager {
         }
       } catch (error) {
         console.error('Failed to maximize/unmaximize window:', error);
+      }
+    });
+
+    // 关闭窗口
+    ipcMain.on(IpcChannels.WINDOW_CLOSE, (event: IpcMainEvent) => {
+      try {
+        const sender = BrowserWindow.fromWebContents(event.sender);
+        if (sender && this.isValidWindow(sender)) {
+          sender.close();
+        }
+      } catch (error) {
+        console.error('Failed to close window:', error);
       }
     });
 

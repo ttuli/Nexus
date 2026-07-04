@@ -7,12 +7,12 @@ import { judgeSessionType } from '@/src/utils/sessionUtils';
 export const useSessionStore = defineStore('session', {
     state: () => ({
         sessionList: [] as ImTypes.Session[],
-        currentSessionKey: '', // 唯一的本地 conv_key
+        currentSessionKey: '', // 唯一的本地 session_key
     }),
     actions: {
         /**
          * 根据服务端会话数据更新聊天列表
-         * 已存在：更新 max_seq / update_time，并回填 conversation_id（如果有的话）
+         * 已存在：更新 max_seq / update_time，并回填 session_id（如果有的话）
          * 不存在：新建条目，并加入侧边栏列表 (is_in_list = 1)
          */
         upsertSession(sessionObj: {
@@ -72,6 +72,8 @@ export const useSessionStore = defineStore('session', {
                 if (sessionObj.is_disturb !== undefined) existing.is_disturb = sessionObj.is_disturb;
                 
                 sessionToUpdate = existing;
+                // 当已存在会话的时间或内容更新时，重新排序以确保会话列表顺序正确
+                this.sortSessionList();
             } else {
                 if (!sessionKey && !sessionId) return; // 无法创建
                 
@@ -161,19 +163,9 @@ export const useSessionStore = defineStore('session', {
         },
 
         setCurrentSession(sessionkey: string) {
-            // 如果不存在则添加
-            let currentSession = this.getSession(sessionkey);
-            if (!currentSession) {
-                this.addOrPinToTop(sessionkey);
-                currentSession = this.getSession(sessionkey);
-            }
-
-            if (!currentSession) {
-                this.currentSessionKey = '';
-            } else {
-                this.currentSessionKey = sessionkey;
-                this.clearUnread(sessionkey);
-            }
+            this.addOrPinToTop(sessionkey);
+            this.currentSessionKey = sessionkey;
+            this.clearUnread(sessionkey);
         },
 
         /**
@@ -228,7 +220,7 @@ export const useSessionStore = defineStore('session', {
                         .map((c: any) => ({
                             ...c,
                             type: c.type || ImTypes.SessionType.SESSION_TYPE_PRIVATE,
-                            session_key: c.conv_key || c.session_key || '',
+                            session_key: c.session_key || c.session_key || '',
                             last_message_time: c.last_message_time || 0,
                             unread_count: c.unread_count || 0,
                             create_time: c.create_time || 0,
@@ -255,7 +247,7 @@ export const useSessionStore = defineStore('session', {
                     return {
                         ...res.data,
                         type: res.data.type || ImTypes.SessionType.SESSION_TYPE_PRIVATE,
-                        conv_key: res.data.conv_key || res.data.conversation_id || '',
+                        session_key: res.data.session_key || res.data.session_id || '',
                         last_message_time: res.data.last_message_time || 0,
                         unread_count: res.data.unread_count || 0,
                         create_time: res.data.create_time || 0,

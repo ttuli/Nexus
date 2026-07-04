@@ -56,7 +56,6 @@ class FileCacheManager {
         pathOrUrl: string,
         opts: CacheOption
     ): Promise<Response | null> {
-
         // 网络资源处理：有本地缓存直接返回，否则异步预取并返回网络图
         if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) {
             // 提取出 url 最后一个 / 后面的内容（并去掉问号后面的签名参数），作为稳定的 fileKey
@@ -342,7 +341,6 @@ class FileCacheManager {
         //   filePath|image_w_{w}_h_{h}_q_{q}                 （图片缩略图）
         //   filePath|video_snapshoot_w_{w}_h_{h}_q_{q}       （视频缩略图）
         const [filePath, paramsStr] = cacheKey.split('|');
-
         if (!this.isPathSafe(filePath)) {
             console.warn('[FileCacheManager] Blocked unsafe file path request:', filePath);
             return new Response(null, { status: 403 });

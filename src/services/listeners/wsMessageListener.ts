@@ -5,22 +5,16 @@
  */
 
 import { ipcService } from '../ipcService'
-import { useAppStore } from '@/src/store/app'
-import { IpcChannels, ImTypes, CurrentRoute } from '@/src/types'
+import { IpcChannels, ImTypes, IChatMessage } from '@/src/types'
 import { ElMessage } from 'element-plus'
+import { convertWSMessageToIChatMessage } from '@/src/utils/messageConverter';
+import { messageService } from '@/src/services'
 import { useSessionStore } from '@/src/store/session'
 import { useMessageStore } from '@/src/store/message'
-import { convertWSMessageToIChatMessage } from '@/src/utils/messageConverter';
-import windowService from '../windowService'
-import { messageService } from '@/src/services'
 
 export function initWsMessageListener(): void {
     // 新消息到达
     ipcService.on(IpcChannels.WS_MESSAGE, async (_event, data: { type: ImTypes.MessageType; payload: any }) => {
-        const conversationStore = useSessionStore()
-        const messageStore = useMessageStore()
-        const appStore = useAppStore()
-
         const chatMsg = convertWSMessageToIChatMessage(data.payload as ImTypes.WSMessage)
         if (!chatMsg) {
             console.error('[WsMessageListener] Failed to convert WSMessage to IChatMessage')
@@ -29,16 +23,6 @@ export function initWsMessageListener(): void {
         void messageService.saveMessage(chatMsg).catch((e) => {
             console.error('[MessageStore] Failed to persist message', e);
         });
-        console.log('[WsMessageListener] Received WSMessage:', chatMsg)
-
-        // const isCurrentChat = (chatMsg.sessionKey && chatMsg.sessionKey === conversationStore.currentSessionKey) ||
-        //     (chatMsg.sessionId === conversationStore.currentSessionId);
-
-        // if (!isCurrentChat || !await windowService.isFocused() || appStore.currentRoute !== CurrentRoute.Chat) {
-        //     conversationStore.incrementUnread(chatMsg.sessionId)
-        //     if (conversationStore.currentSession?.is_disturb !== 2)
-        //         windowService.playNotificationSound()
-        // }
 
         switch (data.type) {
             case ImTypes.MessageType.ERROR: {
@@ -56,21 +40,27 @@ export function initWsMessageListener(): void {
 
     ipcService.on(IpcChannels.WS_MESSAGE_PERSIST_ACK, async (_event, data: { ack: ImTypes.PersistAck; timestamp: number }) => {
         const messageStore = useMessageStore()
-        const conversationStore = useSessionStore()
+        const sessionStore = useSessionStore()
         console.log('[WsMessageListener] Received PersistAck:', data)
 
         if (data.ack.session_id && data.ack.session_key) {
-            const chat = conversationStore.getSession(data.ack.session_key);
+            const chat = sessionStore.getSession(data.ack.session_key);
             if (chat && !chat.session_id) {
                 chat.session_id = data.ack.session_id;
-                void conversationStore.saveToStorage();
             }
         }
 
+        let msg: IChatMessage | undefined;
         if (data.ack.ack_status === ImTypes.AckStatus.ACK_STATUS_FAILED) {
-            messageStore.updateMessageStatus(data.ack.session_id, data.ack.client_id, ImTypes.MessageStatus.MESSAGE_STATUS_FAILED, data.timestamp)
+            msg = messageStore.updateMessageStatus(data.ack.session_id, data.ack.client_id, ImTypes.MessageStatus.MESSAGE_STATUS_FAILED, data.timestamp)
         } else if (data.ack.ack_status === ImTypes.AckStatus.ACK_STATUS_SUCCESS) {
-            messageStore.updateMessageStatus(data.ack.session_id, data.ack.client_id, ImTypes.MessageStatus.MESSAGE_STATUS_DELIVERED, data.timestamp, data.ack.msg_id, data.ack.seq)
+            msg = messageStore.updateMessageStatus(data.ack.session_id, data.ack.client_id, ImTypes.MessageStatus.MESSAGE_STATUS_DELIVERED, data.timestamp, data.ack.msg_id, data.ack.seq)
         }
+        if (msg) {
+            void messageService.saveMessage(msg).catch((e) => {
+                console.error('[MessageStore] Failed to update message', e);
+            });
+        }
+        console.log("ack补全的消息: ", msg)
     })
 }

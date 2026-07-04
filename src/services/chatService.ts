@@ -6,7 +6,7 @@ import { IChatMessage } from '@/src/types/chatMessage';
 import { convertNotificationToChatMessage } from '@/src/utils/messageConverter';
 import cacheService from './cacheService';
 import groupService from './groupService';
-import { messageStorageService } from './messageStorageService';
+import { messageService } from './messageService';
 
 class ChatService {
     
@@ -47,7 +47,7 @@ class ChatService {
 
         const common = {
             msgId: message.msg_id || '',
-            sessionId: message.conversation_id || '',
+            sessionId: message.session_id || '',
             fromUserId: this.normalizeNumber(message.from_user_id),
             sendTime: this.normalizeNumber(message.create_time) || Date.now(),
             seq: this.normalizeNumber(message.seq),
@@ -137,8 +137,8 @@ class ChatService {
         pageSize: number,
         range?: { startSeq?: number; endSeq?: number }
     ): Promise<IChatMessage[]> {
-        const params: PartialExcept<ApiTypes.message.GetHistoryReq, 'conversation_id'> = {
-            conversation_id: sessionId,
+        const params: PartialExcept<ApiTypes.message.GetHistoryReq, 'session_id'> = {
+            session_id: sessionId,
             limit: pageSize,
         };
 
@@ -178,7 +178,7 @@ class ChatService {
         });
 
         if (messages.length > 0) {
-            await messageStorageService.saveMessages(messages);
+            await messageService.saveMessages(messages);
         }
 
         return messages;
@@ -213,7 +213,7 @@ class ChatService {
         if (!sessionId || pageSize <= 0) return [];
 
         // 本地查询：seq < beforeSeq，只取有效的已确认消息
-        const local = await messageStorageService.getLocalHistoryMessages(
+        const local = await messageService.getLocalHistoryMessages(
             sessionId,
             beforeSeq !== undefined ? beforeSeq - 1 : Number.MAX_SAFE_INTEGER,
             pageSize

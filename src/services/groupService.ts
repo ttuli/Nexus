@@ -190,7 +190,7 @@ class GroupService {
             const messageStore = useMessageStore()
             const userStore = useUserStore()
             const sessionId = generateGroupSessionId(groupInfo.id)
-            conversationStore.addChat(sessionId)
+            conversationStore.addOrPinToTop(sessionId)
 
             const message: IChatMessage = {
                 msgId: `local_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
@@ -203,14 +203,14 @@ class GroupService {
                 type: MessageType.GROUP_OP_NOTIFICATION,
                 content: `你邀请了${data.member_ids.length}位用户加入了群聊`,
             }
-            messageStore.addMessage(message)
+            messageStore.upsertMessage(message)
 
             // Navigate to the chat page if currently under /home
             const appStore = useAppStore()
             if (appStore.currentRoute !== CurrentRoute.Chat) {
                 appStore.currentRoute = CurrentRoute.Chat
                 useRouter().push('/home/chat')
-                const oldSessionId = conversationStore.currentSessionId;
+                const oldSessionId = conversationStore.currentSessionKey;
                 conversationStore.setCurrentSession(sessionId);
                 const messageStore = useMessageStore();
                 if (sessionId !== oldSessionId) {
