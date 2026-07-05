@@ -9,7 +9,6 @@ import { IpcChannels, ImTypes, IChatMessage } from '@/src/types'
 import { ElMessage } from 'element-plus'
 import { convertWSMessageToIChatMessage } from '@/src/utils/messageConverter';
 import { messageService } from '@/src/services'
-import { useSessionStore } from '@/src/store/session'
 import { useMessageStore } from '@/src/store/message'
 
 export function initWsMessageListener(): void {
@@ -35,20 +34,36 @@ export function initWsMessageListener(): void {
 
     // 消息送达 ACK
     ipcService.on(IpcChannels.WS_MESSAGE_ACK, async (_event, data: { ack: ImTypes.MessageAck; timestamp: number }) => {
+        const messageStore = useMessageStore()
         console.log('[WsMessageListener] Received MessageAck:', data)
+
+        const ackStatus = data.ack.status ?? (data.ack as any).ack_status;
+        let msg: IChatMessage | undefined;
+        let newStatus: number | undefined;
+
+        if (ackStatus === ImTypes.AckStatus.ACK_STATUS_FAILED) {
+            newStatus = ImTypes.MessageStatus.MESSAGE_STATUS_FAILED;
+        } else if (ackStatus === ImTypes.AckStatus.ACK_STATUS_SUCCESS) {
+            newStatus = ImTypes.MessageStatus.MESSAGE_STATUS_SENT;
+        }
+        msg = messageStore.updateMessageStatus(
+            data.ack.session_id,
+            data.ack.client_id,
+            newStatus!,
+            data.timestamp
+        );
+
+        if (msg) {
+            void messageService.saveMessage(msg).catch((e) => {
+                console.error('[MessageStore] Failed to update message from MessageAck', e);
+            });
+        }
+        console.log("MessageAck 处理后消息: ", msg)
     })
 
     ipcService.on(IpcChannels.WS_MESSAGE_PERSIST_ACK, async (_event, data: { ack: ImTypes.PersistAck; timestamp: number }) => {
         const messageStore = useMessageStore()
-        const sessionStore = useSessionStore()
         console.log('[WsMessageListener] Received PersistAck:', data)
-
-        if (data.ack.session_id && data.ack.session_key) {
-            const chat = sessionStore.getSession(data.ack.session_key);
-            if (chat && !chat.session_id) {
-                chat.session_id = data.ack.session_id;
-            }
-        }
 
         let msg: IChatMessage | undefined;
         if (data.ack.ack_status === ImTypes.AckStatus.ACK_STATUS_FAILED) {
@@ -61,6 +76,5 @@ export function initWsMessageListener(): void {
                 console.error('[MessageStore] Failed to update message', e);
             });
         }
-        console.log("ack补全的消息: ", msg)
     })
 }

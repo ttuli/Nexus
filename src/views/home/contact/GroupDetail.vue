@@ -85,7 +85,7 @@ import { useGroupStore } from '@/src/store/group';
 import { useChatNavigation } from '@/src/composables/useChatNavigation';
 import { ElMessage } from 'element-plus';
 import { CopyDocument } from '@element-plus/icons-vue';
-import CusDialog from '@/src/components/CusDialog/CusDialog';
+import CusDialog from '@/src/components/CusDialog';
 import { DialogResult } from '@/src/components/CusDialog/types';
 import { groupService } from '@/src/services';
 import CusInputDialog from '@/src/components/CusInputDialog';

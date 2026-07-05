@@ -7,8 +7,9 @@
 import { ipcService } from '../ipcService'
 import { useUserStore } from '@/src/store/user'
 import { useGroupStore } from '@/src/store/group'
-import { useAppStore } from '@/src/store/app'
-import { ResourceType, IpcChannels, UpdateAction, ImTypes, ValidationType, CurrentRoute } from '@/src/types'
+import { ResourceType, IpcChannels, UpdateAction, ImTypes, ValidationType } from '@/src/types'
+import { currentValidationTab } from '@/src/composables/useValidationTab'
+import { useRouter } from 'vue-router'
 import { useSessionStore } from '@/src/store/session'
 import { useMessageStore } from '@/src/store/message'
 import { generateGroupSessionId, generateSessionId } from '@/src/utils/sessionUtils';
@@ -24,7 +25,7 @@ export function initWsNotificationListener(): void {
         const sessionStore = useSessionStore()
         const messageStore = useMessageStore()
         const groupStore = useGroupStore()
-        const appStore = useAppStore()
+        const router = useRouter()
 
         switch (data.type) {
             case ImTypes.MessageType.FRIEND_REQUEST: {
@@ -43,7 +44,7 @@ export function initWsNotificationListener(): void {
                     }])
                     sessionStore.addOrPinToTop(generateSessionId(friendRequest.from_user_id, friendRequest.to_user_id))
                 }
-                if (appStore.currentRoute === CurrentRoute.Contacts && await windowService.isFocused() && appStore.currentValidationTab === ValidationType.Friend) {
+                if (router.currentRoute.value.path.includes('contacts') && await windowService.isFocused() && currentValidationTab.value === ValidationType.Friend) {
                     userStore.updateLastReadFriendRequestTime()
                 }
                 break
@@ -73,7 +74,7 @@ export function initWsNotificationListener(): void {
                         await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_JOINED, [updated.id])
                     }
                 }
-                if (appStore.currentRoute === CurrentRoute.Contacts && await windowService.isFocused() && appStore.currentValidationTab === ValidationType.Group) {
+                if (router.currentRoute.value.path.includes('contacts') && await windowService.isFocused() && currentValidationTab.value === ValidationType.Group) {
                     groupStore.updateLastReadGroupRequestTime(userStore.userID)
                 }
                 sessionStore.addOrPinToTop(generateGroupSessionId(groupRequest.group_id))

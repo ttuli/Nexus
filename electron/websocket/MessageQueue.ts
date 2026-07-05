@@ -82,6 +82,7 @@ export class MessageQueue extends EventEmitter {
                     this.emit('fail', {
                         client_id: id,
                         session_id: pending.message.sessionId || '',
+                        session_key: pending.message.sessionKey || '',
                         status: ImTypes.AckStatus.ACK_STATUS_FAILED,
                         msg_id: pending.message.msgId || '',
                         seq: pending.message.seq || 0,
@@ -121,11 +122,14 @@ export class MessageQueue extends EventEmitter {
         return messages;
     }
 
-    /**
-     * Mark a message as acknowledged
-     */
-    acknowledge(clientId: string): boolean {
-        return this.unacknowledgedMessages.delete(clientId);
+    acknowledge(clientId: string | number): boolean {
+        if (!clientId) return false;
+        const key = String(clientId);
+        const deleted = this.unacknowledgedMessages.delete(key);
+        if (deleted) {
+            console.log(`[MessageQueue] Message ${key} acknowledged, removed from retry queue`);
+        }
+        return deleted;
     }
 
     /**

@@ -45,9 +45,9 @@
 
         <div class="actions">
             <span class="tip">Enter 发送，Ctrl+Enter 换行</span>
-            <button class="send-btn" @click="handleSend">
+            <CusButton type="primary" :show-icon="false" class="send-btn" @click="handleSend">
                 发送
-            </button>
+            </CusButton>
         </div>
     </div>
 </template>
@@ -55,6 +55,7 @@
 <script setup lang="ts">
 import { ref, nextTick } from 'vue';
 import EmojiPicker from './EmojiPicker.vue';
+import CusButton from '@/src/components/CusButton.vue';
 import { ElMessage } from 'element-plus';
 
 import emoji from '@/src/assets/chat/emoji.svg?url';
@@ -274,19 +275,10 @@ defineExpose({
         }
 
         .send-btn {
-            width: 100px;
-            height: 35px;
-            border-radius: 8px;
-            border: none;
-            background-color: $color-primary;
-            color: white;
-            cursor: pointer;
-            font-size: 14px;
-            transition: background-color 0.2s;
-
-            &:hover {
-                filter: brightness(0.9);
-            }
+            width: 80px;
+            height: 32px;
+            font-size: 13px;
+            border-radius: 6px;
         }
     }
 }

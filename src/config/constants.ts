@@ -35,7 +35,7 @@ export const Main_Config = {
 
     messageQueue: {
         dedupWindowMs: 5 * 60 * 1000, // 消息去重时间
-        maxRetries: 3, // 最大重试次数
+        maxRetries: 2, // 最大重试次数
         checkIntervalMs: 1000, // 检查间隔
         msgTimeoutMs: 30000, // 消息超时时间
     },

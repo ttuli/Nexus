@@ -50,7 +50,7 @@
 <script setup lang="ts">
 import { computed, ref, nextTick } from 'vue';
 import CusSwitch from '@/src/components/CusSwitch.vue';
-import CusDialog from '@/src/components/CusDialog/CusDialog';
+import CusDialog from '@/src/components/CusDialog';
 import { DialogResult } from '@/src/components/CusDialog/types';
 import { useUserStore } from '@/src/store/user';
 import { useSessionStore } from '@/src/store/session';

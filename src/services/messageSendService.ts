@@ -31,15 +31,12 @@ class MessageSendService {
     async sendTextMessage(content: string): Promise<void> {
         const sessionStore = useSessionStore();
         const messageStore = useMessageStore();
-        const session = sessionStore.getSession(sessionStore.currentSessionKey);
-        if (!session) {
-            ElMessage.error('获取会话失败')
-            return;
-        }
-        const sessionId = session.session_id;
-        const chatType = session.type;
+        const chatType = sessionStore.currentSessionType;
+        const sessionKey = sessionStore.currentSessionKey;
+        const session = sessionStore.getSession(sessionKey);
+        const sessionId = session?.session_id || '';
 
-        const { msg, clientId, localMsg } = buildTextWsMessage(content, sessionId, chatType);
+        const { msg, clientId, localMsg } = buildTextWsMessage(content, sessionKey, chatType);
         const storedMsg = messageStore.upsertMessage(localMsg);
 
         try {
@@ -67,7 +64,8 @@ class MessageSendService {
             ElMessage.error('获取会话失败')
             return;
         }
-        const sessionId = session.session_id;
+        const sessionKey = sessionStore.currentSessionKey;
+        const sessionId = session.session_id || '';
         const chatType = session.type;
 
         const bitmap = await createImageBitmap(file);
@@ -100,7 +98,7 @@ class MessageSendService {
                 height: thumbnailHeight
             }),
             fileName: file.name
-        }, sessionId, chatType);
+        }, sessionKey, chatType);
         const storedMsg = messageStore.upsertMessage(localMsg) as ILocalImageMessage;
 
         try {
@@ -122,7 +120,7 @@ class MessageSendService {
             localMsg_copy.localPath = undefined;
             localMsg_copy.thumbnailUrl = undefined;
 
-            const finalMsg = buildImageWsPayload(localMsg_copy, ossUrl, sessionId, chatType);
+            const finalMsg = buildImageWsPayload(localMsg_copy, ossUrl, sessionKey, chatType);
             const result = await websocketService.send(finalMsg, clientId, sessionId);
             if (!result.success || !result.data?.sent) {
                 storedMsg.status = ImTypes.MessageStatus.MESSAGE_STATUS_FAILED;
@@ -148,7 +146,8 @@ class MessageSendService {
             ElMessage.error('获取会话失败')
             return;
         }
-        const sessionId = session.session_id;
+        const sessionKey = sessionStore.currentSessionKey;
+        const sessionId = session.session_id || '';
         const chatType = session.type;
 
         const filePath = window.webUtils.getPathForFile(file);
@@ -160,7 +159,7 @@ class MessageSendService {
             fileName: file.name,
             size: file.size,
             format: file.type,
-        }, sessionId, chatType);
+        }, sessionKey, chatType);
         const storedMsg = messageStore.upsertMessage(localMsg) as ILocalFileMessage;
 
         try {
@@ -178,7 +177,7 @@ class MessageSendService {
             
             storedMsg!.url = ossUrl;
 
-            const finalMsg = buildFileWsPayload(localMsg, ossUrl, sessionId, chatType);
+            const finalMsg = buildFileWsPayload(localMsg, ossUrl, sessionKey, chatType);
             const result = await websocketService.send(finalMsg, clientId, sessionId);
             if (!result.success || !result.data?.sent) {
                 storedMsg.status = ImTypes.MessageStatus.MESSAGE_STATUS_FAILED;
@@ -204,7 +203,8 @@ class MessageSendService {
             ElMessage.error('获取会话失败')
             return;
         }
-        const sessionId = session.session_id;
+        const sessionKey = sessionStore.currentSessionKey;
+        const sessionId = session.session_id || '';
         const chatType = session.type;
 
         const videoMeta = await extractVideoFrame(file);
@@ -235,7 +235,7 @@ class MessageSendService {
             size: file.size,
             format: file.type,
             fileName: file.name
-        }, sessionId, chatType);
+        }, sessionKey, chatType);
         const storedMsg = messageStore.upsertMessage(localMsg) as ILocalVideoMessage;
 
         try {
@@ -257,7 +257,7 @@ class MessageSendService {
             localMsg_copy.localPath = undefined;
             localMsg_copy.thumbnailUrl = undefined;
 
-            const finalMsg = buildVideoWsPayload(localMsg_copy, ossUrl, sessionId, chatType);
+            const finalMsg = buildVideoWsPayload(localMsg_copy, ossUrl, sessionKey, chatType);
             const result = await websocketService.send(finalMsg, clientId, sessionId);
             if (!result.success || !result.data?.sent) {
                 storedMsg.status = ImTypes.MessageStatus.MESSAGE_STATUS_FAILED;

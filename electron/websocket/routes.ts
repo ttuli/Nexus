@@ -35,7 +35,7 @@ const handleMsgAck: MessageHandler = async (message: WsMessage) => {
                 // Decode MessageAck to get client_id
                 const ack = ImTypes.MessageAck.decode(message.payload);
 
-                // messageQueue.acknowledge(ack.client_id);
+                messageQueue.acknowledge(ack.client_id);
                 windowManager.broadcastMessage(IpcChannels.WS_MESSAGE_ACK, {
                     ack: ack,
                     timestamp: message.timestamp,

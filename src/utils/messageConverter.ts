@@ -168,7 +168,7 @@ export function convertNotificationToChatMessage(notification: ImTypes.GroupNoti
         reason: notification.reason,
 
         msgId: notification.msg_id,
-        sessionId: notification.session_id || sessionKey,
+        sessionId: notification.session_id || '',
         sessionKey: sessionKey,
         sendTime: notification.op_time,
         fromUserId: notification.operator_id,

@@ -53,6 +53,17 @@ function replyError(id: number, err: unknown): void {
     parentPort!.postMessage({ id, error: msg });
 }
 
+/** 将参数列表中每个值强制转换为 better-sqlite3 接受的类型 */
+function safeParams(params: unknown[]): unknown[] {
+    return params.map(p => {
+        if (p === null || p === undefined) return null;
+        if (typeof p === 'number' || typeof p === 'string' || typeof p === 'bigint') return p;
+        if (Buffer.isBuffer(p)) return p;
+        // 其它类型（包括数组/对象）序列化为 JSON 字符串
+        return String(p);
+    });
+}
+
 // ── 消息处理 ─────────────────────────────────────────────────────────────────
 
 parentPort.on('message', (msg: WorkerMessage) => {
@@ -113,7 +124,7 @@ parentPort.on('message', (msg: WorkerMessage) => {
             case 'query': {
                 const { db: target, sql, params } = msg as QueryMsg;
                 const db = getDb(target);
-                const rows = db.prepare(sql).all(...(params ?? []));
+                const rows = db.prepare(sql).all(...(params ? safeParams(params) : []));
                 reply(id, rows);
                 break;
             }
@@ -123,7 +134,7 @@ parentPort.on('message', (msg: WorkerMessage) => {
             case 'get': {
                 const { db: target, sql, params } = msg as GetMsg;
                 const db = getDb(target);
-                const row = db.prepare(sql).get(...(params ?? [])) ?? null;
+                const row = db.prepare(sql).get(...(params ? safeParams(params) : [])) ?? null;
                 reply(id, row);
                 break;
             }
@@ -133,7 +144,7 @@ parentPort.on('message', (msg: WorkerMessage) => {
             case 'execute': {
                 const { db: target, sql, params } = msg as ExecuteMsg;
                 const db = getDb(target);
-                const info = db.prepare(sql).run(...(params ?? []));
+                const info = db.prepare(sql).run(...(params ? safeParams(params) : []));
                 reply(id, { changes: info.changes, lastInsertRowid: info.lastInsertRowid });
                 break;
             }
@@ -145,7 +156,7 @@ parentPort.on('message', (msg: WorkerMessage) => {
                 const db = getDb(target);
                 const runAll = db.transaction((operations: TransactionOp[]) => {
                     for (const op of operations) {
-                        db.prepare(op.sql).run(...(op.params ?? []));
+                        db.prepare(op.sql).run(...(op.params ? safeParams(op.params) : []));
                     }
                 });
                 runAll(ops);

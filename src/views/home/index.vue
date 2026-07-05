@@ -49,11 +49,15 @@ import { groupService } from '@/src/services'
 import { IpcChannels, ApiTypes } from '@/src/types';
 import { initRelationStore, storeOfflineTimestamp } from '@/src/store/init';
 import { ElMessage } from 'element-plus';
-import GlobalLoading from '@/src/components/GlobalLoading/GlobalLoading';
+import GlobalLoading from '@/src/components/GlobalLoading';
 import messageService from '@/src/services/messageService';
+import { useChatNavigation } from '@/src/composables/useChatNavigation';
+import { generateGroupSessionId } from '@/src/utils/sessionUtils';
+import { sessionService } from '@/src/services/sessionService';
 
 const router = useRouter();
-const conversationStore = useSessionStore()
+const sessionStore = useSessionStore()
+const { navigateToChat } = useChatNavigation();
 
 const leftWidth = ref(250);
 const isResizing = ref(false);
@@ -65,7 +69,7 @@ const handleMouseDown = () => {
 const handleMouseMove = (e: MouseEvent) => {
     if (!isResizing.value) return;
 
-    // 鼠标�?context-menu 上时不处�?resize，避免冲�?
+    // 榧犳爣鍦?context-menu 涓婃椂涓嶅鐞?resize锛岄伩鍏嶅啿绐?
     const target = e.target as HTMLElement;
     if (target.closest('.context-menu')) return;
 
@@ -89,13 +93,20 @@ const handleMouseUp = () => {
 const createGroupVisible = ref(false);
 
 const handleCreateGroup = async (data: { name: string; userIds: number[] }) => {
-    GlobalLoading.show("创建�?..")
+    GlobalLoading.show("创建中...")
     try {
-        await groupService.createGroup({
+        const res = await groupService.createGroup({
             name: data.name,
             avatar: '',
             member_ids: data.userIds
         } as ApiTypes.group.CreateGroupReq)
+        
+        if (res?.data?.data) {
+            const groupInfo = res.data.data as any;
+            const sessionId = generateGroupSessionId(groupInfo.id);
+            navigateToChat(sessionId);
+        }
+        
         ElMessage.success('创建成功')
     } finally {
         GlobalLoading.close()
@@ -117,7 +128,9 @@ onMounted(async () => {
     await import('@/src/views/home/contact/components/ContactSidebar.vue')
     await import('@/src/components/BlankPage.vue')
 
-    conversationStore.loadFromStorage();
+    void sessionService.loadAll().then((sessions) => {
+        sessionStore.hydrateFromStorage(sessions as any);
+    });
     websocketService.connect()
 
     await initRelationStore()
@@ -128,7 +141,12 @@ onMounted(async () => {
 });
 onUnmounted(async () => {
     storeOfflineTimestamp()
-    conversationStore.saveToStorage();
+    void sessionService.saveMany(
+        sessionStore.sessionList.map((c) => ({
+            ...JSON.parse(JSON.stringify(c)),
+            is_in_list: 1,
+        }))
+    );
     ipcService.off(IpcChannels.ROUTE_NAVIGATE);
 });
 </script>

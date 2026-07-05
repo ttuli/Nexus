@@ -55,6 +55,7 @@ import { leaveGroup, dismissGroup } from '@/src/apis/group';
 import { extractTargetIdFromSessionId } from '@/src/utils/sessionUtils';
 import GroupMembersCard from './GroupMembersCard.vue';
 import { groupService, messageService } from '@/src/services';
+import { sessionService } from '@/src/services/sessionService';
 
 const props = defineProps<{
     chat: ImTypes.Session;
@@ -63,7 +64,7 @@ const props = defineProps<{
 const emit = defineEmits(['close']);
 
 const userStore = useUserStore();
-const conversationStore = useSessionStore();
+const sessionStore = useSessionStore();
 const messageStore = useMessageStore();
 const groupStore = useGroupStore();
 
@@ -120,12 +121,13 @@ const clearChatData = () => {
         cancelButtonText: '取消',
         type: 'warning'
     }).then(async () => {
-        if (conversationStore.currentSessionKey === props.chat.session_key) {
+        if (sessionStore.currentSessionKey === props.chat.session_key) {
             messageStore.messages = [];
         }
         props.chat.max_seq = 0;
         props.chat.last_content = '';
-        conversationStore.removeSession(props.chat.session_id);
+        sessionStore.removeSession(props.chat.session_id);
+        void sessionService.deleteOne(props.chat.session_id);
         ElMessage.success('聊天记录已清除');
         emit('close');
     }).catch(() => { });
@@ -154,7 +156,8 @@ const confirmQuitGroup = () => {
                 } else {
                     groupStore.joinedGroupIds.delete(numTargetId);
                 }
-                conversationStore.removeSession(props.chat.session_id);
+                sessionStore.removeSession(props.chat.session_id);
+                void sessionService.deleteOne(props.chat.session_id);
                 emit('close');
             } else {
                 ElMessage.error(res.message || '操作失败');

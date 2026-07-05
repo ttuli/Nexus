@@ -13,6 +13,7 @@ import { ApiTypes } from '@/src/types'
 import cacheService from './cacheService';
 import { generateSessionId } from '@/src/utils/sessionUtils';
 import { convertApplySrc2FriendSrc } from '@/src/utils/messageConverter';
+import { sessionService } from './sessionService';
 
 class FriendService {
     /**
@@ -74,7 +75,7 @@ class FriendService {
             
             const store = useSessionStore();
             const existing = store.getSession(sessionKey);
-            store.upsertSession({
+            const updated = store.upsertSession({
                 session_key: sessionKey,
                 type: ImTypes.SessionType.SESSION_TYPE_PRIVATE,
                 max_seq: existing?.max_seq || 0,
@@ -82,6 +83,7 @@ class FriendService {
                 last_content: existing?.last_content || '',
                 last_sender: existing?.last_sender || 0,
             });
+            if (updated) void sessionService.saveMany([JSON.parse(JSON.stringify(updated))]);
             await cacheService.updateItems(UpdateAction.Add, ResourceType.FRIEND, [res.data.friend]);
         } else if (res.data.data) {
             await cacheService.updateItems(UpdateAction.Add, ResourceType.FRIEND_REQUEST, [res.data.data]);
@@ -131,7 +133,7 @@ class FriendService {
             
             const store = useSessionStore();
             const existing = store.getSession(sessionKey);
-            store.upsertSession({
+            const updated = store.upsertSession({
                 session_key: sessionKey,
                 type: ImTypes.SessionType.SESSION_TYPE_PRIVATE,
                 max_seq: existing?.max_seq || 0,
@@ -139,6 +141,7 @@ class FriendService {
                 last_content: existing?.last_content || '',
                 last_sender: existing?.last_sender || 0,
             });
+            if (updated) void sessionService.saveMany([JSON.parse(JSON.stringify(updated))]);
         }
         return res;
     }

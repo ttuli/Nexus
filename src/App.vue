@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { nextTick, onMounted, onUnmounted, ref } from 'vue'
-import CusDialog from './components/CusDialog/CusDialog'
+import CusDialog from './components/CusDialog'
 import { useUserStore } from './store/user'
 import { ipcService, windowService, tokenService, listenerService, LogoutType } from '@/src/services'
 import { IpcChannels } from '@/src/types'

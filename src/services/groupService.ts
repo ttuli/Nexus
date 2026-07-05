@@ -1,4 +1,4 @@
-import { CurrentRoute, ImTypes } from '@/src/types';
+import { ImTypes } from '@/src/types';
 /**
  * 群组服务
  * 处理群组信息的获取和管理
@@ -20,8 +20,6 @@ import { useMessageStore } from '@/src/store/message'
 import { generateGroupSessionId } from '@/src/utils/sessionUtils';
 import { MessageType, MessageStatus } from '@/src/types/proto'
 import { IChatMessage } from '@/src/types/chatMessage'
-import { useRouter } from 'vue-router'
-import { useAppStore } from '@/src/store/app';
 
 class GroupService {
     /**
@@ -194,7 +192,8 @@ class GroupService {
 
             const message: IChatMessage = {
                 msgId: `local_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-                sessionId,
+                sessionId: '',
+                sessionKey: sessionId,
                 fromUserId: userStore.userID,
                 sendTime: Date.now(),
                 seq: 0,
@@ -204,22 +203,6 @@ class GroupService {
                 content: `你邀请了${data.member_ids.length}位用户加入了群聊`,
             }
             messageStore.upsertMessage(message)
-
-            // Navigate to the chat page if currently under /home
-            const appStore = useAppStore()
-            if (appStore.currentRoute !== CurrentRoute.Chat) {
-                appStore.currentRoute = CurrentRoute.Chat
-                useRouter().push('/home/chat')
-                const oldSessionId = conversationStore.currentSessionKey;
-                conversationStore.setCurrentSession(sessionId);
-                const messageStore = useMessageStore();
-                if (sessionId !== oldSessionId) {
-                    messageStore.resetMessageState();
-                    messageStore.loadMoreMessages();
-                } else if (messageStore.messages.length === 0) {
-                    messageStore.loadMoreMessages();
-                }
-            }
         }
         return res
     }

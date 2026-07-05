@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia';
-import { ImTypes, IpcChannels } from '@/src/types';
-import { windowService } from '@/src/services';
+import { ImTypes } from '@/src/types';
 import { Renderer_Config as config } from '@/src/config/constants';
 import { judgeSessionType } from '@/src/utils/sessionUtils';
 
@@ -11,9 +10,10 @@ export const useSessionStore = defineStore('session', {
     }),
     actions: {
         /**
-         * 根据服务端会话数据更新聊天列表
+         * 根据服务端会话数据更新聊天列表（纯内存操作）
          * 已存在：更新 max_seq / update_time，并回填 session_id（如果有的话）
          * 不存在：新建条目，并加入侧边栏列表 (is_in_list = 1)
+         * @returns 更新/新建后的 session 对象，供调用方按需持久化
          */
         upsertSession(sessionObj: {
             session_id?: string;
@@ -27,7 +27,7 @@ export const useSessionStore = defineStore('session', {
             create_time?: number;
             is_top?: number;
             is_disturb?: number;
-        }) {
+        }): ImTypes.Session | null {
             const sessionId = sessionObj.session_id;
             const sessionKey = sessionObj.session_key;
             const type = sessionObj.type !== undefined
@@ -54,11 +54,6 @@ export const useSessionStore = defineStore('session', {
                 if (type !== undefined) existing.type = type;
 
                 if (sessionObj.max_seq !== undefined) {
-                    const delta = Math.max(0, sessionObj.max_seq - (existing.max_seq || 0));
-                    if (delta > 0) {
-                        windowService.playNotificationSound();
-                    }
-                    existing.unread_count = (existing.unread_count || 0) + delta;
                     existing.max_seq = sessionObj.max_seq;
                 }
                 
@@ -75,7 +70,7 @@ export const useSessionStore = defineStore('session', {
                 // 当已存在会话的时间或内容更新时，重新排序以确保会话列表顺序正确
                 this.sortSessionList();
             } else {
-                if (!sessionKey && !sessionId) return; // 无法创建
+                if (!sessionKey && !sessionId) return null; // 无法创建
                 
                 // 不存在，新建会话
                 const newChat: ImTypes.Session & { is_in_list?: number } = {
@@ -102,11 +97,8 @@ export const useSessionStore = defineStore('session', {
                 }
                 sessionToUpdate = newChat;
             }
-            
-            // 使用 IPC 批量更新（虽然这里只更新当前的一条）
-            void window.ipcRenderer.invoke(IpcChannels.SESSION_SAVE_LIST, [JSON.parse(JSON.stringify(sessionToUpdate))]).catch(e => {
-                console.error('[SessionStore] Failed to save session in SQLite:', e);
-            });
+
+            return sessionToUpdate;
         },
 
         /**
@@ -120,10 +112,11 @@ export const useSessionStore = defineStore('session', {
         },
 
         /**
-         * 添加或置顶聊天
+         * 添加或置顶聊天（纯内存操作）
          * 如果已存在则移到第一位，如果不存在则添加到第一位
          */
         addOrPinToTop(sessionKey: string) {
+            if (sessionKey === '') return;
             const type = judgeSessionType(sessionKey)
 
             const existing = this.getSession(sessionKey);
@@ -163,6 +156,10 @@ export const useSessionStore = defineStore('session', {
         },
 
         setCurrentSession(sessionkey: string) {
+            if (!sessionkey) {
+                this.currentSessionKey = '';
+                return;
+            }
             this.addOrPinToTop(sessionkey);
             this.currentSessionKey = sessionkey;
             this.clearUnread(sessionkey);
@@ -175,21 +172,17 @@ export const useSessionStore = defineStore('session', {
             const chat = this.getSession(sessionkey);
             if (chat) {
                 chat.unread_count = 0;
-                void this.saveToStorage();
             }
         },
 
         /**
-         * 移除聊天
+         * 移除会话（纯内存操作）
          */
         removeSession(sessionkey: string) {
             const index = this.sessionList.findIndex((c) => c.session_key === sessionkey);
             if (index !== -1) {
                 this.sessionList.splice(index, 1);
             }
-            void window.ipcRenderer.invoke(IpcChannels.SESSION_DELETE, sessionkey).catch((e) => {
-                console.error('[ConversationStore] Failed to delete conversation in SQLite:', e);
-            });
         },
 
         /**
@@ -207,79 +200,23 @@ export const useSessionStore = defineStore('session', {
         },
 
         /**
-         * 从 SQLite 加载聊天列表
+         * 用从 SQLite 加载的数据填充 store（由 sessionService 配合调用）
          */
-        async loadFromStorage(): Promise<void> {
-            try {
-                console.log('[ConversationStore] Loading from SQLite');
-                const res = await window.ipcRenderer.invoke(IpcChannels.SESSION_GET_LIST);
-                if (res.success && Array.isArray(res.data)) {
-                    // 仅加载 is_in_list === 1 的活跃聊天列表
-                    this.sessionList = res.data
-                        .filter((c: any) => c.is_in_list === 1)
-                        .map((c: any) => ({
-                            ...c,
-                            type: c.type || ImTypes.SessionType.SESSION_TYPE_PRIVATE,
-                            session_key: c.session_key || c.session_key || '',
-                            last_message_time: c.last_message_time || 0,
-                            unread_count: c.unread_count || 0,
-                            create_time: c.create_time || 0,
-                            update_time: c.update_time || 0,
-                            is_top: Number(c.is_top) || 1,
-                            is_disturb: Number(c.is_disturb) || 1,
-                        }));
-                    this.sortSessionList();
-                } else {
-                    console.error('[ConversationStore] Failed to load conversations from SQLite:', res.error);
-                }
-            } catch (e) {
-                console.error('[ConversationStore] Failed to load from SQLite:', e);
-            }
-        },
-
-        /**
-         * 从 SQLite 加载单个会话
-         */
-        async loadSessionFromStorage(keyOrId: string): Promise<ImTypes.Session | null> {
-            try {
-                const res = await window.ipcRenderer.invoke(IpcChannels.SESSION_GET, keyOrId);
-                if (res.success && res.data) {
-                    return {
-                        ...res.data,
-                        type: res.data.type || ImTypes.SessionType.SESSION_TYPE_PRIVATE,
-                        session_key: res.data.session_key || res.data.session_id || '',
-                        last_message_time: res.data.last_message_time || 0,
-                        unread_count: res.data.unread_count || 0,
-                        create_time: res.data.create_time || 0,
-                        update_time: res.data.update_time || 0,
-                        is_top: Number(res.data.is_top) || 1,
-                        is_disturb: Number(res.data.is_disturb) || 1,
-                    };
-                }
-            } catch (e) {
-                console.error('[ConversationStore] Failed to load chat from SQLite:', e);
-            }
-            return null;
-        },
-
-        /**
-         * 保存聊天列表到 SQLite
-         */
-        async saveToStorage(): Promise<void> {
-            try {
-                console.log('[ConversationStore] Saving to SQLite');
-                // 确保 sessionList 中所有项目的 is_in_list 均为 1
-                const sessionListRaw = this.sessionList.map((c) => ({
-                    ...JSON.parse(JSON.stringify(c)),
-                    is_in_list: 1
+        hydrateFromStorage(sessions: (ImTypes.Session & { is_in_list?: number })[]) {
+            this.sessionList = sessions
+                .filter((c) => c.is_in_list === 1)
+                .map((c) => ({
+                    ...c,
+                    type: c.type || ImTypes.SessionType.SESSION_TYPE_PRIVATE,
+                    session_key: c.session_key || '',
+                    last_message_time: c.last_message_time || 0,
+                    unread_count: c.unread_count || 0,
+                    create_time: c.create_time || 0,
+                    update_time: c.update_time || 0,
+                    is_top: Number(c.is_top) || 1,
+                    is_disturb: Number(c.is_disturb) || 1,
                 }));
-                const res = await window.ipcRenderer.invoke(IpcChannels.SESSION_SAVE_LIST, sessionListRaw);
-                if (!res.success) {
-                    console.error('[ConversationStore] Failed to save conversations to SQLite:', res.error);
-                }
-            } catch (e) {
-                console.error('[ConversationStore] Failed to save to SQLite:', e);
-            }
+            this.sortSessionList();
         },
     },
     getters: {

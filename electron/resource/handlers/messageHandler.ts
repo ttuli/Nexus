@@ -37,9 +37,9 @@ export function setupMessageHandlers(): void {
     /** 更新消息状态 */
     ipcMain.handle(
         IpcChannels.MSG_UPDATE_STATUS,
-        async (_event, sessionId: string, clientId: string, status: MessageStatus, msgId?: string, seq?: number) => {
+        async (_event, sessionKey: string, clientId: string, status: MessageStatus, msgId?: string, seq?: number) => {
             try {
-                await messageStore.updateMessageStatus(sessionId, clientId, status, msgId, seq);
+                await messageStore.updateMessageStatus(sessionKey, clientId, status, msgId, seq);
                 return { success: true };
             } catch (err: any) {
                 console.error('[messageHandler] MSG_UPDATE_STATUS error:', err);
@@ -51,9 +51,9 @@ export function setupMessageHandlers(): void {
     /** 更新消息本地文件路径 */
     ipcMain.handle(
         IpcChannels.MSG_UPDATE_LOCAL_PATH,
-        async (_event, sessionId: string, clientId: string, msgId: string, localPath: string) => {
+        async (_event, sessionKey: string, clientId: string, msgId: string, localPath: string) => {
             try {
-                await messageStore.updateMessageLocalPath(sessionId, clientId, msgId, localPath);
+                await messageStore.updateMessageLocalPath(sessionKey, clientId, msgId, localPath);
                 return { success: true };
             } catch (err: any) {
                 console.error('[messageHandler] MSG_UPDATE_LOCAL_PATH error:', err);
@@ -65,9 +65,9 @@ export function setupMessageHandlers(): void {
     /** 获取会话历史消息 */
     ipcMain.handle(
         IpcChannels.MSG_GET_HISTORY,
-        async (_event, sessionId: string, beforeSeq: number, pageSize: number) => {
+        async (_event, sessionKey: string, beforeSeq: number, pageSize: number) => {
             try {
-                const data = await messageStore.getLocalHistoryMessages(sessionId, beforeSeq, pageSize);
+                const data = await messageStore.getLocalHistoryMessages(sessionKey, beforeSeq, pageSize);
                 return { success: true, data };
             } catch (err: any) {
                 console.error('[messageHandler] MSG_GET_HISTORY error:', err);
@@ -77,9 +77,9 @@ export function setupMessageHandlers(): void {
     );
 
     /** 清空会话消息 */
-    ipcMain.handle(IpcChannels.MSG_CLEAR_SESSION, async (_event, sessionId: string) => {
+    ipcMain.handle(IpcChannels.MSG_CLEAR_SESSION, async (_event, sessionKey: string) => {
         try {
-            await messageStore.clearMessagesBySessionId(sessionId);
+            await messageStore.clearMessagesBySessionId(sessionKey);
             return { success: true };
         } catch (err: any) {
             console.error('[messageHandler] MSG_CLEAR_SESSION error:', err);

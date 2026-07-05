@@ -93,12 +93,12 @@ const router = createRouter({
         {
             path: '/photoViewer',
             name: '图片查看',
-            component: () => import('@/src/views/viewer/index.vue')
+            component: () => import('@/src/views/viewer/PhotoViewer.vue')
         },
         {
             path: '/videoViewer',
             name: '视频播放',
-            component: () => import('@/src/views/viewer/video.vue')
+            component: () => import('@/src/views/viewer/VideoViewer.vue')
         },
         {
             path: '/call',

@@ -1,9 +1,6 @@
 import { defineStore } from 'pinia';
 import { useSessionStore } from './session';
 import { IChatMessage } from '@/src/types/chatMessage';
-import { chatService } from '@/src/services';
-import { getLastContent } from '@/src/utils/messageConverter';
-
 export const useMessageStore = defineStore('message', {
     state: () => ({
         messages: [] as IChatMessage[],
@@ -23,75 +20,6 @@ export const useMessageStore = defineStore('message', {
             ) as any;
             if (msg) {
                 msg.localPath = localPath;
-            }
-        },
-
-        /**
-         * 加载更多消息
-         */
-        async loadMoreMessages() {
-            const conversationStore = useSessionStore();
-            const currentSessionKey = conversationStore.currentSessionKey;
-
-            if (this.isLoading || !this.hasMore || !currentSessionKey) return;
-
-            // 取列表中最顶端（最旧）的、具有有效 seq 的消息作为游标。
-            // 若顶端消息尚无有效 seq（即本地发送中、ACK 未回），说明当前列表
-            // 中没有任何已确认的历史消息，无需发起任何请求。
-            const oldestConfirmedSeq = (() => {
-                for (const msg of this.messages) {
-                    const seq = Number(msg.seq);
-                    if (Number.isFinite(seq) && seq > 0) return seq;
-                }
-                return null;
-            })();
-
-            if (this.messages.length > 0 && oldestConfirmedSeq === null) {
-                // 列表非空，但所有消息都是本地 pending 状态，直接判定无历史可拉
-                this.hasMore = false;
-                return;
-            }
-
-            this.isLoading = true;
-            try {
-                // beforeSeq 为 null 时表示首次加载（列表为空），传 undefined 给 service
-                const moreMessages = await chatService.getHistoryMessages(
-                    currentSessionKey,
-                    oldestConfirmedSeq ?? undefined,
-                    this.pageSize
-                );
-
-                if (conversationStore.currentSessionKey !== currentSessionKey) {
-                    return;
-                }
-
-                if (moreMessages.length > 0) {
-                    this.messages.unshift(...moreMessages);
-
-                    // 获取消息后更新对应会话的 last_content 等信息
-                    const cur = conversationStore.sessionList.find((c: any) => c.session_key === currentSessionKey);
-                    if (cur && this.messages.length > 0) {
-                        const latestMsg = this.messages[this.messages.length - 1];
-                        if (latestMsg) {
-                            cur.last_content = getLastContent(latestMsg);
-                            cur.last_message_time = latestMsg.sendTime;
-                            if (latestMsg.fromUserId) {
-                                cur.last_sender = latestMsg.fromUserId;
-                            }
-                        }
-                    }
-                }
-
-                // 返回条数不足一页，则视为没有更多历史
-                if (moreMessages.length < this.pageSize) {
-                    this.hasMore = false;
-                }
-            } catch (e) {
-                console.error('[MessageStore] Failed to load messages', e);
-            } finally {
-                if (conversationStore.currentSessionKey === currentSessionKey) {
-                    this.isLoading = false;
-                }
             }
         },
 

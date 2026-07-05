@@ -70,7 +70,7 @@
           <p>密码要求：</p>
           <p>请输入至少 8 个字符，</p>
           可包含大小写字母、数字和特殊符号
-          <PasswordStrenth :password="form.password" />
+          <PasswordStrength :password="form.password" />
         </CusInputHint>
       </div>
     </BoxReveal>
@@ -118,7 +118,7 @@ import { ElMessage } from 'element-plus'
 import { authService } from '@/src/services'
 import BoxReveal from '@/src/components/BoxReveal.vue'
 import CusInputHint from '@/src/components/CusInputHint.vue'
-import PasswordStrenth from '@/src/components/PasswordStrenth.vue'
+import PasswordStrength from '@/src/components/PasswordStrength.vue'
 
 import NameIcon from '@/src/assets/input/input_name.svg?url'
 import PhoneIcon from '@/src/assets/input/input_phone.svg?url'
@@ -128,7 +128,7 @@ import EyeClosedIcon from '@/src/assets/input/eye_closed.svg?url'
 import CheckValidIcon from '@/src/assets/input/check_valid.svg?url'
 import CheckInvalidIcon from '@/src/assets/input/check_invalid.svg?url'
 import CodeIcon from '@/src/assets/input/input_code.svg?url'
-import CusDialog from '@/src/components/CusDialog/CusDialog'
+import CusDialog from '@/src/components/CusDialog';
 
 const emit = defineEmits<{
   (e: 'switchView', view: 'login'): void

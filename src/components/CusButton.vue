@@ -60,10 +60,12 @@ const handleClick = () => {
   transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
   outline: none;
   box-sizing: border-box;
+  white-space: nowrap;
 
   .button-text {
     flex: 1;
     text-align: center;
+    white-space: nowrap;
   }
 
   .icon-arrow {

@@ -29,4 +29,5 @@ export { callService } from './callService'
 export { messageService } from './messageService'
 export { settingService } from './settingService'
 export { messageSendService } from './messageSendService'
+export { sessionService } from './sessionService'
  

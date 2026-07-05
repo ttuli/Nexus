@@ -44,7 +44,7 @@
                         <p>密码要求：</p>
                         <p>请输入至少 8 个字符，</p>
                         可包含大小写字母、数字和特殊符号
-                        <PasswordStrenth :password="form.password" />
+                        <PasswordStrength :password="form.password" />
                     </CusInputHint>
                 </div>
 

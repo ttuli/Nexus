@@ -28,9 +28,9 @@
 
                         <template v-if="req.status === ImTypes.ApplyStatus.APPLY_STATUS_PENDING">
                             <template v-if="req.from_user_id !== userStore.userID">
-                                <CusButton type="primary" :show-icon="false" class="btn"
+                                <CusButton type="primary" :show-icon="false" class="action-btn"
                                     @click="handleApply(req, 'accept')">同意</CusButton>
-                                <CusButton type="normal" :show-icon="false" class="btn reject"
+                                <CusButton type="normal" :show-icon="false" class="action-btn"
                                     @click="handleApply(req, 'reject')">拒绝</CusButton>
                             </template>
                             <span v-else class="status-text">等待验证</span>
@@ -63,9 +63,9 @@
                     <div class="actions">
                         <template v-if="req.status === ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_PENDING">
                             <template v-if="req.sender_id !== userStore.userID">
-                                <CusButton type="primary" :show-icon="false" class="btn"
+                                <CusButton type="primary" :show-icon="false" class="action-btn"
                                     @click="handleGroupReq(req, 'accept')">同意</CusButton>
-                                <CusButton type="normal" :show-icon="false" class="btn reject"
+                                <CusButton type="normal" :show-icon="false" class="action-btn"
                                     @click="handleGroupReq(req, 'reject')">拒绝</CusButton>
                             </template>
                             <span v-else class="status-text">等待验证</span>
@@ -85,14 +85,13 @@ import { useUserStore } from '@/src/store/user';
 import { useGroupStore } from '@/src/store/group';
 import { ImTypes, ValidationType } from '@/src/types';
 import { groupService, friendService } from '@/src/services';
-import GlobalLoading from '@/src/components/GlobalLoading/GlobalLoading';
-import { useAppStore } from '@/src/store/app';
+import GlobalLoading from '@/src/components/GlobalLoading';
 import { ElMessage } from 'element-plus';
+import { currentValidationTab } from '@/src/composables/useValidationTab';
 
 const type = ref<'friend' | 'group'>('friend');
 const userStore = useUserStore();
 const groupStore = useGroupStore();
-const appStore = useAppStore();
 
 const enterTimeFriend = ref(0);
 const enterTimeGroup = ref(0);
@@ -120,10 +119,10 @@ groupStore.$onAction(({ name, store }) => {
 watch(type, (newType) => {
     // 记录当前的验证消息标签类型
     if (newType === 'friend') {
-        appStore.currentValidationTab = ValidationType.Friend
+        currentValidationTab.value = ValidationType.Friend
         userStore.updateLastReadFriendRequestTime();
     } else if (newType === 'group') {
-        appStore.currentValidationTab = ValidationType.Group
+        currentValidationTab.value = ValidationType.Group
         groupStore.updateLastReadGroupRequestTime(userStore.userID);
     }
 }, { immediate: true });
@@ -326,22 +325,19 @@ const handleGroupReq = async (req: ImTypes.GroupApply, actionType: 'accept' | 'r
 
         .actions {
             display: flex;
+            align-items: center;
             gap: 10px;
 
-            .btn {
-                border-radius: 8px;
-                font-size: 13px;
-                height: 35px;
-                padding: 0 20px;
-
-                &.reject {
-                    background-color: #e6e6e6;
-                }
+            .action-btn {
+                width: 72px;
+                height: 32px;
+                padding: 0;
             }
 
             .status-text {
                 font-size: 13px;
                 color: $color-text-secondary;
+                white-space: nowrap;
             }
         }
     }

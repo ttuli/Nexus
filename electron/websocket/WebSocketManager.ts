@@ -202,6 +202,13 @@ export class WebSocketManager extends EventEmitter {
             this.handlePong();
         });
 
+        this.ws.on('error', (error: Error) => {
+            // 必须监听 error 事件，否则 Node.js 会将其作为 uncaught exception 抛出导致主进程崩溃
+            // 常见场景：断网时 DNS 解析失败（ENOTFOUND）、连接被拒绝（ECONNREFUSED）等
+            console.error('[WebSocketManager] WebSocket error:', error.message);
+            // 不主动触发重连，close 事件随后会触发 handleDisconnect → scheduleReconnect
+        });
+
         this.ws.on('unexpected-response', async (request, response) => {
             // 手动终止请求，防止劫持此事件后导致的底层对象内存泄漏
             request.abort();
@@ -263,15 +270,28 @@ export class WebSocketManager extends EventEmitter {
      * 关闭并清理 WebSocket 实例
      */
     closeWs(): void {
-        if (!this.ws) return;
+        // clearTimers 和 isManualClose 必须在 null 检查之前执行，
+        // 否则当 this.ws 为 null 时（重连计时器已触发、connect 已运行但还没建立连接），
+        // 计时器不会被清、标志位不会被设，导致重连仍然发生。
         this.clearTimers();
+        this.isManualClose = true;
+
+        if (!this.ws) return;
+
         this.setState(ConnectionState.DISCONNECTED);
         this.reconnectAttempts = 0;
-        this.isManualClose = true;
+
+        // 先移除所有监听器，再补一个 noop error handler，
+        // 防止底层孤儿 socket（尤其是 CONNECTING 状态）后续触发 error 事件时
+        // 因无监听器而变成 uncaught exception 导致主进程崩溃。
         this.ws.removeAllListeners();
-        if (this.ws.readyState === WebSocket.OPEN) {
-            this.ws.close();
-        }
+        this.ws.on('error', () => {});
+
+        // 使用 terminate() 而非条件式 close()：
+        // close() 仅对 OPEN 状态有效，CONNECTING 状态的 socket 不会被关闭，
+        // 底层 DNS/TCP 会继续运行并最终触发 error/close 事件（孤儿 socket）。
+        // terminate() 直接销毁底层 socket，不论当前状态。
+        this.ws.terminate();
         this.ws = null;
     }
 

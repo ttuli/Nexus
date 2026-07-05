@@ -26,7 +26,8 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     pk           TEXT    NOT NULL PRIMARY KEY,
 
     -- ── 索引/查询字段（来自 ILocalMessageBase）────────────────
-    session_id   TEXT    NOT NULL,               -- 会话 ID
+    session_id   TEXT    NOT NULL DEFAULT '',    -- 服务端会话 ID（服务器分配）
+    session_key  TEXT    NOT NULL DEFAULT '',    -- 本地会话 Key（前端本地唯一标识，如 private_123_456）
     msg_id       TEXT    NOT NULL DEFAULT '',    -- 服务端消息 ID（int64 → string）
     client_id    TEXT    NOT NULL DEFAULT '',    -- 客户端消息 ID（乐观更新标识）
     from_user_id INTEGER NOT NULL DEFAULT 0,     -- 发送者 UID
@@ -47,19 +48,27 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 -- 索引
 -- ============================================================
 
--- 核心查询：按会话分页（send_time DESC）
-CREATE INDEX IF NOT EXISTS idx_messages_session_time
-    ON chat_messages (session_id, send_time);
+-- 核心查询：按会话 session_key 分页（send_time DESC）——前端最常用
+CREATE INDEX IF NOT EXISTS idx_messages_sessionkey_time
+    ON chat_messages (session_key, send_time)
+    WHERE session_key != '';
 
--- 服务端消息去重：通过 msg_id 快速定位已存在的记录
-CREATE INDEX IF NOT EXISTS idx_messages_session_msgid
-    ON chat_messages (session_id, msg_id)
+-- 兼容旧服务端 session_id 查询
+CREATE INDEX IF NOT EXISTS idx_messages_session_time
+    ON chat_messages (session_id, send_time)
+    WHERE session_id != '';
+
+-- 去重查询：通过 session_key + msg_id 快速定位（主路径）
+CREATE INDEX IF NOT EXISTS idx_messages_sessionkey_msgid
+    ON chat_messages (session_key, msg_id)
     WHERE msg_id != '';
 
--- 客户端乐观更新：通过 client_id 反查消息行（上传完成后回填 msg_id）
-CREATE INDEX IF NOT EXISTS idx_messages_session_clientid
-    ON chat_messages (session_id, client_id)
+-- 去重查询：通过 session_key + client_id 快速定位（乐观更新回填）
+CREATE INDEX IF NOT EXISTS idx_messages_sessionkey_clientid
+    ON chat_messages (session_key, client_id)
     WHERE client_id != '';
+
+
 
 
 -- ============================================================

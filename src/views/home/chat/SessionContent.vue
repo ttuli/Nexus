@@ -85,7 +85,7 @@ import SystemMessageBubble from '@/src/views/home/chat/components/Bubble/SystemM
 import { IChatMessage, ILocalTextMessage } from '@/src/types/chatMessage';
 import { ImTypes } from '@/src/types';
 import ChatInput from './components/ChatInput.vue';
-import ChatSidebar from './components/sidebar/index.vue';
+import ChatSidebar from './components/Sidebar/index.vue';
 import AiSuggestions from './components/AiSuggestions.vue';
 import type { MenuOption } from '@/src/components/ContextMenu.vue';
 import { ElMessage } from 'element-plus';
@@ -93,7 +93,7 @@ import { ElMessage } from 'element-plus';
 import copyIcon from '@/src/assets/chat/copy.svg?raw';
 import phoneIcon from '@/src/assets/call/phone.svg?raw';
 import trashIcon from '@/src/assets/chat/trash.svg?raw'
-import { windowService, messageSendService } from '@/src/services';
+import { windowService, messageSendService, messageService } from '@/src/services';
 
 
 const conversationStore = useSessionStore();
@@ -181,7 +181,7 @@ const handleMenuSelect = async (option: MenuOption) => {
 
 const title = computed(() => {
     if (!currentSession.value) return '';
-    const targetId = extractTargetIdFromSessionId(currentSession.value.session_id, userStore.getUserID());
+    const targetId = extractTargetIdFromSessionId(currentSessionKey.value, userStore.getUserID());
     if (!targetId) return '';
 
     if (currentSession.value.type === ImTypes.SessionType.SESSION_TYPE_PRIVATE) {
@@ -198,7 +198,7 @@ const isSelf = (uid: number) => uid === userStore.userID;
 
 const chatDisableReason = computed(() => {
     if (!currentSession.value) return '';
-    const targetId = extractTargetIdFromSessionId(currentSession.value.session_id, userStore.getUserID());
+    const targetId = extractTargetIdFromSessionId(currentSessionKey.value, userStore.getUserID());
     if (!targetId) return '';
 
     if (currentSession.value.type === ImTypes.SessionType.SESSION_TYPE_PRIVATE) {
@@ -235,10 +235,15 @@ const newAnimMessageIds = ref(new Set<string>());
 const seenMessageIds = new Set<string>();
 let lastMessageId = '';
 
+// Watch chat change to reset seen messages, animation set, and sidebar
 watch(currentSessionKey, () => {
     seenMessageIds.clear();
     newAnimMessageIds.value.clear();
     lastMessageId = '';
+    
+    if (currentSessionKey.value) {
+        sidebarVisible.value = false;
+    }
 });
 
 watch(messages, (newMsgs, oldMsgs) => {
@@ -321,7 +326,7 @@ const handleScroll = () => {
         const previousScrollHeight = el.scrollHeight;
         const previousScrollTop = el.scrollTop;
         
-        messageStore.loadMoreMessages().then(() => {
+        messageService.loadMoreMessages().then(() => {
             nextTick(() => {
                 if (messageListRef.value) {
                     const newScrollHeight = messageListRef.value.scrollHeight;
@@ -332,13 +337,6 @@ const handleScroll = () => {
     }
 };
 // Auto scroll and load logic handled in messages watcher above
-
-// Watch chat change to scroll bottom / reset sidebar
-watch(currentSessionKey, () => {
-    if (currentSessionKey.value) {
-        sidebarVisible.value = false;
-    }
-});
 
 const handleSendMessage = async (content: string) => {
     await messageSendService.sendTextMessage(content);
@@ -501,14 +499,13 @@ const startResize = (e: MouseEvent) => {
         position: relative;
         overflow: hidden;
         height: 100%;
-        // background-color: $bg-body;
 
         .message-area {
             -webkit-app-region: no-drag;
             flex: 1;
             overflow-y: auto;
             padding: 0 20px;
-            background-color: #f7f7f7; // Light gray bg for chat area
+            background-color: transparent; // Use transparent to blend with app background
 
             .empty-messages {
                 height: 100%;

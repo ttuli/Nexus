@@ -29,7 +29,7 @@ declare module 'vue' {
     GlobalLoading: typeof import('./src/components/GlobalLoading/GlobalLoading.vue')['default']
     Logo: typeof import('./src/components/Logo.vue')['default']
     ModalBackground: typeof import('./src/components/ModalBackground/ModalBackground.vue')['default']
-    PasswordStrenth: typeof import('./src/components/PasswordStrenth.vue')['default']
+    PasswordStrength: typeof import('./src/components/PasswordStrength.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     TitleBar: typeof import('./src/components/TitleBar.vue')['default']

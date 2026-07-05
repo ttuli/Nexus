@@ -1,5 +1,5 @@
 import { h, render, ComponentPublicInstance } from 'vue';
-import GlobalLoadingComponent from '@/src/components/GlobalLoading/GlobalLoading.vue';
+import GlobalLoadingComponent from './GlobalLoading.vue';
 
 interface LoadingInstance extends ComponentPublicInstance {
     open: (text?: string) => Promise<void>;

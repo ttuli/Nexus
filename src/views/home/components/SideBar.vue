@@ -25,7 +25,6 @@ import { computed, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useUserStore } from '@/src/store/user';
 import { useGroupStore } from '@/src/store/group';
-import { useAppStore } from '@/src/store/app';
 import { useSessionStore } from '@/src/store/session';
 
 import ChatIcon from '@/src/assets/sidebar/message.svg';
@@ -34,12 +33,10 @@ import SettingIcon from '@/src/assets/sidebar/setting.svg';
 import { createWindow } from '@/src/utils/window';
 import { windowService } from '@/src/services';
 import { NotifySoundType } from '@/src/services/windowService';
-import { CurrentRoute } from '@/src/types';
 
 const router = useRouter();
 const route = useRoute();
 const userStore = useUserStore();
-const appStore = useAppStore();
 
 const activeRoute = computed(() => route.path);
 
@@ -55,14 +52,6 @@ const chatBadge = computed(() => {
 });
 
 const navigateTo = (name: string) => {
-    switch (name) {
-        case 'chat':
-            appStore.currentRoute = CurrentRoute.Chat
-            break
-        case 'contacts':
-            appStore.currentRoute = CurrentRoute.Contacts
-            break
-    }
     router.push(`/home/${name}`);
 };
 const openSetting = () => {

@@ -133,12 +133,12 @@ class ChatService {
      * 首次拉取：startSeq=-1, endSeq=-1 → DESC，取最新 limit 条
      */
     private async fetchHistoryFromApi(
-        sessionId: string,
+        sessionKey: string,
         pageSize: number,
         range?: { startSeq?: number; endSeq?: number }
     ): Promise<IChatMessage[]> {
         const params: PartialExcept<ApiTypes.message.GetHistoryReq, 'session_id'> = {
-            session_id: sessionId,
+            session_id: sessionKey,
             limit: pageSize,
         };
 
@@ -178,7 +178,9 @@ class ChatService {
         });
 
         if (messages.length > 0) {
-            await messageService.saveMessages(messages);
+            // 保存前确保每条消息携带 sessionKey，供 DB 层按 session_key 索引存储
+            const toSave = messages.map(m => (m.sessionKey ? m : { ...m, sessionKey }));
+            await messageService.saveMessages(toSave);
         }
 
         return messages;
@@ -206,26 +208,41 @@ class ChatService {
      * @param pageSize Number of messages to fetch.
      */
     async getHistoryMessages(
-        sessionId: string,
+        sessionKey: string,
         beforeSeq?: number,
         pageSize: number = 20,
     ): Promise<IChatMessage[]> {
-        if (!sessionId || pageSize <= 0) return [];
+        if (!sessionKey || pageSize <= 0) return [];
 
-        // 本地查询：seq < beforeSeq，只取有效的已确认消息
+        // 本地查询：session_key 精确匹配，beforeSeq 直接传给 DB 层（排他上界：seq < beforeSeq）
+        // 首次加载（beforeSeq === undefined）传 Number.MAX_SAFE_INTEGER 表示不限上界
         const local = await messageService.getLocalHistoryMessages(
-            sessionId,
-            beforeSeq !== undefined ? beforeSeq - 1 : Number.MAX_SAFE_INTEGER,
+            sessionKey,
+            beforeSeq !== undefined ? beforeSeq : Number.MAX_SAFE_INTEGER,
             pageSize
         );
-        if (local.length > 0) {
+
+        // 如果本地数据能填满一页，直接返回
+        if (local.length === pageSize) {
             return local;
         }
 
-        // 本地未命中，从远端 API 拉取
+        // 本地未命中或数量不足，从远端 API 拉取以填补空缺
         // beforeSeq 有值：endSeq = beforeSeq - 1；无值（首次加载）：endSeq = -1（后端取最新）
         const endSeq = beforeSeq !== undefined && beforeSeq > 0 ? beforeSeq - 1 : -1;
-        return this.fetchHistoryFromApi(sessionId, pageSize, { startSeq: -1, endSeq });
+        const apiMessages = await this.fetchHistoryFromApi(sessionKey, pageSize, { startSeq: -1, endSeq });
+
+        // 如果 API 返回了新数据，说明填补了空缺，重新从本地查一次（确保混合本地 unconfirmed 消息并正确排序）
+        if (apiMessages.length > 0) {
+            return await messageService.getLocalHistoryMessages(
+                sessionKey,
+                beforeSeq !== undefined ? beforeSeq : Number.MAX_SAFE_INTEGER,
+                pageSize
+            );
+        }
+
+        // 如果 API 也没有更多数据，就返回仅有的 local 数据
+        return local;
     }
 
     async parseGroupNotification(wsMsg: ImTypes.WSMessage) {

@@ -73,12 +73,11 @@ export interface WsMessageResult<T extends IChatMessage = IChatMessage> {
 
 // ─── Shared base builder (private) ───────────────────────────────────────────
 
-function buildBase(type: ImTypes.MessageType, sessionId: string, existingClientId?: string) {
+function buildBase(type: ImTypes.MessageType, sessionKey: string, existingClientId?: string) {
     const userStore = useUserStore();
     const conversationStore = useSessionStore();
-    const currentSession = conversationStore.getSession(sessionId);
-    const sessionKey = currentSession?.session_key || sessionId;
-    const conversationId = currentSession?.session_id || '';
+    const currentSession = conversationStore.getSession(sessionKey);
+    const sessionId = currentSession?.session_id || '';
 
     const clientId = existingClientId ?? ulid();
 
@@ -103,7 +102,7 @@ function buildBase(type: ImTypes.MessageType, sessionId: string, existingClientI
 
     const baseMsg: ImTypes.BaseMessage = {
         msg_id: '',
-        session_id: conversationId,
+        session_id: sessionId,
         session_key: sessionKey,
         from_user_id: userStore.getUserID(),
         target: targetId,
@@ -126,7 +125,7 @@ function buildBase(type: ImTypes.MessageType, sessionId: string, existingClientI
 
     const commonFields = {
         msgId: '',
-        sessionId: conversationId || sessionKey,
+        sessionId: sessionId,
         sessionKey,
         fromUserId: userStore.getUserID(),
         sendTime: baseMsg.send_time,
@@ -148,12 +147,12 @@ function buildBase(type: ImTypes.MessageType, sessionId: string, existingClientI
  */
 export function buildTextWsMessage(
     content: string,
-    sessionId: string,
-    conversationType: ImTypes.SessionType
+    sessionKey: string,
+    sessionType: ImTypes.SessionType
 ): WsMessageResult<ILocalTextMessage> {
-    const isGroup = conversationType === ImTypes.SessionType.SESSION_TYPE_GROUP;
+    const isGroup = sessionType === ImTypes.SessionType.SESSION_TYPE_GROUP;
     const type = isGroup ? ImTypes.MessageType.GROUP_TEXT : ImTypes.MessageType.CHAT_TEXT;
-    const { clientId, baseMsg, wsMsg, commonFields } = buildBase(type, sessionId);
+    const { clientId, baseMsg, wsMsg, commonFields } = buildBase(type, sessionKey);
 
     wsMsg.payload = ImTypes.TextMessage.encode({ base: baseMsg, content, at_list: [] }).finish();
     const localMsg: ILocalTextMessage = { ...commonFields, type, content, atList: [] };
