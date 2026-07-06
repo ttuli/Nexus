@@ -25,7 +25,8 @@ export default {
   // 路径别名映射，对应 tsconfig 里的 paths 配置
   // import something from '@/utils' 会被解析为 src/utils
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1',
+    '^@shared/(.*)$': '<rootDir>/share/$1',
+    '^@/(.*)$': '<rootDir>/$1',
   },
 
   // 收集覆盖率时包含哪些文件（运行 --coverage 时生效）

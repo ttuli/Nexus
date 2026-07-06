@@ -5,10 +5,10 @@ import { nativeImage, net, app } from 'electron';
 
 import { tokenManager } from './tokenManager';
 import { settingManager } from './settingManager';
-import { APP_CONSTANTS, Main_Config as config } from '@/src/config/constants';
-import { CacheOptionType, CacheOption } from '@/src/types/resourceCache';
+import { APP_CONSTANTS, Main_Config as config } from '@shared/config/constants';
+import { CacheOptionType, CacheOption } from '@shared/types/resourceCache';
 import { fileManager } from './fileManager';
-import { ApiTypes } from '@/src/types';
+import { ApiTypes } from '@shared/types';
 
 /**
  * 本地文件缓存管理器

@@ -2,7 +2,7 @@
  * 通用资源缓存类型定义
  */
 
-import type { ImTypes } from '@/src/types';
+import type { ImTypes } from './index';
 
 // 资源类型枚举
 export enum ResourceType {

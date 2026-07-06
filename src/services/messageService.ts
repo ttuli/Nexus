@@ -3,8 +3,8 @@ import { useSessionStore } from "@/src/store/session"
 import { useMessageStore } from '@/src/store/message'
 import { useUserStore } from '@/src/store/user'
 import { getOfflineTimestamp } from "@/src/store/init"
-import { IChatMessage } from '@/src/types/chatMessage';
-import { IpcChannels } from '@/src/types/ipc';
+import { IChatMessage } from '@shared/types/chatMessage';
+import { IpcChannels } from '@shared/types/ipc';
 import { ipcService } from './ipcService';
 import { sessionService } from './sessionService';
 import { getLastContent } from "../utils/messageConverter";

@@ -1,4 +1,4 @@
-import { ApiTypes, ImTypes } from '@/src/types';
+import { ApiTypes, ImTypes } from '@shared/types';
 /**
  * 用户服务
  * 处理用户信息的获取
@@ -6,7 +6,7 @@ import { ApiTypes, ImTypes } from '@/src/types';
 
 import { ipcService } from './ipcService'
 import { useUserStore } from '@/src/store/user'
-import { ResourceType, IpcChannels, UpdateAction } from '@/src/types'
+import { ResourceType, IpcChannels, UpdateAction } from '@shared/types'
 import { updateUserInfo } from '@/src/apis/user'
 import cacheService from './cacheService'
 

@@ -3,7 +3,7 @@
  * 负责视频帧提取等媒体处理操作
  */
 
-import { APP_CONSTANTS } from '@/src/config/constants';
+import { APP_CONSTANTS } from '@shared/config/constants';
 import { settingService } from '@/src/services/settingService';
 
 /**

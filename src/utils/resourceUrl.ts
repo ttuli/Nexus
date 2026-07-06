@@ -1,5 +1,5 @@
-import { LOCAL_CACHE_SCHEME } from '@/src/config/constants';
-import { CacheOption } from '@/src/types';
+import { LOCAL_CACHE_SCHEME } from '@shared/config/constants';
+import { CacheOption } from '@shared/types';
 
 /**
  * 统一的本地/网络资源 URL 转换器

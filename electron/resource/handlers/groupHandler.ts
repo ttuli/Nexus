@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron';
 import { groupService } from '@/electron/resource/groupManager';
-import { IpcChannels } from '@/src/types/ipc';
+import { IpcChannels } from '@shared/types/ipc';
 
 /**
  * Group IPC 处理器

@@ -57,8 +57,8 @@ import bulbIcon from '@/src/assets/chat/bulb.svg?url';
 import llmService from '@/src/services/llmService';
 import { useMessageStore } from '@/src/store/message';
 import { useUserStore } from '@/src/store/user';
-import { Role } from '@/src/types/apis/llm/llm';
-import { ImTypes } from '@/src/types';
+import { Role } from '@shared/types/apis/llm/llm';
+import { ImTypes } from '@shared/types';
 import { ElMessage } from 'element-plus';
 
 const props = defineProps<{

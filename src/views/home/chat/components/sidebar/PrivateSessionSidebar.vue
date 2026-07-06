@@ -55,7 +55,7 @@ import { DialogResult } from '@/src/components/CusDialog/types';
 import { useUserStore } from '@/src/store/user';
 import { useSessionStore } from '@/src/store/session';
 import { useMessageStore } from '@/src/store/message';
-import { ImTypes } from '@/src/types';
+import { ImTypes } from '@shared/types';
 import { ElMessage } from 'element-plus';
 import { extractTargetIdFromSessionId } from '@/src/utils/sessionUtils';
 import { Edit } from '@element-plus/icons-vue';

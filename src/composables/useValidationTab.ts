@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { ValidationType } from '@/src/types'
+import { ValidationType } from '@shared/types'
 
 /**
  * 模块级单例 ref，跨组件共享当前 validation 页面的 active tab

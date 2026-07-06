@@ -1,5 +1,5 @@
 import { cacheManager } from '../electron/resource/cacheManager';
-import { ResourceType, IpcChannels } from '../src/types';
+import { ResourceType, IpcChannels } from '@shared/types';
 import { windowManager } from '../electron/windows/windowManager';
 import Store from 'electron-store';
 

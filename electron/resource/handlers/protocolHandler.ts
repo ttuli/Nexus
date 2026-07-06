@@ -1,6 +1,6 @@
 import { protocol } from 'electron'
 import { fileCacheManager } from '@/electron/resource/fileCacheManager'
-import { LOCAL_CACHE_SCHEME } from '@/src/config/constants'
+import { LOCAL_CACHE_SCHEME } from '@shared/config/constants'
 
 export function setupProtocolHandler() {
 

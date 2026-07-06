@@ -1,6 +1,6 @@
 import { dbBridge } from './dbWorkerBridge';
-import type { IChatMessage } from '@/src/types/chatMessage';
-import { MessageStatus } from '@/src/types/proto';
+import type { IChatMessage } from '@shared/types/chatMessage';
+import { MessageStatus } from '@shared/types/proto';
 
 // ── 表行类型 ──────────────────────────────────────────────────────────────────
 

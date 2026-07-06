@@ -7,7 +7,7 @@
 import { ipcService } from '../ipcService'
 import { useUserStore } from '@/src/store/user'
 import { useGroupStore } from '@/src/store/group'
-import { ResourceType, IpcChannels, UpdateAction, ImTypes, ValidationType } from '@/src/types'
+import { ResourceType, IpcChannels, UpdateAction, ImTypes, ValidationType } from '@shared/types'
 import { currentValidationTab } from '@/src/composables/useValidationTab'
 import { useRouter } from 'vue-router'
 import { useSessionStore } from '@/src/store/session'

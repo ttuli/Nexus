@@ -1,8 +1,8 @@
 import { ipcMain } from 'electron';
 import { messageStore } from '@/electron/db/messageStore';
-import { IpcChannels } from '@/src/types/ipc';
-import type { IChatMessage } from '@/src/types/chatMessage';
-import { MessageStatus } from '@/src/types/proto';
+import { IpcChannels } from '@shared/types/ipc';
+import type { IChatMessage } from '@shared/types/chatMessage';
+import { MessageStatus } from '@shared/types/proto';
 
 /**
  * 注册消息存储相关的 IPC Handler

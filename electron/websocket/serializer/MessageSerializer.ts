@@ -1,4 +1,4 @@
-import { ImTypes } from '@/src/types'; // Import for types
+import { ImTypes } from '@shared/types'; // Import for types
 
 export interface WsMessage extends ImTypes.WSMessage {
     clientId: string | number | any; // Allow relaxed type for now

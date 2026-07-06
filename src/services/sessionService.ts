@@ -5,8 +5,8 @@
  */
 
 import { ipcService } from './ipcService';
-import { IpcChannels } from '@/src/types/ipc';
-import type { ImTypes } from '@/src/types';
+import { IpcChannels } from '@shared/types/ipc';
+import type { ImTypes } from '@shared/types';
 
 class SessionService {
     /**

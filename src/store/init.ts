@@ -1,5 +1,5 @@
 import { friendService, groupService, userService } from "@/src/services";
-import { ImTypes } from '@/src/types';
+import { ImTypes } from '@shared/types';
 import { useUserStore } from "./user";
 import { useSessionStore } from "./session";
 import { extractTargetIdFromSessionId } from '@/src/utils/sessionUtils';

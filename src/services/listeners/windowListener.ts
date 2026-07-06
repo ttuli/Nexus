@@ -5,7 +5,7 @@
  */
 
 import { ipcService } from '../ipcService'
-import { IpcChannels } from '@/src/types'
+import { IpcChannels } from '@shared/types'
 import { useSessionStore } from '@/src/store/session'
 
 export function initWindowListener(): void {

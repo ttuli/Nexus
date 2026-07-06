@@ -26,7 +26,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { ImTypes } from '@/src/types';
+import { ImTypes } from '@shared/types';
 import { useUserStore } from '@/src/store/user';
 import { useGroupStore } from '@/src/store/group';
 import { extractTargetIdFromSessionId } from '@/src/utils/sessionUtils';

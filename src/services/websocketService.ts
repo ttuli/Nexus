@@ -1,5 +1,5 @@
 import { ipcService } from './ipcService'
-import { IpcChannels, IpcResponse, ImTypes, ConnectionState } from '../types'
+import { IpcChannels, IpcResponse, ImTypes, ConnectionState } from '@shared/types'
 
 
 

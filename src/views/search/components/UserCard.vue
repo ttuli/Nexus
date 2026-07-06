@@ -48,7 +48,7 @@
 
 <script lang="ts" setup>
 import { computed } from 'vue';
-import { ImTypes } from '@/src/types';
+import { ImTypes } from '@shared/types';
 import { useUserStore } from '@/src/store/user';
 import Avatar from '@/src/components/Avatar.vue';
 import maleIcon from '@/src/assets/gender/male.svg?url';

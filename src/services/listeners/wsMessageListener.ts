@@ -5,7 +5,7 @@
  */
 
 import { ipcService } from '../ipcService'
-import { IpcChannels, ImTypes, IChatMessage } from '@/src/types'
+import { IpcChannels, ImTypes, IChatMessage } from '@shared/types'
 import { ElMessage } from 'element-plus'
 import { convertWSMessageToIChatMessage } from '@/src/utils/messageConverter';
 import { messageService } from '@/src/services'

@@ -49,7 +49,7 @@ import { useUserStore } from '@/src/store/user';
 import { useSessionStore } from '@/src/store/session';
 import { useMessageStore } from '@/src/store/message';
 import { useGroupStore } from '@/src/store/group';
-import { ImTypes } from '@/src/types';
+import { ImTypes } from '@shared/types';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { leaveGroup, dismissGroup } from '@/src/apis/group';
 import { extractTargetIdFromSessionId } from '@/src/utils/sessionUtils';

@@ -1,6 +1,6 @@
 import { ipcMain, BrowserWindow } from 'electron';
 import { wsManager } from './WebSocketManager';
-import { IpcChannels, ImTypes, ConnectionState } from '@/src/types';
+import { IpcChannels, ImTypes, ConnectionState } from '@shared/types';
 
 /**
  * Setup WebSocket IPC handlers for renderer communication

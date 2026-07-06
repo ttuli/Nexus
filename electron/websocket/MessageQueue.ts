@@ -1,6 +1,6 @@
 import { WsMessage } from './serializer/MessageSerializer';
-import { ImTypes } from '@/src/types';
-import { Main_Config as config } from '@/src/config/constants';
+import { ImTypes } from '@shared/types';
+import { Main_Config as config } from '@shared/config/constants';
 import { EventEmitter } from 'events';
 
 interface PendingMessage {

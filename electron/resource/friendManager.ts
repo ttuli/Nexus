@@ -1,7 +1,7 @@
 import { mainGet, decodeMainResponse } from './mainRequest';
 import { cacheManager } from './cacheManager';
-import { ResourceType, ApiTypes, ImTypes } from '@/src/types';
-import { APP_CONSTANTS as config } from '@/src/config/constants';
+import { ResourceType, ApiTypes, ImTypes } from '@shared/types';
+import { APP_CONSTANTS as config } from '@shared/config/constants';
 import { kvCache } from '@/electron/db';
 
 type FriendInfo = ApiTypes.user.Friend;

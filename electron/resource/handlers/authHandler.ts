@@ -3,7 +3,7 @@ import { authManager } from '@/electron/resource/authManager';
 import { tokenManager } from '@/electron/resource/tokenManager';
 import { cacheManager } from '@/electron/resource/cacheManager';
 import { userService } from '@/electron/resource/userManager';
-import { IpcChannels } from '@/src/types/ipc';
+import { IpcChannels } from '@shared/types/ipc';
 /**
  * Auth 相关 IPC 处理器
  */

@@ -60,9 +60,9 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import { ILocalVideoMessage } from '@/src/types/chatMessage';
-import { APP_CONSTANTS as config } from '@/src/config/constants';
-import { CacheOptionType, ImTypes } from '@/src/types';
+import { ILocalVideoMessage } from '@shared/types/chatMessage';
+import { APP_CONSTANTS as config } from '@shared/config/constants';
+import { CacheOptionType, ImTypes } from '@shared/types';
 import { openVideoViewer } from '@/src/utils/window';
 import { ElMessage } from 'element-plus';
 import { messageService } from '@/src/services/messageService';

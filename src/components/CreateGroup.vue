@@ -64,7 +64,7 @@ import { useSessionStore } from '@/src/store/session';
 import { useUserStore } from '@/src/store/user';
 import { userService } from '@/src/services';
 import { extractTargetIdFromSessionId } from '@/src/utils/sessionUtils';
-import { ImTypes } from '@/src/types'
+import { ImTypes } from '@shared/types'
 import DefaultAvatar from '@/src/assets/avatar/default.png?url';
 import CheckIcon from '@/src/assets/common/check.svg?url';
 

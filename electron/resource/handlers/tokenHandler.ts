@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron';
 import { tokenManager } from '@/electron/resource/tokenManager';
-import { IpcChannels } from '@/src/types/ipc';
+import { IpcChannels } from '@shared/types/ipc';
 import { cacheManager } from '../cacheManager';
 
 /**

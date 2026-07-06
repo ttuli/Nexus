@@ -5,8 +5,8 @@ import { app, ipcMain } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { resourceManager } from './resource'
-import { IpcChannels } from '@/src/types/ipc'
-import { APP_CONSTANTS } from '@/src/config/constants'
+import { IpcChannels } from '@shared/types/ipc'
+import { APP_CONSTANTS } from '@shared/config/constants'
 
 export const __dirname = path.dirname(fileURLToPath(import.meta.url))
 

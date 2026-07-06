@@ -85,7 +85,7 @@ import { generateSessionId } from '@/src/utils/sessionUtils';
 import { useChatNavigation } from '@/src/composables/useChatNavigation';
 import MaleIcon from '@/src/assets/gender/male.svg';
 import FemaleIcon from '@/src/assets/gender/female.svg';
-import { ImTypes } from '@/src/types';
+import { ImTypes } from '@shared/types';
 import { ElMessage } from 'element-plus';
 import { CopyDocument } from '@element-plus/icons-vue';
 import { userService, friendService } from '@/src/services';

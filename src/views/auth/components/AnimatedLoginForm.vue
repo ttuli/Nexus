@@ -105,7 +105,7 @@ import EyeClosedIcon from '@/src/assets/input/eye_closed.svg?url'
 import { signalWindowReady } from '@/src/utils/window'
 import AccountSelector, { AccountOption } from './AccountSelector.vue';
 import { toResourceUrl } from '@/src/utils/resourceUrl';
-import { CacheOptionType } from '@/src/types/resourceCache.ts';
+import { CacheOptionType } from '@shared/types/resourceCache.ts';
 import defaultImg from '@/src/assets/avatar/default.png'
 
 const emit = defineEmits<{

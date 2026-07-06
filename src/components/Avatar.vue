@@ -30,7 +30,7 @@ import { openPhotoViewer } from '@/src/utils/window'
 import { useUserStore } from '@/src/store/user';
 import { useGroupStore } from '@/src/store/group';
 import { toResourceUrl } from '@/src/utils/resourceUrl';
-import { CacheOptionType } from '../types';
+import { CacheOptionType } from '@shared/types';
 
 const source = ref<string>('')
 const userStore = useUserStore();

@@ -6,7 +6,7 @@
 import { ipcService } from '../ipcService'
 import { useUserStore } from '@/src/store/user'
 import { useGroupStore } from '@/src/store/group'
-import { ResourceType, IpcChannels, UpdateAction, ImTypes } from '@/src/types'
+import { ResourceType, IpcChannels, UpdateAction, ImTypes } from '@shared/types'
 
 type ResourceHandler = (items: any[]) => void
 

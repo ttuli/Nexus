@@ -1,5 +1,5 @@
 import { ipcMain, BrowserWindow } from 'electron';
-import { IpcChannels } from '@/src/types';
+import { IpcChannels } from '@shared/types';
 import { settingManager } from '@/electron/resource/settingManager';
 
 export function setupSettingsHandlers(): void {

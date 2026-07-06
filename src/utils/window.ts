@@ -1,4 +1,4 @@
-import { IpcChannels } from '@/src/types'
+import { IpcChannels } from '@shared/types'
 
 export enum LogoutType {
     LOGOUT = 'logout',

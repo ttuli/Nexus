@@ -1,7 +1,7 @@
-import { ImTypes } from '@/src/types';
+import { ImTypes } from '@shared/types';
 import { defineStore } from 'pinia';
 import { jwtDecode } from "jwt-decode";
-import { TokenPayload } from '@/src/types'
+import { TokenPayload } from '@shared/types'
 import { reactive } from 'vue'
 import { userService } from '@/src/services';
 

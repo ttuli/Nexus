@@ -6,7 +6,7 @@
 import {
     ImTypes, IChatMessage, ILocalTextMessage, ILocalImageMessage,
     ILocalVideoMessage, ILocalAudioMessage, ILocalFileMessage, ILocalSystemMessage,
-} from '@/src/types';
+} from '@shared/types';
 
 /**
  * 将 WebSocket 推送的 WSMessage 转换为本地 IChatMessage 格式

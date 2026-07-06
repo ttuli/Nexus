@@ -1,11 +1,11 @@
 import { useSessionStore } from '@/src/store/session';
 import { useMessageStore } from '@/src/store/message';
-import { ApiTypes, ImTypes, CacheOptionType, IpcChannels } from '@/src/types';
-import { ILocalImageMessage, ILocalFileMessage, ILocalVideoMessage } from '@/src/types/chatMessage';
+import { ApiTypes, ImTypes, CacheOptionType, IpcChannels } from '@shared/types';
+import { ILocalImageMessage, ILocalFileMessage, ILocalVideoMessage } from '@shared/types/chatMessage';
 import { websocketService } from './websocketService';
 import { fileService } from './fileService';
 import { ipcService } from '.';
-import { APP_CONSTANTS } from '@/src/config/constants';
+import { APP_CONSTANTS } from '@shared/config/constants';
 import { toResourceUrl } from '@/src/utils/resourceUrl';
 import { buildTextWsMessage, buildImageLocalMsg, buildImageWsPayload, buildFileLocalMsg, buildFileWsPayload, buildVideoLocalMsg, buildVideoWsPayload } from '@/src/utils/messageBuilder';
 import { extractVideoFrame } from '@/src/utils/mediaUtils';

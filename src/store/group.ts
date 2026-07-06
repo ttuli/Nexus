@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { reactive } from 'vue'
-import { ImTypes } from '@/src/types'
+import { ImTypes } from '@shared/types'
 import { useUserStore } from './user'
 
 /**

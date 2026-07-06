@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron';
 import { sessionStore } from '@/electron/db/sessionStore';
-import { IpcChannels } from '@/src/types/ipc';
-import type { ImTypes } from '@/src/types';
+import { IpcChannels } from '@shared/types/ipc';
+import type { ImTypes } from '@shared/types';
 
 export function setupSessionHandlers(): void {
     /** 获取会话列表 */

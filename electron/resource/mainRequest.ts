@@ -1,6 +1,6 @@
 import { net, ClientRequest } from 'electron';
 import { tokenManager } from './tokenManager';
-import { ImTypes, IpcChannels, LogoutType } from '@/src/types';
+import { ImTypes, IpcChannels, LogoutType } from '@shared/types';
 import { windowManager } from '@/electron/windows/windowManager';
 
 /**

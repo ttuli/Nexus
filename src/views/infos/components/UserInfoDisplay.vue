@@ -81,7 +81,7 @@ import Avatar from '@/src/components/Avatar.vue';
 import CusButton from '@/src/components/CusButton.vue';
 import MaleIcon from '@/src/assets/gender/male.svg';
 import FemaleIcon from '@/src/assets/gender/female.svg';
-import { ImTypes } from '@/src/types';
+import { ImTypes } from '@shared/types';
 
 const props = defineProps<{
     userId: number;

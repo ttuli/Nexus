@@ -7,8 +7,8 @@ import {
     ImTypes, IChatMessage,
     ILocalTextMessage, ILocalImageMessage,
     ILocalVideoMessage, ILocalAudioMessage, ILocalFileMessage,
-} from '@/src/types';
-import { Renderer_Config as config } from '@/src/config/constants';
+} from '@shared/types';
+import { Renderer_Config as config } from '@shared/config/constants';
 import { useUserStore } from '@/src/store/user';
 import { useSessionStore } from '@/src/store/session';
 import { ulid } from 'ulid';

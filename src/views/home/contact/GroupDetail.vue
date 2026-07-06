@@ -91,7 +91,7 @@ import CusDialog from '@/src/components/CusDialog';
 import { DialogResult } from '@/src/components/CusDialog/types';
 import { groupService } from '@/src/services';
 import CusInputDialog from '@/src/components/CusInputDialog';
-import { ApiTypes, ImTypes } from '@/src/types';
+import { ApiTypes, ImTypes } from '@shared/types';
 
 const route = useRoute();
 const router = useRouter();

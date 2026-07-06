@@ -1,7 +1,7 @@
 import { dialog, BrowserWindow, shell, app } from 'electron';
 import * as fs from 'fs';
 import path from 'path';
-import { APP_CONSTANTS } from '@/src/config/constants';
+import { APP_CONSTANTS } from '@shared/config/constants';
 import * as https from 'https';
 import * as http from 'http';
 import { storage, StorageKeys } from '@/electron/utils/storage';

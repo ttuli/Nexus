@@ -3,7 +3,7 @@
  * 负责生成和解析私聊/群聊的 sessionId / session_key
  */
 
-import { ImTypes } from "../types";
+import { ImTypes } from "@shared/types";
 
 /**
  * 生成单聊会话ID

@@ -115,7 +115,7 @@ import SkyToggle from './components/SkyToggle.vue';
 import { theme, setTheme } from '@/src/composables/useTheme';
 import { signalWindowReady } from '@/src/utils/window';
 import { ipcService } from '@/src/services/ipcService';
-import { IpcChannels } from '@/src/types';
+import { IpcChannels } from '@shared/types';
 import { settingService } from '@/src/services';
 
 const isDark = computed(() => theme.value === 'dark');

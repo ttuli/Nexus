@@ -1,4 +1,4 @@
-import { ApiTypes } from "@/src/types"
+import { ApiTypes } from "@shared/types"
 import { suggest } from "@/src/apis/llm"
 
 class LlmService {

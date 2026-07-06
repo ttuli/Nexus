@@ -1,5 +1,5 @@
 import { ipcRenderer, contextBridge, webUtils } from 'electron'
-import { IpcChannels } from '../src/types/ipc'
+import { IpcChannels } from '@shared/types/ipc'
 
 // 获取所有允许的 IPC 通道作为白名单
 const validChannels = Object.values(IpcChannels)

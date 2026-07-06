@@ -1,8 +1,8 @@
 
 import instance, { decodeResponse, ApiResponse } from '@/src/utils/request'
-import { ApiTypes } from '@/src/types'
+import { ApiTypes } from '@shared/types'
 import qs from 'qs'
-import { APP_CONSTANTS as config } from '@/src/config/constants';
+import { APP_CONSTANTS as config } from '@shared/config/constants';
 
 
 // ==================== ImTypes.GroupInfo APIs ====================

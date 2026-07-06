@@ -37,10 +37,10 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import { ILocalImageMessage } from '@/src/types/chatMessage';
-import { APP_CONSTANTS as config } from '@/src/config/constants';
+import { ILocalImageMessage } from '@shared/types/chatMessage';
+import { APP_CONSTANTS as config } from '@shared/config/constants';
 import { toResourceUrl } from '@/src/utils/resourceUrl';
-import { CacheOptionType, ImTypes } from '@/src/types';
+import { CacheOptionType, ImTypes } from '@shared/types';
 import { fileService } from '@/src/services/fileService';
 import { openPhotoViewer } from '@/src/utils/window';
 import { ElMessage } from 'element-plus';

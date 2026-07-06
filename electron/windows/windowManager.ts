@@ -4,8 +4,8 @@ import { fileURLToPath } from 'node:url';
 import { WindowConfig, ManagedWindow, CreateWindowRequest, WindowState } from './windowAttribute';
 import configs from './windowAttribute';
 import { TrayManager } from './trayManager';
-import { IpcChannels } from '@/src/types';
-import { Main_Config as config } from '@/src/config/constants';
+import { IpcChannels } from '@shared/types';
+import { Main_Config as config } from '@shared/config/constants';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

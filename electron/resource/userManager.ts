@@ -1,9 +1,9 @@
 import { cacheManager } from './cacheManager';
 import { mainGet, decodeMainResponse } from './mainRequest';
-import { ResourceType, ImTypes, ApiTypes } from '@/src/types';
+import { ResourceType, ImTypes, ApiTypes } from '@shared/types';
 type UserInfo = ImTypes.UserInfo;
 import { storage, StorageKeys } from '@/electron/utils/storage';
-import { APP_CONSTANTS as config } from '@/src/config/constants';
+import { APP_CONSTANTS as config } from '@shared/config/constants';
 
 
 // 登录历史记录类型

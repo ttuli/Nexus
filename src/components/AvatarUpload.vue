@@ -57,7 +57,7 @@ import Avatar from '@/src/components/Avatar.vue'
 import CusButton from '@/src/components/CusButton.vue'
 import { fileService } from '@/src/services/fileService'
 import { ElMessage } from 'element-plus'
-import { ApiTypes } from '@/src/types'
+import { ApiTypes } from '@shared/types'
 
 interface Props {
   uid: number

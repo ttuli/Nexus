@@ -39,7 +39,7 @@
 
 <script lang="ts" setup>
 import { computed } from 'vue';
-import { ImTypes } from '@/src/types';
+import { ImTypes } from '@shared/types';
 import { useGroupStore } from '@/src/store/group';
 import { useUserStore } from '@/src/store/user';
 import Avatar from '@/src/components/Avatar.vue';

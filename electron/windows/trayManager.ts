@@ -1,7 +1,7 @@
 
 import { Tray, Menu, nativeImage, app } from 'electron';
 import path from 'path';
-import { APP_CONSTANTS } from '@/src/config/constants';
+import { APP_CONSTANTS } from '@shared/config/constants';
 
 /**
  * 托盘操作的回调接口

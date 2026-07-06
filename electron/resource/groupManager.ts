@@ -1,7 +1,7 @@
 import { cacheManager } from './cacheManager';
 import { mainGet, decodeMainResponse } from './mainRequest';
-import { ResourceType, ApiTypes, ImTypes } from '@/src/types';
-import { APP_CONSTANTS as config } from '@/src/config/constants';
+import { ResourceType, ApiTypes, ImTypes } from '@shared/types';
+import { APP_CONSTANTS as config } from '@shared/config/constants';
 
 type Group = ImTypes.GroupInfo;
 type GroupMember = ImTypes.GroupMember;

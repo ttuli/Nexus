@@ -1,8 +1,8 @@
 import * as os from 'os';
 import { storage, StorageKeys } from '@/electron/utils/storage';
-import { ApiTypes } from '@/src/types';
+import { ApiTypes } from '@shared/types';
 import { v4 as uuidv4 } from 'uuid';
-import { APP_CONSTANTS as config } from '@/src/config/constants';
+import { APP_CONSTANTS as config } from '@shared/config/constants';
 import { tokenManager } from './tokenManager';
 import { mainPost, decodeMainResponse } from './mainRequest';
 

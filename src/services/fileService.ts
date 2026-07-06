@@ -1,9 +1,9 @@
 import { getUploadSignature, getAcessUrl } from '@/src/apis/file'
-import { ApiTypes } from '@/src/types'
+import { ApiTypes } from '@shared/types'
 import { computeFileMd5 } from '@/src/utils/md5'
-import { APP_CONSTANTS as config, Renderer_Config } from '@/src/config/constants'
+import { APP_CONSTANTS as config, Renderer_Config } from '@shared/config/constants'
 import { ipcService } from './ipcService';
-import { IpcChannels } from '@/src/types/ipc';
+import { IpcChannels } from '@shared/types/ipc';
 
 class FileService {
     /**
@@ -216,7 +216,7 @@ class FileService {
         if (!localPath) return false;
         try {
             const { ipcService } = await import('./ipcService');
-            const { IpcChannels } = await import('@/src/types/ipc');
+            const { IpcChannels } = await import('@shared/types/ipc');
             const res = await ipcService.invoke(IpcChannels.SYSTEM_FILE_EXISTS, localPath);
             return res?.success && res?.data === true;
         } catch {

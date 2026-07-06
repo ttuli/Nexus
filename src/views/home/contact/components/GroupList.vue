@@ -47,7 +47,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { useGroupStore } from '@/src/store/group';
 import { useUserStore } from '@/src/store/user';
 import ContactItem from './ContactItem.vue';
-import { ImTypes } from '@/src/types';
+import { ImTypes } from '@shared/types';
 
 const router = useRouter();
 const route = useRoute();

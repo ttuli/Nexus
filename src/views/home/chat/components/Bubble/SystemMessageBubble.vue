@@ -6,7 +6,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
-import { ILocalSystemMessage } from '@/src/types/chatMessage';
+import { ILocalSystemMessage } from '@shared/types/chatMessage';
 import { useUserStore } from '@/src/store/user';
 import { userService } from '@/src/services';
 import { formatSystemMessage } from '@/src/utils/messageConverter';

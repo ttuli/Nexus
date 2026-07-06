@@ -62,7 +62,7 @@ import { ref } from 'vue'
 import TitleBar from '@/src/components/TitleBar.vue';
 import AnimatedLoginForm from './components/AnimatedLoginForm.vue';
 import AnimatedRegisterForm from './components/AnimatedRegisterForm.vue';
-import { APP_CONSTANTS } from '@/src/config/constants';
+import { APP_CONSTANTS } from '@shared/config/constants';
 
 const icon = '/icon/icon_' + import.meta.env.VITE_ICON_VERSION + '.png'
 const currentView = ref<'login' | 'register'>('login')

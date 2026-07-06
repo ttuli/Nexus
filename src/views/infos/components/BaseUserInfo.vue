@@ -113,7 +113,7 @@ const genderOptions = [
     { value: ImTypes.Gender.GENDER_FEMALE, label: '女', icon: '👩' }
 ];
 
-import { ImTypes, ResourceType, UpdateAction } from '@/src/types';
+import { ImTypes, ResourceType, UpdateAction } from '@shared/types';
 import { ElMessage } from 'element-plus';
 import { cacheService, userService } from '@/src/services';
 import { signalWindowReady } from '@/src/utils/window';

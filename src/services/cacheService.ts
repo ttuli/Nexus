@@ -4,8 +4,8 @@
  */
 
 import { ipcService } from './ipcService'
-import { ResourceType, UpdateAction, IpcChannels } from '@/src/types'
-import type { ResourceTypeMap } from '@/src/types/resourceCache'
+import { ResourceType, UpdateAction, IpcChannels } from '@shared/types'
+import type { ResourceTypeMap } from '@shared/types/resourceCache'
 
 class CacheService {
     /**

@@ -3,7 +3,7 @@ import { nextTick, onMounted, onUnmounted, ref } from 'vue'
 import CusDialog from './components/CusDialog'
 import { useUserStore } from './store/user'
 import { ipcService, windowService, tokenService, listenerService, LogoutType } from '@/src/services'
-import { IpcChannels } from '@/src/types'
+import { IpcChannels } from '@shared/types'
 import { useGroupStore } from './store/group'
 import { useTheme } from '@/src/composables/useTheme'
 

@@ -4,7 +4,7 @@
  */
 
 import { ipcService } from './ipcService'
-import { IpcChannels } from '@/src/types'
+import { IpcChannels } from '@shared/types'
 
 export interface TokenRefreshResult {
     success: boolean

@@ -1,4 +1,4 @@
-import { ImTypes } from '@/src/types';
+import { ImTypes } from '@shared/types';
 /**
  * 群组服务
  * 处理群组信息的获取和管理
@@ -9,17 +9,17 @@ import { ImTypes } from '@/src/types';
  */
 
 import { ipcService } from './ipcService'
-import { ResourceType, IpcChannels, UpdateAction } from '@/src/types'
+import { ResourceType, IpcChannels, UpdateAction } from '@shared/types'
 import { useGroupStore } from '@/src/store/group'
 import { useUserStore } from '@/src/store/user'
 import { updateGroup, setMemberNickname, joinGroup, createGroup, leaveGroup, handleGroupApply as apiHandleGroupApply, dismissGroup } from '@/src/apis/group'
-import { ApiTypes } from '@/src/types'
+import { ApiTypes } from '@shared/types'
 import cacheService from './cacheService'
 import { useSessionStore } from '@/src/store/session'
 import { useMessageStore } from '@/src/store/message'
 import { generateGroupSessionId } from '@/src/utils/sessionUtils';
-import { MessageType, MessageStatus } from '@/src/types/proto'
-import { IChatMessage } from '@/src/types/chatMessage'
+import { MessageType, MessageStatus } from '@shared/types/proto'
+import { IChatMessage } from '@shared/types/chatMessage'
 
 class GroupService {
     /**

@@ -1,6 +1,6 @@
 import instance, { decodeResponse, ApiResponse } from '@/src/utils/request'
-import { ApiTypes } from '@/src/types'
-import { APP_CONSTANTS as config } from '@/src/config/constants';
+import { ApiTypes } from '@shared/types'
+import { APP_CONSTANTS as config } from '@shared/config/constants';
 
 /**
  * 更新个人信息

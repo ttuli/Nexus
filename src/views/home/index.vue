@@ -46,7 +46,7 @@ import FilterColumn from '@/src/components/FilterColumn.vue';
 import CreateGroup from '@/src/components/CreateGroup.vue';
 import { createWindow } from '@/src/utils/window';
 import { groupService } from '@/src/services'
-import { IpcChannels, ApiTypes } from '@/src/types';
+import { IpcChannels, ApiTypes } from '@shared/types';
 import { initRelationStore, storeOfflineTimestamp } from '@/src/store/init';
 import { ElMessage } from 'element-plus';
 import GlobalLoading from '@/src/components/GlobalLoading';

@@ -1,6 +1,6 @@
-import { ResourceType, ResourceIdKeyMap, IpcChannels, GroupMembersWrapper } from '@/src/types';
+import { ResourceType, ResourceIdKeyMap, IpcChannels, GroupMembersWrapper } from '@shared/types';
 import { windowManager } from '@/electron/windows/windowManager';
-import { Main_Config as config } from '@/src/config/constants';
+import { Main_Config as config } from '@shared/config/constants';
 import { LRUCache } from 'lru-cache';
 import {
     userStore,

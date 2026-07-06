@@ -32,7 +32,7 @@ import Max from '@/src/assets/window/Maximize1.svg'
 import UnMax from '@/src/assets/window/Maximize2.svg'
 import { onMounted, onUnmounted, ref, computed } from 'vue';
 import { windowService, websocketService } from '@/src/services';
-import { ConnectionState } from '@/src/types';
+import { ConnectionState } from '@shared/types';
 import { theme as globalTheme } from '@/src/composables/useTheme';
 
 const props = withDefaults(

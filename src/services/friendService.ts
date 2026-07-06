@@ -1,4 +1,4 @@
-import { ImTypes, ResourceType, UpdateAction } from '@/src/types';
+import { ImTypes, ResourceType, UpdateAction } from '@shared/types';
 /**
  * 好友服务
  * 处理好友关系和好友请求的管理
@@ -7,9 +7,9 @@ import { ImTypes, ResourceType, UpdateAction } from '@/src/types';
 import { ipcService } from './ipcService'
 import { useUserStore } from '@/src/store/user'
 import { useSessionStore } from '@/src/store/session'
-import { IpcChannels } from '@/src/types'
+import { IpcChannels } from '@shared/types'
 import { applyFriend, deleteFriend, handleFriendApply, updateFriendInfo } from '@/src/apis/user'
-import { ApiTypes } from '@/src/types'
+import { ApiTypes } from '@shared/types'
 import cacheService from './cacheService';
 import { generateSessionId } from '@/src/utils/sessionUtils';
 import { convertApplySrc2FriendSrc } from '@/src/utils/messageConverter';

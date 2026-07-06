@@ -33,7 +33,8 @@ export default defineConfig(({ mode }) => {
             },
             resolve: {
               alias: {
-                '@': fileURLToPath(new URL('.', import.meta.url))
+                '@': fileURLToPath(new URL('.', import.meta.url)),
+                '@shared': fileURLToPath(new URL('./share', import.meta.url)),
               }
             },
             // 将所有 VITE_ 环境变量注入到主进程代码中（构建时替换）
@@ -46,6 +47,14 @@ export default defineConfig(({ mode }) => {
           // Shortcut of `build.rollupOptions.input`.
           // Preload scripts may contain Web assets, so use the `build.rollupOptions.input` instead `build.lib.entry`.
           input: path.join(path.dirname(fileURLToPath(import.meta.url)), 'electron/preload.ts'),
+          vite: {
+            resolve: {
+              alias: {
+                '@': fileURLToPath(new URL('.', import.meta.url)),
+                '@shared': fileURLToPath(new URL('./share', import.meta.url)),
+              }
+            }
+          }
         },
         // Ployfill the Electron and Node.js API for Renderer process.
         // If you want use Node.js in Renderer process, the `nodeIntegration` needs to be enabled in the Main process.
@@ -59,6 +68,7 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('.', import.meta.url)),
+        '@shared': fileURLToPath(new URL('./share', import.meta.url)),
         __dirname: path.resolve(__dirname, '.'),
       }
     },

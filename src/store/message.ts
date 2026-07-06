@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { useSessionStore } from './session';
-import { IChatMessage } from '@/src/types/chatMessage';
+import { IChatMessage } from '@shared/types/chatMessage';
 export const useMessageStore = defineStore('message', {
     state: () => ({
         messages: [] as IChatMessage[],

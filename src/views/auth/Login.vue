@@ -87,7 +87,7 @@ import EyeClosedIcon from '@/src/assets/input/eye_closed.svg?raw'
 import { signalWindowReady } from '@/src/utils/window'
 import AccountSelector, { AccountOption } from './components/AccountSelector.vue';
 import { toResourceUrl } from '@/src/utils/resourceUrl';
-import { CacheOptionType } from '@/src/types/resourceCache.ts'
+import { CacheOptionType } from '@shared/types/resourceCache.ts'
 
 interface LoginForm {
     account: string

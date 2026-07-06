@@ -1,7 +1,7 @@
 import { getHistory } from '@/src/apis/message';
-import { ApiTypes, ImTypes, PartialExcept, ResourceType, UpdateAction } from '@/src/types';
-import { MessageStatus, MessageType } from '@/src/types/proto';
-import { IChatMessage } from '@/src/types/chatMessage';
+import { ApiTypes, ImTypes, PartialExcept, ResourceType, UpdateAction } from '@shared/types';
+import { MessageStatus, MessageType } from '@shared/types/proto';
+import { IChatMessage } from '@shared/types/chatMessage';
 
 import { convertNotificationToChatMessage } from '@/src/utils/messageConverter';
 import cacheService from './cacheService';

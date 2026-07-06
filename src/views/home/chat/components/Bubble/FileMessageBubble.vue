@@ -68,13 +68,13 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { ILocalFileMessage } from '@/src/types/chatMessage';
+import { ILocalFileMessage } from '@shared/types/chatMessage';
 import { fileService } from '@/src/services/fileService';
 import { settingService } from '@/src/services/settingService';
 import { ElMessage } from 'element-plus';
-import { ImTypes } from '@/src/types';
+import { ImTypes } from '@shared/types';
 import { messageSendService, messageService } from '@/src/services';
-import { APP_CONSTANTS as config } from '@/src/config/constants';
+import { APP_CONSTANTS as config } from '@shared/config/constants';
 
 interface Props {
     message: ILocalFileMessage;

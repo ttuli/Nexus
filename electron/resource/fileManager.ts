@@ -1,5 +1,5 @@
-import { ApiTypes } from '@/src/types';
-import { APP_CONSTANTS } from '@/src/config/constants';
+import { ApiTypes } from '@shared/types';
+import { APP_CONSTANTS } from '@shared/config/constants';
 import { mainGet, decodeMainResponse, ApiResponse } from './mainRequest';
 
 class FileManager {

@@ -1,6 +1,6 @@
 import instance, { decodeResponse, ApiResponse } from '@/src/utils/request'
-import { ApiTypes } from '@/src/types'
-import { APP_CONSTANTS as config } from '@/src/config/constants';
+import { ApiTypes } from '@shared/types'
+import { APP_CONSTANTS as config } from '@shared/config/constants';
 
 export async function suggest(request: ApiTypes.llm.SuggestRequest): Promise<ApiResponse<ApiTypes.llm.SuggestResponse>> {
     const reqData = ApiTypes.llm.SuggestRequest.encode(request).finish()

@@ -1,5 +1,5 @@
 import { dbBridge } from './dbWorkerBridge';
-import type { ImTypes } from '@/src/types';
+import type { ImTypes } from '@shared/types';
 
 type UserInfo = ImTypes.UserInfo;
 

@@ -6,9 +6,9 @@ import { messageQueue } from './MessageQueue';
 import { messageRouter } from './MessageRouter';
 import { setupRoutes } from './routes';
 import { tokenManager } from '@/electron/resource/tokenManager';
-import { ImTypes, LogoutType, IpcChannels, ConnectionState } from '@/src/types';
+import { ImTypes, LogoutType, IpcChannels, ConnectionState } from '@shared/types';
 import { windowManager } from '@/electron/windows/windowManager';
-import { Main_Config as config } from '@/src/config/constants';
+import { Main_Config as config } from '@shared/config/constants';
 import { defaultSerializer } from './serializer/protoSerializer';
 
 /**

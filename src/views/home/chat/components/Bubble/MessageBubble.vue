@@ -51,8 +51,8 @@ import FileMessageBubble from './FileMessageBubble.vue';
 import VideoMessageBubble from './VideoMessageBubble.vue';
 
 // Replace MessageItem definition with IChatMessage import
-import { IChatMessage, ILocalTextMessage, ILocalFileMessage, ILocalImageMessage, ILocalVideoMessage } from '@/src/types/chatMessage';
-import { ImTypes } from '@/src/types';
+import { IChatMessage, ILocalTextMessage, ILocalFileMessage, ILocalImageMessage, ILocalVideoMessage } from '@shared/types/chatMessage';
+import { ImTypes } from '@shared/types';
 
 // Rename MessageType/Status to avoid conflict if needed, or just use types.MessageType
 const MessageType = ImTypes.MessageType;

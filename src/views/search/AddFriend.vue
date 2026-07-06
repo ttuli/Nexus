@@ -99,7 +99,7 @@
 
 <script lang="ts" setup>
 import { onMounted, ref, watch } from 'vue';
-import { ImTypes } from '@/src/types';
+import { ImTypes } from '@shared/types';
 import SearchIcon from '@/src/assets/input/search.svg?url';
 import UserCard from './components/UserCard.vue';
 import GroupCard from './components/GroupCard.vue';

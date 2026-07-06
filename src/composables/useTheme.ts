@@ -1,6 +1,6 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { windowService } from '../services'
-import { IpcChannels } from '@/src/types'
+import { IpcChannels } from '@shared/types'
 
 const THEME_KEY = 'app_theme'
 

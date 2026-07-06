@@ -1,6 +1,6 @@
 $ErrorActionPreference = "Stop"
 
-$typesDir = Join-Path $PSScriptRoot "src\types"
+$typesDir = Join-Path $PSScriptRoot "share\types"
 $apisDir = Join-Path $typesDir "apis"
 
 # 1. Generate Proto types using ts-proto

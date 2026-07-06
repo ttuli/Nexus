@@ -1,5 +1,5 @@
 import { WsMessage } from './serializer/MessageSerializer';
-import { ImTypes } from '@/src/types'; // Correct path
+import { ImTypes } from '@shared/types'; // Correct path
 
 /**
  * Message handler function type

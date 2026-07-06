@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
-import { ImTypes } from '@/src/types';
-import { Renderer_Config as config } from '@/src/config/constants';
+import { ImTypes } from '@shared/types';
+import { Renderer_Config as config } from '@shared/config/constants';
 import { judgeSessionType } from '@/src/utils/sessionUtils';
 
 export const useSessionStore = defineStore('session', {
