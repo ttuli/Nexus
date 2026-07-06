@@ -34,7 +34,7 @@ const props = withDefaults(
   }>(),
   {
     width: 'fit-content',
-    boxColor: '#e5e7eb',
+    boxColor: 'var(--bg-auth)',
     duration: 0.5,
     delay: 0,
     overflow: 'hidden'

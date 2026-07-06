@@ -2,9 +2,6 @@
  * 监听服务入口
  * 聚合所有 IPC 监听器，提供统一的 init / destroy 接口
  */
-
-import { ipcService } from '../ipcService'
-import { IpcChannels } from '@/src/types'
 import { initResourceListener } from './resourceListener'
 import { initWsMessageListener } from './wsMessageListener'
 import { initWsNotificationListener } from './wsNotificationListener'
@@ -28,11 +25,6 @@ class ListenerService {
      */
     public destroy(): void {
         if (!this.initialized) return
-        ipcService.off(IpcChannels.RESOURCE_UPDATE)
-        ipcService.off(IpcChannels.WS_MESSAGE)
-        ipcService.off(IpcChannels.WS_MESSAGE_ACK)
-        ipcService.off(IpcChannels.WS_NOTIFICATION)
-        ipcService.off(IpcChannels.WINDOW_STATE)
         this.initialized = false
     }
 }

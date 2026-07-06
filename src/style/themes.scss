@@ -27,6 +27,10 @@
     /* Masks, overlays */
     --bg-auth: #f0f7ff;
     /* Auth screens */
+    --bg-sidebar: rgba(236, 236, 236, 0.4);
+    --surface-default: #ffffff;
+    --surface-subtle: #f8fafc;
+    --icon-filter: none;
 
     /* Interactive Backgrounds */
     --bg-hover: #f1f5f9;
@@ -73,6 +77,10 @@
     --bg-list: #1e293b;
     --bg-overlay: rgba(0, 0, 0, 0.7);
     --bg-auth: #0f172a;
+    --bg-sidebar: rgba(15, 23, 42, 0.4);
+    --surface-default: #1e293b;
+    --surface-subtle: #0f172a;
+    --icon-filter: invert(1);
 
     /* Interactive Backgrounds */
     --bg-hover: #334155;

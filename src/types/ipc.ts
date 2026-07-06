@@ -129,6 +129,9 @@ export const IpcChannels = {
     SESSION_GET_LIST: 'session:get-list',
     SESSION_SAVE_LIST: 'session:save-list',
     SESSION_DELETE: 'session:delete',
+
+    // 主题相关
+    THEME_SYNC: 'theme:sync',
 } as const
 
 export type IpcChannel = typeof IpcChannels[keyof typeof IpcChannels]

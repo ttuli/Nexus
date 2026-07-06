@@ -74,6 +74,8 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue';
 import { useVirtualizer } from '@tanstack/vue-virtual';
+
+defineOptions({ name: 'SessionContent' });
 import { useSessionStore } from '@/src/store/session';
 import { useMessageStore } from '@/src/store/message';
 import { useUserStore } from '@/src/store/user';
@@ -85,7 +87,7 @@ import SystemMessageBubble from '@/src/views/home/chat/components/Bubble/SystemM
 import { IChatMessage, ILocalTextMessage } from '@/src/types/chatMessage';
 import { ImTypes } from '@/src/types';
 import ChatInput from './components/ChatInput.vue';
-import ChatSidebar from './components/Sidebar/index.vue';
+import ChatSidebar from './components/sidebar/index.vue';
 import AiSuggestions from './components/AiSuggestions.vue';
 import type { MenuOption } from '@/src/components/ContextMenu.vue';
 import { ElMessage } from 'element-plus';

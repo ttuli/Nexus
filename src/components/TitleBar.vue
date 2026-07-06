@@ -31,8 +31,9 @@ import X from '@/src/assets/window/x.svg'
 import Max from '@/src/assets/window/Maximize1.svg'
 import UnMax from '@/src/assets/window/Maximize2.svg'
 import { onMounted, onUnmounted, ref, computed } from 'vue';
-import { windowService, ipcService } from '@/src/services';
-import { IpcChannels, ConnectionState } from '@/src/types';
+import { windowService, websocketService } from '@/src/services';
+import { ConnectionState } from '@/src/types';
+import { theme as globalTheme } from '@/src/composables/useTheme';
 
 const props = withDefaults(
     defineProps<{
@@ -53,9 +54,6 @@ const props = withDefaults(
 const isMax = ref(false)
 const wsState = ref(ConnectionState.UNRECOGNIZED)
 
-const globalTheme = ref<'light' | 'dark'>('light')
-let observer: MutationObserver | null = null
-
 const isDark = computed(() => {
     if (props.theme === 'dark') return true
     if (props.theme === 'light') return false
@@ -73,37 +71,16 @@ const handleClose = () => {
 }
 
 onMounted(() => {
-    // 1. Initial global theme check
-    const initialTheme = document.documentElement.getAttribute('data-theme') || localStorage.getItem('app_theme') || 'light'
-    globalTheme.value = initialTheme as 'light' | 'dark'
-
-    // 2. Dynamic global theme tracking
-    observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-            if (mutation.attributeName === 'data-theme') {
-                const nextTheme = document.documentElement.getAttribute('data-theme') || 'light'
-                globalTheme.value = nextTheme as 'light' | 'dark'
-            }
-        })
-    })
-    observer.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ['data-theme']
-    })
-
     windowService.onWindowState((state) => {
         isMax.value = state === 'maximized'
     })
-    ipcService.on(IpcChannels.WS_STATE_CHANGE, (_e,state) => {
+    websocketService.onStateChange((state) => {
         wsState.value = state
     })
 })
 
 onUnmounted(() => {
-    if (observer) {
-        observer.disconnect()
-    }
-    ipcService.off(IpcChannels.WS_STATE_CHANGE)
+    websocketService.offStateChange()
 })
 </script>
 

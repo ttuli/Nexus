@@ -22,6 +22,21 @@ class WebSocketService {
     async send(message: ImTypes.WSMessage, clientId = '', sessionId = ''): Promise<IpcResponse & { sent?: boolean, error?: string }> {
         return ipcService.invoke(IpcChannels.WS_SEND, message, clientId, sessionId)
     }
+    /**
+     * 监听连接状态变化
+     */
+    onStateChange(callback: (state: ConnectionState) => void) {
+        ipcService.on(IpcChannels.WS_STATE_CHANGE, (_e, state) => {
+            callback(state as ConnectionState)
+        })
+    }
+
+    /**
+     * 移除连接状态变化监听
+     */
+    offStateChange() {
+        ipcService.off(IpcChannels.WS_STATE_CHANGE)
+    }
 }
 
 export const websocketService = new WebSocketService()

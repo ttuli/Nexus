@@ -11,8 +11,8 @@
 
 <script setup lang="ts">
 import { ImTypes } from '@/src/types';
-import PrivateSessionSidebar from './PrivateSessionSidebar.vue';
-import GroupSessionSidebar from './GroupSessionSidebar.vue';
+import PrivateSessionSidebar from '@/src/views/home/chat/components/sidebar/PrivateSessionSidebar.vue';
+import GroupSessionSidebar from '@/src/views/home/chat/components/sidebar/GroupSessionSidebar.vue';
 
 defineProps<{
     visible: boolean;
@@ -31,7 +31,7 @@ defineEmits(['close']);
     right: 0;
     bottom: 0;
     width: 280px;
-    background: #fff;
+    background: $bg-card;
     border-left: 1px solid $color-border;
     z-index: 100;
     overflow: hidden;

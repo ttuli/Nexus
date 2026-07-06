@@ -32,6 +32,7 @@ declare module 'vue' {
     PasswordStrength: typeof import('./src/components/PasswordStrength.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    ThemeToggle: typeof import('./src/components/ThemeToggle.vue')['default']
     TitleBar: typeof import('./src/components/TitleBar.vue')['default']
     Toggle: typeof import('./src/components/Toggle.vue')['default']
   }

@@ -73,7 +73,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import Avatar from '@/src/components/Avatar.vue';
 import AvatarUpload from '@/src/components/AvatarUpload.vue';
@@ -81,6 +81,8 @@ import CusButton from '@/src/components/CusButton.vue';
 import GroupMemberGrid from './components/GroupMemberGrid.vue';
 import { useUserStore } from '@/src/store/user';
 import { generateGroupSessionId } from '@/src/utils/sessionUtils';
+
+defineOptions({ name: 'GroupDetail' });
 import { useGroupStore } from '@/src/store/group';
 import { useChatNavigation } from '@/src/composables/useChatNavigation';
 import { ElMessage } from 'element-plus';
@@ -121,12 +123,12 @@ const joinTypeLabel = computed(() => {
     }
 });
 
-onMounted(async () => {
-    if (!groupId.value) return;
-
-    await groupService.fetchByIds([groupId.value], true);
-    await groupService.fetchGroupMembers(groupId.value, true);
-});
+watch(groupId, (newId) => {
+    if (newId) {
+        groupService.fetchByIds([newId], true);
+        groupService.fetchGroupMembers(newId, true);
+    }
+}, { immediate: true });
 
 const toChat = () => {
     if (!groupInfo.value) return;
@@ -323,7 +325,7 @@ const doQuit = async () => {
             }
 
             &:hover::-webkit-scrollbar-thumb {
-                background-color: rgba(0, 0, 0, 0.1);
+                background-color: var(--border-divider);
             }
 
             .info-card {
@@ -411,7 +413,7 @@ const doQuit = async () => {
                     }
 
                     &:hover {
-                        background-color: rgba(0, 0, 0, 0.01);
+                        background-color: var(--bg-hover);
                     }
 
                     .label {
@@ -426,7 +428,7 @@ const doQuit = async () => {
                     }
 
                     .arrow {
-                        color: #ccc;
+                        color: var(--text-disabled);
                         font-size: 18px;
                     }
                 }

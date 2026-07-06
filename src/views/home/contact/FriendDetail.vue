@@ -1,99 +1,97 @@
 <template>
     <div class="friend-detail">
         <TitleBar :title="title" :need-min="false" :need-max="false" />
-        <div class="content" v-if="userInfo">
-            <div class="user-card">
-                <div class="card-body">
-                    <div class="avatar-section">
+
+        <div class="main-content" v-if="userInfo">
+            <div class="content-scroll">
+                <!-- Header Info Card -->
+                <div class="info-card">
+                    <div class="header-row">
                         <div class="avatar-wrapper">
-                            <Avatar :uid="userInfo.user_id" class="user-avatar" />
+                            <Avatar :uid="userInfo.user_id" :width="'80px'" :height="'80px'" class="user-avatar" />
                         </div>
-                    </div>
-
-                    <div class="info-section">
-                        <div class="name-row">
-                            <span class="remark">{{ displayName }}</span>
-                            <el-icon class="edit-icon" @click="openEditRemark" title="修改备注">
-                                <Edit />
-                            </el-icon>
-                            <img :src="MaleIcon" class="gender-icon"
-                                v-if="userInfo.gender === ImTypes.Gender.GENDER_MALE" />
-                            <img :src="FemaleIcon" class="gender-icon"
-                                v-if="userInfo.gender === ImTypes.Gender.GENDER_FEMALE" />
-                        </div>
-                        <div class="sub-info">
-                            <span class="nickname" v-if="friendInfo?.remark">昵称: {{ userInfo.user_name }}</span>
-                            <span class="id-tag">
+                        <div class="text-info">
+                            <div class="main-info">
+                                <h2 class="name">{{ displayName }}</h2>
+                                <img :src="MaleIcon" class="gender-icon"
+                                    v-if="userInfo.gender === ImTypes.Gender.GENDER_MALE" />
+                                <img :src="FemaleIcon" class="gender-icon"
+                                    v-if="userInfo.gender === ImTypes.Gender.GENDER_FEMALE" />
+                            </div>
+                            <div class="user-id" @click="handleCopy(String(userInfo.user_id))" title="点击复制 ID">
                                 ID: {{ userInfo.user_id }}
-                                <i class="copy-icon" @click="handleCopy(String(userInfo.user_id))">❐</i>
-                            </span>
+                                <el-icon class="copy-icon">
+                                    <CopyDocument />
+                                </el-icon>
+                            </div>
+                            <div class="nickname" v-if="friendInfo?.remark">昵称: {{ userInfo.user_name }}</div>
                         </div>
                     </div>
+                </div>
 
-                    <div class="detail-list">
-                        <div class="detail-item">
-                            <div class="item-icon bg-blue">📱</div>
-                            <div class="item-content">
-                                <span class="label">手机号码</span>
-                                <div class="value-row">
-                                    <span class="value">{{ userInfo.phone || '未公开' }}</span>
-                                    <span class="copy-link" v-if="userInfo.phone"
-                                        @click="handleCopy(String(userInfo.phone))">复制</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="item-icon bg-purple">✍️</div>
-                            <div class="item-content">
-                                <span class="label">个性签名</span>
-                                <span class="value signature">{{ userInfo.personal_signature || '这个人很懒，什么都没有写~'
-                                }}</span>
-                            </div>
-                        </div>
+                <!-- Info Settings Card -->
+                <div class="section-card settings">
+                    <div class="setting-item no-hover">
+                        <span class="label">手机号码</span>
+                        <span class="value">{{ userInfo.phone || '未公开' }}</span>
+                        <span class="copy-link" v-if="userInfo.phone"
+                            @click="handleCopy(String(userInfo.phone))">复制</span>
                     </div>
+                    <div class="setting-item no-hover signature-item">
+                        <span class="label">个性签名</span>
+                        <span class="value signature">{{ userInfo.personal_signature || '这个人很懒，什么都没有写~' }}</span>
+                    </div>
+                </div>
 
-                    <div class="actions">
-                        <CusButton @click="sendMsg" type="primary" :show-icon="false" class="action-btn">
-                            发消息
-                        </CusButton>
+                <!-- Friend Relationship Management Card -->
+                <div class="section-card settings" v-if="friendInfo">
+                    <div class="setting-item" @click="openEditRemark">
+                        <span class="label">设置备注</span>
+                        <span class="value">{{ friendInfo.remark || '未设置' }}</span>
+                        <span class="arrow">›</span>
+                    </div>
+                    <div class="setting-item">
+                        <span class="label">设为星标好友</span>
+                        <el-switch :model-value="friendInfo.starred" @change="toggleStarred" :loading="starredLoading" />
+                    </div>
+                    <div class="setting-item">
+                        <span class="label">加入黑名单</span>
+                        <el-switch :model-value="friendInfo.blocked" @change="toggleBlocked" :loading="blockedLoading" />
                     </div>
                 </div>
             </div>
-        </div>
-        <div v-else class="loading">
-            <div class="spinner"></div>
-            <span>加载中...</span>
+
+            <!-- Action Footer -->
+            <div class="actions-section">
+                <CusButton type="primary" @click="sendMsg" :show-icon="false">发消息</CusButton>
+                <CusButton type="primary" class="add-friend-btn" v-if="!friendInfo" @click="addFriend" :show-icon="false">添加好友</CusButton>
+                <CusButton class="danger-btn" v-else @click="confirmDelete" :show-icon="false">删除好友</CusButton>
+            </div>
         </div>
 
-        <el-dialog v-model="dialogVisible" title="设置备注" width="360px" :close-on-click-modal="false"
-            class="remark-dialog">
-            <div class="dialog-content">
-                <el-input v-model="editRemarkForm.remark" placeholder="请输入好友备注" maxlength="20" show-word-limit
-                    @keyup.enter="submitRemarkUpdate" />
-            </div>
-            <template #footer>
-                <div class="dialog-footer">
-                    <el-button @click="dialogVisible = false">取消</el-button>
-                    <el-button type="primary" @click="submitRemarkUpdate" :loading="submitLoading">确定</el-button>
-                </div>
-            </template>
-        </el-dialog>
+        <div v-else class="loading-state">
+            <GlobalLoading />
+        </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useUserStore } from '@/src/store/user';
+
+defineOptions({ name: 'FriendDetail' });
 import { generateSessionId } from '@/src/utils/sessionUtils';
 import { useChatNavigation } from '@/src/composables/useChatNavigation';
 import MaleIcon from '@/src/assets/gender/male.svg';
 import FemaleIcon from '@/src/assets/gender/female.svg';
 import { ImTypes } from '@/src/types';
 import { ElMessage } from 'element-plus';
-import { Edit } from '@element-plus/icons-vue';
-import { userService } from '@/src/services';
-import { updateFriendInfo } from '@/src/apis/user';
+import { CopyDocument } from '@element-plus/icons-vue';
+import { userService, friendService } from '@/src/services';
+import CusDialog from '@/src/components/CusDialog';
+import { DialogResult } from '@/src/components/CusDialog/types';
+import CusInputDialog from '@/src/components/CusInputDialog';
 
 const route = useRoute();
 const router = useRouter();
@@ -109,9 +107,9 @@ const displayName = computed(() => {
 
 const title = computed(() => displayName.value);
 
-const dialogVisible = ref(false);
+const starredLoading = ref(false);
+const blockedLoading = ref(false);
 const submitLoading = ref(false);
-const editRemarkForm = ref({ remark: '' });
 
 const handleCopy = async (text: string) => {
     try {
@@ -122,35 +120,130 @@ const handleCopy = async (text: string) => {
     }
 };
 
-const openEditRemark = () => {
-    editRemarkForm.value.remark = friendInfo.value?.remark || '';
-    dialogVisible.value = true;
-};
-
-const submitRemarkUpdate = async () => {
+const openEditRemark = async () => {
     if (!friendInfo.value) return;
 
-    submitLoading.value = true;
-    try {
-        await updateFriendInfo({
-            friend_id: userId.value,
-            remark: editRemarkForm.value.remark,
-            blocked: friendInfo.value.blocked,
-            starred: friendInfo.value.starred
-        });
+    const newRemark = await CusInputDialog.open({
+        title: '设置备注',
+        placeholder: '请输入好友备注',
+        initialValue: friendInfo.value.remark || '',
+        maxLength: 20
+    });
 
-        // Update local store immediately
+    if (newRemark !== undefined && newRemark !== friendInfo.value.remark) {
+        submitLoading.value = true;
+        try {
+            await friendService.updateFriend({
+                friend_id: userId.value,
+                remark: newRemark,
+                blocked: friendInfo.value.blocked,
+                starred: friendInfo.value.starred
+            });
+
+            // Update local store immediately
+            userStore.setFriend({
+                ...friendInfo.value,
+                remark: newRemark
+            });
+
+            ElMessage.success('备注修改成功');
+        } catch (err: any) {
+            ElMessage.error(err.message || '修改失败');
+        } finally {
+            submitLoading.value = false;
+        }
+    }
+};
+
+const toggleStarred = async (val: boolean) => {
+    if (!friendInfo.value) return;
+    starredLoading.value = true;
+    try {
+        await friendService.updateFriend({
+            friend_id: userId.value,
+            remark: friendInfo.value.remark,
+            blocked: friendInfo.value.blocked,
+            starred: val
+        });
+        
         userStore.setFriend({
             ...friendInfo.value,
-            remark: editRemarkForm.value.remark
+            starred: val
         });
-
-        ElMessage.success('备注修改成功');
-        dialogVisible.value = false;
+        
+        ElMessage.success(val ? '已设为星标好友' : '已取消星标好友');
     } catch (err: any) {
-        ElMessage.error(err.message || '修改失败');
+        ElMessage.error(err.message || '操作失败');
     } finally {
-        submitLoading.value = false;
+        starredLoading.value = false;
+    }
+};
+
+const toggleBlocked = async (val: boolean) => {
+    if (!friendInfo.value) return;
+    blockedLoading.value = true;
+    try {
+        await friendService.updateFriend({
+            friend_id: userId.value,
+            remark: friendInfo.value.remark,
+            blocked: val,
+            starred: friendInfo.value.starred
+        });
+        
+        userStore.setFriend({
+            ...friendInfo.value,
+            blocked: val
+        });
+        
+        ElMessage.success(val ? '已加入黑名单' : '已移出黑名单');
+    } catch (err: any) {
+        ElMessage.error(err.message || '操作失败');
+    } finally {
+        blockedLoading.value = false;
+    }
+};
+
+const confirmDelete = async () => {
+    if (!friendInfo.value) return;
+    const res = await CusDialog.open({
+        title: '删除好友',
+        content: `确定要删除好友「${displayName.value}」吗？此操作不可逆。`,
+        showCancel: true,
+        confirmText: '确定删除',
+        cancelText: '取消',
+    });
+
+    if (res === DialogResult.Confirm) {
+        try {
+            await friendService.deleteFriend(userId.value);
+            userStore.deleteFriend(userId.value);
+            ElMessage.success('删除成功');
+            router.push('/home/contact');
+        } catch (err: any) {
+            ElMessage.error(err.message || '删除失败');
+        }
+    }
+};
+
+const addFriend = async () => {
+    const reason = await CusInputDialog.open({
+        title: '添加好友申请',
+        placeholder: '请输入验证信息',
+        initialValue: `我是 ${userStore.getUser(userStore.userID)?.user_name || ''}`,
+        maxLength: 50
+    });
+
+    if (reason !== undefined) {
+        try {
+            await friendService.applyFriend({
+                to_user_id: userId.value,
+                apply_msg: reason,
+                source: 0
+            });
+            ElMessage.success('申请已发送');
+        } catch (err: any) {
+            ElMessage.error(err.message || '申请发送失败');
+        }
     }
 };
 
@@ -160,334 +253,241 @@ const sendMsg = () => {
     router.push('/home/chat');
 };
 
-onMounted(() => {
-    userService.fetchByIds([userId.value], true);
-});
+watch(userId, (newId) => {
+    if (newId) {
+        userService.fetchByIds([newId], true);
+    }
+}, { immediate: true });
 </script>
 
 <style scoped lang="scss">
+@use "sass:color";
 @use "@/src/style/_constant.scss" as *;
 
 .friend-detail {
+    width: 100%;
     height: 100%;
     display: flex;
     flex-direction: column;
-    position: relative;
-    overflow: hidden;
-    background-color: var(--el-bg-color-page);
+    background-color: $bg-body;
 
-    &::before {
-        content: '';
-        position: absolute;
-        top: -15%;
-        left: -5%;
-        width: 50%;
-        height: 40%;
-        background: radial-gradient(circle, var(--el-color-primary-light-8) 0%, transparent 60%);
-        filter: blur(50px);
-        z-index: 0;
-        pointer-events: none;
-    }
-
-    .content {
+    .main-content {
         flex: 1;
         display: flex;
         flex-direction: column;
-        align-items: center;
-        padding: 40px 20px;
-        overflow-y: auto;
-        z-index: 1;
-
-        &::-webkit-scrollbar {
-            width: 0;
-            display: none;
-        }
-    }
-
-    .user-card {
+        overflow: hidden;
         width: 100%;
-        max-width: 440px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
 
-        .card-body {
-            width: 100%;
-            padding: 30px;
+        .content-scroll {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            // Removed card background styles
+            gap: 20px;
+            max-width: 650px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
 
-            .avatar-section {
-                margin-bottom: 24px;
-                position: relative;
-                -webkit-app-region: no-drag;
-
-                .avatar-wrapper {
-                    padding: 8px;
-                    background: var(--el-fill-color-light);
-                    border-radius: 50%;
-                    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-
-                    .user-avatar {
-                        width: 80px;
-                        height: 80px;
-                        border-radius: 50%;
-                        object-fit: cover;
-                        transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-
-                        &:hover {
-                            transform: scale(1.05);
-                        }
-                    }
-                }
+            &::-webkit-scrollbar {
+                width: 6px;
+                background-color: transparent;
             }
 
-            .info-section {
-                text-align: center;
-                margin-bottom: 30px;
-                width: 100%;
-
-                .name-row {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 12px;
-                    margin-bottom: 10px;
-
-                    .remark {
-                        font-family: 'Inter', 'PingFang SC', sans-serif;
-                        font-size: 28px;
-                        font-weight: 700;
-                        color: var(--el-text-color-primary);
-                    }
-
-                    .edit-icon {
-                        font-size: 18px;
-                        color: var(--el-text-color-regular);
-                        cursor: pointer;
-                        padding: 4px;
-                        border-radius: 50%;
-                        transition: all 0.2s;
-                        -webkit-app-region: no-drag;
-
-                        &:hover {
-                            color: var(--el-color-primary);
-                            background: var(--el-color-primary-light-9);
-                            transform: scale(1.1);
-                        }
-                    }
-
-                    .gender-icon {
-                        width: 20px;
-                        height: 20px;
-                    }
-                }
-
-                .sub-info {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 8px;
-
-                    .nickname {
-                        font-size: 14px;
-                        color: var(--el-text-color-secondary);
-                    }
-
-                    .id-tag {
-                        display: inline-flex;
-                        align-items: center;
-                        justify-content: center;
-                        gap: 8px;
-                        font-size: 13px;
-                        color: var(--el-text-color-regular);
-                        background: var(--el-fill-color-light);
-                        padding: 6px 16px;
-                        border-radius: 20px;
-                        margin: 4px auto 0;
-                        transition: background-color 0.2s;
-
-                        &:hover {
-                            background: var(--el-fill-color);
-                        }
-
-                        .copy-icon {
-                            font-style: normal;
-                            cursor: pointer;
-                            font-size: 12px;
-                            transition: all 0.2s;
-                            -webkit-app-region: no-drag;
-
-                            &:hover {
-                                transform: scale(1.2);
-                                color: var(--el-color-primary);
-                            }
-                        }
-                    }
-                }
+            &::-webkit-scrollbar-thumb {
+                background-color: transparent;
+                border-radius: 4px;
             }
 
-            .detail-list {
-                width: 100%;
-                display: flex;
-                flex-direction: column;
-                gap: 16px;
-                margin-bottom: 40px;
+            &:hover::-webkit-scrollbar-thumb {
+                background-color: var(--border-divider);
+            }
 
-                .detail-item {
+            .info-card {
+                background: $bg-card;
+                border-radius: 12px;
+                padding: 24px;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+
+                .header-row {
                     display: flex;
+                    gap: 24px;
                     align-items: center;
-                    background: var(--el-fill-color-blank);
-                    padding: 16px 20px;
-                    border-radius: 16px;
-                    border: 1px solid var(--el-border-color-light);
-                    transition: all 0.3s ease;
-                    -webkit-app-region: no-drag;
 
-                    &:hover {
-                        transform: translateY(-2px);
-                        box-shadow: var(--el-box-shadow-light);
-                        border-color: var(--el-color-primary-light-5);
-                    }
-
-                    .item-icon {
-                        font-size: 18px;
-                        width: 40px;
-                        height: 40px;
+                    .avatar-wrapper {
                         display: flex;
                         align-items: center;
                         justify-content: center;
-                        border-radius: 12px;
-                        margin-right: 16px;
 
-                        &.bg-blue {
-                            background: rgba(64, 158, 255, 0.1);
-                        }
+                        .user-avatar {
+                            border-radius: 50%;
+                            object-fit: cover;
+                            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 
-                        &.bg-purple {
-                            background: rgba(142, 68, 173, 0.1);
+                            &:hover {
+                                transform: scale(1.05);
+                            }
                         }
                     }
 
-                    .item-content {
+                    .text-info {
                         flex: 1;
                         display: flex;
                         flex-direction: column;
-                        gap: 4px;
+                        gap: 8px;
 
-                        .label {
-                            font-size: 12px;
-                            color: var(--el-text-color-secondary);
-                        }
-
-                        .value-row {
+                        .main-info {
                             display: flex;
                             align-items: center;
-                            justify-content: space-between;
+                            gap: 8px;
 
-                            .copy-link {
-                                font-size: 12px;
-                                font-weight: 500;
-                                color: var(--el-color-primary);
-                                background: var(--el-color-primary-light-9);
-                                padding: 4px 10px;
-                                border-radius: 6px;
-                                cursor: pointer;
-                                transition: all 0.2s;
+                            .name {
+                                margin: 0;
+                                font-size: 22px;
+                                font-weight: 600;
+                                color: $color-text-primary;
+                            }
 
-                                &:hover {
-                                    background: var(--el-color-primary);
-                                    color: white;
-                                }
+                            .gender-icon {
+                                width: 18px;
+                                height: 18px;
                             }
                         }
+
+                        .user-id {
+                            font-size: 14px;
+                            color: $color-text-secondary;
+                            cursor: pointer;
+                            display: flex;
+                            align-items: center;
+                            gap: 6px;
+                            transition: color 0.2s;
+
+                            &:hover {
+                                color: $color-primary;
+                            }
+
+                            .copy-icon {
+                                font-size: 14px;
+                                display: inline-flex;
+                                align-items: center;
+                            }
+                        }
+
+                        .nickname {
+                            font-size: 14px;
+                            color: $color-text-secondary;
+                        }
+                    }
+                }
+            }
+
+            .settings {
+                background: $bg-card;
+                border-radius: 12px;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+                padding: 0;
+                overflow: hidden;
+
+                .setting-item {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 16px 20px;
+                    border-bottom: 1px solid $color-border;
+                    cursor: pointer;
+                    transition: background 0.2s;
+
+                    &:last-child {
+                        border-bottom: none;
+                    }
+
+                    &:not(.no-hover):hover {
+                        background-color: var(--bg-hover);
+                    }
+
+                    &.no-hover {
+                        cursor: default;
+                    }
+
+                    &.signature-item {
+                        flex-direction: column;
+                        align-items: flex-start;
+                        gap: 8px;
 
                         .value {
-                            font-size: 15px;
-                            color: var(--el-text-color-primary);
+                            word-break: break-all;
                             line-height: 1.5;
+                        }
+                    }
 
-                            &.signature {
-                                color: var(--el-text-color-regular);
-                                font-style: italic;
-                            }
+                    .label {
+                        font-size: 15px;
+                        color: $color-text-primary;
+                    }
+
+                    .value {
+                        font-size: 14px;
+                        color: $color-text-secondary;
+                        margin-left: auto;
+                        margin-right: 8px;
+
+                        &.signature {
+                            font-style: italic;
+                            color: $color-text-secondary;
+                        }
+                    }
+
+                    .arrow {
+                        color: var(--text-disabled);
+                        font-size: 18px;
+                    }
+
+                    .copy-link {
+                        font-size: 12px;
+                        font-weight: 500;
+                        color: $color-primary;
+                        background: var(--color-primary-bg);
+                        padding: 4px 10px;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        transition: all 0.2s;
+
+                        &:hover {
+                            background: $color-primary;
+                            color: white;
                         }
                     }
                 }
             }
+        }
 
-            .actions {
-                width: 100%;
-                display: flex;
-                justify-content: center;
+        .actions-section {
+            display: flex;
+            gap: 12px;
+            padding: 24px;
+            max-width: 600px;
+            margin: 0 auto;
+            width: 90%;
+            box-sizing: border-box;
 
-                .action-btn {
-                    width: 100%;
-                    max-width: 300px;
-                    height: 50px;
-                    font-size: 16px;
-                    border-radius: 25px;
-                    font-weight: 600;
-                    letter-spacing: 2px;
-                    transition: all 0.3s;
+            :deep(.danger-btn) {
+                background-color: $color-error !important;
+                color: white !important;
 
-                    &:hover {
-                        transform: translateY(-2px);
-                        box-shadow: 0 8px 20px var(--el-color-primary-light-5);
-                    }
-
-                    &:active {
-                        transform: scale(0.98);
-                    }
+                &:hover {
+                    background-color: color.adjust($color-error, $lightness: -10%) !important;
                 }
             }
         }
     }
 
-    .loading {
+    .loading-state {
         flex: 1;
         display: flex;
-        flex-direction: column;
-        justify-content: center;
         align-items: center;
-        color: var(--el-text-color-secondary);
-        gap: 12px;
-
-        .spinner {
-            width: 32px;
-            height: 32px;
-            border: 3px solid var(--el-border-color-lighter);
-            border-top-color: var(--el-color-primary);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-    }
-}
-
-:deep(.remark-dialog) {
-    border-radius: 12px;
-    overflow: hidden;
-
-    .el-dialog__header {
-        margin-right: 0;
-        padding-bottom: 20px;
-        border-bottom: 1px solid var(--el-border-color-lighter);
-    }
-
-    .el-dialog__body {
-        padding: 24px 20px;
-    }
-
-    .el-dialog__footer {
-        padding-top: 10px;
-        border-top: 1px solid var(--el-border-color-lighter);
-    }
-}
-
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
+        justify-content: center;
     }
 }
 </style>

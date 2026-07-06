@@ -47,7 +47,7 @@ const handleSelect = (id: number) => {
 .empty-tip {
     padding: 24px;
     text-align: center;
-    color: #999;
+    color: var(--text-secondary);
     font-size: 13px;
 }
 </style>

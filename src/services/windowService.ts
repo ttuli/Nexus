@@ -3,8 +3,7 @@
  * 处理窗口相关操作
  */
 import { ipcService } from './ipcService'
-import { IpcChannels, LogoutType } from '@/src/types'
-
+import { IpcChannels, IpcChannel, LogoutType } from '@/src/types'
 export { LogoutType }
 
 export enum NotifySoundType {
@@ -73,6 +72,13 @@ class WindowService {
         ipcService.send(IpcChannels.WINDOW_PUBLISH, {
             channel: IpcChannels.LOGOUT_REMIND,
             data: { type }
+        })
+    }
+
+    publish(channel: IpcChannel, data: any): void {
+        ipcService.send(IpcChannels.WINDOW_PUBLISH, {
+            channel,
+            data
         })
     }
 

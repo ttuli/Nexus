@@ -20,7 +20,7 @@ defineOptions({ name: 'BlankPage' })
     align-items: center;
     height: 100%;
     width: 100%;
-    background-color: #f7f7f7;
+    background-color: $bg-body;
     color: $color-text-placeholder;
     -webkit-app-region: no-drag;
 

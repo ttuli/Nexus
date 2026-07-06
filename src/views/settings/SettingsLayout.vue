@@ -109,16 +109,16 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import { ElMessage } from 'element-plus';
 import SkyToggle from './components/SkyToggle.vue';
-import { getTheme, setTheme } from '@/src/utils/themeManager';
+import { theme, setTheme } from '@/src/composables/useTheme';
 import { signalWindowReady } from '@/src/utils/window';
 import { ipcService } from '@/src/services/ipcService';
 import { IpcChannels } from '@/src/types';
 import { settingService } from '@/src/services';
 
-const isDark = ref(getTheme() === 'dark');
+const isDark = computed(() => theme.value === 'dark');
 const currentStoragePath = ref<string>('加载�?..');
 const activeTab = ref<'general' | 'about'>('general');
 

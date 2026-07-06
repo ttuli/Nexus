@@ -22,20 +22,20 @@
                     @keydown.enter.prevent="setPasswordInputFocus"
                 >
                     <template #left-area>
-                        <img :src="AccountIcon" class="input-icon" />
+                        <span class="input-icon" v-html="AccountIcon"></span>
                     </template>
                 </AccountSelector>
                 <!-- 密码输入框 -->
                 <CusInput ref="passwordInput" v-model="form.password" type="password" :visible="passwordVisible"
                     placeholder="请输入密码(至少8位)" @keydown.enter.prevent="handleLogin">
                     <template #left-area>
-                        <img :src="PasswordIcon" class="input-icon" />
+                        <span class="input-icon" v-html="PasswordIcon"></span>
                     </template>
                     <template #right-area>
                         <button type="button" class="password-toggle" @click="passwordVisible = !passwordVisible"
                             :aria-label="passwordVisible ? '隐藏密码' : '显示密码'">
-                            <img v-if="passwordVisible" :src="EyeOpenIcon" class="icon" />
-                            <img v-else :src="EyeClosedIcon" class="icon" />
+                            <span v-if="passwordVisible" class="icon" v-html="EyeOpenIcon"></span>
+                            <span v-else class="icon" v-html="EyeClosedIcon"></span>
                         </button>
                     </template>
                 </CusInput>
@@ -73,16 +73,17 @@
             <button type="button" class="switch-account-btn" @click="autologin = !autologin">切换账号</button>
         </div>
     </div>
+    
 </template>
 
 <script setup lang="ts">
 import { nextTick, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { windowService, authService, userService, tokenService } from '@/src/services'
-import AccountIcon from '@/src/assets/input/input_name.svg?url'
-import PasswordIcon from '@/src/assets/input/input_password.svg?url'
-import EyeOpenIcon from '@/src/assets/input/eye_open.svg?url'
-import EyeClosedIcon from '@/src/assets/input/eye_closed.svg?url'
+import AccountIcon from '@/src/assets/input/input_name.svg?raw'
+import PasswordIcon from '@/src/assets/input/input_password.svg?raw'
+import EyeOpenIcon from '@/src/assets/input/eye_open.svg?raw'
+import EyeClosedIcon from '@/src/assets/input/eye_closed.svg?raw'
 import { signalWindowReady } from '@/src/utils/window'
 import AccountSelector, { AccountOption } from './components/AccountSelector.vue';
 import { toResourceUrl } from '@/src/utils/resourceUrl';
@@ -305,6 +306,19 @@ onMounted(async () => {
                 border-radius: 8px;
                 box-sizing: border-box;
                 padding: 4px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                color: $color-text-secondary;
+
+                :deep(svg) {
+                    width: 100%;
+                    height: 100%;
+                }
+
+                :deep(path) {
+                    fill: currentColor !important;
+                }
             }
 
             .password-toggle {
@@ -325,6 +339,19 @@ onMounted(async () => {
                 .icon {
                     width: 18px;
                     height: 18px;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: inherit;
+
+                    :deep(svg) {
+                        width: 100%;
+                        height: 100%;
+                    }
+
+                    :deep(path) {
+                        fill: currentColor !important;
+                    }
                 }
             }
         }

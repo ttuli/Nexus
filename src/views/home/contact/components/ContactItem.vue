@@ -53,11 +53,11 @@ const handleClick = () => {
     background-color: transparent;
 
     &:hover {
-        background-color: var(--bg-item-hover, rgba(0, 0, 0, 0.04));
+        background-color: var(--bg-hover);
     }
 
     &.active {
-        background-color: var(--bg-item-active, rgba(var(--primary-rgb), 0.1));
+        background-color: var(--bg-active);
 
         .name {
             color: $color-primary;
@@ -87,7 +87,7 @@ const handleClick = () => {
             line-height: 16px;
             border-radius: 8px;
             text-align: center;
-            border: 2px solid #fff;
+            border: 2px solid var(--bg-list);
         }
     }
 

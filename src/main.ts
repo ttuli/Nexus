@@ -8,7 +8,7 @@ import './style/CusElmessage.css'
 import './style/global.scss'
 
 import { createPinia } from 'pinia'
-import { initTheme } from '@/src/utils/themeManager'
+import { initTheme } from '@/src/composables/useTheme'
 
 const app = createApp(App)
 

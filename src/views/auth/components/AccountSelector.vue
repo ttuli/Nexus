@@ -167,9 +167,10 @@ const selectOption = (item: AccountOption) => {
     left: 0;
     width: 100%;
     margin-top: 8px;
-    background: white;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
     border-radius: 12px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-md);
     z-index: 3000;
     max-height: 110px;
     overflow-y: auto;
@@ -185,7 +186,7 @@ const selectOption = (item: AccountOption) => {
         transition: background-color 0.2s;
 
         &:hover {
-            background-color: #f5f7fa;
+            background-color: var(--bg-hover);
         }
 
         .item-avatar {
@@ -193,7 +194,7 @@ const selectOption = (item: AccountOption) => {
             height: 36px;
             border-radius: 50%;
             object-fit: cover;
-            background-color: #f0f0f0;
+            background-color: var(--bg-disabled);
             flex-shrink: 0;
         }
 
@@ -205,7 +206,7 @@ const selectOption = (item: AccountOption) => {
 
             .item-name {
                 font-size: 14px;
-                color: #333;
+                color: var(--text-primary);
                 font-weight: 500;
                 white-space: nowrap;
                 overflow: hidden;
@@ -214,7 +215,7 @@ const selectOption = (item: AccountOption) => {
 
             .item-account {
                 font-size: 12px;
-                color: #999;
+                color: var(--text-secondary);
             }
         }
     }
@@ -226,7 +227,7 @@ const selectOption = (item: AccountOption) => {
 }
 
 .custom-dropdown::-webkit-scrollbar-thumb {
-    background-color: #e0e0e0;
+    background-color: var(--border-divider);
     border-radius: 3px;
 }
 

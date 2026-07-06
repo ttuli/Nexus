@@ -69,12 +69,12 @@ const onSelect = (emoji: string) => {
 }
 
 .emoji-picker-container {
-    background: #ffffff;
+    background: $bg-card;
     border-radius: 8px;
     padding: 12px;
     width: 320px;
     height: 260px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    box-shadow: var(--shadow-md);
     border: 1px solid $color-border;
     overflow-y: auto;
 
@@ -87,11 +87,11 @@ const onSelect = (emoji: string) => {
     }
 
     &::-webkit-scrollbar-thumb {
-        background-color: rgba(0, 0, 0, 0.15);
+        background-color: var(--border-divider);
         border-radius: 3px;
 
         &:hover {
-            background-color: rgba(0, 0, 0, 0.25);
+            background-color: var(--text-secondary);
         }
     }
 

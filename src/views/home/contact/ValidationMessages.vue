@@ -83,6 +83,8 @@ import { ref, computed, watch } from 'vue';
 
 import { useUserStore } from '@/src/store/user';
 import { useGroupStore } from '@/src/store/group';
+
+defineOptions({ name: 'ValidationMessages' });
 import { ImTypes, ValidationType } from '@/src/types';
 import { groupService, friendService } from '@/src/services';
 import GlobalLoading from '@/src/components/GlobalLoading';

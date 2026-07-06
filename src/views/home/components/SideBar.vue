@@ -72,7 +72,7 @@ watch(contactBadge, (newVal, oldVal) => {
 .sidebar {
     width: 60px;
     flex-shrink: 0;
-    background: rgba(236, 236, 236, 0.4);
+    background: var(--bg-sidebar);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -109,10 +109,11 @@ watch(contactBadge, (newVal, oldVal) => {
             height: 24px;
             opacity: 0.6;
             transition: opacity 0.3s;
+            filter: var(--icon-filter);
         }
 
         &:hover {
-            background-color: #e0e0e0;
+            background-color: var(--bg-hover);
 
             img {
                 opacity: 0.8;
@@ -120,7 +121,7 @@ watch(contactBadge, (newVal, oldVal) => {
         }
 
         &.active {
-            background-color: #007bff; // Primary color
+            background-color: var(--color-primary);
 
             img {
                 opacity: 1;

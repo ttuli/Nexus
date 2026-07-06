@@ -117,9 +117,9 @@ const handleChange = (event: Event) => {
     justify-content: center;
     width: 16px;
     height: 16px;
-    border: 2px solid #d1d5db;
+    border: 2px solid var(--border-color);
     border-radius: 4px;
-    background-color: #fff;
+    background-color: var(--bg-card);
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     
     .checkbox-icon {
@@ -157,21 +157,21 @@ const handleChange = (event: Event) => {
 // Hover state
 .custom-checkbox:not(.is-disabled):hover {
     .checkbox-inner {
-        border-color: #3b82f6;
+        border-color: var(--color-primary);
     }
 }
 
 // Focus state
 .checkbox-original:focus-visible + .checkbox-inner {
-    outline: 2px solid #3b82f6;
+    outline: 2px solid var(--color-primary);
     outline-offset: 2px;
 }
 
 // Checked state
 .custom-checkbox.is-checked {
     .checkbox-inner {
-        background-color: #3b82f6;
-        border-color: #3b82f6;
+        background-color: var(--color-primary);
+        border-color: var(--color-primary);
         
         .checkbox-icon {
             opacity: 1;
@@ -183,8 +183,8 @@ const handleChange = (event: Event) => {
 // Indeterminate state
 .custom-checkbox.is-indeterminate {
     .checkbox-inner {
-        background-color: #3b82f6;
-        border-color: #3b82f6;
+        background-color: var(--color-primary);
+        border-color: var(--color-primary);
         
         .checkbox-indeterminate-icon {
             opacity: 1;

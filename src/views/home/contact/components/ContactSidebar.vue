@@ -81,7 +81,7 @@ watch(pendingCount, (newVal, oldVal) => {
     height: 100%;
     display: flex;
     flex-direction: column;
-    background-color: #fff;
+    background-color: $bg-list;
     // border-right handled by layout
 }
 
@@ -201,7 +201,7 @@ watch(pendingCount, (newVal, oldVal) => {
     }
 
     &::-webkit-scrollbar-thumb {
-        background-color: rgba(0, 0, 0, 0.1);
+        background-color: var(--border-divider);
         border-radius: 2px;
     }
 }

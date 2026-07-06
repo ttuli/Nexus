@@ -10,13 +10,17 @@ import { useSessionStore } from '@/src/store/session'
 
 export function initWindowListener(): void {
     ipcService.on(IpcChannels.WINDOW_STATE, (_event, state) => {
-        const conversationStore = useSessionStore()
+        const sessionStore = useSessionStore()
         switch (state) {
             case 'focused':
-                conversationStore.clearUnread(conversationStore.currentSessionKey)
+                sessionStore.clearUnread(sessionStore.currentSessionKey)
                 break
             default:
                 break
         }
+    })
+
+    ipcService.on(IpcChannels.THEME_SYNC, (_event, theme) => {
+        document.documentElement.setAttribute('data-theme', theme)
     })
 }

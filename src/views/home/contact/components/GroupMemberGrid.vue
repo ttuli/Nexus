@@ -115,7 +115,7 @@ onMounted(() => {
     }
 
     &:hover::-webkit-scrollbar-thumb {
-        background-color: rgba(0, 0, 0, 0.1);
+        background-color: var(--border-divider);
     }
 
     .member-item {

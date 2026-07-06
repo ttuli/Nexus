@@ -22,7 +22,7 @@
             
             <div class="content-container">
                 <router-view v-slot="{ Component }">
-                    <keep-alive include="BlankPage">
+                    <keep-alive include="BlankPage,FriendDetail,GroupDetail,ValidationMessages,SessionContent">
                         <component :is="Component" />
                     </keep-alive>
                 </router-view>
@@ -125,8 +125,6 @@ onMounted(async () => {
     ipcService.on(IpcChannels.ROUTE_NAVIGATE, (_e, path) => {
         router.push(path);
     });
-    await import('@/src/views/home/contact/components/ContactSidebar.vue')
-    await import('@/src/components/BlankPage.vue')
 
     void sessionService.loadAll().then((sessions) => {
         sessionStore.hydrateFromStorage(sessions as any);

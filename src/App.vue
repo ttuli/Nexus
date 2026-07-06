@@ -5,6 +5,9 @@ import { useUserStore } from './store/user'
 import { ipcService, windowService, tokenService, listenerService, LogoutType } from '@/src/services'
 import { IpcChannels } from '@/src/types'
 import { useGroupStore } from './store/group'
+import { useTheme } from '@/src/composables/useTheme'
+
+useTheme()
 
 const isAppMounted = ref(false)
 
@@ -42,19 +45,17 @@ onMounted(() => {
                 useUserStore().setToken(data.token)
                 useGroupStore().initLastReadTime(useUserStore().userID)
             }
-        }).finally(() => {
-            isAppMounted.value = true
         })
     } catch (error) {
         console.error('Failed to set up IPC listeners:', error)
+    } finally {
         isAppMounted.value = true
     }
-
 })
+
 onUnmounted(() => {
-    // 销毁 IPC 监听器
-    ipcService.removeAllListeners()
     listenerService.destroy()
+    ipcService.removeAllListeners()
 })
 </script>
 
