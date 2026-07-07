@@ -1,4 +1,4 @@
-import { ref } from 'vue';
+import { ref, toRaw } from 'vue';
 import { useSessionStore } from '@/src/store/session';
 import { useMessageStore } from '@/src/store/message';
 import type { IMessageSender, IMessagePersister, IFileUploader, IHistoryFetcher } from '@/src/store/message';
@@ -10,6 +10,7 @@ import { chatService } from '@/src/services/chatService';
 import { websocketService } from '@/src/services/websocketService';
 import { fileService } from '@/src/services/fileService';
 import { messageService } from '@/src/services/messageService';
+import { sessionService } from '@/src/services/sessionService';
 
 // ─── 模块级 DI 适配器（只创建一次，避免每次调用时重复构建）─────────────────────
 
@@ -45,11 +46,14 @@ export function useChatPage() {
             await messageStore.sendTextMessage(text, { sender, persister });
 
             // 跨 Store 编排：更新会话列表摘要
-            sessionStore.updateSessionSummary(currentKey, {
+            const updatedSession = sessionStore.updateSessionSummary(currentKey, {
                 last_content: text,
                 last_message_time: Date.now(),
                 last_sender: userStore.userID
             });
+            if (updatedSession) {
+                void sessionService.saveMany([toRaw(updatedSession)]);
+            }
             if (content === undefined) {
                 inputText.value = '';
             }
@@ -68,11 +72,14 @@ export function useChatPage() {
             const currentKey = sessionStore.currentSessionKey;
             await messageStore.sendImageMessage(file, { uploader, sender, persister });
 
-            sessionStore.updateSessionSummary(currentKey, {
+            const updatedSession = sessionStore.updateSessionSummary(currentKey, {
                 last_content: '[图片]',
                 last_message_time: Date.now(),
                 last_sender: userStore.userID
             });
+            if (updatedSession) {
+                void sessionService.saveMany([toRaw(updatedSession)]);
+            }
         } catch (e) {
             console.error('[useChatPage] sendImageMessage failed:', e);
         }
@@ -86,11 +93,14 @@ export function useChatPage() {
             const currentKey = sessionStore.currentSessionKey;
             await messageStore.sendFileMessage(file, { uploader, sender, persister });
 
-            sessionStore.updateSessionSummary(currentKey, {
+            const updatedSession = sessionStore.updateSessionSummary(currentKey, {
                 last_content: `[文件] ${file.name}`,
                 last_message_time: Date.now(),
                 last_sender: userStore.userID
             });
+            if (updatedSession) {
+                void sessionService.saveMany([toRaw(updatedSession)]);
+            }
         } catch (e) {
             console.error('[useChatPage] sendFileMessage failed:', e);
         }
@@ -104,11 +114,14 @@ export function useChatPage() {
             const currentKey = sessionStore.currentSessionKey;
             await messageStore.sendVideoMessage(file, { uploader, sender, persister });
 
-            sessionStore.updateSessionSummary(currentKey, {
+            const updatedSession = sessionStore.updateSessionSummary(currentKey, {
                 last_content: '[视频]',
                 last_message_time: Date.now(),
                 last_sender: userStore.userID
             });
+            if (updatedSession) {
+                void sessionService.saveMany([toRaw(updatedSession)]);
+            }
         } catch (e) {
             console.error('[useChatPage] sendVideoMessage failed:', e);
         }
@@ -127,11 +140,14 @@ export function useChatPage() {
         if (loadedMessages && loadedMessages.length > 0) {
             const latestMsg = loadedMessages[loadedMessages.length - 1];
             if (latestMsg) {
-                sessionStore.updateSessionSummary(sessionKey, {
+                const updatedSession = sessionStore.updateSessionSummary(sessionKey, {
                     last_content: getLastContent(latestMsg),
                     last_message_time: latestMsg.sendTime,
                     last_sender: latestMsg.fromUserId
                 });
+                if (updatedSession) {
+                    void sessionService.saveMany([toRaw(updatedSession)]);
+                }
             }
         }
     }

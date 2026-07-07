@@ -186,19 +186,18 @@ class ChatService {
         return messages;
     }
 
-    async getMessagesBySeqRange(
-        sessionId: string,
-        startSeq: number,
-        endSeq: number,
-        pageSize: number = 200
+    /**
+     * 补拉指定 seq 区间内丢失的消息（闭区间 [fromSeq, toSeq]）
+     * 用于 WebSocket 消息到达时检测到 seq 断层后的补偿拉取
+     */
+    async fetchMissingMessages(
+        sessionKey: string,
+        fromSeq: number,
+        toSeq: number,
     ): Promise<IChatMessage[]> {
-        const start = this.normalizeNumber(startSeq);
-        const end = this.normalizeNumber(endSeq);
-        if (!sessionId || start <= 0 || end <= 0 || start > end || pageSize <= 0) {
-            return [];
-        }
-
-        return this.fetchHistoryFromApi(sessionId, pageSize, { startSeq: start, endSeq: end });
+        if (!sessionKey || fromSeq <= 0 || toSeq <= 0 || fromSeq > toSeq) return [];
+        const count = toSeq - fromSeq + 1;
+        return this.fetchHistoryFromApi(sessionKey, count, { startSeq: fromSeq, endSeq: toSeq });
     }
 
     /**

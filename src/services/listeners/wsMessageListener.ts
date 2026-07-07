@@ -18,6 +18,8 @@ import { useUserStore } from '@/src/store/user';
 import { messageService } from '@/src/services/messageService';
 import { sessionService } from '@/src/services/sessionService';
 import { windowService } from '@/src/services/windowService';
+import { useSessionStore } from '@/src/store/session';
+import { chatService } from '@/src/services/chatService';
 
 export function initWsMessageListener(): void {
 
@@ -30,14 +32,46 @@ export function initWsMessageListener(): void {
         }
 
         const userStore = useUserStore();
+        const sessionStore = useSessionStore();
         const isFromSelf = chatMsg.fromUserId === userStore.userID;
 
+        // 0. seq 断层检测：对比本地 max_seq，若存在缺口则从服务端补拉丢失的消息
+        const incomingSeq = chatMsg.seq ?? 0;
+        if (incomingSeq > 0) {
+            const existingSession = sessionStore.getSession(chatMsg.sessionKey as string);
+            const localMaxSeq = existingSession?.max_seq ?? 0;
+            if (localMaxSeq > 0 && incomingSeq > localMaxSeq + 1) {
+                const gapStart = localMaxSeq + 1;
+                const gapEnd = incomingSeq - 1;
+                console.warn(`[WsMessageListener] Seq gap in ${chatMsg.sessionKey}: expected ${gapStart}, got ${incomingSeq}. Fetching [${gapStart}, ${gapEnd}]...`);
+                try {
+                    const missing = await chatService.fetchMissingMessages(
+                        chatMsg.sessionKey as string,
+                        gapStart,
+                        gapEnd,
+                    );
+                    if (missing.length > 0) {
+                        const messageStore = useMessageStore();
+                        missing.forEach(m => messageStore.upsertMessage(m));
+                        console.log(`[WsMessageListener] Gap filled: ${missing.length} messages fetched.`);
+                    }
+                } catch (e) {
+                    console.error('[WsMessageListener] Failed to fetch missing messages for gap', e);
+                }
+            }
+        }
+
         // 1. 纯状态更新（同步，无 I/O）
-        const updatedSession = useMessageStore().receiveMessage(
-            chatMsg,
-            getLastContent(chatMsg),
-            !isFromSelf
-        );
+        const updatedSession = sessionStore.upsertSession({
+            session_key: chatMsg.sessionKey as string,
+            session_id: chatMsg.sessionId,
+            max_seq: chatMsg.seq,
+            last_content: getLastContent(chatMsg),
+            last_sender: chatMsg.fromUserId,
+            update_time: chatMsg.sendTime,
+        });
+        sessionStore.incrementUnread(chatMsg.sessionKey as string);
+        useMessageStore().upsertMessage(chatMsg);
 
         // 2. 副作用：提示音（仅对方消息）
         if (!isFromSelf) {

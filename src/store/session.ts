@@ -56,7 +56,7 @@ export const useSessionStore = defineStore('session', {
                 if (sessionObj.max_seq !== undefined) {
                     existing.max_seq = sessionObj.max_seq;
                 }
-                
+
                 if (sessionObj.update_time !== undefined) {
                     existing.update_time = sessionObj.update_time;
                     existing.last_message_time = sessionObj.update_time;
@@ -65,13 +65,13 @@ export const useSessionStore = defineStore('session', {
                 if (sessionObj.last_sender !== undefined) existing.last_sender = sessionObj.last_sender;
                 if (sessionObj.is_top !== undefined) existing.is_top = sessionObj.is_top;
                 if (sessionObj.is_disturb !== undefined) existing.is_disturb = sessionObj.is_disturb;
-                
+
                 sessionToUpdate = existing;
                 // 当已存在会话的时间或内容更新时，重新排序以确保会话列表顺序正确
                 this.sortSessionList();
             } else {
                 if (!sessionKey && !sessionId) return null; // 无法创建
-                
+
                 // 不存在，新建会话
                 const newChat: ImTypes.Session & { is_in_list?: number } = {
                     session_id: sessionId || '',
@@ -166,7 +166,7 @@ export const useSessionStore = defineStore('session', {
                 last_sender?: number;
                 max_seq?: number;
             }
-        ) {
+        ): ImTypes.Session | null {
             const chat = this.getSession(sessionKey);
             if (chat) {
                 if (patch.last_content !== undefined) chat.last_content = patch.last_content;
@@ -174,7 +174,9 @@ export const useSessionStore = defineStore('session', {
                 if (patch.last_sender !== undefined) chat.last_sender = patch.last_sender;
                 if (patch.max_seq !== undefined) chat.max_seq = patch.max_seq;
                 this.sortSessionList();
+                return chat;
             }
+            return null
         },
 
         setCurrentSession(sessionkey: string) {

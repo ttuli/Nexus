@@ -13,6 +13,7 @@ import {
 } from '@/src/utils/messageBuilder';
 import { toResourceUrl } from '@/src/utils/resourceUrl';
 import { extractVideoFrame } from '@/src/utils/mediaUtils';
+import { useUserStore } from './user';
 
 // ─── Dependency Injection Interfaces ─────────────────────────────────────────
 // Store 不直接依赖任何 Service，所有外部 I/O 能力通过这些接口在调用方注入。
@@ -137,10 +138,10 @@ export const useMessageStore = defineStore('message', {
                     const seq = Number(msg.seq);
                     if (Number.isFinite(seq) && seq > 0) return seq;
                 }
-                return null;
+                return undefined;
             })();
 
-            if (this.messages.length > 0 && oldestConfirmedSeq === null) {
+            if (this.messages.length > 0 && oldestConfirmedSeq === undefined) {
                 this.hasMore = false;
                 return [];
             }
@@ -149,7 +150,7 @@ export const useMessageStore = defineStore('message', {
             try {
                 const moreMessages = await fetcher.getHistoryMessages(
                     sessionKey,
-                    oldestConfirmedSeq ?? undefined,
+                    oldestConfirmedSeq,
                     this.pageSize
                 );
 
@@ -199,12 +200,13 @@ export const useMessageStore = defineStore('message', {
             deps: { sender: IMessageSender; persister: IMessagePersister }
         ): Promise<void> {
             const sessionStore = useSessionStore();
+            const userStore = useUserStore();
             const chatType = sessionStore.currentSessionType;
             const sessionKey = sessionStore.currentSessionKey;
             const session = sessionStore.getSession(sessionKey);
             const sessionId = session?.session_id || '';
 
-            const { msg, clientId, localMsg } = buildTextWsMessage(content, sessionKey, chatType);
+            const { msg, clientId, localMsg } = buildTextWsMessage(content, sessionId, sessionKey, chatType, userStore.getUserID());
             const storedMsg = this.upsertMessage(localMsg);
 
             try {
@@ -231,6 +233,7 @@ export const useMessageStore = defineStore('message', {
             deps: { uploader: IFileUploader; sender: IMessageSender; persister: IMessagePersister }
         ): Promise<void> {
             const sessionStore = useSessionStore();
+            const userStore = useUserStore();
             const sessionKey = sessionStore.currentSessionKey;
             const session = sessionStore.getSession(sessionKey);
             if (!session) {
@@ -269,7 +272,7 @@ export const useMessageStore = defineStore('message', {
                     height: thumbnailHeight
                 }),
                 fileName: file.name
-            }, sessionKey, chatType);
+            }, sessionId, sessionKey, chatType, userStore.getUserID());
             const storedMsg = this.upsertMessage(localMsg) as any;
 
             try {
@@ -287,8 +290,10 @@ export const useMessageStore = defineStore('message', {
                 const finalMsg = buildImageWsPayload(
                     { ...localMsg, localPath: undefined, thumbnailUrl: undefined },
                     ossUrl,
+                    sessionId,
                     sessionKey,
-                    chatType
+                    chatType,
+                    userStore.getUserID()
                 );
                 const result = await deps.sender.send(finalMsg, clientId, sessionId);
                 if (!result.success || !result.data?.sent) {
@@ -315,6 +320,7 @@ export const useMessageStore = defineStore('message', {
             deps: { uploader: IFileUploader; sender: IMessageSender; persister: IMessagePersister }
         ): Promise<void> {
             const sessionStore = useSessionStore();
+            const userStore = useUserStore();
             const sessionKey = sessionStore.currentSessionKey;
             const session = sessionStore.getSession(sessionKey);
             if (!session) {
@@ -333,7 +339,7 @@ export const useMessageStore = defineStore('message', {
                 fileName: file.name,
                 size: file.size,
                 format: file.type,
-            }, sessionKey, chatType);
+            }, sessionId, sessionKey, chatType, userStore.getUserID());
             const storedMsg = this.upsertMessage(localMsg) as any;
 
             try {
@@ -348,7 +354,7 @@ export const useMessageStore = defineStore('message', {
                 uploadAbortControllers.delete(clientId);
                 storedMsg.url = ossUrl;
 
-                const finalMsg = buildFileWsPayload(localMsg, ossUrl, sessionKey, chatType);
+                const finalMsg = buildFileWsPayload(localMsg, ossUrl, sessionId, sessionKey, chatType, userStore.getUserID());
                 const result = await deps.sender.send(finalMsg, clientId, sessionId);
                 if (!result.success || !result.data?.sent) {
                     storedMsg.status = ImTypes.MessageStatus.MESSAGE_STATUS_FAILED;
@@ -374,6 +380,7 @@ export const useMessageStore = defineStore('message', {
             deps: { uploader: IFileUploader; sender: IMessageSender; persister: IMessagePersister }
         ): Promise<void> {
             const sessionStore = useSessionStore();
+            const userStore = useUserStore();
             const sessionKey = sessionStore.currentSessionKey;
             const session = sessionStore.getSession(sessionKey);
             if (!session) {
@@ -411,7 +418,7 @@ export const useMessageStore = defineStore('message', {
                 size: file.size,
                 format: file.type,
                 fileName: file.name
-            }, sessionKey, chatType);
+            }, sessionId, sessionKey, chatType, userStore.getUserID());
             const storedMsg = this.upsertMessage(localMsg) as any;
 
             try {
@@ -429,8 +436,10 @@ export const useMessageStore = defineStore('message', {
                 const finalMsg = buildVideoWsPayload(
                     { ...localMsg, localPath: undefined, thumbnailUrl: undefined },
                     ossUrl,
+                    sessionId,
                     sessionKey,
-                    chatType
+                    chatType,
+                    userStore.getUserID()
                 );
                 const result = await deps.sender.send(finalMsg, clientId, sessionId);
                 if (!result.success || !result.data?.sent) {
@@ -445,45 +454,5 @@ export const useMessageStore = defineStore('message', {
                 await deps.persister.save(toRaw(storedMsg) as IChatMessage);
             }
         },
-
-        /**
-         * 接收并处理新消息（纯状态操作，同步执行）
-         *
-         * 将持久化（saveMessage）、提示音（playNotificationSound）等副作用
-         * 完全交还给调用方（wsMessageListener）处理，Store 只负责状态更新。
-         *
-         * @param lastContent     已由调用方预计算的会话摘要文本
-         * @param incrementUnread 是否需要增加未读计数（对方发送的消息传 true，自己发送的传 false）
-         * @returns               更新后的 Session 对象，供调用方决定是否持久化
-         */
-        receiveMessage(
-            message: IChatMessage,
-            lastContent: string,
-            incrementUnread: boolean
-        ): ImTypes.Session | undefined {
-            const sessionStore = useSessionStore();
-
-            // 1. 如果是当前活跃会话，写入聊天消息流以更新 UI
-            if (sessionStore.currentSessionKey === message.sessionKey) {
-                this.upsertMessage(message);
-            }
-
-            // 2. 更新会话列表中对应的会话项摘要
-            const updatedSession = sessionStore.upsertSession({
-                session_key: message.sessionKey as string,
-                session_id: message.sessionId,
-                max_seq: message.seq,
-                last_content: lastContent,
-                last_sender: message.fromUserId,
-                update_time: message.sendTime,
-            });
-
-            // 3. 按需增加未读计数
-            if (incrementUnread) {
-                sessionStore.incrementUnread(message.sessionKey as string);
-            }
-
-            return updatedSession ?? undefined;
-        }
     }
 });

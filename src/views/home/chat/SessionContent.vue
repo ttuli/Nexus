@@ -87,7 +87,7 @@ import SystemMessageBubble from '@/src/views/home/chat/components/Bubble/SystemM
 import { IChatMessage, ILocalTextMessage } from '@shared/types/chatMessage';
 import { ImTypes } from '@shared/types';
 import ChatInput from './components/ChatInput.vue';
-import ChatSidebar from './components/sidebar/index.vue';
+import ChatSidebar from './components/Sidebar/index.vue';
 import AiSuggestions from './components/AiSuggestions.vue';
 import type { MenuOption } from '@/src/components/ContextMenu.vue';
 import { ElMessage } from 'element-plus';

@@ -58,11 +58,14 @@ export function useChatNavigation() {
         if (messages && messages.length > 0) {
             const latestMsg = messages[messages.length - 1];
             if (latestMsg) {
-                sessionStore.updateSessionSummary(targetSessionKey, {
+                const updatedSession = sessionStore.updateSessionSummary(targetSessionKey, {
                     last_content: getLastContent(latestMsg),
                     last_message_time: latestMsg.sendTime,
                     last_sender: latestMsg.fromUserId
                 });
+                if (updatedSession) {
+                    void sessionService.saveMany([toRaw(updatedSession) as any]);
+                }
             }
         }
     }
