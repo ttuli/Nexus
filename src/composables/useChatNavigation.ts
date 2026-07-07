@@ -4,6 +4,7 @@ import { sessionService } from '@/src/services/sessionService';
 import { chatService } from '@/src/services/chatService';
 import { getLastContent } from '@/src/utils/messageConverter';
 import { useRouter } from 'vue-router';
+import { toRaw } from 'vue';
 
 /**
  * 封装切换会话的协调逻辑，避免 conversationStore ↔ messageStore 循环依赖。
@@ -35,9 +36,9 @@ export function useChatNavigation() {
         if (currentSession) {
             // 保存未读数被清零等状态到本地 SQLite
             void sessionService.saveMany([{
-                ...JSON.parse(JSON.stringify(currentSession)),
+                ...toRaw(currentSession),
                 is_in_list: 1
-            }]);
+            } as any]);
 
             // 初次加载该会话的历史消息
             void loadInitialMessages(sessionKey);
@@ -50,51 +51,18 @@ export function useChatNavigation() {
      * 同步更新 messageStore 状态与 sessionStore 摘要字段。
      */
     async function loadInitialMessages(targetSessionKey: string): Promise<void> {
-        if (messageStore.isLoading || !messageStore.hasMore) return;
+        const messages = await messageStore.loadMore(targetSessionKey, chatService);
+        
+        if (sessionStore.currentSessionKey !== targetSessionKey) return;
 
-        // 取最旧已确认消息的 seq 作为游标（首次加载列表为空，游标为 undefined）
-        const oldestConfirmedSeq = (() => {
-            for (const msg of messageStore.messages) {
-                const seq = Number(msg.seq);
-                if (Number.isFinite(seq) && seq > 0) return seq;
-            }
-            return undefined;
-        })();
-
-        messageStore.isLoading = true;
-        try {
-            const messages = await chatService.getHistoryMessages(
-                targetSessionKey,
-                oldestConfirmedSeq,
-                messageStore.pageSize
-            );
-
-            // 会话已切换，丢弃过期结果
-            if (sessionStore.currentSessionKey !== targetSessionKey) return;
-
-            if (messages.length > 0) {
-                messageStore.messages.unshift(...messages);
-
-                // 同步更新会话列表摘要
-                const cur = sessionStore.sessionList.find((c: any) => c.session_key === targetSessionKey);
-                if (cur) {
-                    const latestMsg = messageStore.messages[messageStore.messages.length - 1];
-                    if (latestMsg) {
-                        cur.last_content = getLastContent(latestMsg);
-                        cur.last_message_time = latestMsg.sendTime;
-                        if (latestMsg.fromUserId) cur.last_sender = latestMsg.fromUserId;
-                    }
-                }
-            }
-
-            if (messages.length < messageStore.pageSize) {
-                messageStore.hasMore = false;
-            }
-        } catch (e) {
-            console.error('[useChatNavigation] loadInitialMessages failed:', e);
-        } finally {
-            if (sessionStore.currentSessionKey === targetSessionKey) {
-                messageStore.isLoading = false;
+        if (messages && messages.length > 0) {
+            const latestMsg = messages[messages.length - 1];
+            if (latestMsg) {
+                sessionStore.updateSessionSummary(targetSessionKey, {
+                    last_content: getLastContent(latestMsg),
+                    last_message_time: latestMsg.sendTime,
+                    last_sender: latestMsg.fromUserId
+                });
             }
         }
     }

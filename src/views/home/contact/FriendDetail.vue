@@ -79,6 +79,7 @@
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useUserStore } from '@/src/store/user';
+import { useFriendActions } from '@/src/composables/useFriendActions';
 
 defineOptions({ name: 'FriendDetail' });
 import { generateSessionId } from '@/src/utils/sessionUtils';
@@ -96,6 +97,7 @@ import CusInputDialog from '@/src/components/CusInputDialog';
 const route = useRoute();
 const router = useRouter();
 const userStore = useUserStore();
+const { applyFriend } = useFriendActions();
 const { navigateToChat } = useChatNavigation();
 
 const userId = computed(() => Number(route.query.uid));
@@ -235,7 +237,7 @@ const addFriend = async () => {
 
     if (reason !== undefined) {
         try {
-            await friendService.applyFriend({
+            await applyFriend({
                 to_user_id: userId.value,
                 apply_msg: reason,
                 source: 0

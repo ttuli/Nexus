@@ -36,7 +36,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, toRaw } from 'vue';
 import { useRouter } from 'vue-router';
 import SideBar from './components/SideBar.vue';
 import { ipcService, websocketService } from '@/src/services';
@@ -45,12 +45,12 @@ import { useSessionStore } from '@/src/store/session';
 import FilterColumn from '@/src/components/FilterColumn.vue';
 import CreateGroup from '@/src/components/CreateGroup.vue';
 import { createWindow } from '@/src/utils/window';
-import { groupService } from '@/src/services'
+import { useGroupActions } from '@/src/composables/useGroupActions'
 import { IpcChannels, ApiTypes } from '@shared/types';
 import { initRelationStore, storeOfflineTimestamp } from '@/src/store/init';
 import { ElMessage } from 'element-plus';
 import GlobalLoading from '@/src/components/GlobalLoading';
-import messageService from '@/src/services/messageService';
+
 import { useChatNavigation } from '@/src/composables/useChatNavigation';
 import { generateGroupSessionId } from '@/src/utils/sessionUtils';
 import { sessionService } from '@/src/services/sessionService';
@@ -61,6 +61,7 @@ const { navigateToChat } = useChatNavigation();
 
 const leftWidth = ref(250);
 const isResizing = ref(false);
+const { createGroup } = useGroupActions();
 
 const handleMouseDown = () => {
     isResizing.value = true;
@@ -95,7 +96,7 @@ const createGroupVisible = ref(false);
 const handleCreateGroup = async (data: { name: string; userIds: number[] }) => {
     GlobalLoading.show("创建中...")
     try {
-        const res = await groupService.createGroup({
+        const res = await createGroup({
             name: data.name,
             avatar: '',
             member_ids: data.userIds
@@ -135,13 +136,13 @@ onMounted(async () => {
 
     signalWindowReady()
 
-    messageService.getOfflineActiveSessions()
+    sessionStore.syncOfflineActiveSessions()
 });
 onUnmounted(async () => {
     storeOfflineTimestamp()
     void sessionService.saveMany(
         sessionStore.sessionList.map((c) => ({
-            ...JSON.parse(JSON.stringify(c)),
+            ...toRaw(c),
             is_in_list: 1,
         }))
     );

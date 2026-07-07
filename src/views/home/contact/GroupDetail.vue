@@ -89,15 +89,17 @@ import { ElMessage } from 'element-plus';
 import { CopyDocument } from '@element-plus/icons-vue';
 import CusDialog from '@/src/components/CusDialog';
 import { DialogResult } from '@/src/components/CusDialog/types';
+import { useGroupActions } from '@/src/composables/useGroupActions';
 import { groupService } from '@/src/services';
 import CusInputDialog from '@/src/components/CusInputDialog';
-import { ApiTypes, ImTypes } from '@shared/types';
+import { ImTypes } from '@shared/types';
 
 const route = useRoute();
 const router = useRouter();
 const userStore = useUserStore();
 const groupStore = useGroupStore();
 const { navigateToChat } = useChatNavigation();
+const { setMyGroupNickname, quitOrDismissGroup, loadGroupInfo, loadGroupMembers } = useGroupActions();
 
 const groupId = computed(() => parseInt(route.query.id as string));
 const groupInfo = computed(() => {
@@ -125,8 +127,8 @@ const joinTypeLabel = computed(() => {
 
 watch(groupId, (newId) => {
     if (newId) {
-        groupService.fetchByIds([newId], true);
-        groupService.fetchGroupMembers(newId, true);
+        loadGroupInfo(newId, true);
+        loadGroupMembers(newId, true);
     }
 }, { immediate: true });
 
@@ -185,7 +187,7 @@ const editMyNickname = async () => {
     });
 
     if (newNickname !== undefined && newNickname !== myNickname.value) {
-        const success = await groupService.setMemberNickname(groupInfo.value.id, newNickname);
+        const success = await setMyGroupNickname(groupInfo.value.id, newNickname);
         if (success) {
             ElMessage.success('昵称修改成功');
         } else {
@@ -250,8 +252,9 @@ const confirmQuit = async () => {
 
         } else if (res === DialogResult.Cancel) {
             // Dissolve
-            await groupService.dismissGroup({ group_id: groupInfo.value.id } as ApiTypes.group.DismissGroupReq);
-            ElMessage.info('解散群聊功能暂未实现');
+            await quitOrDismissGroup(groupInfo.value.id, true);
+            ElMessage.success('已解散该群聊');
+            router.push('/home/contact');
         }
         return;
     }
@@ -272,10 +275,8 @@ const confirmQuit = async () => {
 const doQuit = async () => {
     if (!groupInfo.value) return;
     try {
-        await groupService.leaveGroup({ groupId: groupInfo.value.id } as any);
+        await quitOrDismissGroup(groupInfo.value.id, false);
         ElMessage.success('已退出该群聊');
-        groupStore.joinedGroupIds.delete(groupId.value);
-        groupStore.groupMap.delete(groupId.value);
         router.push('/home/contact');
     } catch (e) {
         ElMessage.error('退出失败');

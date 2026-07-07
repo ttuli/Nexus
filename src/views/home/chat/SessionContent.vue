@@ -87,7 +87,7 @@ import SystemMessageBubble from '@/src/views/home/chat/components/Bubble/SystemM
 import { IChatMessage, ILocalTextMessage } from '@shared/types/chatMessage';
 import { ImTypes } from '@shared/types';
 import ChatInput from './components/ChatInput.vue';
-import ChatSidebar from './components/Sidebar/index.vue';
+import ChatSidebar from './components/sidebar/index.vue';
 import AiSuggestions from './components/AiSuggestions.vue';
 import type { MenuOption } from '@/src/components/ContextMenu.vue';
 import { ElMessage } from 'element-plus';
@@ -95,7 +95,8 @@ import { ElMessage } from 'element-plus';
 import copyIcon from '@/src/assets/chat/copy.svg?raw';
 import phoneIcon from '@/src/assets/call/phone.svg?raw';
 import trashIcon from '@/src/assets/chat/trash.svg?raw'
-import { windowService, messageSendService, messageService } from '@/src/services';
+import { windowService } from '@/src/services';
+import { useChatPage } from '@/src/composables/useChatPage';
 
 
 const conversationStore = useSessionStore();
@@ -105,6 +106,7 @@ const groupStore = useGroupStore();
 
 const { currentSession, currentSessionKey } = storeToRefs(conversationStore);
 const { messages, isLoading, hasMore } = storeToRefs(messageStore);
+const { loadMore, sendTextMessage, sendImageMessage, sendVideoMessage, sendFileMessage } = useChatPage();
 
 // Sidebar Logic
 const sidebarVisible = ref(false);
@@ -328,7 +330,7 @@ const handleScroll = () => {
         const previousScrollHeight = el.scrollHeight;
         const previousScrollTop = el.scrollTop;
         
-        messageService.loadMoreMessages().then(() => {
+        loadMore().then(() => {
             nextTick(() => {
                 if (messageListRef.value) {
                     const newScrollHeight = messageListRef.value.scrollHeight;
@@ -341,12 +343,12 @@ const handleScroll = () => {
 // Auto scroll and load logic handled in messages watcher above
 
 const handleSendMessage = async (content: string) => {
-    await messageSendService.sendTextMessage(content);
+    await sendTextMessage(content);
 };
 
 const handleSendImage = async (file: File) => {
     try {
-        await messageSendService.sendImageMessage(file);
+        await sendImageMessage(file);
     } catch {
         ElMessage.error('上传图片失败');
     }
@@ -355,9 +357,9 @@ const handleSendImage = async (file: File) => {
 const handleSendFile = async (file: File) => {
     try {
         if (file.type.startsWith('video/')) {
-            await messageSendService.sendVideoMessage(file);
+            await sendVideoMessage(file);
         } else {
-            await messageSendService.sendFileMessage(file);
+            await sendFileMessage(file);
         }
     } catch {
         ElMessage.error(file.type.startsWith('video/') ? '上传视频失败' : '上传文件失败');

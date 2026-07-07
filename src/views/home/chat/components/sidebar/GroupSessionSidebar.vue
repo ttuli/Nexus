@@ -48,13 +48,13 @@ import CusSwitch from '@/src/components/CusSwitch.vue';
 import { useUserStore } from '@/src/store/user';
 import { useSessionStore } from '@/src/store/session';
 import { useMessageStore } from '@/src/store/message';
+import { useGroupActions } from '@/src/composables/useGroupActions';
 import { useGroupStore } from '@/src/store/group';
 import { ImTypes } from '@shared/types';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { leaveGroup, dismissGroup } from '@/src/apis/group';
 import { extractTargetIdFromSessionId } from '@/src/utils/sessionUtils';
 import GroupMembersCard from './GroupMembersCard.vue';
-import { groupService, messageService } from '@/src/services';
+import { groupService } from '@/src/services';
 import { sessionService } from '@/src/services/sessionService';
 
 const props = defineProps<{
@@ -65,6 +65,7 @@ const emit = defineEmits(['close']);
 
 const userStore = useUserStore();
 const sessionStore = useSessionStore();
+const { loadGroupMembers, quitOrDismissGroup } = useGroupActions();
 const messageStore = useMessageStore();
 const groupStore = useGroupStore();
 
@@ -88,7 +89,7 @@ onMounted(async () => {
 
 watch(() => targetId.value, async (newId) => {
     if (newId) {
-        await groupService.fetchGroupMembers(newId);
+        loadGroupMembers(newId);
     }
 });
 
@@ -99,7 +100,7 @@ const handleUpdatePinned = async () => {
     if (pinLoading.value) return;
     pinLoading.value = true;
     try {
-        await messageService.updateConversion(props.chat.session_id, 3 - props.chat.is_top, undefined);
+        await sessionStore.updateConversationOptions(props.chat.session_id, 3 - props.chat.is_top, undefined);
     } finally {
         pinLoading.value = false;
     }
@@ -109,7 +110,7 @@ const handleUpdateDisturb = async () => {
     if (disturbLoading.value) return;
     disturbLoading.value = true;
     try {
-        await messageService.updateConversion(props.chat.session_id, undefined, 3 - props.chat.is_disturb);
+        await sessionStore.updateConversationOptions(props.chat.session_id, undefined, 3 - props.chat.is_disturb);
     } finally {
         disturbLoading.value = false;
     }
@@ -143,21 +144,9 @@ const confirmQuitGroup = () => {
         type: 'warning'
     }).then(async () => {
         try {
-            let res;
-            if (isOwner.value) {
-                res = await dismissGroup({ group_id: numTargetId });
-            } else {
-                res = await leaveGroup({ group_id: numTargetId });
-            }
+            const res = await quitOrDismissGroup(numTargetId, isOwner.value);
             if (res.code === 200) {
                 ElMessage.success(`已${actionName}群聊`);
-                if (!isOwner.value) {
-                    groupStore.joinedGroupIds.delete(numTargetId);
-                } else {
-                    groupStore.joinedGroupIds.delete(numTargetId);
-                }
-                sessionStore.removeSession(props.chat.session_id);
-                void sessionService.deleteOne(props.chat.session_id);
                 emit('close');
             } else {
                 ElMessage.error(res.message || '操作失败');

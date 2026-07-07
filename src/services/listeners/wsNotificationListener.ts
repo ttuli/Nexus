@@ -92,13 +92,25 @@ export function initWsNotificationListener(): void {
                     if (result.shouldPlaySound) {
                         windowService.playNotificationSound()
                     }
+                    // 持久化通知消息到本地 SQLite
+                    const { toRaw } = await import('vue');
+                    const { ipcService: localIpc } = await import('../ipcService');
+                    const { IpcChannels: localChannels } = await import('@shared/types/ipc');
+                    void localIpc.invoke(localChannels.MSG_SAVE, JSON.parse(JSON.stringify(toRaw(result.msg))));
                 }
                 break
             }
 
             case ImTypes.MessageType.MSG_OP_RECALL: {
                 const msgRecall = ImTypes.MessageRecall.decode(data.payload.payload)
-                messageStore.updateMessageStatus(msgRecall.session_id, '', ImTypes.MessageStatus.MESSAGE_STATUS_RECALLED, msgRecall.recall_time, msgRecall.msg_id)
+                const updatedMsg = messageStore.updateMessageStatus(msgRecall.session_id, '', ImTypes.MessageStatus.MESSAGE_STATUS_RECALLED, msgRecall.recall_time, msgRecall.msg_id)
+                if (updatedMsg) {
+                    // 同步更新本地 SQLite 的消息撤回状态
+                    const { toRaw } = await import('vue');
+                    const { ipcService: localIpc } = await import('../ipcService');
+                    const { IpcChannels: localChannels } = await import('@shared/types/ipc');
+                    void localIpc.invoke(localChannels.MSG_SAVE, JSON.parse(JSON.stringify(toRaw(updatedMsg))));
+                }
                 break
             }
         }

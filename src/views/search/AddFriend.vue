@@ -106,7 +106,8 @@ import GroupCard from './components/GroupCard.vue';
 import Avatar from '@/src/components/Avatar.vue';
 import GlobalLoading from '@/src/components/GlobalLoading';
 import { signalWindowReady } from '@/src/utils/window';
-import { userService, friendService, groupService } from '@/src/services';
+import { userService, groupService } from '@/src/services';
+import { useFriendActions } from '@/src/composables/useFriendActions';
 import { ElMessage } from 'element-plus';
 
 import maleIcon from '@/src/assets/gender/male.svg?url';
@@ -121,6 +122,7 @@ const hasSearched = ref(false);
 // Pagination State
 const resultList = ref<(ImTypes.UserInfo | ImTypes.GroupInfo)[]>([]);
 const loading = ref(false);
+const { applyFriend, loadFriendList, loadPendingRequests } = useFriendActions();
 const finished = ref(false);
 const page = ref(1);
 const pageSize = 20;
@@ -251,7 +253,7 @@ const confirmAddFriend = async () => {
     try {
         GlobalLoading.show('正在提交...');
         if (targetUser.value) {
-            let res = await friendService.applyFriend({
+            let res = await applyFriend({
                 to_user_id: targetUser.value.user_id,
                 apply_msg: applyMessage.value,
                 source: searchMode.value
@@ -278,8 +280,8 @@ onMounted(async () => {
     signalWindowReady()
 
     groupService.fetchUserGroupIds()
-    await friendService.loadFriendListToStore()
-    await friendService.loadPendingRequestsToStore()
+    await loadFriendList()
+    await loadPendingRequests()
 })
 </script>
 

@@ -86,13 +86,15 @@ import { useGroupStore } from '@/src/store/group';
 
 defineOptions({ name: 'ValidationMessages' });
 import { ImTypes, ValidationType } from '@shared/types';
-import { groupService, friendService } from '@/src/services';
+import { groupService } from '@/src/services';
+import { useFriendActions } from '@/src/composables/useFriendActions';
 import GlobalLoading from '@/src/components/GlobalLoading';
 import { ElMessage } from 'element-plus';
 import { currentValidationTab } from '@/src/composables/useValidationTab';
 
 const type = ref<'friend' | 'group'>('friend');
 const userStore = useUserStore();
+const { handleFriendApply } = useFriendActions();
 const groupStore = useGroupStore();
 
 const enterTimeFriend = ref(0);
@@ -191,7 +193,7 @@ const handleApply = async (req: ImTypes.FriendRequest, type: 'accept' | 'reject'
     const status: ImTypes.ApplyStatus = type === 'accept' ? ImTypes.ApplyStatus.APPLY_STATUS_AGREED : ImTypes.ApplyStatus.APPLY_STATUS_REJECTED;
     try {
         GlobalLoading.show();
-        await friendService.handleFriendApply({
+        await handleFriendApply({
             request_id: req.id,
             result: status,
             reject_reason: ''

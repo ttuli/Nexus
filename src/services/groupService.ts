@@ -10,16 +10,9 @@ import { ImTypes } from '@shared/types';
 
 import { ipcService } from './ipcService'
 import { ResourceType, IpcChannels, UpdateAction } from '@shared/types'
-import { useGroupStore } from '@/src/store/group'
-import { useUserStore } from '@/src/store/user'
 import { updateGroup, setMemberNickname, joinGroup, createGroup, leaveGroup, handleGroupApply as apiHandleGroupApply, dismissGroup } from '@/src/apis/group'
 import { ApiTypes } from '@shared/types'
 import cacheService from './cacheService'
-import { useSessionStore } from '@/src/store/session'
-import { useMessageStore } from '@/src/store/message'
-import { generateGroupSessionId } from '@/src/utils/sessionUtils';
-import { MessageType, MessageStatus } from '@shared/types/proto'
-import { IChatMessage } from '@shared/types/chatMessage'
 
 class GroupService {
     /**
@@ -28,10 +21,7 @@ class GroupService {
     async fetchByIds(groupIds: number[], forceUpdate: boolean = false): Promise<ImTypes.GroupInfo[]> {
         const result = await ipcService.invoke<{ items?: ImTypes.GroupInfo[] }>(IpcChannels.RESOURCE_GET, ResourceType.GROUP, groupIds, forceUpdate)
         if (result.success) {
-            const groups = (result.data as any)?.items ?? (result as any).items ?? []
-            const groupStore = useGroupStore()
-            groups.forEach((group: ImTypes.GroupInfo) => groupStore.setGroup(group))
-            return groups
+            return (result.data as any)?.items ?? (result as any).items ?? []
         }
         console.error('[GroupService] fetchByIds failed:', result.error)
         return []
@@ -44,8 +34,6 @@ class GroupService {
         const result = await ipcService.invoke<number[]>(IpcChannels.GROUP_FETCH_USER_GROUPS)
 
         if (result.success && result.data) {
-            const groupStore = useGroupStore()
-            result.data.forEach((id: number) => groupStore.joinedGroupIds.add(id))
             return result.data
         }
 
@@ -78,8 +66,6 @@ class GroupService {
         const result = await ipcService.invoke<ImTypes.GroupMember[]>(IpcChannels.GROUP_FETCH_MEMBERS, groupId, forceUpdate)
 
         if (result.success && result.data) {
-            const groupStore = useGroupStore()
-            groupStore.setGroupMembers(groupId, result.data)
             return result.data
         }
 
@@ -92,11 +78,7 @@ class GroupService {
      */
     async fetchPendingApplies(): Promise<ImTypes.GroupApply[]> {
         const result = await ipcService.invoke<ImTypes.GroupApply[]>(IpcChannels.GROUP_FETCH_PENDING_APPLIES)
-        const groupStore = useGroupStore()
         if (result.success && result.data) {
-            result.data.forEach((apply: ImTypes.GroupApply) => {
-                groupStore.groupRequestMap.set(apply.id, apply)
-            })
             return result.data
         }
 
@@ -134,29 +116,16 @@ class GroupService {
     /**
      * 设置群成员昵称
      */
-    async setMemberNickname(groupId: number, nickname: string): Promise<boolean> {
+    async setMemberNickname(groupId: number, nickname: string, meId: number, currentMembers: ImTypes.GroupMember[]): Promise<boolean> {
         try {
             await setMemberNickname({ group_id: groupId, nickname } as ApiTypes.group.SetMemberNicknameReq)
-            const userStore = useUserStore()
-            const groupStore = useGroupStore()
-            let members = groupStore.getGroupMembers(groupId)
-            const meId = userStore.getUserID()
-            if (members) {
-                const me = members.find(m => m.user_id === meId)
-                if (me) {
-                    me.nickname = nickname
-                    cacheService.updateItems(UpdateAction.Update, ResourceType.GROUP_MEMBER, [{ group_id: groupId, members: [{ ...me }] }])
-                }
-            } else {
-                members = await this.fetchGroupMembers(groupId)
-                const me = members.find(m => m.user_id === meId)
-                if (me) {
-                    me.nickname = nickname
-                    cacheService.updateItems(UpdateAction.Update, ResourceType.GROUP_MEMBER, [{ group_id: groupId, members: [{ ...me }] }])
-                }
+            
+            const me = currentMembers.find(m => m.user_id === meId)
+            if (me) {
+                me.nickname = nickname
+                cacheService.updateItems(UpdateAction.Update, ResourceType.GROUP_MEMBER, [{ group_id: groupId, members: [{ ...me }] }])
             }
             return true
-
         } catch (e) {
             console.error('[GroupService] setMemberNickname failed:', e)
         }
@@ -182,27 +151,6 @@ class GroupService {
             const groupInfo = res.data.data as unknown as ImTypes.GroupInfo
             await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP, [groupInfo])
             await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_JOINED, [groupInfo.id])
-
-            // Add session and initial system message
-            const conversationStore = useSessionStore()
-            const messageStore = useMessageStore()
-            const userStore = useUserStore()
-            const sessionId = generateGroupSessionId(groupInfo.id)
-            conversationStore.addOrPinToTop(sessionId)
-
-            const message: IChatMessage = {
-                msgId: `local_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-                sessionId: '',
-                sessionKey: sessionId,
-                fromUserId: userStore.userID,
-                sendTime: Date.now(),
-                seq: 0,
-                status: MessageStatus.MESSAGE_STATUS_UNSPECIFIED,
-                isRead: true,
-                type: MessageType.GROUP_OP_NOTIFICATION,
-                content: `你邀请了${data.member_ids.length}位用户加入了群聊`,
-            }
-            messageStore.upsertMessage(message)
         }
         return res
     }

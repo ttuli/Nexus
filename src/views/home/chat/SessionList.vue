@@ -24,7 +24,7 @@ import { useChatNavigation } from '@/src/composables/useChatNavigation';
 import SessionCard from './components/SessionCard.vue';
 import ContextMenu, { type MenuOption } from '@/src/components/ContextMenu.vue';
 import { ImTypes } from '@shared/types';
-import { messageService } from '@/src/services';
+
 import { sessionService } from '@/src/services/sessionService';
 
 import notdisturb from '@/src/assets/chat/notdisturb.svg?raw';
@@ -96,10 +96,10 @@ const handleMenuSelect = (option: MenuOption) => {
             }
             break;
         case 'toggle_top':
-            messageService.updateConversion(chat.session_id, 3 - chat.is_top, undefined);
+            sessionStore.updateConversationOptions(chat.session_id, 3 - chat.is_top, undefined);
             break;
         case 'toggle_disturb':
-            messageService.updateConversion(chat.session_id, undefined, 3 - chat.is_disturb);
+            sessionStore.updateConversationOptions(chat.session_id, undefined, 3 - chat.is_disturb);
             break;
     }
 };

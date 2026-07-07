@@ -68,7 +68,7 @@ import { ElMessage } from 'element-plus';
 import { messageService } from '@/src/services/messageService';
 import { toResourceUrl } from '@/src/utils/resourceUrl';
 import { fileService } from '@/src/services/fileService';
-import { messageSendService } from '@/src/services';
+import { useMessageStore } from '@/src/store/message';
 
 interface Props {
     message: ILocalVideoMessage;
@@ -217,7 +217,7 @@ const handleClick = async () => {
         if (isDownloading.value) {
             currentDownloadAbort.value?.();
         } else if (isUploading.value) {
-            messageSendService.cancelUpload(props.message.clientId || '');
+            useMessageStore().cancelUpload(props.message.clientId || '');
             ElMessage.error("已取消上传")
         }
         return;

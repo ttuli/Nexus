@@ -73,7 +73,8 @@ import { fileService } from '@/src/services/fileService';
 import { settingService } from '@/src/services/settingService';
 import { ElMessage } from 'element-plus';
 import { ImTypes } from '@shared/types';
-import { messageSendService, messageService } from '@/src/services';
+import { messageService } from '@/src/services';
+import { useMessageStore } from '@/src/store/message';
 import { APP_CONSTANTS as config } from '@shared/config/constants';
 
 interface Props {
@@ -198,7 +199,7 @@ const handleActionClick = () => {
         // 取消操作
         if (isUploading.value) {
             if (props.message.clientId) {
-                messageSendService.cancelUpload(props.message.clientId);
+                useMessageStore().cancelUpload(props.message.clientId);
                 ElMessage.success('已取消上传');
             }
         } else if (isDownloading.value) {

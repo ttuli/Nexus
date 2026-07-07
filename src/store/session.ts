@@ -155,6 +155,28 @@ export const useSessionStore = defineStore('session', {
             }
         },
 
+        /**
+         * 更新会话摘要信息（最后消息、时间、发送人等）
+         */
+        updateSessionSummary(
+            sessionKey: string,
+            patch: {
+                last_content?: string;
+                last_message_time?: number;
+                last_sender?: number;
+                max_seq?: number;
+            }
+        ) {
+            const chat = this.getSession(sessionKey);
+            if (chat) {
+                if (patch.last_content !== undefined) chat.last_content = patch.last_content;
+                if (patch.last_message_time !== undefined) chat.last_message_time = patch.last_message_time;
+                if (patch.last_sender !== undefined) chat.last_sender = patch.last_sender;
+                if (patch.max_seq !== undefined) chat.max_seq = patch.max_seq;
+                this.sortSessionList();
+            }
+        },
+
         setCurrentSession(sessionkey: string) {
             if (!sessionkey) {
                 this.currentSessionKey = '';
@@ -217,6 +239,55 @@ export const useSessionStore = defineStore('session', {
                     is_disturb: Number(c.is_disturb) || 1,
                 }));
             this.sortSessionList();
+        },
+
+        /**
+         * 同步离线活动会话并写入本地 SQLite
+         */
+        async syncOfflineActiveSessions() {
+            const { getOfflineTimestamp } = await import('./init');
+            const { getUserActiveConversation } = await import('@/src/apis/message');
+            const { sessionService } = await import('@/src/services/sessionService');
+            const { toRaw } = await import('vue');
+
+            const timestamp = getOfflineTimestamp();
+            const res = await getUserActiveConversation({ timestamp });
+            if (res.code === 200) {
+                const updatedSessions: any[] = [];
+                res.data.sessions.forEach((ss: any) => {
+                    const updated = this.upsertSession(ss);
+                    if (updated) updatedSessions.push(toRaw(updated));
+                });
+                if (updatedSessions.length > 0) {
+                    void sessionService.saveMany(updatedSessions);
+                }
+            }
+        },
+
+        /**
+         * 更新会话配置（置顶、免打扰等）并同步到服务器
+         */
+        async updateConversationOptions(sessionId: string, isTop?: number, isDisturb?: number) {
+            const chat = this.getSession(sessionId);
+            if (!chat) return;
+            if (isTop === undefined && isDisturb === undefined) return;
+
+            let isTopVal = isTop ?? chat.is_top;
+            let isDisturbVal = isDisturb ?? chat.is_disturb;
+            chat.is_top = isTopVal;
+            chat.is_disturb = isDisturbVal;
+            this.sortSessionList();
+
+            try {
+                const { updateConversation } = await import('@/src/apis/message');
+                await updateConversation({
+                    session_id: sessionId,
+                    is_top: Number(isTopVal),
+                    is_disturb: Number(isDisturbVal),
+                });
+            } catch (error) {
+                console.error(error);
+            }
         },
     },
     getters: {

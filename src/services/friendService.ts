@@ -5,15 +5,11 @@ import { ImTypes, ResourceType, UpdateAction } from '@shared/types';
  */
 
 import { ipcService } from './ipcService'
-import { useUserStore } from '@/src/store/user'
-import { useSessionStore } from '@/src/store/session'
 import { IpcChannels } from '@shared/types'
 import { applyFriend, deleteFriend, handleFriendApply, updateFriendInfo } from '@/src/apis/user'
 import { ApiTypes } from '@shared/types'
 import cacheService from './cacheService';
-import { generateSessionId } from '@/src/utils/sessionUtils';
 import { convertApplySrc2FriendSrc } from '@/src/utils/messageConverter';
-import { sessionService } from './sessionService';
 
 class FriendService {
     /**
@@ -45,45 +41,11 @@ class FriendService {
     }
 
     /**
-     * 加载好友列表并更新 Store
-     */
-    async loadFriendListToStore(): Promise<ImTypes.Friend[]> {
-        const friends = await this.fetchFriendList()
-        const userStore = useUserStore()
-        friends.forEach(friend => userStore.setFriend(friend))
-        return friends
-    }
-
-    /**
-     * 加载好友请求列表并更新 Store
-     */
-    async loadPendingRequestsToStore(): Promise<ImTypes.FriendRequest[]> {
-        const requests = await this.fetchPendingRequests()
-        const userStore = useUserStore()
-        requests.forEach(request => userStore.setFriendRequest(request))
-        return requests
-    }
-
-    /**
      * 发起好友申请
      */
     async applyFriend(data: ApiTypes.user.NewFriendApplyReq) {
         let res = await applyFriend(data)
         if (res.data.friend) {
-            const friend = res.data.friend;
-            const sessionKey = generateSessionId(friend.user_id, friend.friend_id);
-            
-            const store = useSessionStore();
-            const existing = store.getSession(sessionKey);
-            const updated = store.upsertSession({
-                session_key: sessionKey,
-                type: ImTypes.SessionType.SESSION_TYPE_PRIVATE,
-                max_seq: existing?.max_seq || 0,
-                update_time: existing?.update_time || Date.now(),
-                last_content: existing?.last_content || '',
-                last_sender: existing?.last_sender || 0,
-            });
-            if (updated) void sessionService.saveMany([JSON.parse(JSON.stringify(updated))]);
             await cacheService.updateItems(UpdateAction.Add, ResourceType.FRIEND, [res.data.friend]);
         } else if (res.data.data) {
             await cacheService.updateItems(UpdateAction.Add, ResourceType.FRIEND_REQUEST, [res.data.data]);
@@ -94,7 +56,7 @@ class FriendService {
     /**
      * 处理好友申请
      */
-    async handleFriendApply(data: ApiTypes.user.HandleFriendApplyReq) {
+    async handleFriendApply(data: ApiTypes.user.HandleFriendApplyReq, myUserId: number) {
         let res = await handleFriendApply(data);
         
         if (res.data.data) {
@@ -113,9 +75,8 @@ class FriendService {
                     source = ImTypes.ApplySource.APPLY_SOURCE_FROM_RECOMMEND;
                 }
 
-                const userStore = useUserStore();
                 await cacheService.updateItems(UpdateAction.Add, ResourceType.FRIEND, [{
-                    user_id: userStore.getUserID(),
+                    user_id: myUserId,
                     friend_id: req.from_user_id,
                     remark: '',
                     blocked: false,
@@ -125,23 +86,6 @@ class FriendService {
                     extra: ""
                 } as ImTypes.Friend]);
             }
-        }
-
-        if (res.data.data) {
-            const req = res.data.data;
-            const sessionKey = generateSessionId(req.from_user_id, req.to_user_id);
-            
-            const store = useSessionStore();
-            const existing = store.getSession(sessionKey);
-            const updated = store.upsertSession({
-                session_key: sessionKey,
-                type: ImTypes.SessionType.SESSION_TYPE_PRIVATE,
-                max_seq: existing?.max_seq || 0,
-                update_time: existing?.update_time || Date.now(),
-                last_content: existing?.last_content || '',
-                last_sender: existing?.last_sender || 0,
-            });
-            if (updated) void sessionService.saveMany([JSON.parse(JSON.stringify(updated))]);
         }
         return res;
     }

@@ -3,7 +3,6 @@ import { defineStore } from 'pinia';
 import { jwtDecode } from "jwt-decode";
 import { TokenPayload } from '@shared/types'
 import { reactive } from 'vue'
-import { userService } from '@/src/services';
 
 export const useUserStore = defineStore('user', {
   state: () => ({
@@ -45,9 +44,6 @@ export const useUserStore = defineStore('user', {
     },
 
     getUser(id: number): ImTypes.UserInfo | undefined {
-      if (!this.userMap.has(id)) {
-        userService.fetchByIds([id])
-      }
       return this.userMap.get(id)
     },
 

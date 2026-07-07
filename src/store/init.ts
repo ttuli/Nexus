@@ -1,4 +1,6 @@
-import { friendService, groupService, userService } from "@/src/services";
+import { userService } from "@/src/services";
+import { useGroupActions } from '@/src/composables/useGroupActions';
+import { useFriendActions } from '@/src/composables/useFriendActions';
 import { ImTypes } from '@shared/types';
 import { useUserStore } from "./user";
 import { useSessionStore } from "./session";
@@ -6,19 +8,22 @@ import { extractTargetIdFromSessionId } from '@/src/utils/sessionUtils';
 
 export async function initRelationStore() {
     const userStore = useUserStore()
-    const friends = await friendService.loadFriendListToStore()
+    const { loadFriendList, loadPendingRequests } = useFriendActions();
+    const friends = await loadFriendList();
     const ids = friends.map((friend: ImTypes.Friend) => friend.friend_id);
     ids.push(userStore.getUserID());
 
-    groupService.fetchPendingApplies().then(grequests => {
+    const { loadPendingApplies, loadGroupInfos, loadUserGroupIds } = useGroupActions();
+
+    loadPendingApplies().then(grequests => {
         const reqGroupIds: number[] = [];
         grequests.forEach((request: ImTypes.GroupApply) => {
             reqGroupIds.push(request.group_id);
         });
-        if (reqGroupIds.length) groupService.fetchByIds([...new Set(reqGroupIds)]);
+        if (reqGroupIds.length) loadGroupInfos([...new Set(reqGroupIds)]);
     });
 
-    friendService.loadPendingRequestsToStore().then(requests => {
+    loadPendingRequests().then(requests => {
         const reqIds: number[] = [];
         requests.forEach((request: ImTypes.FriendRequest) => {
             if (userStore.getUserID() === request.from_user_id) {
@@ -43,9 +48,11 @@ export async function initRelationStore() {
     })
     await userService.fetchByIds([...new Set(ids)]);
 
-    const groupIds = await groupService.fetchUserGroupIds();
-    groupIds.push(...groupIdsToFetch);
-    await groupService.fetchByIds([...new Set(groupIds)]);
+    const groupIds = await loadUserGroupIds();
+    const allGroupIds = [...new Set([...groupIds, ...groupIdsToFetch])];
+    if (allGroupIds.length) {
+        await loadGroupInfos(allGroupIds);
+    }
 }
 
 export function storeOfflineTimestamp() {

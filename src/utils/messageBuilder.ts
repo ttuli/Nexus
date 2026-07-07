@@ -9,8 +9,6 @@ import {
     ILocalVideoMessage, ILocalAudioMessage, ILocalFileMessage,
 } from '@shared/types';
 import { Renderer_Config as config } from '@shared/config/constants';
-import { useUserStore } from '@/src/store/user';
-import { useSessionStore } from '@/src/store/session';
 import { ulid } from 'ulid';
 import { extractTargetIdFromSessionId } from './sessionUtils';
 
@@ -73,13 +71,8 @@ export interface WsMessageResult<T extends IChatMessage = IChatMessage> {
 
 // ─── Shared base builder (private) ───────────────────────────────────────────
 
-function buildBase(type: ImTypes.MessageType, sessionKey: string, existingClientId?: string) {
-    const userStore = useUserStore();
-    const conversationStore = useSessionStore();
-    const currentSession = conversationStore.getSession(sessionKey);
-    const sessionId = currentSession?.session_id || '';
-
-    const clientId = existingClientId ?? ulid();
+function buildBase(type: ImTypes.MessageType, sessionKey: string, sessionId: string, meId: number, existingClientId?: string) {
+    const clientId = existingClientId || ulid();
 
     const isGroupMsg = [
         ImTypes.MessageType.GROUP_TEXT,
@@ -98,13 +91,13 @@ function buildBase(type: ImTypes.MessageType, sessionKey: string, existingClient
         targetType = ImTypes.TargetType.USER;
     }
 
-    targetId = extractTargetIdFromSessionId(sessionKey, userStore.getUserID()) || 0;
+    targetId = extractTargetIdFromSessionId(sessionKey, meId) || 0;
 
     const baseMsg: ImTypes.BaseMessage = {
         msg_id: '',
         session_id: sessionId,
         session_key: sessionKey,
-        from_user_id: userStore.getUserID(),
+        from_user_id: meId,
         target: targetId,
         send_time: Date.now(),
         msg_seq: 0,
@@ -127,7 +120,7 @@ function buildBase(type: ImTypes.MessageType, sessionKey: string, existingClient
         msgId: '',
         sessionId: sessionId,
         sessionKey,
-        fromUserId: userStore.getUserID(),
+        fromUserId: meId,
         sendTime: baseMsg.send_time,
         seq: 0,
         status: ImTypes.MessageStatus.MESSAGE_STATUS_SENDING,
@@ -147,12 +140,14 @@ function buildBase(type: ImTypes.MessageType, sessionKey: string, existingClient
  */
 export function buildTextWsMessage(
     content: string,
+    sessionId: string,
     sessionKey: string,
-    sessionType: ImTypes.SessionType
+    sessionType: ImTypes.SessionType,
+    meId: number
 ): WsMessageResult<ILocalTextMessage> {
     const isGroup = sessionType === ImTypes.SessionType.SESSION_TYPE_GROUP;
     const type = isGroup ? ImTypes.MessageType.GROUP_TEXT : ImTypes.MessageType.CHAT_TEXT;
-    const { clientId, baseMsg, wsMsg, commonFields } = buildBase(type, sessionKey);
+    const { clientId, baseMsg, wsMsg, commonFields } = buildBase(type, sessionKey, sessionId, meId);
 
     wsMsg.payload = ImTypes.TextMessage.encode({ base: baseMsg, content, at_list: [] }).finish();
     const localMsg: ILocalTextMessage = { ...commonFields, type, content, atList: [] };
@@ -165,11 +160,13 @@ export function buildTextWsMessage(
 export function buildImageLocalMsg(
     content: ImageContent,
     sessionId: string,
-    conversationType: ImTypes.SessionType
+    sessionKey: string,
+    sessionType: ImTypes.SessionType,
+    meId: number
 ): { clientId: string; localMsg: ILocalImageMessage } {
-    const isGroup = conversationType === ImTypes.SessionType.SESSION_TYPE_GROUP;
+    const isGroup = sessionType === ImTypes.SessionType.SESSION_TYPE_GROUP;
     const type = isGroup ? ImTypes.MessageType.GROUP_IMAGE : ImTypes.MessageType.CHAT_IMAGE;
-    const { clientId, commonFields } = buildBase(type, sessionId);
+    const { clientId, commonFields } = buildBase(type, sessionKey, sessionId, meId);
 
     const localMsg: ILocalImageMessage = {
         ...commonFields,
@@ -197,11 +194,13 @@ export function buildImageWsPayload(
     localMsg: ILocalImageMessage,
     ossUrl: string,
     sessionId: string,
-    conversationType: ImTypes.SessionType
+    sessionKey: string,
+    sessionType: ImTypes.SessionType,
+    meId: number
 ): ImTypes.WSMessage {
-    const isGroup = conversationType === ImTypes.SessionType.SESSION_TYPE_GROUP;
+    const isGroup = sessionType === ImTypes.SessionType.SESSION_TYPE_GROUP;
     const type = isGroup ? ImTypes.MessageType.GROUP_IMAGE : ImTypes.MessageType.CHAT_IMAGE;
-    const { baseMsg, wsMsg } = buildBase(type, sessionId, localMsg.clientId);
+    const { baseMsg, wsMsg } = buildBase(type, sessionKey, sessionId, meId, localMsg.clientId);
 
     wsMsg.payload = ImTypes.ImageMessage.encode({
         base: baseMsg,
@@ -225,11 +224,13 @@ export function buildImageWsPayload(
 export function buildFileLocalMsg(
     content: FileContent,
     sessionId: string,
-    conversationType: ImTypes.SessionType
+    sessionKey: string,
+    sessionType: ImTypes.SessionType,
+    meId: number
 ): { clientId: string; localMsg: ILocalFileMessage } {
-    const isGroup = conversationType === ImTypes.SessionType.SESSION_TYPE_GROUP;
+    const isGroup = sessionType === ImTypes.SessionType.SESSION_TYPE_GROUP;
     const type = isGroup ? ImTypes.MessageType.GROUP_FILE : ImTypes.MessageType.CHAT_FILE;
-    const { clientId, commonFields } = buildBase(type, sessionId);
+    const { clientId, commonFields } = buildBase(type, sessionKey, sessionId, meId);
 
     const localMsg: ILocalFileMessage = {
         ...commonFields,
@@ -252,11 +253,13 @@ export function buildFileWsPayload(
     localMsg: ILocalFileMessage,
     ossUrl: string,
     sessionId: string,
-    conversationType: ImTypes.SessionType
+    sessionKey: string,
+    sessionType: ImTypes.SessionType,
+    meId: number
 ): ImTypes.WSMessage {
-    const isGroup = conversationType === ImTypes.SessionType.SESSION_TYPE_GROUP;
+    const isGroup = sessionType === ImTypes.SessionType.SESSION_TYPE_GROUP;
     const type = isGroup ? ImTypes.MessageType.GROUP_FILE : ImTypes.MessageType.CHAT_FILE;
-    const { baseMsg, wsMsg } = buildBase(type, sessionId, localMsg.clientId);
+    const { baseMsg, wsMsg } = buildBase(type, sessionKey, sessionId, meId, localMsg.clientId);
 
     wsMsg.payload = ImTypes.FileMessage.encode({
         base: baseMsg,
@@ -277,12 +280,13 @@ export function buildFileWsPayload(
 export function buildAudioWsMessage(
     content: AudioContent,
     sessionId: string,
-    conversationType: ImTypes.SessionType,
-    existingClientId?: string
+    sessionKey: string,
+    sessionType: ImTypes.SessionType,
+    meId: number
 ): WsMessageResult<ILocalAudioMessage> {
-    const isGroup = conversationType === ImTypes.SessionType.SESSION_TYPE_GROUP;
+    const isGroup = sessionType === ImTypes.SessionType.SESSION_TYPE_GROUP;
     const type = isGroup ? ImTypes.MessageType.GROUP_AUDIO : ImTypes.MessageType.CHAT_AUDIO;
-    const { clientId, baseMsg, wsMsg, commonFields } = buildBase(type, sessionId, existingClientId);
+    const { clientId, baseMsg, wsMsg, commonFields } = buildBase(type, sessionKey, sessionId, meId);
 
     wsMsg.payload = ImTypes.AudioMessage.encode({
         base: baseMsg,
@@ -312,11 +316,13 @@ export function buildAudioWsMessage(
 export function buildVideoLocalMsg(
     content: VideoContent,
     sessionId: string,
-    conversationType: ImTypes.SessionType
+    sessionKey: string,
+    sessionType: ImTypes.SessionType,
+    meId: number
 ): { clientId: string; localMsg: ILocalVideoMessage } {
-    const isGroup = conversationType === ImTypes.SessionType.SESSION_TYPE_GROUP;
+    const isGroup = sessionType === ImTypes.SessionType.SESSION_TYPE_GROUP;
     const type = isGroup ? ImTypes.MessageType.GROUP_VIDEO : ImTypes.MessageType.CHAT_VIDEO;
-    const { clientId, commonFields } = buildBase(type, sessionId);
+    const { clientId, commonFields } = buildBase(type, sessionKey, sessionId, meId);
 
     const localMsg: ILocalVideoMessage = {
         ...commonFields,
@@ -345,11 +351,13 @@ export function buildVideoWsPayload(
     localMsg: ILocalVideoMessage,
     ossUrl: string,
     sessionId: string,
-    conversationType: ImTypes.SessionType
+    sessionKey: string,
+    sessionType: ImTypes.SessionType,
+    meId: number
 ): ImTypes.WSMessage {
-    const isGroup = conversationType === ImTypes.SessionType.SESSION_TYPE_GROUP;
+    const isGroup = sessionType === ImTypes.SessionType.SESSION_TYPE_GROUP;
     const type = isGroup ? ImTypes.MessageType.GROUP_VIDEO : ImTypes.MessageType.CHAT_VIDEO;
-    const { baseMsg, wsMsg } = buildBase(type, sessionId, localMsg.clientId);
+    const { baseMsg, wsMsg } = buildBase(type, sessionKey, sessionId, meId, localMsg.clientId);
 
     wsMsg.payload = ImTypes.VideoMessage.encode({
         base: baseMsg,
