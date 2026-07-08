@@ -56,9 +56,3 @@ contextBridge.exposeInMainWorld('webUtils', {
   getPathForFile: (file: File) => webUtils.getPathForFile(file),
 })
 
-// Expose process object for platform detection (移除了 process.env)
-contextBridge.exposeInMainWorld('process', {
-  platform: process.platform,
-  versions: process.versions,
-})
-

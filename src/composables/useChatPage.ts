@@ -2,7 +2,6 @@ import { ref, toRaw } from 'vue';
 import { useSessionStore } from '@/src/store/session';
 import { useMessageStore } from '@/src/store/message';
 import type { IMessageSender, IMessagePersister, IFileUploader, IHistoryFetcher } from '@/src/store/message';
-import { useUserStore } from '@/src/store/user';
 import { getLastContent } from '@/src/utils/messageConverter';
 
 // ─── Service Imports（仅在 Composable 层引入，注入进 Store）────────────────────
@@ -29,7 +28,6 @@ const fetcher: IHistoryFetcher = chatService;
 export function useChatPage() {
     const sessionStore = useSessionStore();
     const messageStore = useMessageStore();
-    const userStore = useUserStore();
     const inputText = ref('');
     const isSending = ref(false);
 
@@ -43,13 +41,13 @@ export function useChatPage() {
         isSending.value = true;
         try {
             const currentKey = sessionStore.currentSessionKey;
-            await messageStore.sendTextMessage(text, { sender, persister });
+            const sentMsg = await messageStore.sendTextMessage(text, { sender, persister });
 
             // 跨 Store 编排：更新会话列表摘要
             const updatedSession = sessionStore.updateSessionSummary(currentKey, {
-                last_content: text,
-                last_message_time: Date.now(),
-                last_sender: userStore.userID
+                last_content: getLastContent(sentMsg),
+                last_message_time: sentMsg.sendTime || Date.now(),
+                last_sender: sentMsg.fromUserId
             });
             if (updatedSession) {
                 void sessionService.saveMany([toRaw(updatedSession)]);
@@ -70,15 +68,17 @@ export function useChatPage() {
     async function sendImageMessage(file: File) {
         try {
             const currentKey = sessionStore.currentSessionKey;
-            await messageStore.sendImageMessage(file, { uploader, sender, persister });
+            const sentMsg = await messageStore.sendImageMessage(file, { uploader, sender, persister });
 
-            const updatedSession = sessionStore.updateSessionSummary(currentKey, {
-                last_content: '[图片]',
-                last_message_time: Date.now(),
-                last_sender: userStore.userID
-            });
-            if (updatedSession) {
-                void sessionService.saveMany([toRaw(updatedSession)]);
+            if (sentMsg) {
+                const updatedSession = sessionStore.updateSessionSummary(currentKey, {
+                    last_content: getLastContent(sentMsg),
+                    last_message_time: sentMsg.sendTime || Date.now(),
+                    last_sender: sentMsg.fromUserId
+                });
+                if (updatedSession) {
+                    void sessionService.saveMany([toRaw(updatedSession)]);
+                }
             }
         } catch (e) {
             console.error('[useChatPage] sendImageMessage failed:', e);
@@ -91,15 +91,17 @@ export function useChatPage() {
     async function sendFileMessage(file: File) {
         try {
             const currentKey = sessionStore.currentSessionKey;
-            await messageStore.sendFileMessage(file, { uploader, sender, persister });
+            const sentMsg = await messageStore.sendFileMessage(file, { uploader, sender, persister });
 
-            const updatedSession = sessionStore.updateSessionSummary(currentKey, {
-                last_content: `[文件] ${file.name}`,
-                last_message_time: Date.now(),
-                last_sender: userStore.userID
-            });
-            if (updatedSession) {
-                void sessionService.saveMany([toRaw(updatedSession)]);
+            if (sentMsg) {
+                const updatedSession = sessionStore.updateSessionSummary(currentKey, {
+                    last_content: getLastContent(sentMsg),
+                    last_message_time: sentMsg.sendTime || Date.now(),
+                    last_sender: sentMsg.fromUserId
+                });
+                if (updatedSession) {
+                    void sessionService.saveMany([toRaw(updatedSession)]);
+                }
             }
         } catch (e) {
             console.error('[useChatPage] sendFileMessage failed:', e);
@@ -112,15 +114,17 @@ export function useChatPage() {
     async function sendVideoMessage(file: File) {
         try {
             const currentKey = sessionStore.currentSessionKey;
-            await messageStore.sendVideoMessage(file, { uploader, sender, persister });
+            const sentMsg = await messageStore.sendVideoMessage(file, { uploader, sender, persister });
 
-            const updatedSession = sessionStore.updateSessionSummary(currentKey, {
-                last_content: '[视频]',
-                last_message_time: Date.now(),
-                last_sender: userStore.userID
-            });
-            if (updatedSession) {
-                void sessionService.saveMany([toRaw(updatedSession)]);
+            if (sentMsg) {
+                const updatedSession = sessionStore.updateSessionSummary(currentKey, {
+                    last_content: getLastContent(sentMsg),
+                    last_message_time: sentMsg.sendTime || Date.now(),
+                    last_sender: sentMsg.fromUserId
+                });
+                if (updatedSession) {
+                    void sessionService.saveMany([toRaw(updatedSession)]);
+                }
             }
         } catch (e) {
             console.error('[useChatPage] sendVideoMessage failed:', e);

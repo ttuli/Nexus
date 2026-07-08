@@ -280,6 +280,9 @@ export function getLastContent(
         case ImTypes.MessageType.CHAT_FILE:
         case ImTypes.MessageType.GROUP_FILE:
             content = '[文件]';
+            if ((message as any).fileName) {
+                content += ' ' + (message as any).fileName;
+            }
             break;
         case ImTypes.MessageType.CHAT_VIDEO:
         case ImTypes.MessageType.GROUP_VIDEO:

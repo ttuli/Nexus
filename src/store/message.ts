@@ -46,6 +46,34 @@ export interface IHistoryFetcher {
     ): Promise<IChatMessage[]>
 }
 
+/**
+ * 媒体消息发送规格：描述各媒体类型的差异化部分。
+ * _sendMediaMessage 通用流水线通过此接口接入具体的消息构建逻辑。
+ */
+interface MediaMessageSpec {
+    /** 待上传的文件对象 */
+    file: File;
+    /** 文件上传接口所需的媒体类型标识 */
+    fileType: ApiTypes.file.FileType;
+    /** 构建本地占位消息（元数据已由调用方预处理） */
+    buildLocalMsg(
+        sessionId: string,
+        sessionKey: string,
+        chatType: ImTypes.SessionType,
+        userId: number
+    ): { clientId: string; localMsg: IChatMessage };
+    /** 上传完成后，利用 ossUrl 构建发送给服务端的 WS 消息 */
+    buildWsPayload(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        localMsg: any,
+        ossUrl: string,
+        sessionId: string,
+        sessionKey: string,
+        chatType: ImTypes.SessionType,
+        userId: number
+    ): ImTypes.WSMessage;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 const uploadAbortControllers = new Map<string, () => void>();
@@ -198,7 +226,7 @@ export const useMessageStore = defineStore('message', {
         async sendTextMessage(
             content: string,
             deps: { sender: IMessageSender; persister: IMessagePersister }
-        ): Promise<void> {
+        ): Promise<IChatMessage> {
             const sessionStore = useSessionStore();
             const userStore = useUserStore();
             const chatType = sessionStore.currentSessionType;
@@ -220,6 +248,60 @@ export const useMessageStore = defineStore('message', {
             } finally {
                 await deps.persister.save(toRaw(storedMsg) as IChatMessage);
             }
+            return storedMsg;
+        },
+
+        /**
+         * 媒体消息发送通用流水线（内部模板方法）
+         * 封装上传、WS 发送、错误处理、SQLite 落库等公共步骤。
+         * 具体消息类型通过 MediaMessageSpec 注入差异化逻辑。
+         */
+        async _sendMediaMessage(
+            spec: MediaMessageSpec,
+            logTag: string,
+            deps: { uploader: IFileUploader; sender: IMessageSender; persister: IMessagePersister }
+        ): Promise<IChatMessage | undefined> {
+            const sessionStore = useSessionStore();
+            const userStore = useUserStore();
+            const sessionKey = sessionStore.currentSessionKey;
+            const session = sessionStore.getSession(sessionKey);
+            if (!session) {
+                ElMessage.error('获取会话失败');
+                return undefined;
+            }
+            const sessionId = session.session_id || '';
+            const chatType = session.type;
+            const userId = userStore.getUserID();
+
+            const { clientId, localMsg } = spec.buildLocalMsg(sessionId, sessionKey, chatType, userId);
+            const storedMsg = this.upsertMessage(localMsg) as any;
+
+            try {
+                const { promise, abort } = deps.uploader.uploadFile(
+                    spec.file,
+                    spec.fileType,
+                    (progress) => { storedMsg.uploadProgress = progress; }
+                );
+                uploadAbortControllers.set(clientId, abort);
+
+                const ossUrl = await promise;
+                uploadAbortControllers.delete(clientId);
+                storedMsg.url = ossUrl;
+
+                const finalMsg = spec.buildWsPayload(localMsg, ossUrl, sessionId, sessionKey, chatType, userId);
+                const result = await deps.sender.send(finalMsg, clientId, sessionId);
+                if (!result.success || !result.data?.sent) {
+                    storedMsg.status = ImTypes.MessageStatus.MESSAGE_STATUS_FAILED;
+                }
+            } catch (e) {
+                console.error(`[MessageStore] ${logTag} failed:`, e);
+                storedMsg.status = ImTypes.MessageStatus.MESSAGE_STATUS_FAILED;
+                storedMsg.uploadProgress = 0;
+                uploadAbortControllers.delete(clientId);
+            } finally {
+                await deps.persister.save(toRaw(storedMsg) as IChatMessage);
+            }
+            return storedMsg;
         },
 
         /**
@@ -231,18 +313,8 @@ export const useMessageStore = defineStore('message', {
         async sendImageMessage(
             file: File,
             deps: { uploader: IFileUploader; sender: IMessageSender; persister: IMessagePersister }
-        ): Promise<void> {
-            const sessionStore = useSessionStore();
-            const userStore = useUserStore();
-            const sessionKey = sessionStore.currentSessionKey;
-            const session = sessionStore.getSession(sessionKey);
-            if (!session) {
-                ElMessage.error('获取会话失败');
-                return;
-            }
-            const sessionId = session.session_id || '';
-            const chatType = session.type;
-
+        ): Promise<IChatMessage | undefined> {
+            // ── 图片专属：预读尺寸以计算缩略图维度 ──────────────────────────
             const bitmap = await createImageBitmap(file);
             const imgWidth = bitmap.width;
             const imgHeight = bitmap.height;
@@ -256,57 +328,33 @@ export const useMessageStore = defineStore('message', {
             bitmap.close();
             const filePath = window.webUtils.getPathForFile(file);
 
-            const { clientId, localMsg } = buildImageLocalMsg({
-                url: '',
-                localPath: filePath,
-                uploadProgress: 0,
-                width: imgWidth,
-                height: imgHeight,
-                thumbnailWidth,
-                thumbnailHeight,
-                size: file.size,
-                format: file.type,
-                thumbnailUrl: toResourceUrl(filePath, {
-                    cacheType: CacheOptionType.IMAGE_THUMB,
-                    width: thumbnailWidth,
-                    height: thumbnailHeight
-                }),
-                fileName: file.name
-            }, sessionId, sessionKey, chatType, userStore.getUserID());
-            const storedMsg = this.upsertMessage(localMsg) as any;
-
-            try {
-                const { promise, abort } = deps.uploader.uploadFile(
-                    file,
-                    ApiTypes.file.FileType.FileTypeChatImage,
-                    (progress) => { storedMsg.uploadProgress = progress; }
-                );
-                uploadAbortControllers.set(clientId, abort);
-
-                const ossUrl = await promise;
-                uploadAbortControllers.delete(clientId);
-                storedMsg.url = ossUrl;
-
-                const finalMsg = buildImageWsPayload(
-                    { ...localMsg, localPath: undefined, thumbnailUrl: undefined },
-                    ossUrl,
-                    sessionId,
-                    sessionKey,
-                    chatType,
-                    userStore.getUserID()
-                );
-                const result = await deps.sender.send(finalMsg, clientId, sessionId);
-                if (!result.success || !result.data?.sent) {
-                    storedMsg.status = ImTypes.MessageStatus.MESSAGE_STATUS_FAILED;
-                }
-            } catch (e) {
-                console.error('[MessageStore] sendImageMessage failed:', e);
-                storedMsg.status = ImTypes.MessageStatus.MESSAGE_STATUS_FAILED;
-                storedMsg.uploadProgress = 0;
-                uploadAbortControllers.delete(clientId);
-            } finally {
-                await deps.persister.save(toRaw(storedMsg) as IChatMessage);
-            }
+            return this._sendMediaMessage({
+                file,
+                fileType: ApiTypes.file.FileType.FileTypeChatImage,
+                buildLocalMsg: (sessionId, sessionKey, chatType, userId) =>
+                    buildImageLocalMsg({
+                        url: '',
+                        localPath: filePath,
+                        uploadProgress: 0,
+                        width: imgWidth,
+                        height: imgHeight,
+                        thumbnailWidth,
+                        thumbnailHeight,
+                        size: file.size,
+                        format: file.type,
+                        thumbnailUrl: toResourceUrl(filePath, {
+                            cacheType: CacheOptionType.IMAGE_THUMB,
+                            width: thumbnailWidth,
+                            height: thumbnailHeight
+                        }),
+                        fileName: file.name
+                    }, sessionId, sessionKey, chatType, userId),
+                buildWsPayload: (localMsg, ossUrl, sessionId, sessionKey, chatType, userId) =>
+                    buildImageWsPayload(
+                        { ...localMsg, localPath: undefined, thumbnailUrl: undefined },
+                        ossUrl, sessionId, sessionKey, chatType, userId
+                    ),
+            }, 'sendImageMessage', deps);
         },
 
         /**
@@ -318,55 +366,24 @@ export const useMessageStore = defineStore('message', {
         async sendFileMessage(
             file: File,
             deps: { uploader: IFileUploader; sender: IMessageSender; persister: IMessagePersister }
-        ): Promise<void> {
-            const sessionStore = useSessionStore();
-            const userStore = useUserStore();
-            const sessionKey = sessionStore.currentSessionKey;
-            const session = sessionStore.getSession(sessionKey);
-            if (!session) {
-                ElMessage.error('获取会话失败');
-                return;
-            }
-            const sessionId = session.session_id || '';
-            const chatType = session.type;
-
+        ): Promise<IChatMessage | undefined> {
             const filePath = window.webUtils.getPathForFile(file);
 
-            const { clientId, localMsg } = buildFileLocalMsg({
-                url: '',
-                localPath: filePath,
-                uploadProgress: 0,
-                fileName: file.name,
-                size: file.size,
-                format: file.type,
-            }, sessionId, sessionKey, chatType, userStore.getUserID());
-            const storedMsg = this.upsertMessage(localMsg) as any;
-
-            try {
-                const { promise, abort } = deps.uploader.uploadFile(
-                    file,
-                    ApiTypes.file.FileType.FileTypeChatFile,
-                    (progress) => { storedMsg.uploadProgress = progress; }
-                );
-                uploadAbortControllers.set(clientId, abort);
-
-                const ossUrl = await promise;
-                uploadAbortControllers.delete(clientId);
-                storedMsg.url = ossUrl;
-
-                const finalMsg = buildFileWsPayload(localMsg, ossUrl, sessionId, sessionKey, chatType, userStore.getUserID());
-                const result = await deps.sender.send(finalMsg, clientId, sessionId);
-                if (!result.success || !result.data?.sent) {
-                    storedMsg.status = ImTypes.MessageStatus.MESSAGE_STATUS_FAILED;
-                }
-            } catch (e) {
-                console.error('[MessageStore] sendFileMessage failed:', e);
-                storedMsg.status = ImTypes.MessageStatus.MESSAGE_STATUS_FAILED;
-                storedMsg.uploadProgress = 0;
-                uploadAbortControllers.delete(clientId);
-            } finally {
-                await deps.persister.save(toRaw(storedMsg) as IChatMessage);
-            }
+            return this._sendMediaMessage({
+                file,
+                fileType: ApiTypes.file.FileType.FileTypeChatFile,
+                buildLocalMsg: (sessionId, sessionKey, chatType, userId) =>
+                    buildFileLocalMsg({
+                        url: '',
+                        localPath: filePath,
+                        uploadProgress: 0,
+                        fileName: file.name,
+                        size: file.size,
+                        format: file.type,
+                    }, sessionId, sessionKey, chatType, userId),
+                buildWsPayload: (localMsg, ossUrl, sessionId, sessionKey, chatType, userId) =>
+                    buildFileWsPayload(localMsg, ossUrl, sessionId, sessionKey, chatType, userId),
+            }, 'sendFileMessage', deps);
         },
 
         /**
@@ -378,18 +395,8 @@ export const useMessageStore = defineStore('message', {
         async sendVideoMessage(
             file: File,
             deps: { uploader: IFileUploader; sender: IMessageSender; persister: IMessagePersister }
-        ): Promise<void> {
-            const sessionStore = useSessionStore();
-            const userStore = useUserStore();
-            const sessionKey = sessionStore.currentSessionKey;
-            const session = sessionStore.getSession(sessionKey);
-            if (!session) {
-                ElMessage.error('获取会话失败');
-                return;
-            }
-            const sessionId = session.session_id || '';
-            const chatType = session.type;
-
+        ): Promise<IChatMessage | undefined> {
+            // ── 视频专属：提取封面帧以计算缩略图维度 ──────────────────────────
             const videoMeta = await extractVideoFrame(file);
             const filePath = window.webUtils.getPathForFile(file);
 
@@ -401,58 +408,34 @@ export const useMessageStore = defineStore('message', {
                 thumbnailHeight = Math.round(videoMeta.height * ratio);
             }
 
-            const { clientId, localMsg } = buildVideoLocalMsg({
-                url: '',
-                localPath: filePath,
-                thumbnailUrl: toResourceUrl(videoMeta.thumbnailUrl, {
-                    cacheType: CacheOptionType.IMAGE_THUMB,
-                    width: thumbnailWidth,
-                    height: thumbnailHeight
-                }),
-                width: videoMeta.width,
-                height: videoMeta.height,
-                duration: videoMeta.duration,
-                thumbnailHeight,
-                thumbnailWidth,
-                uploadProgress: 0,
-                size: file.size,
-                format: file.type,
-                fileName: file.name
-            }, sessionId, sessionKey, chatType, userStore.getUserID());
-            const storedMsg = this.upsertMessage(localMsg) as any;
-
-            try {
-                const { promise, abort } = deps.uploader.uploadFile(
-                    file,
-                    ApiTypes.file.FileType.FileTypeChatFile,
-                    (progress) => { storedMsg.uploadProgress = progress; }
-                );
-                uploadAbortControllers.set(clientId, abort);
-
-                const ossUrl = await promise;
-                uploadAbortControllers.delete(clientId);
-                storedMsg.url = ossUrl;
-
-                const finalMsg = buildVideoWsPayload(
-                    { ...localMsg, localPath: undefined, thumbnailUrl: undefined },
-                    ossUrl,
-                    sessionId,
-                    sessionKey,
-                    chatType,
-                    userStore.getUserID()
-                );
-                const result = await deps.sender.send(finalMsg, clientId, sessionId);
-                if (!result.success || !result.data?.sent) {
-                    storedMsg.status = ImTypes.MessageStatus.MESSAGE_STATUS_FAILED;
-                }
-            } catch (e) {
-                console.error('[MessageStore] sendVideoMessage failed:', e);
-                storedMsg.status = ImTypes.MessageStatus.MESSAGE_STATUS_FAILED;
-                storedMsg.uploadProgress = 0;
-                uploadAbortControllers.delete(clientId);
-            } finally {
-                await deps.persister.save(toRaw(storedMsg) as IChatMessage);
-            }
+            return this._sendMediaMessage({
+                file,
+                fileType: ApiTypes.file.FileType.FileTypeChatFile,
+                buildLocalMsg: (sessionId, sessionKey, chatType, userId) =>
+                    buildVideoLocalMsg({
+                        url: '',
+                        localPath: filePath,
+                        thumbnailUrl: toResourceUrl(videoMeta.thumbnailUrl, {
+                            cacheType: CacheOptionType.IMAGE_THUMB,
+                            width: thumbnailWidth,
+                            height: thumbnailHeight
+                        }),
+                        width: videoMeta.width,
+                        height: videoMeta.height,
+                        duration: videoMeta.duration,
+                        thumbnailHeight,
+                        thumbnailWidth,
+                        uploadProgress: 0,
+                        size: file.size,
+                        format: file.type,
+                        fileName: file.name
+                    }, sessionId, sessionKey, chatType, userId),
+                buildWsPayload: (localMsg, ossUrl, sessionId, sessionKey, chatType, userId) =>
+                    buildVideoWsPayload(
+                        { ...localMsg, localPath: undefined, thumbnailUrl: undefined },
+                        ossUrl, sessionId, sessionKey, chatType, userId
+                    ),
+            }, 'sendVideoMessage', deps);
         },
     }
 });
