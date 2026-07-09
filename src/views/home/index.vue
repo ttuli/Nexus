@@ -46,7 +46,7 @@ import FilterColumn from '@/src/components/FilterColumn.vue';
 import CreateGroup from '@/src/components/CreateGroup.vue';
 import { createWindow } from '@/src/utils/window';
 import { useGroupActions } from '@/src/composables/useGroupActions'
-import { IpcChannels, ApiTypes } from '@shared/types';
+import { IpcChannels, ApiTypes, ConnectionState } from '@shared/types';
 import { initRelationStore, storeOfflineTimestamp } from '@/src/store/init';
 import { ElMessage } from 'element-plus';
 import GlobalLoading from '@/src/components/GlobalLoading';
@@ -122,9 +122,24 @@ const handleMenuSelect = (key: string) => {
     }
 };
 
+// WS 断线重连后触发离线同步：Lamport seq 下不再有逐条断层补拉，
+// 断连期间"只存不推"的消息依赖重连时按会话 seq 对比增量拉齐
+let wsWasDisconnected = false;
+
 onMounted(async () => {
     ipcService.on(IpcChannels.ROUTE_NAVIGATE, (_e, path) => {
         router.push(path);
+    });
+
+    websocketService.onStateChange((state) => {
+        if (state === ConnectionState.DISCONNECTED || state === ConnectionState.RECONNECTING) {
+            wsWasDisconnected = true;
+            return;
+        }
+        if (state === ConnectionState.CONNECTED && wsWasDisconnected) {
+            wsWasDisconnected = false;
+            void sessionStore.syncOfflineActiveSessions();
+        }
     });
 
     void sessionService.loadAll().then((sessions) => {

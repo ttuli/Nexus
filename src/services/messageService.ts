@@ -31,10 +31,11 @@ class MessageService {
     /**
      * 从本地 SQLite 拉取历史消息
      * @param sessionKey  会话 session_key（本地标识，如 private_123_456）
-     * @param beforeSeq   排他性上界：只返回 seq < beforeSeq 的消息；传 Number.MAX_SAFE_INTEGER 表示从最新开始
+     * @param beforeSeq   排他性上界（Lamport seq 字符串）：只返回 seq < beforeSeq 的消息；
+     *                    undefined 表示从最新开始（无上界）
      * @param limit       最多返回条数
      */
-    async getLocalHistoryMessages(sessionKey: string, beforeSeq: number, limit: number): Promise<IChatMessage[]> {
+    async getLocalHistoryMessages(sessionKey: string, beforeSeq: string | undefined, limit: number): Promise<IChatMessage[]> {
         const res = await ipcService.invoke<IChatMessage[]>(
             IpcChannels.MSG_GET_HISTORY,
             sessionKey,

@@ -7,6 +7,7 @@ import {
     ImTypes, IChatMessage, ILocalTextMessage, ILocalImageMessage,
     ILocalVideoMessage, ILocalAudioMessage, ILocalFileMessage, ILocalSystemMessage,
 } from '@shared/types';
+import { seqPositive, toSeq } from '@shared/utils/seq';
 
 /**
  * 将 WebSocket 推送的 WSMessage 转换为本地 IChatMessage 格式
@@ -70,14 +71,16 @@ export function convertWSMessageToIChatMessage(wsMsg: ImTypes.WSMessage): IChatM
         return null;
     }
 
+    // 服务端持久化后在 WSMessage 层回填真实的 msg_id / session_id / msg_seq，
+    // Payload 内 BaseMessage 保持发送方原值（msg_id 为空、seq 为 0），非空时以顶层为准
     const commonFields = {
-        msgId: base.msg_id || '',
-        sessionId: base.session_id || '',
+        msgId: wsMsg.msg_id || base.msg_id || '',
+        sessionId: wsMsg.session_id || base.session_id || '',
         sessionKey: base.session_key || '',
         fromUserId: base.from_user_id || 0,
         target: base.target || 0,
         sendTime: base.send_time || 0,
-        seq: base.msg_seq || 0,
+        seq: seqPositive(wsMsg.msg_seq) ? toSeq(wsMsg.msg_seq) : toSeq(base.msg_seq),
         status: (base.status as unknown as ImTypes.MessageStatus) || ImTypes.MessageStatus.MESSAGE_STATUS_UNSPECIFIED,
         isRead: false,
         clientId: base.client_id || '',
@@ -172,7 +175,7 @@ export function convertNotificationToChatMessage(notification: ImTypes.GroupNoti
         sessionKey: sessionKey,
         sendTime: notification.op_time,
         fromUserId: notification.operator_id,
-        seq: 0,
+        seq: '0',
         status: ImTypes.MessageStatus.MESSAGE_STATUS_UNSPECIFIED,
         isRead: false,
         clientId: '',

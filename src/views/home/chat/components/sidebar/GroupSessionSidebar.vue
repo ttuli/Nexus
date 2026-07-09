@@ -100,7 +100,7 @@ const handleUpdatePinned = async () => {
     if (pinLoading.value) return;
     pinLoading.value = true;
     try {
-        await sessionStore.updateConversationOptions(props.chat.session_id, 3 - props.chat.is_top, undefined);
+        await sessionStore.updateConversationOptions(props.chat.session_key, 3 - props.chat.is_top, undefined);
     } finally {
         pinLoading.value = false;
     }
@@ -110,7 +110,7 @@ const handleUpdateDisturb = async () => {
     if (disturbLoading.value) return;
     disturbLoading.value = true;
     try {
-        await sessionStore.updateConversationOptions(props.chat.session_id, undefined, 3 - props.chat.is_disturb);
+        await sessionStore.updateConversationOptions(props.chat.session_key, undefined, 3 - props.chat.is_disturb);
     } finally {
         disturbLoading.value = false;
     }
@@ -125,7 +125,7 @@ const clearChatData = () => {
         if (sessionStore.currentSessionKey === props.chat.session_key) {
             messageStore.messages = [];
         }
-        props.chat.max_seq = 0;
+        props.chat.max_seq = '0';
         props.chat.last_content = '';
         sessionStore.removeSession(props.chat.session_id);
         void sessionService.deleteOne(props.chat.session_id);

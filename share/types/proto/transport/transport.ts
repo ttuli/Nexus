@@ -497,6 +497,20 @@ export interface WSMessage {
   payload: Uint8Array;
   sender_id: number;
   version: number;
+  /**
+   * 服务端持久化后回填的真实值，非空/非零时覆盖 Payload 内 BaseMessage 的对应字段。
+   * 投递链路直接在 WSMessage 层携带，避免服务端反序列化 Payload 重建。
+   */
+  msg_id: string;
+  session_id: string;
+  /** Lamport 序号超出 JS Number 安全整数范围，jstype 使 ts-proto 生成 string（Go 侧忽略） */
+  msg_seq: string;
+  /**
+   * 网关集群内部路由字段：本节点需要投递的目标用户列表。
+   * 群消息按节点扇出时由 Message 服务填充（route_target 仍保持群 ID 语义），
+   * 网关按该列表投递本地连接，投递前清空，不下发给客户端。
+   */
+  deliver_to: number[];
 }
 
 /** API 通用响应包装 */
@@ -537,6 +551,10 @@ function createBaseWSMessage(): WSMessage {
     payload: new Uint8Array(0),
     sender_id: 0,
     version: 0,
+    msg_id: "",
+    session_id: "",
+    msg_seq: "0",
+    deliver_to: [],
   };
 }
 
@@ -565,6 +583,20 @@ export const WSMessage: MessageFns<WSMessage> = {
     if (message.version !== 0) {
       writer.uint32(56).int32(message.version);
     }
+    if (message.msg_id !== "") {
+      writer.uint32(66).string(message.msg_id);
+    }
+    if (message.session_id !== "") {
+      writer.uint32(74).string(message.session_id);
+    }
+    if (message.msg_seq !== "0") {
+      writer.uint32(80).uint64(message.msg_seq);
+    }
+    writer.uint32(90).fork();
+    for (const v of message.deliver_to) {
+      writer.uint64(v);
+    }
+    writer.join();
     return writer;
   },
 
@@ -641,6 +673,48 @@ export const WSMessage: MessageFns<WSMessage> = {
           message.version = reader.int32();
           continue;
         }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.msg_id = reader.string();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.session_id = reader.string();
+          continue;
+        }
+        case 10: {
+          if (tag !== 80) {
+            break;
+          }
+
+          message.msg_seq = reader.uint64().toString();
+          continue;
+        }
+        case 11: {
+          if (tag === 88) {
+            message.deliver_to.push(longToNumber(reader.uint64()));
+
+            continue;
+          }
+
+          if (tag === 90) {
+            const end2 = reader.uint32() + reader.pos;
+            while (reader.pos < end2) {
+              message.deliver_to.push(longToNumber(reader.uint64()));
+            }
+
+            continue;
+          }
+
+          break;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -671,6 +745,26 @@ export const WSMessage: MessageFns<WSMessage> = {
         ? globalThis.Number(object.sender_id)
         : 0,
       version: isSet(object.version) ? globalThis.Number(object.version) : 0,
+      msg_id: isSet(object.msgId)
+        ? globalThis.String(object.msgId)
+        : isSet(object.msg_id)
+        ? globalThis.String(object.msg_id)
+        : "",
+      session_id: isSet(object.sessionId)
+        ? globalThis.String(object.sessionId)
+        : isSet(object.session_id)
+        ? globalThis.String(object.session_id)
+        : "",
+      msg_seq: isSet(object.msgSeq)
+        ? globalThis.String(object.msgSeq)
+        : isSet(object.msg_seq)
+        ? globalThis.String(object.msg_seq)
+        : "0",
+      deliver_to: globalThis.Array.isArray(object?.deliverTo)
+        ? object.deliverTo.map((e: any) => globalThis.Number(e))
+        : globalThis.Array.isArray(object?.deliver_to)
+        ? object.deliver_to.map((e: any) => globalThis.Number(e))
+        : [],
     };
   },
 
@@ -697,6 +791,18 @@ export const WSMessage: MessageFns<WSMessage> = {
     if (message.version !== 0) {
       obj.version = Math.round(message.version);
     }
+    if (message.msg_id !== "") {
+      obj.msgId = message.msg_id;
+    }
+    if (message.session_id !== "") {
+      obj.sessionId = message.session_id;
+    }
+    if (message.msg_seq !== "0") {
+      obj.msgSeq = globalThis.String(message.msg_seq);
+    }
+    if (message.deliver_to?.length) {
+      obj.deliverTo = message.deliver_to.map((e) => Math.round(e));
+    }
     return obj;
   },
 
@@ -712,6 +818,10 @@ export const WSMessage: MessageFns<WSMessage> = {
     message.payload = object.payload ?? new Uint8Array(0);
     message.sender_id = object.sender_id ?? 0;
     message.version = object.version ?? 0;
+    message.msg_id = object.msg_id ?? "";
+    message.session_id = object.session_id ?? "";
+    message.msg_seq = object.msg_seq ?? "0";
+    message.deliver_to = object.deliver_to?.map((e) => e) || [];
     return message;
   },
 };

@@ -22,7 +22,7 @@ export interface Message {
   /** @gotags: json:"msg_type" */
   msg_type: number;
   /** @gotags: json:"seq" */
-  seq: number;
+  seq: string;
   /** @gotags: json:"content" */
   content: string;
   /** @gotags: json:"media_url" */
@@ -43,9 +43,9 @@ export interface Session {
   /** @gotags: json:"session_key" */
   session_key: string;
   /** @gotags: json:"max_seq" */
-  max_seq: number;
+  max_seq: string;
   /** @gotags: json:"actual_seq" */
-  actual_seq: number;
+  actual_seq: string;
   /** @gotags: json:"last_content" */
   last_content: string;
   /** @gotags: json:"last_sender" */
@@ -67,11 +67,13 @@ export interface UserSession {
   /** @gotags: json:"is_disturb" */
   is_disturb: number;
   /** @gotags: json:"last_read_seq" */
-  last_read_seq: number;
+  last_read_seq: string;
   /** @gotags: json:"create_time" */
   create_time: number;
   /** @gotags: json:"update_time" */
   update_time: number;
+  /** @gotags: json:"unread_count" */
+  unread_count: number;
 }
 
 /** GetHistoryReq */
@@ -79,9 +81,9 @@ export interface GetHistoryReq {
   /** @gotags: form:"session_id,optional" json:"session_id,optional" */
   session_id: string;
   /** @gotags: form:"start_seq,optional" json:"start_seq,optional" */
-  start_seq: number;
+  start_seq: string;
   /** @gotags: form:"end_seq,optional" json:"end_seq,optional" */
-  end_seq: number;
+  end_seq: string;
   /** @gotags: form:"limit,optional,default=20" json:"limit,optional" */
   limit: number;
 }
@@ -118,6 +120,14 @@ export interface GetUserActiveSessionsResp {
   sessions: Session[];
 }
 
+/** MarkSessionReadReq 上报会话已读游标 */
+export interface MarkSessionReadReq {
+  /** @gotags: json:"session_id" */
+  session_id: string;
+  /** @gotags: json:"read_seq" */
+  read_seq: string;
+}
+
 /** GetSessionReq 根据 session_id 或 session_key 查询会话 */
 export interface GetSessionReq {
   /** @gotags: form:"session_id,optional" json:"session_id,optional" */
@@ -141,7 +151,7 @@ function createBaseMessage(): Message {
     session_id: "",
     from_user_id: 0,
     msg_type: 0,
-    seq: 0,
+    seq: "0",
     content: "",
     media_url: "",
     extra: "",
@@ -167,7 +177,7 @@ export const Message: MessageFns<Message> = {
     if (message.msg_type !== 0) {
       writer.uint32(40).int32(message.msg_type);
     }
-    if (message.seq !== 0) {
+    if (message.seq !== "0") {
       writer.uint32(48).uint64(message.seq);
     }
     if (message.content !== "") {
@@ -240,7 +250,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.seq = longToNumber(reader.uint64());
+          message.seq = reader.uint64().toString();
           continue;
         }
         case 7: {
@@ -319,7 +329,7 @@ export const Message: MessageFns<Message> = {
         : isSet(object.msg_type)
         ? globalThis.Number(object.msg_type)
         : 0,
-      seq: isSet(object.seq) ? globalThis.Number(object.seq) : 0,
+      seq: isSet(object.seq) ? globalThis.String(object.seq) : "0",
       content: isSet(object.content) ? globalThis.String(object.content) : "",
       media_url: isSet(object.mediaUrl)
         ? globalThis.String(object.mediaUrl)
@@ -353,8 +363,8 @@ export const Message: MessageFns<Message> = {
     if (message.msg_type !== 0) {
       obj.msgType = Math.round(message.msg_type);
     }
-    if (message.seq !== 0) {
-      obj.seq = Math.round(message.seq);
+    if (message.seq !== "0") {
+      obj.seq = globalThis.String(message.seq);
     }
     if (message.content !== "") {
       obj.content = message.content;
@@ -384,7 +394,7 @@ export const Message: MessageFns<Message> = {
     message.session_id = object.session_id ?? "";
     message.from_user_id = object.from_user_id ?? 0;
     message.msg_type = object.msg_type ?? 0;
-    message.seq = object.seq ?? 0;
+    message.seq = object.seq ?? "0";
     message.content = object.content ?? "";
     message.media_url = object.media_url ?? "";
     message.extra = object.extra ?? "";
@@ -399,8 +409,8 @@ function createBaseSession(): Session {
     session_id: "",
     type: 0,
     session_key: "",
-    max_seq: 0,
-    actual_seq: 0,
+    max_seq: "0",
+    actual_seq: "0",
     last_content: "",
     last_sender: 0,
     create_time: 0,
@@ -419,10 +429,10 @@ export const Session: MessageFns<Session> = {
     if (message.session_key !== "") {
       writer.uint32(26).string(message.session_key);
     }
-    if (message.max_seq !== 0) {
+    if (message.max_seq !== "0") {
       writer.uint32(32).uint64(message.max_seq);
     }
-    if (message.actual_seq !== 0) {
+    if (message.actual_seq !== "0") {
       writer.uint32(40).uint64(message.actual_seq);
     }
     if (message.last_content !== "") {
@@ -476,7 +486,7 @@ export const Session: MessageFns<Session> = {
             break;
           }
 
-          message.max_seq = longToNumber(reader.uint64());
+          message.max_seq = reader.uint64().toString();
           continue;
         }
         case 5: {
@@ -484,7 +494,7 @@ export const Session: MessageFns<Session> = {
             break;
           }
 
-          message.actual_seq = longToNumber(reader.uint64());
+          message.actual_seq = reader.uint64().toString();
           continue;
         }
         case 6: {
@@ -542,15 +552,15 @@ export const Session: MessageFns<Session> = {
         ? globalThis.String(object.session_key)
         : "",
       max_seq: isSet(object.maxSeq)
-        ? globalThis.Number(object.maxSeq)
+        ? globalThis.String(object.maxSeq)
         : isSet(object.max_seq)
-        ? globalThis.Number(object.max_seq)
-        : 0,
+        ? globalThis.String(object.max_seq)
+        : "0",
       actual_seq: isSet(object.actualSeq)
-        ? globalThis.Number(object.actualSeq)
+        ? globalThis.String(object.actualSeq)
         : isSet(object.actual_seq)
-        ? globalThis.Number(object.actual_seq)
-        : 0,
+        ? globalThis.String(object.actual_seq)
+        : "0",
       last_content: isSet(object.lastContent)
         ? globalThis.String(object.lastContent)
         : isSet(object.last_content)
@@ -585,11 +595,11 @@ export const Session: MessageFns<Session> = {
     if (message.session_key !== "") {
       obj.sessionKey = message.session_key;
     }
-    if (message.max_seq !== 0) {
-      obj.maxSeq = Math.round(message.max_seq);
+    if (message.max_seq !== "0") {
+      obj.maxSeq = globalThis.String(message.max_seq);
     }
-    if (message.actual_seq !== 0) {
-      obj.actualSeq = Math.round(message.actual_seq);
+    if (message.actual_seq !== "0") {
+      obj.actualSeq = globalThis.String(message.actual_seq);
     }
     if (message.last_content !== "") {
       obj.lastContent = message.last_content;
@@ -614,8 +624,8 @@ export const Session: MessageFns<Session> = {
     message.session_id = object.session_id ?? "";
     message.type = object.type ?? 0;
     message.session_key = object.session_key ?? "";
-    message.max_seq = object.max_seq ?? 0;
-    message.actual_seq = object.actual_seq ?? 0;
+    message.max_seq = object.max_seq ?? "0";
+    message.actual_seq = object.actual_seq ?? "0";
     message.last_content = object.last_content ?? "";
     message.last_sender = object.last_sender ?? 0;
     message.create_time = object.create_time ?? 0;
@@ -625,7 +635,16 @@ export const Session: MessageFns<Session> = {
 };
 
 function createBaseUserSession(): UserSession {
-  return { user_id: 0, session_id: "", is_top: 0, is_disturb: 0, last_read_seq: 0, create_time: 0, update_time: 0 };
+  return {
+    user_id: 0,
+    session_id: "",
+    is_top: 0,
+    is_disturb: 0,
+    last_read_seq: "0",
+    create_time: 0,
+    update_time: 0,
+    unread_count: 0,
+  };
 }
 
 export const UserSession: MessageFns<UserSession> = {
@@ -642,7 +661,7 @@ export const UserSession: MessageFns<UserSession> = {
     if (message.is_disturb !== 0) {
       writer.uint32(32).int32(message.is_disturb);
     }
-    if (message.last_read_seq !== 0) {
+    if (message.last_read_seq !== "0") {
       writer.uint32(40).uint64(message.last_read_seq);
     }
     if (message.create_time !== 0) {
@@ -650,6 +669,9 @@ export const UserSession: MessageFns<UserSession> = {
     }
     if (message.update_time !== 0) {
       writer.uint32(64).int64(message.update_time);
+    }
+    if (message.unread_count !== 0) {
+      writer.uint32(72).uint64(message.unread_count);
     }
     return writer;
   },
@@ -698,7 +720,7 @@ export const UserSession: MessageFns<UserSession> = {
             break;
           }
 
-          message.last_read_seq = longToNumber(reader.uint64());
+          message.last_read_seq = reader.uint64().toString();
           continue;
         }
         case 6: {
@@ -715,6 +737,14 @@ export const UserSession: MessageFns<UserSession> = {
           }
 
           message.update_time = longToNumber(reader.int64());
+          continue;
+        }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+
+          message.unread_count = longToNumber(reader.uint64());
           continue;
         }
       }
@@ -749,10 +779,10 @@ export const UserSession: MessageFns<UserSession> = {
         ? globalThis.Number(object.is_disturb)
         : 0,
       last_read_seq: isSet(object.lastReadSeq)
-        ? globalThis.Number(object.lastReadSeq)
+        ? globalThis.String(object.lastReadSeq)
         : isSet(object.last_read_seq)
-        ? globalThis.Number(object.last_read_seq)
-        : 0,
+        ? globalThis.String(object.last_read_seq)
+        : "0",
       create_time: isSet(object.createTime)
         ? globalThis.Number(object.createTime)
         : isSet(object.create_time)
@@ -762,6 +792,11 @@ export const UserSession: MessageFns<UserSession> = {
         ? globalThis.Number(object.updateTime)
         : isSet(object.update_time)
         ? globalThis.Number(object.update_time)
+        : 0,
+      unread_count: isSet(object.unreadCount)
+        ? globalThis.Number(object.unreadCount)
+        : isSet(object.unread_count)
+        ? globalThis.Number(object.unread_count)
         : 0,
     };
   },
@@ -780,14 +815,17 @@ export const UserSession: MessageFns<UserSession> = {
     if (message.is_disturb !== 0) {
       obj.isDisturb = Math.round(message.is_disturb);
     }
-    if (message.last_read_seq !== 0) {
-      obj.lastReadSeq = Math.round(message.last_read_seq);
+    if (message.last_read_seq !== "0") {
+      obj.lastReadSeq = globalThis.String(message.last_read_seq);
     }
     if (message.create_time !== 0) {
       obj.createTime = Math.round(message.create_time);
     }
     if (message.update_time !== 0) {
       obj.updateTime = Math.round(message.update_time);
+    }
+    if (message.unread_count !== 0) {
+      obj.unreadCount = Math.round(message.unread_count);
     }
     return obj;
   },
@@ -801,15 +839,16 @@ export const UserSession: MessageFns<UserSession> = {
     message.session_id = object.session_id ?? "";
     message.is_top = object.is_top ?? 0;
     message.is_disturb = object.is_disturb ?? 0;
-    message.last_read_seq = object.last_read_seq ?? 0;
+    message.last_read_seq = object.last_read_seq ?? "0";
     message.create_time = object.create_time ?? 0;
     message.update_time = object.update_time ?? 0;
+    message.unread_count = object.unread_count ?? 0;
     return message;
   },
 };
 
 function createBaseGetHistoryReq(): GetHistoryReq {
-  return { session_id: "", start_seq: 0, end_seq: 0, limit: 0 };
+  return { session_id: "", start_seq: "0", end_seq: "0", limit: 0 };
 }
 
 export const GetHistoryReq: MessageFns<GetHistoryReq> = {
@@ -817,10 +856,10 @@ export const GetHistoryReq: MessageFns<GetHistoryReq> = {
     if (message.session_id !== "") {
       writer.uint32(10).string(message.session_id);
     }
-    if (message.start_seq !== 0) {
+    if (message.start_seq !== "0") {
       writer.uint32(16).int64(message.start_seq);
     }
-    if (message.end_seq !== 0) {
+    if (message.end_seq !== "0") {
       writer.uint32(24).int64(message.end_seq);
     }
     if (message.limit !== 0) {
@@ -849,7 +888,7 @@ export const GetHistoryReq: MessageFns<GetHistoryReq> = {
             break;
           }
 
-          message.start_seq = longToNumber(reader.int64());
+          message.start_seq = reader.int64().toString();
           continue;
         }
         case 3: {
@@ -857,7 +896,7 @@ export const GetHistoryReq: MessageFns<GetHistoryReq> = {
             break;
           }
 
-          message.end_seq = longToNumber(reader.int64());
+          message.end_seq = reader.int64().toString();
           continue;
         }
         case 4: {
@@ -885,15 +924,15 @@ export const GetHistoryReq: MessageFns<GetHistoryReq> = {
         ? globalThis.String(object.session_id)
         : "",
       start_seq: isSet(object.startSeq)
-        ? globalThis.Number(object.startSeq)
+        ? globalThis.String(object.startSeq)
         : isSet(object.start_seq)
-        ? globalThis.Number(object.start_seq)
-        : 0,
+        ? globalThis.String(object.start_seq)
+        : "0",
       end_seq: isSet(object.endSeq)
-        ? globalThis.Number(object.endSeq)
+        ? globalThis.String(object.endSeq)
         : isSet(object.end_seq)
-        ? globalThis.Number(object.end_seq)
-        : 0,
+        ? globalThis.String(object.end_seq)
+        : "0",
       limit: isSet(object.limit) ? globalThis.Number(object.limit) : 0,
     };
   },
@@ -903,11 +942,11 @@ export const GetHistoryReq: MessageFns<GetHistoryReq> = {
     if (message.session_id !== "") {
       obj.sessionId = message.session_id;
     }
-    if (message.start_seq !== 0) {
-      obj.startSeq = Math.round(message.start_seq);
+    if (message.start_seq !== "0") {
+      obj.startSeq = globalThis.String(message.start_seq);
     }
-    if (message.end_seq !== 0) {
-      obj.endSeq = Math.round(message.end_seq);
+    if (message.end_seq !== "0") {
+      obj.endSeq = globalThis.String(message.end_seq);
     }
     if (message.limit !== 0) {
       obj.limit = Math.round(message.limit);
@@ -921,8 +960,8 @@ export const GetHistoryReq: MessageFns<GetHistoryReq> = {
   fromPartial<I extends Exact<DeepPartial<GetHistoryReq>, I>>(object: I): GetHistoryReq {
     const message = createBaseGetHistoryReq();
     message.session_id = object.session_id ?? "";
-    message.start_seq = object.start_seq ?? 0;
-    message.end_seq = object.end_seq ?? 0;
+    message.start_seq = object.start_seq ?? "0";
+    message.end_seq = object.end_seq ?? "0";
     message.limit = object.limit ?? 0;
     return message;
   },
@@ -1266,6 +1305,90 @@ export const GetUserActiveSessionsResp: MessageFns<GetUserActiveSessionsResp> = 
   fromPartial<I extends Exact<DeepPartial<GetUserActiveSessionsResp>, I>>(object: I): GetUserActiveSessionsResp {
     const message = createBaseGetUserActiveSessionsResp();
     message.sessions = object.sessions?.map((e) => Session.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseMarkSessionReadReq(): MarkSessionReadReq {
+  return { session_id: "", read_seq: "0" };
+}
+
+export const MarkSessionReadReq: MessageFns<MarkSessionReadReq> = {
+  encode(message: MarkSessionReadReq, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.session_id !== "") {
+      writer.uint32(10).string(message.session_id);
+    }
+    if (message.read_seq !== "0") {
+      writer.uint32(16).uint64(message.read_seq);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): MarkSessionReadReq {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseMarkSessionReadReq();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.session_id = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.read_seq = reader.uint64().toString();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): MarkSessionReadReq {
+    return {
+      session_id: isSet(object.sessionId)
+        ? globalThis.String(object.sessionId)
+        : isSet(object.session_id)
+        ? globalThis.String(object.session_id)
+        : "",
+      read_seq: isSet(object.readSeq)
+        ? globalThis.String(object.readSeq)
+        : isSet(object.read_seq)
+        ? globalThis.String(object.read_seq)
+        : "0",
+    };
+  },
+
+  toJSON(message: MarkSessionReadReq): unknown {
+    const obj: any = {};
+    if (message.session_id !== "") {
+      obj.sessionId = message.session_id;
+    }
+    if (message.read_seq !== "0") {
+      obj.readSeq = globalThis.String(message.read_seq);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<MarkSessionReadReq>, I>>(base?: I): MarkSessionReadReq {
+    return MarkSessionReadReq.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<MarkSessionReadReq>, I>>(object: I): MarkSessionReadReq {
+    const message = createBaseMarkSessionReadReq();
+    message.session_id = object.session_id ?? "";
+    message.read_seq = object.read_seq ?? "0";
     return message;
   },
 };

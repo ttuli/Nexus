@@ -37,7 +37,7 @@ export function setupMessageHandlers(): void {
     /** 更新消息状态 */
     ipcMain.handle(
         IpcChannels.MSG_UPDATE_STATUS,
-        async (_event, sessionKey: string, clientId: string, status: MessageStatus, msgId?: string, seq?: number) => {
+        async (_event, sessionKey: string, clientId: string, status: MessageStatus, msgId?: string, seq?: string) => {
             try {
                 await messageStore.updateMessageStatus(sessionKey, clientId, status, msgId, seq);
                 return { success: true };
@@ -65,7 +65,7 @@ export function setupMessageHandlers(): void {
     /** 获取会话历史消息 */
     ipcMain.handle(
         IpcChannels.MSG_GET_HISTORY,
-        async (_event, sessionKey: string, beforeSeq: number, pageSize: number) => {
+        async (_event, sessionKey: string, beforeSeq: string | undefined, pageSize: number) => {
             try {
                 const data = await messageStore.getLocalHistoryMessages(sessionKey, beforeSeq, pageSize);
                 return { success: true, data };

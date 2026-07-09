@@ -18,7 +18,7 @@ export function useFriendActions() {
         const updated = sessionStore.upsertSession({
             session_key: sessionKey,
             type: ImTypes.SessionType.SESSION_TYPE_PRIVATE,
-            max_seq: existing?.max_seq || 0,
+            max_seq: existing?.max_seq || '0',
             update_time: existing?.update_time || Date.now(),
             last_content: existing?.last_content || '',
             last_sender: existing?.last_sender || 0,

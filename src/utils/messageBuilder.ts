@@ -100,7 +100,7 @@ function buildBase(type: ImTypes.MessageType, sessionKey: string, sessionId: str
         from_user_id: meId,
         target: targetId,
         send_time: Date.now(),
-        msg_seq: 0,
+        msg_seq: '0',
         status: ImTypes.MessageStatus.MESSAGE_STATUS_SENDING,
         client_id: clientId,
         ext: {}
@@ -114,6 +114,11 @@ function buildBase(type: ImTypes.MessageType, sessionKey: string, sessionId: str
         sender_id: 0,
         route_target: [targetId],
         route_target_type: targetType,
+        // 服务端回填字段，客户端发送时置空占位
+        msg_id: '',
+        session_id: '',
+        msg_seq: '0',
+        deliver_to: [],
     };
 
     const commonFields = {
@@ -122,7 +127,7 @@ function buildBase(type: ImTypes.MessageType, sessionKey: string, sessionId: str
         sessionKey,
         fromUserId: meId,
         sendTime: baseMsg.send_time,
-        seq: 0,
+        seq: '0',
         status: ImTypes.MessageStatus.MESSAGE_STATUS_SENDING,
         isRead: true,
         clientId,

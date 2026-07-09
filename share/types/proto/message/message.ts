@@ -301,8 +301,8 @@ export interface BaseMessage {
   target: number;
   /** 发送时间 */
   send_time: number;
-  /** 消息序号 */
-  msg_seq: number;
+  /** Lamport 序号超出 JS Number 安全整数范围，jstype 使 ts-proto 生成 string（Go 侧忽略） */
+  msg_seq: string;
   /** 消息状态 */
   status: MessageStatus;
   /** 扩展字段 */
@@ -471,8 +471,8 @@ export interface PersistAck {
   ack_status: AckStatus;
   /** 时间戳 */
   timestamp: number;
-  /** 消息序号 */
-  seq: number;
+  /** 消息序号 (Lamport, 超出 JS 安全整数) */
+  seq: string;
   /** 本地会话 Key */
   session_key: string;
 }
@@ -512,7 +512,8 @@ export interface Session {
   session_key: string;
   /** 最后一条消息摘要文本 */
   last_content: string;
-  max_seq: number;
+  /** Lamport 序号 (超出 JS 安全整数) */
+  max_seq: string;
   last_sender: number;
   /** 最后消息时间 */
   last_message_time: number;
@@ -558,7 +559,7 @@ function createBaseBaseMessage(): BaseMessage {
     from_user_id: 0,
     target: 0,
     send_time: 0,
-    msg_seq: 0,
+    msg_seq: "0",
     status: 0,
     ext: {},
   };
@@ -587,8 +588,8 @@ export const BaseMessage: MessageFns<BaseMessage> = {
     if (message.send_time !== 0) {
       writer.uint32(56).int64(message.send_time);
     }
-    if (message.msg_seq !== 0) {
-      writer.uint32(64).int32(message.msg_seq);
+    if (message.msg_seq !== "0") {
+      writer.uint32(64).uint64(message.msg_seq);
     }
     if (message.status !== 0) {
       writer.uint32(72).int32(message.status);
@@ -667,7 +668,7 @@ export const BaseMessage: MessageFns<BaseMessage> = {
             break;
           }
 
-          message.msg_seq = reader.int32();
+          message.msg_seq = reader.uint64().toString();
           continue;
         }
         case 9: {
@@ -732,10 +733,10 @@ export const BaseMessage: MessageFns<BaseMessage> = {
         ? globalThis.Number(object.send_time)
         : 0,
       msg_seq: isSet(object.msgSeq)
-        ? globalThis.Number(object.msgSeq)
+        ? globalThis.String(object.msgSeq)
         : isSet(object.msg_seq)
-        ? globalThis.Number(object.msg_seq)
-        : 0,
+        ? globalThis.String(object.msg_seq)
+        : "0",
       status: isSet(object.status) ? messageStatusFromJSON(object.status) : 0,
       ext: isObject(object.ext)
         ? (globalThis.Object.entries(object.ext) as [string, any][]).reduce(
@@ -772,8 +773,8 @@ export const BaseMessage: MessageFns<BaseMessage> = {
     if (message.send_time !== 0) {
       obj.sendTime = Math.round(message.send_time);
     }
-    if (message.msg_seq !== 0) {
-      obj.msgSeq = Math.round(message.msg_seq);
+    if (message.msg_seq !== "0") {
+      obj.msgSeq = globalThis.String(message.msg_seq);
     }
     if (message.status !== 0) {
       obj.status = messageStatusToJSON(message.status);
@@ -802,7 +803,7 @@ export const BaseMessage: MessageFns<BaseMessage> = {
     message.from_user_id = object.from_user_id ?? 0;
     message.target = object.target ?? 0;
     message.send_time = object.send_time ?? 0;
-    message.msg_seq = object.msg_seq ?? 0;
+    message.msg_seq = object.msg_seq ?? "0";
     message.status = object.status ?? 0;
     message.ext = (globalThis.Object.entries(object.ext ?? {}) as [string, string][]).reduce(
       (acc: { [key: string]: string }, [key, value]: [string, string]) => {
@@ -2227,7 +2228,16 @@ export const MessageAck: MessageFns<MessageAck> = {
 };
 
 function createBasePersistAck(): PersistAck {
-  return { msg_id: "", client_id: "", session_id: "", target: 0, ack_status: 0, timestamp: 0, seq: 0, session_key: "" };
+  return {
+    msg_id: "",
+    client_id: "",
+    session_id: "",
+    target: 0,
+    ack_status: 0,
+    timestamp: 0,
+    seq: "0",
+    session_key: "",
+  };
 }
 
 export const PersistAck: MessageFns<PersistAck> = {
@@ -2250,7 +2260,7 @@ export const PersistAck: MessageFns<PersistAck> = {
     if (message.timestamp !== 0) {
       writer.uint32(48).int64(message.timestamp);
     }
-    if (message.seq !== 0) {
+    if (message.seq !== "0") {
       writer.uint32(56).uint64(message.seq);
     }
     if (message.session_key !== "") {
@@ -2319,7 +2329,7 @@ export const PersistAck: MessageFns<PersistAck> = {
             break;
           }
 
-          message.seq = longToNumber(reader.uint64());
+          message.seq = reader.uint64().toString();
           continue;
         }
         case 8: {
@@ -2363,7 +2373,7 @@ export const PersistAck: MessageFns<PersistAck> = {
         ? ackStatusFromJSON(object.ack_status)
         : 0,
       timestamp: isSet(object.timestamp) ? globalThis.Number(object.timestamp) : 0,
-      seq: isSet(object.seq) ? globalThis.Number(object.seq) : 0,
+      seq: isSet(object.seq) ? globalThis.String(object.seq) : "0",
       session_key: isSet(object.sessionKey)
         ? globalThis.String(object.sessionKey)
         : isSet(object.session_key)
@@ -2392,8 +2402,8 @@ export const PersistAck: MessageFns<PersistAck> = {
     if (message.timestamp !== 0) {
       obj.timestamp = Math.round(message.timestamp);
     }
-    if (message.seq !== 0) {
-      obj.seq = Math.round(message.seq);
+    if (message.seq !== "0") {
+      obj.seq = globalThis.String(message.seq);
     }
     if (message.session_key !== "") {
       obj.sessionKey = message.session_key;
@@ -2412,7 +2422,7 @@ export const PersistAck: MessageFns<PersistAck> = {
     message.target = object.target ?? 0;
     message.ack_status = object.ack_status ?? 0;
     message.timestamp = object.timestamp ?? 0;
-    message.seq = object.seq ?? 0;
+    message.seq = object.seq ?? "0";
     message.session_key = object.session_key ?? "";
     return message;
   },
@@ -2700,7 +2710,7 @@ function createBaseSession(): Session {
     type: 0,
     session_key: "",
     last_content: "",
-    max_seq: 0,
+    max_seq: "0",
     last_sender: 0,
     last_message_time: 0,
     unread_count: 0,
@@ -2725,7 +2735,7 @@ export const Session: MessageFns<Session> = {
     if (message.last_content !== "") {
       writer.uint32(34).string(message.last_content);
     }
-    if (message.max_seq !== 0) {
+    if (message.max_seq !== "0") {
       writer.uint32(40).int64(message.max_seq);
     }
     if (message.last_sender !== 0) {
@@ -2796,7 +2806,7 @@ export const Session: MessageFns<Session> = {
             break;
           }
 
-          message.max_seq = longToNumber(reader.int64());
+          message.max_seq = reader.int64().toString();
           continue;
         }
         case 6: {
@@ -2883,10 +2893,10 @@ export const Session: MessageFns<Session> = {
         ? globalThis.String(object.last_content)
         : "",
       max_seq: isSet(object.maxSeq)
-        ? globalThis.Number(object.maxSeq)
+        ? globalThis.String(object.maxSeq)
         : isSet(object.max_seq)
-        ? globalThis.Number(object.max_seq)
-        : 0,
+        ? globalThis.String(object.max_seq)
+        : "0",
       last_sender: isSet(object.lastSender)
         ? globalThis.Number(object.lastSender)
         : isSet(object.last_sender)
@@ -2939,8 +2949,8 @@ export const Session: MessageFns<Session> = {
     if (message.last_content !== "") {
       obj.lastContent = message.last_content;
     }
-    if (message.max_seq !== 0) {
-      obj.maxSeq = Math.round(message.max_seq);
+    if (message.max_seq !== "0") {
+      obj.maxSeq = globalThis.String(message.max_seq);
     }
     if (message.last_sender !== 0) {
       obj.lastSender = Math.round(message.last_sender);
@@ -2975,7 +2985,7 @@ export const Session: MessageFns<Session> = {
     message.type = object.type ?? 0;
     message.session_key = object.session_key ?? "";
     message.last_content = object.last_content ?? "";
-    message.max_seq = object.max_seq ?? 0;
+    message.max_seq = object.max_seq ?? "0";
     message.last_sender = object.last_sender ?? 0;
     message.last_message_time = object.last_message_time ?? 0;
     message.unread_count = object.unread_count ?? 0;

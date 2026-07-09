@@ -120,7 +120,7 @@ const handleUpdatePinned = async (_val: string | number | boolean) => {
     if (pinLoading.value) return;
     pinLoading.value = true;
     try {
-        await conversationStore.updateConversationOptions(props.chat.session_id, 3 - props.chat.is_top, undefined);
+        await conversationStore.updateConversationOptions(props.chat.session_key, 3 - props.chat.is_top, undefined);
     } finally {
         pinLoading.value = false;
     }
@@ -130,7 +130,7 @@ const handleUpdateDisturb = async (_val: string | number | boolean) => {
     if (disturbLoading.value) return;
     disturbLoading.value = true;
     try {
-        await conversationStore.updateConversationOptions(props.chat.session_id, undefined, 3 - props.chat.is_disturb);
+        await conversationStore.updateConversationOptions(props.chat.session_key, undefined, 3 - props.chat.is_disturb);
     } finally {
         disturbLoading.value = false;
     }
@@ -152,7 +152,7 @@ const clearChatData = async () => {
 
         await messageService.clearMessagesBySessionId(props.chat.session_id);
 
-        props.chat.max_seq = 0;
+        props.chat.max_seq = '0';
         props.chat.last_content = '';
         ElMessage.success('聊天记录已清除');
         emit('close');

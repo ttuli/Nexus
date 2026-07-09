@@ -6,12 +6,15 @@ import { APP_CONSTANTS as config } from '@shared/config/constants'
 
 // ==================== Conversation APIs ====================
 
-export async function getSession(data: ApiTypes.message.GetSessionReq) {
-    const reqData = ApiTypes.message.GetSessionReq.encode(data).finish()
+/**
+ * 按 session_id 或 session_key 查询会话（按 key 查询且不存在时服务端会创建）
+ * GET 请求走 query 参数（后端 form 绑定）；session_type 用服务端 model 值（1=单聊, 2=群聊）
+ */
+export async function getSession(params: Partial<ApiTypes.message.GetSessionReq>) {
     const res = await instance<ApiResponse<ApiTypes.message.GetSessionResp>>({
         method: 'get',
         url: config.messageServer + '/message/session',
-        data: reqData
+        params
     })
     return decodeResponse(res.data, ApiTypes.message.GetSessionResp.decode)
 }
@@ -32,8 +35,22 @@ export async function updateConversation(data: ApiTypes.message.UpdateSessionReq
 }
 
 /**
- * 获取用户的会话列表
- * GET /message/session/user
+ * 上报会话已读游标（服务端单调前进，乱序上报不会回退）
+ * PUT /message/session/read
+ */
+export async function markSessionRead(data: ApiTypes.message.MarkSessionReadReq) {
+    const reqData = ApiTypes.message.MarkSessionReadReq.encode(data).finish()
+    const res = await instance<ApiResponse<null>>({
+        method: 'put',
+        url: config.messageServer + '/message/session/read',
+        data: reqData
+    })
+    return res.data
+}
+
+/**
+ * 获取用户的会话列表（含服务端计算的 unread_count 与 last_read_seq）
+ * GET /message/sessions/user
  */
 export async function getUserConversations() {
     const res = await instance<ApiResponse<ApiTypes.message.GetUserSessionsResp>>({

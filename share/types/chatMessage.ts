@@ -11,7 +11,7 @@ export interface ILocalMessageBase {
     sessionKey?: string;        // 前端会话 Key (用于标识没有 ID 的会话)
     fromUserId: number;      // 发送者ID
     sendTime: number;        // 发送时间
-    seq: number;             // 消息序号
+    seq: string;             // 消息序号 (Lamport, uint64 超出 JS 安全整数，以 string 承载)
     status: MessageStatus;   // 消息状态
     // 客户端/本地 额外字段
     clientId?: string;       // 客户端ID

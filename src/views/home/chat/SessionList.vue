@@ -85,6 +85,7 @@ const handleMenuSelect = (option: MenuOption) => {
             break;
         case 'mark_read':
             sessionStore.clearUnread(chat.session_key);
+            void sessionStore.reportSessionRead(chat.session_key);
             break;
         case 'delete':
             sessionStore.removeSession(chat.session_key);
@@ -96,10 +97,10 @@ const handleMenuSelect = (option: MenuOption) => {
             }
             break;
         case 'toggle_top':
-            sessionStore.updateConversationOptions(chat.session_id, 3 - chat.is_top, undefined);
+            sessionStore.updateConversationOptions(chat.session_key, 3 - chat.is_top, undefined);
             break;
         case 'toggle_disturb':
-            sessionStore.updateConversationOptions(chat.session_id, undefined, 3 - chat.is_disturb);
+            sessionStore.updateConversationOptions(chat.session_key, undefined, 3 - chat.is_disturb);
             break;
     }
 };

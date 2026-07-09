@@ -1,6 +1,7 @@
 import { dbBridge } from './dbWorkerBridge';
 import type { IChatMessage } from '@shared/types/chatMessage';
 import { MessageStatus } from '@shared/types/proto';
+import { toSeq, seqToBigInt, seqPositive } from '@shared/utils/seq';
 
 // ── 表行类型 ──────────────────────────────────────────────────────────────────
 
@@ -12,6 +13,8 @@ interface MessageRow {
     client_id: string;
     from_user_id: number;
     send_time: number;
+    // seq 列以 int64 存储（写入时绑定 BigInt）；直接读取会丢精度，
+    // 仅可用于 = 0 之类的判零检查，精确值一律从 data JSON（string）取
     seq: number;
     type: number;
     status: number;
@@ -29,7 +32,10 @@ function buildPk(message: IChatMessage): string {
 }
 
 function rowToMessage(row: MessageRow): IChatMessage {
-    return JSON.parse(row.data) as IChatMessage;
+    const msg = JSON.parse(row.data) as IChatMessage;
+    // 兼容旧数据：历史行 data 内 seq 为 number，统一规整为 string
+    msg.seq = toSeq(msg.seq);
+    return msg;
 }
 
 class MessageStore {
@@ -90,11 +96,11 @@ class MessageStore {
                 clientId,
                 Number(message.fromUserId) || 0,
                 Number(message.sendTime) || Date.now(),
-                Number(message.seq) || 0,
+                seqToBigInt(message.seq),
                 Number(message.type),
                 Number(message.status) || 0,
                 message.isRead ? 1 : 0,
-                JSON.stringify({ ...message, sessionId, sessionKey }),
+                JSON.stringify({ ...message, sessionId, sessionKey, seq: toSeq(message.seq) }),
                 Date.now(),
             ]
         );
@@ -182,11 +188,11 @@ class MessageStore {
                     clientId,
                     Number(message.fromUserId) || 0,
                     Number(message.sendTime) || Date.now(),
-                    Number(message.seq) || 0,
+                    seqToBigInt(message.seq),
                     Number(message.type),
                     Number(message.status) || 0,
                     message.isRead ? 1 : 0,
-                    JSON.stringify({ ...message, sessionId, sessionKey: convKey }),
+                    JSON.stringify({ ...message, sessionId, sessionKey: convKey, seq: toSeq(message.seq) }),
                     Date.now(),
                 ],
             });
@@ -205,7 +211,7 @@ class MessageStore {
         clientId: string,
         status: MessageStatus,
         msgId?: string,
-        seq?: number
+        seq?: string
     ): Promise<void> {
         if (!sessionId || (!clientId && !msgId)) return;
 
@@ -232,13 +238,14 @@ class MessageStore {
         const whereClause = clientId ? "WHERE client_id = ? AND client_id != ''" : "WHERE msg_id = ? AND msg_id != ''";
         const whereParam = clientId || msgId || '';
         
-        if (seq !== undefined && seq > 0) {
+        if (seq !== undefined && seqPositive(seq)) {
+            // seq 列绑 BigInt 精确存 int64；data JSON 内以 string 存，避免 JSON.parse 丢精度
             await dbBridge.execute(
                 'user',
-                `UPDATE chat_messages 
-                 SET status = ?, seq = ?, msg_id = COALESCE(NULLIF(msg_id, ''), ?), data = json_set(data, '$.status', ?, '$.seq', ?, '$.msgId', COALESCE(NULLIF(json_extract(data, '$.msgId'), ''), ?)), updated_at = ? 
+                `UPDATE chat_messages
+                 SET status = ?, seq = ?, msg_id = COALESCE(NULLIF(msg_id, ''), ?), data = json_set(data, '$.status', ?, '$.seq', ?, '$.msgId', COALESCE(NULLIF(json_extract(data, '$.msgId'), ''), ?)), updated_at = ?
                  ${whereClause}`,
-                [Number(status), Number(seq), msgId || '', Number(status), Number(seq), msgId || '', Date.now(), whereParam]
+                [Number(status), seqToBigInt(seq), msgId || '', Number(status), toSeq(seq), msgId || '', Date.now(), whereParam]
             );
         } else {
             await dbBridge.execute(
@@ -275,19 +282,21 @@ class MessageStore {
     /**
      * 获取会话历史消息（分页，倒序 seq 游标）
      *
-     * @param sessionId  会话 Key（前端本地标识，如 private_123_456）
-     * @param beforeSeq  排他性上界：只返回 seq > 0 且 seq < beforeSeq 的已确认消息；
-     *                   传入 Number.MAX_SAFE_INTEGER 表示从最新开始
+     * @param sessionKey 会话 Key（前端本地标识，如 private_123_456）
+     * @param beforeSeq  排他性上界（Lamport seq 字符串）：只返回 seq > 0 且 seq < beforeSeq 的已确认消息；
+     *                   undefined / '' / '0' 表示首页（无上界，含 seq=0 的未确认消息）
      * @param pageSize   每页条数
      * @returns          按 send_time 升序排列的消息（含已标记为失败的未确认消息）
      */
-    async getLocalHistoryMessages(sessionKey: string, beforeSeq: number, pageSize: number): Promise<IChatMessage[]> {
+    async getLocalHistoryMessages(sessionKey: string, beforeSeq: string | undefined, pageSize: number): Promise<IChatMessage[]> {
         if (!sessionKey || pageSize <= 0) return [];
 
-        const isFirstPage = beforeSeq === Number.MAX_SAFE_INTEGER;
-        const seqCondition = isFirstPage
-            ? `(seq > 0 AND seq < ?) OR seq = 0`
-            : `seq > 0 AND seq < ?`;
+        const isFirstPage = !beforeSeq || !seqPositive(beforeSeq);
+        // seq 比较在 SQLite 内以 int64 精确进行（参数绑定 BigInt）
+        const seqCondition = isFirstPage ? `1 = 1` : `seq > 0 AND seq < ?`;
+        const params: unknown[] = isFirstPage
+            ? [sessionKey, pageSize]
+            : [sessionKey, seqToBigInt(beforeSeq), pageSize];
 
         let rows = await dbBridge.query<MessageRow>(
             'user',
@@ -295,7 +304,7 @@ class MessageStore {
              WHERE session_key = ? AND (${seqCondition})
              ORDER BY send_time DESC
              LIMIT ?`,
-            [sessionKey, beforeSeq, pageSize]
+            params
         );
 
         // 逻辑：加载历史时仍未获得服务端 ACK (seq === 0)，且不是正在发送状态，视为失败

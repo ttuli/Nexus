@@ -65,3 +65,11 @@ export function judgeSessionType(sessionKey: string): ImTypes.SessionType {
     }
     return ImTypes.SessionType.SESSION_TYPE_GROUP;
 }
+
+/**
+ * 前端会话类型枚举(0=私聊,1=群聊) → 服务端 model 常量(1=单聊,2=群聊)
+ * 服务端 RPC 对 session_type 做裸 int8 转换，请求侧必须传 model 值
+ */
+export function toServerSessionType(type: ImTypes.SessionType): number {
+    return type === ImTypes.SessionType.SESSION_TYPE_GROUP ? 2 : 1;
+}

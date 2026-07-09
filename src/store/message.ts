@@ -14,6 +14,7 @@ import {
 import { toResourceUrl } from '@/src/utils/resourceUrl';
 import { extractVideoFrame } from '@/src/utils/mediaUtils';
 import { useUserStore } from './user';
+import { seqPositive, toSeq } from '@shared/utils/seq';
 
 // ─── Dependency Injection Interfaces ─────────────────────────────────────────
 // Store 不直接依赖任何 Service，所有外部 I/O 能力通过这些接口在调用方注入。
@@ -41,7 +42,7 @@ export interface IFileUploader {
 export interface IHistoryFetcher {
     getHistoryMessages(
         sessionKey: string,
-        beforeSeq?: number,
+        beforeSeq?: string,
         limit?: number
     ): Promise<IChatMessage[]>
 }
@@ -118,7 +119,7 @@ export const useMessageStore = defineStore('message', {
             status: number,
             sendTime?: number,
             msgId?: string,
-            seq?: number
+            seq?: string
         ): IChatMessage | undefined {
             const msg = this.messages.find(m =>
                 (clientId && m.clientId === clientId) ||
@@ -128,7 +129,7 @@ export const useMessageStore = defineStore('message', {
                 msg.status = status;
                 if (sendTime) msg.sendTime = sendTime;
                 if (msgId) msg.msgId = msgId;
-                if (seq) msg.seq = seq;
+                if (seq && seqPositive(seq)) msg.seq = toSeq(seq);
                 if (_sessionId) msg.sessionId = _sessionId;
             }
             return msg;
@@ -146,7 +147,7 @@ export const useMessageStore = defineStore('message', {
                 this.messages.push(message);
                 return this.messages[this.messages.length - 1];
             } else {
-                existing.seq = message.seq || existing.seq;
+                existing.seq = seqPositive(message.seq) ? toSeq(message.seq) : existing.seq;
                 existing.msgId = message.msgId || existing.msgId;
                 existing.status = message.status || existing.status;
                 existing.sendTime = message.sendTime || existing.sendTime;
@@ -163,8 +164,7 @@ export const useMessageStore = defineStore('message', {
 
             const oldestConfirmedSeq = (() => {
                 for (const msg of this.messages) {
-                    const seq = Number(msg.seq);
-                    if (Number.isFinite(seq) && seq > 0) return seq;
+                    if (seqPositive(msg.seq)) return toSeq(msg.seq);
                 }
                 return undefined;
             })();

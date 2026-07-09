@@ -25,7 +25,8 @@ if ($protoFiles) {
     # outputClientImpl=false: We only want types
     # snakeToCamel=false: Keep snake_case in interfaces (critical for JSON backend compatibility)
     
-    $tsProtoOpt = "forceLong=number,esModuleInterop=true,outputServices=false,outputClientImpl=false,useProtoFieldName=true,snakeToCamel=false"
+    # useJsTypeOverride=true: respect [jstype = JS_STRING] on 64-bit fields (Lamport seq exceeds MAX_SAFE_INTEGER)
+    $tsProtoOpt = "forceLong=number,esModuleInterop=true,outputServices=false,outputClientImpl=false,useProtoFieldName=true,snakeToCamel=false,useJsTypeOverride=true"
     
     $protocArgs = @(
         "-I=$typesDir",

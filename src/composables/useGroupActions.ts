@@ -31,7 +31,7 @@ export function useGroupActions() {
             sessionKey: sessionId,
             fromUserId: userStore.userID,
             sendTime: Date.now(),
-            seq: 0,
+            seq: '0',
             status: MessageStatus.MESSAGE_STATUS_UNSPECIFIED,
             isRead: true,
             type: MessageType.GROUP_OP_NOTIFICATION,

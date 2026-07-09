@@ -19,11 +19,12 @@ import { messageService } from '@/src/services/messageService';
 import { sessionService } from '@/src/services/sessionService';
 import { windowService } from '@/src/services/windowService';
 import { useSessionStore } from '@/src/store/session';
-import { chatService } from '@/src/services/chatService';
 
 export function initWsMessageListener(): void {
 
     // ── 新消息到达 ────────────────────────────────────────────────────────────
+    // 注：seq 已改为 Lamport 序号（不连续），无法再用 last+1 做在线断层检测；
+    // 漏投由服务端持久化兜底，重连/上线时通过活跃会话 seq 对比增量补拉（syncOfflineActiveSessions）。
     ipcService.on(IpcChannels.WS_MESSAGE, async (_event, data: { type: ImTypes.MessageType; payload: any }) => {
         const chatMsg = convertWSMessageToIChatMessage(data.payload as ImTypes.WSMessage);
         if (!chatMsg) {
@@ -34,32 +35,7 @@ export function initWsMessageListener(): void {
         const userStore = useUserStore();
         const sessionStore = useSessionStore();
         const isFromSelf = chatMsg.fromUserId === userStore.userID;
-
-        // 0. seq 断层检测：对比本地 max_seq，若存在缺口则从服务端补拉丢失的消息
-        const incomingSeq = chatMsg.seq ?? 0;
-        if (incomingSeq > 0) {
-            const existingSession = sessionStore.getSession(chatMsg.sessionKey as string);
-            const localMaxSeq = existingSession?.max_seq ?? 0;
-            if (localMaxSeq > 0 && incomingSeq > localMaxSeq + 1) {
-                const gapStart = localMaxSeq + 1;
-                const gapEnd = incomingSeq - 1;
-                console.warn(`[WsMessageListener] Seq gap in ${chatMsg.sessionKey}: expected ${gapStart}, got ${incomingSeq}. Fetching [${gapStart}, ${gapEnd}]...`);
-                try {
-                    const missing = await chatService.fetchMissingMessages(
-                        chatMsg.sessionKey as string,
-                        gapStart,
-                        gapEnd,
-                    );
-                    if (missing.length > 0) {
-                        const messageStore = useMessageStore();
-                        missing.forEach(m => messageStore.upsertMessage(m));
-                        console.log(`[WsMessageListener] Gap filled: ${missing.length} messages fetched.`);
-                    }
-                } catch (e) {
-                    console.error('[WsMessageListener] Failed to fetch missing messages for gap', e);
-                }
-            }
-        }
+        const isCurrentSession = sessionStore.currentSessionKey === chatMsg.sessionKey;
 
         // 1. 纯状态更新（同步，无 I/O）
         const updatedSession = sessionStore.upsertSession({
@@ -70,7 +46,12 @@ export function initWsMessageListener(): void {
             last_sender: chatMsg.fromUserId,
             update_time: chatMsg.sendTime,
         });
-        sessionStore.incrementUnread(chatMsg.sessionKey as string);
+        // 正在查看的会话不累计未读，而是即时前进服务端已读游标
+        if (isCurrentSession) {
+            void sessionStore.reportSessionRead(chatMsg.sessionKey as string);
+        } else {
+            sessionStore.incrementUnread(chatMsg.sessionKey as string);
+        }
         useMessageStore().upsertMessage(chatMsg);
 
         // 2. 副作用：提示音（仅对方消息）
@@ -130,6 +111,7 @@ export function initWsMessageListener(): void {
     });
 
     // ── 消息持久化 ACK（服务端确认落库，回填 msgId/seq）────────────────────────
+    // 注：成功 ACK 不再携带 session_key，消息定位依赖 client_id
     ipcService.on(IpcChannels.WS_MESSAGE_PERSIST_ACK, async (_event, data: { ack: ImTypes.PersistAck; timestamp: number }) => {
         const messageStore = useMessageStore();
         console.log('[WsMessageListener] Received PersistAck:', data);
@@ -139,6 +121,20 @@ export function initWsMessageListener(): void {
             msg = messageStore.updateMessageStatus(data.ack.session_id, data.ack.client_id, ImTypes.MessageStatus.MESSAGE_STATUS_FAILED, data.timestamp);
         } else if (data.ack.ack_status === ImTypes.AckStatus.ACK_STATUS_SUCCESS) {
             msg = messageStore.updateMessageStatus(data.ack.session_id, data.ack.client_id, ImTypes.MessageStatus.MESSAGE_STATUS_DELIVERED, data.timestamp, data.ack.msg_id, data.ack.seq);
+
+            // 自己发出的消息持久化成功后，同步前进会话 max_seq 并回填 session_id，
+            // 避免本地游标滞后于服务端 actual_seq 导致下次上线误判离线缺口
+            if (msg?.sessionKey) {
+                const sessionStore = useSessionStore();
+                const updatedSession = sessionStore.upsertSession({
+                    session_key: msg.sessionKey,
+                    session_id: data.ack.session_id,
+                    max_seq: data.ack.seq,
+                });
+                if (updatedSession) {
+                    void sessionService.saveMany([toRaw(updatedSession)]);
+                }
+            }
         }
 
         // 同样只持久化状态变更，不走 receiveMessage

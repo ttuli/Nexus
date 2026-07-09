@@ -1,20 +1,22 @@
 import { dbBridge } from './dbWorkerBridge';
 import type { ImTypes } from '@shared/types';
+import { toSeq, seqToBigInt } from '@shared/utils/seq';
 
 class SessionStore {
     /**
      * 获取所有会话列表
      */
     async getAll(): Promise<(ImTypes.Session & { is_in_list?: number })[]> {
+        // max_seq 为 Lamport 序号（int64），直接读取会丢精度，CAST 为 TEXT 后以 string 返回
         const rows = await dbBridge.query<any>(
             'user',
-            'SELECT session_id, type, session_key, max_seq, last_sender, last_content, last_message_time, unread_count, is_top, is_disturb, create_time, update_time, is_in_list FROM sessions'
+            'SELECT session_id, type, session_key, CAST(max_seq AS TEXT) AS max_seq, last_sender, last_content, last_message_time, unread_count, is_top, is_disturb, create_time, update_time, is_in_list FROM sessions'
         );
         return rows.map(r => ({
             session_id: r.session_id,
             type: r.type,
             session_key: r.session_key || '',
-            max_seq: r.max_seq,
+            max_seq: toSeq(r.max_seq),
             last_sender: r.last_sender,
             last_content: r.last_content,
             last_message_time: r.last_message_time,
@@ -33,7 +35,7 @@ class SessionStore {
     async get(keyOrId: string): Promise<(ImTypes.Session & { is_in_list?: number }) | null> {
         const row = await dbBridge.get<any>(
             'user',
-            'SELECT session_id, type, session_key, max_seq, last_sender, last_content, last_message_time, unread_count, is_top, is_disturb, create_time, update_time, is_in_list FROM sessions WHERE session_key = ? OR session_id = ?',
+            'SELECT session_id, type, session_key, CAST(max_seq AS TEXT) AS max_seq, last_sender, last_content, last_message_time, unread_count, is_top, is_disturb, create_time, update_time, is_in_list FROM sessions WHERE session_key = ? OR session_id = ?',
             [keyOrId, keyOrId]
         );
         if (!row) return null;
@@ -41,7 +43,7 @@ class SessionStore {
             session_id: row.session_id,
             type: row.type,
             session_key: row.session_key || '',
-            max_seq: row.max_seq,
+            max_seq: toSeq(row.max_seq),
             last_sender: row.last_sender,
             last_content: row.last_content,
             last_message_time: row.last_message_time,
@@ -77,7 +79,7 @@ class SessionStore {
                 session.session_id,
                 session.type,
                 session.session_key,
-                session.max_seq,
+                seqToBigInt(session.max_seq),
                 session.last_sender,
                 session.last_content,
                 session.last_message_time,
@@ -117,7 +119,7 @@ class SessionStore {
                 s.session_id,
                 s.type,
                 s.session_key,
-                s.max_seq,
+                seqToBigInt(s.max_seq),
                 s.last_sender,
                 s.last_content,
                 s.last_message_time,
