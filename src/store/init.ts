@@ -35,14 +35,14 @@ export async function initRelationStore() {
         if (reqIds.length) userService.fetchByIds([...new Set(reqIds)]);
     });
 
-    const conversationStore = useSessionStore()
+    const sessionStore = useSessionStore()
     const groupIdsToFetch: number[] = [];
 
-    conversationStore.sessionList.forEach((chat: ImTypes.Session) => {
-        const targetId = extractTargetIdFromSessionId(chat.session_id, userStore.getUserID());
-        if (chat.type === ImTypes.SessionType.SESSION_TYPE_PRIVATE) {
+    sessionStore.sessionList.forEach((session: ImTypes.Session) => {
+        const targetId = extractTargetIdFromSessionId(session.session_id, userStore.getUserID());
+        if (session.type === ImTypes.SessionType.SESSION_TYPE_PRIVATE) {
             if (targetId && !isNaN(targetId)) ids.push(targetId);
-        } else if (chat.type === ImTypes.SessionType.SESSION_TYPE_GROUP) {
+        } else if (session.type === ImTypes.SessionType.SESSION_TYPE_GROUP) {
             if (targetId && !isNaN(targetId)) groupIdsToFetch.push(targetId);
         }
     })

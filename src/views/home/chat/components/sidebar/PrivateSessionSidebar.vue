@@ -68,7 +68,7 @@ const props = defineProps<{
 const emit = defineEmits(['close']);
 
 const userStore = useUserStore();
-const conversationStore = useSessionStore();
+const sessionStore = useSessionStore();
 const messageStore = useMessageStore();
 
 const targetId = computed(() => extractTargetIdFromSessionId(props.chat.session_id, userStore.getUserID()));
@@ -120,7 +120,7 @@ const handleUpdatePinned = async (_val: string | number | boolean) => {
     if (pinLoading.value) return;
     pinLoading.value = true;
     try {
-        await conversationStore.updateConversationOptions(props.chat.session_key, 3 - props.chat.is_top, undefined);
+        await sessionStore.updateSessionOptions(props.chat.session_key, 3 - props.chat.is_top, undefined);
     } finally {
         pinLoading.value = false;
     }
@@ -130,7 +130,7 @@ const handleUpdateDisturb = async (_val: string | number | boolean) => {
     if (disturbLoading.value) return;
     disturbLoading.value = true;
     try {
-        await conversationStore.updateConversationOptions(props.chat.session_key, undefined, 3 - props.chat.is_disturb);
+        await sessionStore.updateSessionOptions(props.chat.session_key, undefined, 3 - props.chat.is_disturb);
     } finally {
         disturbLoading.value = false;
     }
@@ -146,7 +146,7 @@ const clearChatData = async () => {
     });
 
     if (res === DialogResult.Confirm) {
-        if (conversationStore.currentSessionKey === props.chat.session_key) {
+        if (sessionStore.currentSessionKey === props.chat.session_key) {
             messageStore.messages = [];
         }
 

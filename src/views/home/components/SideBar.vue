@@ -41,14 +41,14 @@ const userStore = useUserStore();
 const activeRoute = computed(() => route.path);
 
 const groupStore = useGroupStore();
-const conversationStore = useSessionStore();
+const sessionStore = useSessionStore();
 
 const contactBadge = computed(() => {
     return userStore.unreadPendingRequestCount + groupStore.unreadPendingRequestCount;
 });
 
 const chatBadge = computed(() => {
-    return conversationStore.totalUnreadCount;
+    return sessionStore.totalUnreadCount;
 });
 
 const navigateTo = (name: string) => {

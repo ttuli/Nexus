@@ -99,12 +99,12 @@ import { windowService } from '@/src/services';
 import { useChatPage } from '@/src/composables/useChatPage';
 
 
-const conversationStore = useSessionStore();
+const sessionStore = useSessionStore();
 const messageStore = useMessageStore();
 const userStore = useUserStore();
 const groupStore = useGroupStore();
 
-const { currentSession, currentSessionKey } = storeToRefs(conversationStore);
+const { currentSession, currentSessionKey } = storeToRefs(sessionStore);
 const { messages, isLoading, hasMore } = storeToRefs(messageStore);
 const { loadMore, sendTextMessage, sendImageMessage, sendVideoMessage, sendFileMessage } = useChatPage();
 

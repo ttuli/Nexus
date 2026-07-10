@@ -91,8 +91,8 @@ export const useMessageStore = defineStore('message', {
          * 更新文件消息的本地路径（下载完成后使用）
          */
         updateFileLocalPath(sessionkey: string, msgId: string, localPath: string) {
-            const conversationStore = useSessionStore();
-            if (conversationStore.currentSessionKey !== sessionkey) return;
+            const sessionStore = useSessionStore();
+            if (sessionStore.currentSessionKey !== sessionkey) return;
             const msg = this.messages.find(m =>
                 (msgId && m.msgId === msgId)
             ) as any;

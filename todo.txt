@@ -1,0 +1,11 @@
+1.messageStore和sessionStore双向依赖的问题
+解决：
+1. 引入一个chatStore解耦
+2. 或其他更好的方案
+
+2.import引入问题，部分函数在内部动态引入，需移动到文件开头
+已知：
+session.ts 
+updateSessionStatus / markSessionRead  
+_doSyncOfflineActiveSessions
+updateSessionOptions 

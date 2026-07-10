@@ -4,7 +4,7 @@ import { ApiTypes, PartialExcept } from '@shared/types'
 import { APP_CONSTANTS as config } from '@shared/config/constants'
 
 
-// ==================== Conversation APIs ====================
+// ==================== Session APIs ====================
 
 /**
  * 按 session_id 或 session_key 查询会话（按 key 查询且不存在时服务端会创建）
@@ -22,9 +22,9 @@ export async function getSession(params: Partial<ApiTypes.message.GetSessionReq>
 
 /**
  * 更新会话设置 (置顶、免打扰、静音等)
- * PUT /message/conversation
+ * PUT /message/session
  */
-export async function updateConversation(data: ApiTypes.message.UpdateSessionReq) {
+export async function updateSession(data: ApiTypes.message.UpdateSessionReq) {
     const reqData = ApiTypes.message.UpdateSessionReq.encode(data).finish()
     const res = await instance<ApiResponse<null>>({
         method: 'put',
@@ -52,7 +52,7 @@ export async function markSessionRead(data: ApiTypes.message.MarkSessionReadReq)
  * 获取用户的会话列表（含服务端计算的 unread_count 与 last_read_seq）
  * GET /message/sessions/user
  */
-export async function getUserConversations() {
+export async function getUserSessions() {
     const res = await instance<ApiResponse<ApiTypes.message.GetUserSessionsResp>>({
         method: 'get',
         url: config.messageServer + '/message/sessions/user'
@@ -82,7 +82,7 @@ export async function getHistory(params: PartialExcept<ApiTypes.message.GetHisto
 }
 
 // 获取离线后的活跃列表
-export async function getUserActiveConversation(params: ApiTypes.message.GetUserActiveSessionsReq) {
+export async function getUserActiveSessions(params: ApiTypes.message.GetUserActiveSessionsReq) {
     const res = await instance<ApiResponse<ApiTypes.message.GetUserActiveSessionsResp>>({
         method: 'get',
         url: config.messageServer + '/message/sessions/user/active',

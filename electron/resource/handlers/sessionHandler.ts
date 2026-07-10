@@ -21,7 +21,7 @@ export function setupSessionHandlers(): void {
             const session = await sessionStore.get(sessionkey);
             return { success: true, data: session };
         } catch (err) {
-            console.error('[sessionHandler] CONVERSATION_GET error:', err);
+            console.error('[sessionHandler] SESSION_GET error:', err);
             return { success: false, error: (err as Error).message };
         }
     });

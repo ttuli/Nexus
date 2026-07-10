@@ -77,7 +77,7 @@ const emit = defineEmits<{
     (e: 'create', data: { name: string; userIds: number[] }): void;
 }>();
 
-const conversationStore = useSessionStore();
+const sessionStore = useSessionStore();
 const userStore = useUserStore();
 
 const groupName = ref('');
@@ -149,7 +149,7 @@ const loadData = async () => {
         }
 
         // 2. Load Chat List Users (Private Chats)
-        const privateChats = conversationStore.sessionList.filter(c => c.type === ImTypes.SessionType.SESSION_TYPE_PRIVATE);
+        const privateChats = sessionStore.sessionList.filter(c => c.type === ImTypes.SessionType.SESSION_TYPE_PRIVATE);
         if (privateChats.length > 0) {
             const ids = privateChats.map(c => extractTargetIdFromSessionId(c.session_id, userStore.getUserID())).filter((id): id is number => id !== null); // Fix: Use targetId for private chat user ID
             // Ensure we have user info for these IDs

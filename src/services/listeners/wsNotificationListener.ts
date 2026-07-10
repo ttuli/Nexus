@@ -12,6 +12,7 @@ import { currentValidationTab } from '@/src/composables/useValidationTab'
 import { useRouter } from 'vue-router'
 import { useSessionStore } from '@/src/store/session'
 import { useMessageStore } from '@/src/store/message'
+import { toRaw } from 'vue'
 import { generateGroupSessionId, generateSessionId } from '@/src/utils/sessionUtils';
 import { convertApplySrc2FriendSrc } from '@/src/utils/messageConverter';
 import windowService from '../windowService'
@@ -93,10 +94,7 @@ export function initWsNotificationListener(): void {
                         windowService.playNotificationSound()
                     }
                     // 持久化通知消息到本地 SQLite
-                    const { toRaw } = await import('vue');
-                    const { ipcService: localIpc } = await import('../ipcService');
-                    const { IpcChannels: localChannels } = await import('@shared/types/ipc');
-                    void localIpc.invoke(localChannels.MSG_SAVE, JSON.parse(JSON.stringify(toRaw(result.msg))));
+                    void ipcService.invoke(IpcChannels.MSG_SAVE, JSON.parse(JSON.stringify(toRaw(result.msg))));
                 }
                 break
             }
@@ -106,10 +104,7 @@ export function initWsNotificationListener(): void {
                 const updatedMsg = messageStore.updateMessageStatus(msgRecall.session_id, '', ImTypes.MessageStatus.MESSAGE_STATUS_RECALLED, msgRecall.recall_time, msgRecall.msg_id)
                 if (updatedMsg) {
                     // 同步更新本地 SQLite 的消息撤回状态
-                    const { toRaw } = await import('vue');
-                    const { ipcService: localIpc } = await import('../ipcService');
-                    const { IpcChannels: localChannels } = await import('@shared/types/ipc');
-                    void localIpc.invoke(localChannels.MSG_SAVE, JSON.parse(JSON.stringify(toRaw(updatedMsg))));
+                    void ipcService.invoke(IpcChannels.MSG_SAVE, JSON.parse(JSON.stringify(toRaw(updatedMsg))));
                 }
                 break
             }

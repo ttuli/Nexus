@@ -100,7 +100,7 @@ const handleUpdatePinned = async () => {
     if (pinLoading.value) return;
     pinLoading.value = true;
     try {
-        await sessionStore.updateConversationOptions(props.chat.session_key, 3 - props.chat.is_top, undefined);
+        await sessionStore.updateSessionOptions(props.chat.session_key, 3 - props.chat.is_top, undefined);
     } finally {
         pinLoading.value = false;
     }
@@ -110,7 +110,7 @@ const handleUpdateDisturb = async () => {
     if (disturbLoading.value) return;
     disturbLoading.value = true;
     try {
-        await sessionStore.updateConversationOptions(props.chat.session_key, undefined, 3 - props.chat.is_disturb);
+        await sessionStore.updateSessionOptions(props.chat.session_key, undefined, 3 - props.chat.is_disturb);
     } finally {
         disturbLoading.value = false;
     }

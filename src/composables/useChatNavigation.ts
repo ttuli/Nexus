@@ -7,7 +7,7 @@ import { useRouter } from 'vue-router';
 import { toRaw } from 'vue';
 
 /**
- * 封装切换会话的协调逻辑，避免 conversationStore ↔ messageStore 循环依赖。
+ * 封装切换会话的协调逻辑，避免 sessionStore ↔ messageStore 循环依赖。
  * 在 Vue 组件或 Service 中使用。
  */
 export function useChatNavigation() {

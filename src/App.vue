@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { nextTick, ref } from 'vue'
 import CusDialog from './components/CusDialog'
 import { useUserStore } from './store/user'
 import { ipcService, windowService, tokenService, listenerService, LogoutType } from '@/src/services'
@@ -11,52 +11,47 @@ useTheme()
 
 const isAppMounted = ref(false)
 
-onMounted(() => {
-    // 初始化 IPC 监听器
-    try {
-        listenerService.init()
+// 初始化 IPC 监听器（在 setup 顶层执行，先于所有子组件的生命周期）
+try {
+    listenerService.init()
 
-        ipcService.once(IpcChannels.APP_QUIT, async () => {
-            isAppMounted.value = false
-            await nextTick().then(() => {
-                window.close()
+    ipcService.once(IpcChannels.APP_QUIT, async () => {
+        isAppMounted.value = false
+        listenerService.destroy()
+        ipcService.removeAllListeners()
+        await nextTick().then(() => {
+            window.close()
+        })
+    })
+    ipcService.on(IpcChannels.LOGOUT_REMIND, async (_e, data) => {
+        if (data.type === LogoutType.KICKED) {
+            await CusDialog.open({
+                title: '消息',
+                showCancel: false,
+                content: '账号在其他设备登录，将退出登录',
+                confirmText: '确定',
             })
-        })
-        ipcService.on(IpcChannels.LOGOUT_REMIND, async (_e, data) => {
-            if (data.type === LogoutType.KICKED) {
-                await CusDialog.open({
-                    title: '消息',
-                    showCancel: false,
-                    content: '账号在其他设备登录，将退出登录',
-                    confirmText: '确定',
-                })
-            } else if (data.type === LogoutType.LOGOUT) {
-                await CusDialog.open({
-                    title: '消息',
-                    showCancel: false,
-                    content: '身份已失效，请重新登录',
-                    confirmText: '确定',
-                })
-            }
-            windowService.sendLogout()
-        })
-        tokenService.getAllInfo().then((data) => {
-            if (data.success && data.token) {
-                useUserStore().setToken(data.token)
-                useGroupStore().initLastReadTime(useUserStore().userID)
-            }
-        })
-    } catch (error) {
-        console.error('Failed to set up IPC listeners:', error)
-    } finally {
-        isAppMounted.value = true
-    }
-})
-
-onUnmounted(() => {
-    listenerService.destroy()
-    ipcService.removeAllListeners()
-})
+        } else if (data.type === LogoutType.LOGOUT) {
+            await CusDialog.open({
+                title: '消息',
+                showCancel: false,
+                content: '身份已失效，请重新登录',
+                confirmText: '确定',
+            })
+        }
+        windowService.sendLogout()
+    })
+    tokenService.getAllInfo().then((data) => {
+        if (data.success && data.token) {
+            useUserStore().setToken(data.token)
+            useGroupStore().initLastReadTime(useUserStore().userID)
+        }
+    })
+} catch (error) {
+    console.error('Failed to set up IPC listeners:', error)
+} finally {
+    isAppMounted.value = true
+}
 </script>
 
 <template>

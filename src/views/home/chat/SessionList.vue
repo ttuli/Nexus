@@ -97,10 +97,10 @@ const handleMenuSelect = (option: MenuOption) => {
             }
             break;
         case 'toggle_top':
-            sessionStore.updateConversationOptions(chat.session_key, 3 - chat.is_top, undefined);
+            sessionStore.updateSessionOptions(chat.session_key, 3 - chat.is_top, undefined);
             break;
         case 'toggle_disturb':
-            sessionStore.updateConversationOptions(chat.session_key, undefined, 3 - chat.is_disturb);
+            sessionStore.updateSessionOptions(chat.session_key, undefined, 3 - chat.is_disturb);
             break;
     }
 };

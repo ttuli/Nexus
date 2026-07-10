@@ -165,7 +165,6 @@ class ChatService {
     }
 
     /**
-     * 与后端 FindByConversation 对齐：
      * startSeq/endSeq 为 Lamport seq 字符串，'-1' 表示无界；非负表示闭区间边界。
      * 向旧消息拉取：startSeq='-1', endSeq=upper → DESC
      * 向新消息拉取：startSeq=lower, endSeq='-1' → ASC

@@ -215,8 +215,6 @@ class FileService {
     async checkLocalFileExists(localPath: string): Promise<boolean> {
         if (!localPath) return false;
         try {
-            const { ipcService } = await import('./ipcService');
-            const { IpcChannels } = await import('@shared/types/ipc');
             const res = await ipcService.invoke(IpcChannels.SYSTEM_FILE_EXISTS, localPath);
             return res?.success && res?.data === true;
         } catch {

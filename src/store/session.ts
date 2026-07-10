@@ -286,7 +286,7 @@ export const useSessionStore = defineStore('session', {
 
         async _doSyncOfflineActiveSessions() {
             const { getOfflineTimestamp } = await import('./init');
-            const { getUserActiveConversation, getUserConversations } = await import('@/src/apis/message');
+            const { getUserActiveSessions, getUserSessions } = await import('@/src/apis/message');
             const { sessionService } = await import('@/src/services/sessionService');
             const { chatService } = await import('@/src/services/chatService');
             const { useMessageStore } = await import('./message');
@@ -295,7 +295,7 @@ export const useSessionStore = defineStore('session', {
             const timestamp = getOfflineTimestamp();
 
             // ── 1. 活跃会话 + 离线消息增量补拉 ─────────────────────────────
-            const res = await getUserActiveConversation({ timestamp });
+            const res = await getUserActiveSessions({ timestamp });
             if (res.code === 200 && res.data?.sessions) {
                 const updatedSessions: ImTypes.Session[] = [];
                 for (const ss of res.data.sessions) {
@@ -337,7 +337,7 @@ export const useSessionStore = defineStore('session', {
 
             // ── 2. 服务端未读数对齐（按 session_id 匹配本地会话）─────────────
             try {
-                const convRes = await getUserConversations();
+                const convRes = await getUserSessions();
                 if (convRes.code === 200 && convRes.data?.sessions) {
                     const toPersist: ImTypes.Session[] = [];
                     for (const us of convRes.data.sessions) {
@@ -366,7 +366,7 @@ export const useSessionStore = defineStore('session', {
          * 更新会话配置（置顶、免打扰等）并同步到服务器
          * @param sessionKey 本地会话 Key（store 以 session_key 索引；上报服务端时用真实 session_id）
          */
-        async updateConversationOptions(sessionKey: string, isTop?: number, isDisturb?: number) {
+        async updateSessionOptions(sessionKey: string, isTop?: number, isDisturb?: number) {
             const chat = this.getSession(sessionKey);
             if (!chat) return;
             if (isTop === undefined && isDisturb === undefined) return;
@@ -381,8 +381,8 @@ export const useSessionStore = defineStore('session', {
             if (!chat.session_id) return;
 
             try {
-                const { updateConversation } = await import('@/src/apis/message');
-                await updateConversation({
+                const { updateSession } = await import('@/src/apis/message');
+                await updateSession({
                     session_id: chat.session_id,
                     is_top: Number(isTopVal),
                     is_disturb: Number(isDisturbVal),
