@@ -54,6 +54,7 @@ import GlobalLoading from '@/src/components/GlobalLoading';
 import { useChatNavigation } from '@/src/composables/useChatNavigation';
 import { generateGroupSessionId } from '@/src/utils/sessionUtils';
 import { sessionService } from '@/src/services/sessionService';
+import { chatService } from '@/src/services/chatService';
 
 const router = useRouter();
 const sessionStore = useSessionStore()
@@ -138,7 +139,7 @@ onMounted(async () => {
         }
         if (state === ConnectionState.CONNECTED && wsWasDisconnected) {
             wsWasDisconnected = false;
-            void sessionStore.syncOfflineActiveSessions();
+            void chatService.syncOfflineActiveSessions();
         }
     });
 
@@ -151,7 +152,7 @@ onMounted(async () => {
 
     signalWindowReady()
 
-    sessionStore.syncOfflineActiveSessions()
+    chatService.syncOfflineActiveSessions()
 });
 onUnmounted(async () => {
     storeOfflineTimestamp()

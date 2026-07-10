@@ -2,10 +2,8 @@ import { defineStore } from 'pinia';
 import { ImTypes } from '@shared/types';
 import { Renderer_Config as config } from '@shared/config/constants';
 import { judgeSessionType } from '@/src/utils/sessionUtils';
-import { seqGt, seqMax, seqPositive, toSeq } from '@shared/utils/seq';
-
-// 离线同步在途标记（模块级，防止挂载同步与重连同步并发重入）
-let offlineSyncInFlight = false;
+import { seqMax, seqPositive, toSeq } from '@shared/utils/seq';
+import { markSessionRead, updateSession } from '@/src/apis/message';
 
 export const useSessionStore = defineStore('session', {
     state: () => ({
@@ -213,7 +211,6 @@ export const useSessionStore = defineStore('session', {
             const chat = this.getSession(sessionkey);
             if (!chat || !chat.session_id || !seqPositive(chat.max_seq)) return;
             try {
-                const { markSessionRead } = await import('@/src/apis/message');
                 await markSessionRead({
                     session_id: chat.session_id,
                     read_seq: toSeq(chat.max_seq),
@@ -269,100 +266,6 @@ export const useSessionStore = defineStore('session', {
         },
 
         /**
-         * 离线同步：
-         * 1. 拉取活跃会话，对 server actual_seq > 本地 max_seq 的会话按 seq 区间增量补拉离线消息
-         *    （离线期间服务端只存不推，上线后由客户端拉齐）
-         * 2. 拉取用户会话列表，以服务端计算的 unread_count（基于已读游标点查）覆盖本地未读数
-         */
-        async syncOfflineActiveSessions() {
-            if (offlineSyncInFlight) return;
-            offlineSyncInFlight = true;
-            try {
-                await this._doSyncOfflineActiveSessions();
-            } finally {
-                offlineSyncInFlight = false;
-            }
-        },
-
-        async _doSyncOfflineActiveSessions() {
-            const { getOfflineTimestamp } = await import('./init');
-            const { getUserActiveSessions, getUserSessions } = await import('@/src/apis/message');
-            const { sessionService } = await import('@/src/services/sessionService');
-            const { chatService } = await import('@/src/services/chatService');
-            const { useMessageStore } = await import('./message');
-            const { toRaw } = await import('vue');
-
-            const timestamp = getOfflineTimestamp();
-
-            // ── 1. 活跃会话 + 离线消息增量补拉 ─────────────────────────────
-            const res = await getUserActiveSessions({ timestamp });
-            if (res.code === 200 && res.data?.sessions) {
-                const updatedSessions: ImTypes.Session[] = [];
-                for (const ss of res.data.sessions) {
-                    if (!ss.session_key) continue;
-                    const localMaxSeq = toSeq(this.getSession(ss.session_key)?.max_seq);
-                    // Lamport 语义下 max_seq 与 actual_seq 等价（服务端兼容返回）
-                    const serverMaxSeq = seqMax(ss.max_seq, ss.actual_seq);
-
-                    const updated = this.upsertSession({
-                        session_id: ss.session_id,
-                        session_key: ss.session_key,
-                        // 服务端 type 为 model 值(1/2)，与前端枚举(0/1)不同，统一由 session_key 推导
-                        type: judgeSessionType(ss.session_key),
-                        max_seq: serverMaxSeq,
-                        last_content: ss.last_content,
-                        last_sender: ss.last_sender,
-                        create_time: ss.create_time,
-                        update_time: ss.update_time,
-                    });
-                    if (updated) updatedSessions.push(toRaw(updated) as ImTypes.Session);
-
-                    // 本地落后于服务端：按 (localMaxSeq, +∞) 分页拉齐离线消息
-                    if (seqGt(serverMaxSeq, localMaxSeq)) {
-                        try {
-                            const missing = await chatService.fetchMessagesSince(ss.session_key, localMaxSeq);
-                            if (missing.length > 0 && this.currentSessionKey === ss.session_key) {
-                                const messageStore = useMessageStore();
-                                missing.forEach(m => messageStore.upsertMessage(m));
-                            }
-                        } catch (e) {
-                            console.error(`[SessionStore] backfill offline messages for ${ss.session_key} failed:`, e);
-                        }
-                    }
-                }
-                if (updatedSessions.length > 0) {
-                    void sessionService.saveMany(updatedSessions);
-                }
-            }
-
-            // ── 2. 服务端未读数对齐（按 session_id 匹配本地会话）─────────────
-            try {
-                const convRes = await getUserSessions();
-                if (convRes.code === 200 && convRes.data?.sessions) {
-                    const toPersist: ImTypes.Session[] = [];
-                    for (const us of convRes.data.sessions) {
-                        const local = this.sessionList.find(c => c.session_id === us.session_id);
-                        if (!local) continue;
-                        if (local.session_key === this.currentSessionKey) {
-                            // 正在查看的会话：本地已读为准，反向推进服务端游标
-                            void this.reportSessionRead(local.session_key);
-                        } else {
-                            local.unread_count = Number(us.unread_count) || 0;
-                        }
-                        if (us.is_top) local.is_top = us.is_top;
-                        if (us.is_disturb) local.is_disturb = us.is_disturb;
-                        toPersist.push(toRaw(local) as ImTypes.Session);
-                    }
-                    if (toPersist.length > 0) {
-                        void sessionService.saveMany(toPersist);
-                    }
-                }
-            } catch (e) {
-                console.error('[SessionStore] sync server unread counts failed:', e);
-            }
-        },
-
-        /**
          * 更新会话配置（置顶、免打扰等）并同步到服务器
          * @param sessionKey 本地会话 Key（store 以 session_key 索引；上报服务端时用真实 session_id）
          */
@@ -381,7 +284,6 @@ export const useSessionStore = defineStore('session', {
             if (!chat.session_id) return;
 
             try {
-                const { updateSession } = await import('@/src/apis/message');
                 await updateSession({
                     session_id: chat.session_id,
                     is_top: Number(isTopVal),

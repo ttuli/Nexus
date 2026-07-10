@@ -1,5 +1,5 @@
 import { toRaw } from 'vue';
-import { getHistory, getSession } from '@/src/apis/message';
+import { getHistory, getSession, getUserActiveSessions, getUserSessions } from '@/src/apis/message';
 import { ApiTypes, ImTypes, PartialExcept, ResourceType, UpdateAction } from '@shared/types';
 import { MessageStatus, MessageType } from '@shared/types/proto';
 import { IChatMessage } from '@shared/types/chatMessage';
@@ -8,13 +8,17 @@ import { toSeq, seqPositive, seqLt, seqGt, seqCompare, seqPlusOne, seqMax } from
 import { convertNotificationToChatMessage } from '@/src/utils/messageConverter';
 import { judgeSessionType, toServerSessionType } from '@/src/utils/sessionUtils';
 import { useSessionStore } from '@/src/store/session';
+import { useMessageStore } from '@/src/store/message';
+import { getOfflineTimestamp } from '@/src/store/init';
 import cacheService from './cacheService';
 import groupService from './groupService';
 import { messageService } from './messageService';
 import { sessionService } from './sessionService';
 
 class ChatService {
-    
+    // 离线同步在途标记：防止挂载同步与重连同步并发重入
+    private offlineSyncInFlight = false;
+
     private normalizeNumber(value: unknown): number {
         if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
         if (typeof value === 'string') {
@@ -310,6 +314,94 @@ class ChatService {
 
         // 如果 API 也没有更多数据，就返回仅有的 local 数据
         return local;
+    }
+
+    /**
+     * 离线同步：
+     * 1. 拉取活跃会话，对 server actual_seq > 本地 max_seq 的会话按 seq 区间增量补拉离线消息
+     *    （离线期间服务端只存不推，上线后由客户端拉齐）
+     * 2. 拉取用户会话列表，以服务端计算的 unread_count（基于已读游标点查）覆盖本地未读数
+     */
+    async syncOfflineActiveSessions() {
+        if (this.offlineSyncInFlight) return;
+        this.offlineSyncInFlight = true;
+        try {
+            await this._doSyncOfflineActiveSessions();
+        } finally {
+            this.offlineSyncInFlight = false;
+        }
+    }
+
+    private async _doSyncOfflineActiveSessions() {
+        const sessionStore = useSessionStore();
+        const messageStore = useMessageStore();
+        const timestamp = getOfflineTimestamp();
+
+        // ── 1. 活跃会话 + 离线消息增量补拉 ─────────────────────────────
+        const res = await getUserActiveSessions({ timestamp });
+        if (res.code === 200 && res.data?.sessions) {
+            const updatedSessions: ImTypes.Session[] = [];
+            for (const ss of res.data.sessions) {
+                if (!ss.session_key) continue;
+                const localMaxSeq = toSeq(sessionStore.getSession(ss.session_key)?.max_seq);
+                // Lamport 语义下 max_seq 与 actual_seq 等价（服务端兼容返回）
+                const serverMaxSeq = seqMax(ss.max_seq, ss.actual_seq);
+
+                const updated = sessionStore.upsertSession({
+                    session_id: ss.session_id,
+                    session_key: ss.session_key,
+                    // 服务端 type 为 model 值(1/2)，与前端枚举(0/1)不同，统一由 session_key 推导
+                    type: judgeSessionType(ss.session_key),
+                    max_seq: serverMaxSeq,
+                    last_content: ss.last_content,
+                    last_sender: ss.last_sender,
+                    create_time: ss.create_time,
+                    update_time: ss.update_time,
+                });
+                if (updated) updatedSessions.push(toRaw(updated) as ImTypes.Session);
+
+                // 本地落后于服务端：按 (localMaxSeq, +∞) 分页拉齐离线消息
+                if (seqGt(serverMaxSeq, localMaxSeq)) {
+                    try {
+                        const missing = await this.fetchMessagesSince(ss.session_key, localMaxSeq);
+                        if (missing.length > 0 && sessionStore.currentSessionKey === ss.session_key) {
+                            missing.forEach(m => messageStore.upsertMessage(m));
+                        }
+                    } catch (e) {
+                        console.error(`[ChatService] backfill offline messages for ${ss.session_key} failed:`, e);
+                    }
+                }
+            }
+            if (updatedSessions.length > 0) {
+                void sessionService.saveMany(updatedSessions);
+            }
+        }
+
+        // ── 2. 服务端未读数对齐（按 session_id 匹配本地会话）─────────────
+        try {
+            const convRes = await getUserSessions();
+            if (convRes.code === 200 && convRes.data?.sessions) {
+                const toPersist: ImTypes.Session[] = [];
+                for (const us of convRes.data.sessions) {
+                    const local = sessionStore.sessionList.find(c => c.session_id === us.session_id);
+                    if (!local) continue;
+                    if (local.session_key === sessionStore.currentSessionKey) {
+                        // 正在查看的会话：本地已读为准，反向推进服务端游标
+                        void sessionStore.reportSessionRead(local.session_key);
+                    } else {
+                        local.unread_count = Number(us.unread_count) || 0;
+                    }
+                    if (us.is_top) local.is_top = us.is_top;
+                    if (us.is_disturb) local.is_disturb = us.is_disturb;
+                    toPersist.push(toRaw(local) as ImTypes.Session);
+                }
+                if (toPersist.length > 0) {
+                    void sessionService.saveMany(toPersist);
+                }
+            }
+        } catch (e) {
+            console.error('[ChatService] sync server unread counts failed:', e);
+        }
     }
 
     async parseGroupNotification(wsMsg: ImTypes.WSMessage) {

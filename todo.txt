@@ -1,11 +1,10 @@
-1.messageStore和sessionStore双向依赖的问题
-解决：
-1. 引入一个chatStore解耦
-2. 或其他更好的方案
+1.messageStore和sessionStore双向依赖的问题  ✅ 已解决
+方案：把离线同步编排（syncOfflineActiveSessions / _doSyncOfflineActiveSessions）从 session store 移到 chatService。
+- store 只保留响应式状态；跨 store 编排统一由 service 负责
+- 消除 session.ts → messageStore 的调用，双向依赖不再存在
+- 同时避免了 session.ts → chatService 的 ESM 循环（chatService 顶层已 import useSessionStore）
 
-2.import引入问题，部分函数在内部动态引入，需移动到文件开头
-已知：
-session.ts 
-updateSessionStatus / markSessionRead  
-_doSyncOfflineActiveSessions
-updateSessionOptions 
+2.import引入问题，部分函数在内部动态引入，需移动到文件开头  ✅ 已解决
+session.ts:
+- reportSessionRead / updateSessionOptions 中的 `@/src/apis/message` 动态 import → 顶层静态 import
+- _doSyncOfflineActiveSessions 已整体迁到 chatService，其中的 6 个动态 import（init / apis/message / sessionService / chatService / message store / vue）在 chatService 顶层静态引入
