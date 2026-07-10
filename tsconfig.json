@@ -36,7 +36,8 @@
     "src/**/*.tsx",
     "src/**/*.vue",
     "electron",
-    "share"
+    "share",
+    "__tests__"
   ],
   "references": [
     {

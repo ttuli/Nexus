@@ -1,7 +1,6 @@
 import { cacheManager } from '../electron/resource/cacheManager';
 import { ResourceType, IpcChannels } from '@shared/types';
 import { windowManager } from '../electron/windows/windowManager';
-import Store from 'electron-store';
 
 // 1. Mock electron-store (避免真实的磁盘读写)
 jest.mock('electron-store', () => {
@@ -24,10 +23,17 @@ jest.mock('../electron/windows/windowManager', () => ({
 }));
 
 // 3. Mock config (固定超时时间等配置，保证测试结果稳定且可预期)
-jest.mock('../electron/config', () => ({
-  config: {
+jest.mock('@shared/config/constants', () => ({
+  LOCAL_CACHE_SCHEME: 'localcache',
+  Main_Config: {
     maxCacheItems: 100,
     cacheExpirationMs: 1000 * 60, // 固定 1 分钟
+  },
+  APP_CONSTANTS: {
+    ApplicationName: 'Nexus',
+    maxImageWidth: 280,
+    maxImageHeight: 380,
+    imageCompressQuality: 85,
   },
 }));
 
@@ -37,7 +43,7 @@ describe('CacheManager', () => {
     jest.clearAllMocks();
     
     // 每次测试前清空一下缓存管理器里的内容，保证每个测试用例独立
-    cacheManager.clearCache();
+    cacheManager.clearMemory();
     
     // 这里因为 CacheManager 是个单例，如果有私有变量需要重置，
     // 可以通过强制设值或者通过重新 init()
