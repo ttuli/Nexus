@@ -13,11 +13,6 @@ const router = createRouter({
             component: () => import('@/src/views/auth/AuthLayout.vue')
         },
         {
-            path: '/register',
-            name: '注册',
-            component: () => import('@/src/views/auth/Register.vue')
-        },
-        {
             path: '/home',
             name: '主界面',
             component: () => import('@/src/views/home/index.vue'),

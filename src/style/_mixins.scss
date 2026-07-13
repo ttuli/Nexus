@@ -103,4 +103,6 @@
   border-radius: var(--radius-md);
   box-sizing: border-box;
   padding: 4px;
+  filter: var(--icon-filter);
+  transition: filter 0.3s ease;
 }

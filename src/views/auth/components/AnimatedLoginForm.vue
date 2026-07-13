@@ -332,6 +332,8 @@ onMounted(async () => {
       .icon {
           width: 18px;
           height: 18px;
+          filter: var(--icon-filter);
+          transition: filter 0.3s ease;
       }
     }
   }

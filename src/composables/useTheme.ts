@@ -7,7 +7,14 @@ const THEME_KEY = 'app_theme'
 export type Theme = 'light' | 'dark'
 
 const getTheme = (): Theme => {
-    return (localStorage.getItem(THEME_KEY) as Theme) || 'light'
+    const stored = localStorage.getItem(THEME_KEY) as Theme | null
+    if (stored === 'light' || stored === 'dark') {
+        return stored
+    }
+    if (typeof window !== 'undefined' && window.matchMedia) {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+    }
+    return 'light'
 }
 
 export const setTheme = (t: Theme) => {
@@ -31,6 +38,8 @@ export const theme = ref<Theme>(getTheme())
  */
 export function useTheme() {
     let observer: MutationObserver | null = null
+    let mediaQuery: MediaQueryList | null = null
+    let handleSystemThemeChange: ((e: MediaQueryListEvent) => void) | null = null
 
     onMounted(() => {
         theme.value = (document.documentElement.getAttribute('data-theme') || getTheme()) as Theme
@@ -45,10 +54,36 @@ export function useTheme() {
             attributes: true,
             attributeFilter: ['data-theme'],
         })
+
+        // Listen to system theme changes if no theme is saved in localStorage
+        if (typeof window !== 'undefined' && window.matchMedia) {
+            mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+            handleSystemThemeChange = (e: MediaQueryListEvent) => {
+                if (!localStorage.getItem(THEME_KEY)) {
+                    const newTheme = e.matches ? 'dark' : 'light'
+                    document.documentElement.setAttribute('data-theme', newTheme)
+                    windowService.publish(IpcChannels.THEME_SYNC, newTheme)
+                }
+            }
+            if (mediaQuery.addEventListener) {
+                mediaQuery.addEventListener('change', handleSystemThemeChange)
+            } else {
+                // @ts-ignore
+                mediaQuery.addListener(handleSystemThemeChange)
+            }
+        }
     })
 
     onUnmounted(() => {
         observer?.disconnect()
+        if (mediaQuery && handleSystemThemeChange) {
+            if (mediaQuery.removeEventListener) {
+                mediaQuery.removeEventListener('change', handleSystemThemeChange)
+            } else {
+                // @ts-ignore
+                mediaQuery.removeListener(handleSystemThemeChange)
+            }
+        }
     })
 
     return { theme, applyTheme: setTheme }

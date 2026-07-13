@@ -301,13 +301,6 @@ const isProcessing = ref(false)
             margin-left: 5px;
           }
 
-          .input-icon {
-            width: 30px;
-            height: 30px;
-            border-radius: 8px;
-            box-sizing: border-box;
-            padding: 4px;
-          }
 
           .password-toggle {
             background: none;
