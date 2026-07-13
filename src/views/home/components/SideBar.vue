@@ -78,8 +78,8 @@ watch(contactBadge, (newVal, oldVal) => {
     justify-content: space-between;
     align-items: center;
     padding: 20px 0;
-    -webkit-backdrop-filter: blur(20px);
-    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: var(--sidebar-blur);
+    backdrop-filter: var(--sidebar-blur);
 
     z-index: 2;
 
