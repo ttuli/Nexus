@@ -313,6 +313,7 @@ const handleGroupReq = async (req: ImTypes.GroupApply, actionType: 'accept' | 'r
                 .name {
                     font-weight: 500;
                     font-size: 15px;
+                    color: $color-text-secondary;
                 }
             }
 

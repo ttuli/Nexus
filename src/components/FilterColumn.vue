@@ -25,7 +25,6 @@ const emit = defineEmits<{
     (e: 'menu-select', key: string): void;
 }>();
 
-const addBtnRef = ref<HTMLElement | null>(null);
 const menuVisible = ref(false);
 
 const menuX = ref(0);
@@ -104,6 +103,12 @@ const handleMenuSelect = (option: MenuOption) => {
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                color: $color-text-secondary;
+
+                :deep(svg) {
+                    width: 100%;
+                    height: 100%;
+                }
             }
 
             .search-input {
@@ -145,6 +150,12 @@ const handleMenuSelect = (option: MenuOption) => {
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                color: $color-text-secondary;
+
+                :deep(svg) {
+                    width: 100%;
+                    height: 100%;
+                }
             }
 
             &:hover {
