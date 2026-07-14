@@ -8,7 +8,7 @@ import { setupRoutes } from './routes';
 import { tokenManager } from '@/electron/resource/tokenManager';
 import { ImTypes, LogoutType, IpcChannels, ConnectionState } from '@shared/types';
 import { windowManager } from '@/electron/windows/windowManager';
-import { Main_Config as config } from '@shared/config/constants';
+import { Main_Config } from '@shared/config/constants';
 import { defaultSerializer } from './serializer/protoSerializer';
 
 /**
@@ -41,6 +41,8 @@ const DEFAULT_CONFIG: Required<WsManagerConfig> = {
 export class WebSocketManager extends EventEmitter {
     private ws: WebSocket | null = null;
     private config: Required<WsManagerConfig>;
+    // 构造时传入的实例级配置，优先级高于全局 Main_Config.wsConfig（init 时合并）
+    private readonly instanceConfig: WsManagerConfig;
     private state: ConnectionState = ConnectionState.DISCONNECTED;
     private reconnectAttempts: number = 0;
     private reconnectTimer: NodeJS.Timeout | null = null;
@@ -52,6 +54,7 @@ export class WebSocketManager extends EventEmitter {
 
     constructor(config: WsManagerConfig = {}) {
         super();
+        this.instanceConfig = config;
         this.config = { ...DEFAULT_CONFIG, ...config };
     }
 
@@ -68,8 +71,11 @@ export class WebSocketManager extends EventEmitter {
         // Setup queue listeners
         this.setupQueueListeners();
 
-        // Get URL from config
-        this.config = { ...DEFAULT_CONFIG, ...config.wsConfig };
+        // 合并顺序：默认值 < 全局配置 < 构造时传入的实例配置（显式 undefined 不参与覆盖）
+        const overrides = Object.fromEntries(
+            Object.entries(this.instanceConfig).filter(([, v]) => v !== undefined)
+        );
+        this.config = { ...DEFAULT_CONFIG, ...Main_Config.wsConfig, ...overrides };
 
         console.log('[WebSocketManager] Initialized');
     }

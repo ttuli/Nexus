@@ -55,19 +55,36 @@ class IpcService {
 
     /**
      * 监听一次主进程消息
+     *
+     * ipcRenderer 与内部 listeners map 注册同一个 onceWrapper，保证两侧引用一致；
+     * 触发后仅移除自身（不影响同通道的其他监听器）。preload 桥接层会二次包裹
+     * 监听器导致无法按引用单独反注册，故用 fired 标记兜底防止重复触发。
      */
     once(channel: string, callback: IpcCallback): void {
-        window.ipcRenderer.once(channel, callback)
-
-        // 记录一下，为了后续 emitLocal 可以触发
-        const onceWrapper = (event: any, ...args: any[]) => {
+        let fired = false
+        const onceWrapper: IpcCallback = (event: any, ...args: any[]) => {
+            if (fired) return
+            fired = true
+            this.removeLocalListener(channel, onceWrapper)
             callback(event, ...args)
-            this.off(channel)
         }
+        window.ipcRenderer.once(channel, onceWrapper)
+
         if (!this.listeners.has(channel)) {
             this.listeners.set(channel, [])
         }
         this.listeners.get(channel)!.push(onceWrapper)
+    }
+
+    /**
+     * 从内部 listeners map 中移除单个监听器
+     */
+    private removeLocalListener(channel: string, callback: IpcCallback): void {
+        const callbacks = this.listeners.get(channel)
+        if (!callbacks) return
+        const index = callbacks.indexOf(callback)
+        if (index >= 0) callbacks.splice(index, 1)
+        if (callbacks.length === 0) this.listeners.delete(channel)
     }
 
     /**

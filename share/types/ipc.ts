@@ -79,6 +79,7 @@ export const IpcChannels = {
     WS_MESSAGE_ACK: 'ws:message-ack',
     WS_MESSAGE_PERSIST_ACK: 'ws:message-persist-ack',
     WS_NOTIFICATION: 'ws:notification',
+    WS_OFFLINE_NOTIFY: 'ws:offline-notify',
 
     // 窗口相关
     WINDOW_NEW: 'window:new-window',

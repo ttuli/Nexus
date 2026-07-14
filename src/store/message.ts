@@ -137,6 +137,9 @@ export const useMessageStore = defineStore('message', {
 
         /**
          * 添加或更新消息，返回 store 内的消息引用（响应式）
+         *
+         * messages 数组只承载当前会话：携带 sessionKey 且不属于当前会话的新消息
+         * 一律不入列（异步回调/Listener 到达时用户可能已切换会话），原样返回入参。
          */
         upsertMessage(message: IChatMessage): IChatMessage {
             const existing = this.messages.find(m =>
@@ -144,6 +147,10 @@ export const useMessageStore = defineStore('message', {
                 (message.msgId && message.msgId === m.msgId)
             );
             if (!existing) {
+                const sessionStore = useSessionStore();
+                if (message.sessionKey && message.sessionKey !== sessionStore.currentSessionKey) {
+                    return message;
+                }
                 this.messages.push(message);
                 return this.messages[this.messages.length - 1];
             } else {

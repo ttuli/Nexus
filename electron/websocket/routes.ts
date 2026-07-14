@@ -126,7 +126,7 @@ const handleOfflineNotify: MessageHandler = async (_message: WsMessage) => {
     console.log('[Routes] Received offline notification');
 
     // Broadcast to renderers
-    windowManager.broadcastMessage('ws:offline-notify', {
+    windowManager.broadcastMessage(IpcChannels.WS_OFFLINE_NOTIFY, {
         reason: 'Connection closed (Offline Notify)',
     });
 };

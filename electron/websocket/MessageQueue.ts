@@ -2,6 +2,7 @@ import { WsMessage } from './serializer/MessageSerializer';
 import { ImTypes } from '@shared/types';
 import { Main_Config as config } from '@shared/config/constants';
 import { EventEmitter } from 'events';
+import { LRUCache } from 'lru-cache';
 
 interface PendingMessage {
     message: WsMessage;
@@ -24,11 +25,13 @@ export class MessageQueue extends EventEmitter {
     // Messages sent but not yet acknowledged
     private unacknowledgedMessages: Map<string, PendingMessage> = new Map();
 
-    // Set of recently received message IDs for deduplication
-    private receivedMessageIds: Set<string> = new Set();
-
-    // Dedup window
-    private readonly DEDUP_WINDOW_MS = config.messageQueue.dedupWindowMs;
+    // Recently received message IDs for deduplication.
+    // LRU + TTL 双重界限：条目数受 max 约束，过期条目由 ttl 惰性失效，
+    // 避免此前 Set + setTimeout 方案在高频消息下条目和定时器不受控增长。
+    private receivedMessageIds = new LRUCache<string, true>({
+        max: config.messageQueue.dedupMaxEntries,
+        ttl: config.messageQueue.dedupWindowMs,
+    });
 
     // Max retries
     private readonly MAX_RETRIES = config.messageQueue.maxRetries;
@@ -145,12 +148,7 @@ export class MessageQueue extends EventEmitter {
      */
     markReceived(msgId: string | null | undefined): void {
         if (!msgId) return;
-        this.receivedMessageIds.add(msgId);
-
-        // Schedule cleanup after dedup window
-        setTimeout(() => {
-            this.receivedMessageIds.delete(msgId);
-        }, this.DEDUP_WINDOW_MS);
+        this.receivedMessageIds.set(msgId, true);
     }
 
     /**

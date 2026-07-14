@@ -18,6 +18,8 @@ import { sessionService } from './sessionService';
 class ChatService {
     // 离线同步在途标记：防止挂载同步与重连同步并发重入
     private offlineSyncInFlight = false;
+    // 离线同步取消令牌：登出/离开主界面时中止分页拉取序列
+    private offlineSyncAbort: AbortController | null = null;
 
     private normalizeNumber(value: unknown): number {
         if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
@@ -37,6 +39,26 @@ class ChatService {
         } catch {
             return {};
         }
+    }
+
+    /**
+     * 服务端 extra JSON 中历史遗留 key（以枚举名字面量序列化，如 MESSAGE_EXTRA_KEY_WIDTH）
+     * 与新式 key（如 width）并存，按传入顺序取第一个命中的值。
+     */
+    private extraNumber(extra: Record<string, unknown>, ...keys: string[]): number {
+        for (const key of keys) {
+            const value = extra[key];
+            if (value) return this.normalizeNumber(value);
+        }
+        return 0;
+    }
+
+    private extraString(extra: Record<string, unknown>, ...keys: string[]): string | undefined {
+        for (const key of keys) {
+            const value = extra[key];
+            if (typeof value === 'string') return value;
+        }
+        return undefined;
     }
 
     private toStringMap(value: unknown): Record<string, string> | undefined {
@@ -81,16 +103,14 @@ class ChatService {
                 ...common,
                 type,
                 url: message.media_url || message.content || '',
-                thumbnailUrl: typeof extra.thumbnail_url === 'string' ? extra.thumbnail_url : undefined,
-                width: this.normalizeNumber(extra.MESSAGE_EXTRA_KEY_WIDTH || extra.width),
-                height: this.normalizeNumber(extra.MESSAGE_EXTRA_KEY_HEIGHT || extra.height),
-                thumbnailWidth: this.normalizeNumber(extra.MESSAGE_EXTRA_KEY_THUMB_WIDE || extra.thumbnailWidth),
-                thumbnailHeight: this.normalizeNumber(extra.MESSAGE_EXTRA_KEY_THUMB_HEIGHT || extra.thumbnailHeight),
-                size: this.normalizeNumber(extra.MESSAGE_EXTRA_KEY_SIZE || extra.size),
-                format: typeof extra.MESSAGE_EXTRA_KEY_FORMAT === 'string' 
-                    ? extra.MESSAGE_EXTRA_KEY_FORMAT 
-                    : typeof extra.format === 'string' ? extra.format : '',
-                fileName: typeof extra.MESSAGE_EXTRA_KEY_NAME === 'string' ? extra.MESSAGE_EXTRA_KEY_NAME : undefined,
+                thumbnailUrl: this.extraString(extra, 'thumbnail_url'),
+                width: this.extraNumber(extra, 'MESSAGE_EXTRA_KEY_WIDTH', 'width'),
+                height: this.extraNumber(extra, 'MESSAGE_EXTRA_KEY_HEIGHT', 'height'),
+                thumbnailWidth: this.extraNumber(extra, 'MESSAGE_EXTRA_KEY_THUMB_WIDE', 'thumbnailWidth'),
+                thumbnailHeight: this.extraNumber(extra, 'MESSAGE_EXTRA_KEY_THUMB_HEIGHT', 'thumbnailHeight'),
+                size: this.extraNumber(extra, 'MESSAGE_EXTRA_KEY_SIZE', 'size'),
+                format: this.extraString(extra, 'MESSAGE_EXTRA_KEY_FORMAT', 'format') ?? '',
+                fileName: this.extraString(extra, 'MESSAGE_EXTRA_KEY_NAME'),
             };
         }
 
@@ -99,17 +119,15 @@ class ChatService {
                 ...common,
                 type,
                 url: message.media_url || message.content || '',
-                thumbnailUrl: typeof extra.thumbnail_url === 'string' ? extra.thumbnail_url : undefined,
-                duration: this.normalizeNumber(extra.MESSAGE_EXTRA_KEY_DURATION || extra.duration),
-                width: this.normalizeNumber(extra.MESSAGE_EXTRA_KEY_WIDTH || extra.width),
-                height: this.normalizeNumber(extra.MESSAGE_EXTRA_KEY_HEIGHT || extra.height),
-                thumbnailWidth: this.normalizeNumber(extra.MESSAGE_EXTRA_KEY_THUMB_WIDE || extra.thumbnailWidth),
-                thumbnailHeight: this.normalizeNumber(extra.MESSAGE_EXTRA_KEY_THUMB_HEIGHT || extra.thumbnailHeight),
-                size: this.normalizeNumber(extra.MESSAGE_EXTRA_KEY_SIZE || extra.size),
-                format: typeof extra.MESSAGE_EXTRA_KEY_FORMAT === 'string' 
-                    ? extra.MESSAGE_EXTRA_KEY_FORMAT 
-                    : typeof extra.format === 'string' ? extra.format : '',
-                fileName: typeof extra.MESSAGE_EXTRA_KEY_NAME === 'string' ? extra.MESSAGE_EXTRA_KEY_NAME : '',
+                thumbnailUrl: this.extraString(extra, 'thumbnail_url'),
+                duration: this.extraNumber(extra, 'MESSAGE_EXTRA_KEY_DURATION', 'duration'),
+                width: this.extraNumber(extra, 'MESSAGE_EXTRA_KEY_WIDTH', 'width'),
+                height: this.extraNumber(extra, 'MESSAGE_EXTRA_KEY_HEIGHT', 'height'),
+                thumbnailWidth: this.extraNumber(extra, 'MESSAGE_EXTRA_KEY_THUMB_WIDE', 'thumbnailWidth'),
+                thumbnailHeight: this.extraNumber(extra, 'MESSAGE_EXTRA_KEY_THUMB_HEIGHT', 'thumbnailHeight'),
+                size: this.extraNumber(extra, 'MESSAGE_EXTRA_KEY_SIZE', 'size'),
+                format: this.extraString(extra, 'MESSAGE_EXTRA_KEY_FORMAT', 'format') ?? '',
+                fileName: this.extraString(extra, 'MESSAGE_EXTRA_KEY_NAME') ?? '',
             };
         }
 
@@ -118,17 +136,10 @@ class ChatService {
                 ...common,
                 type,
                 url: message.media_url || '',
-                fileName: typeof extra.MESSAGE_EXTRA_KEY_NAME === 'string'
-                    ? extra.MESSAGE_EXTRA_KEY_NAME
-                    : typeof extra.file_name === 'string'
-                        ? extra.file_name
-                        : typeof extra.fileName === 'string'
-                            ? extra.fileName
-                            : message.content || '',
-                size: this.normalizeNumber(extra.MESSAGE_EXTRA_KEY_SIZE || extra.size),
-                format: typeof extra.MESSAGE_EXTRA_KEY_FORMAT === 'string' 
-                    ? extra.MESSAGE_EXTRA_KEY_FORMAT 
-                    : typeof extra.format === 'string' ? extra.format : '',
+                fileName: this.extraString(extra, 'MESSAGE_EXTRA_KEY_NAME', 'file_name', 'fileName')
+                    ?? (message.content || ''),
+                size: this.extraNumber(extra, 'MESSAGE_EXTRA_KEY_SIZE', 'size'),
+                format: this.extraString(extra, 'MESSAGE_EXTRA_KEY_FORMAT', 'format') ?? '',
             };
         }
 
@@ -243,6 +254,7 @@ class ChatService {
         afterSeq: string,
         pageSize: number = 50,
         maxPages: number = 20,
+        signal?: AbortSignal,
     ): Promise<IChatMessage[]> {
         if (!sessionKey) return [];
         // 本地无任何记录时不做全量回放，只取最新一页（更早历史由用户翻页按需拉取）
@@ -253,6 +265,7 @@ class ChatService {
         const all: IChatMessage[] = [];
         let cursor = toSeq(afterSeq);
         for (let page = 0; page < maxPages; page++) {
+            if (signal?.aborted) break;
             // startSeq 有界 + endSeq 无界 → 服务端按 seq ASC 返回
             const batch = await this.fetchHistoryFromApi(sessionKey, pageSize, {
                 startSeq: seqPlusOne(cursor),
@@ -325,14 +338,24 @@ class ChatService {
     async syncOfflineActiveSessions() {
         if (this.offlineSyncInFlight) return;
         this.offlineSyncInFlight = true;
+        const abort = new AbortController();
+        this.offlineSyncAbort = abort;
         try {
-            await this._doSyncOfflineActiveSessions();
+            await this._doSyncOfflineActiveSessions(abort.signal);
         } finally {
             this.offlineSyncInFlight = false;
+            if (this.offlineSyncAbort === abort) {
+                this.offlineSyncAbort = null;
+            }
         }
     }
 
-    private async _doSyncOfflineActiveSessions() {
+    /** 中止在途的离线同步（登出、离开主界面时调用） */
+    cancelOfflineSync() {
+        this.offlineSyncAbort?.abort();
+    }
+
+    private async _doSyncOfflineActiveSessions(signal: AbortSignal) {
         const sessionStore = useSessionStore();
         const messageStore = useMessageStore();
         const timestamp = getOfflineTimestamp();
@@ -342,6 +365,7 @@ class ChatService {
         if (res.code === 200 && res.data?.sessions) {
             const updatedSessions: ImTypes.Session[] = [];
             for (const ss of res.data.sessions) {
+                if (signal.aborted) break;
                 if (!ss.session_key) continue;
                 const localMaxSeq = toSeq(sessionStore.getSession(ss.session_key)?.max_seq);
                 // Lamport 语义下 max_seq 与 actual_seq 等价（服务端兼容返回）
@@ -363,7 +387,7 @@ class ChatService {
                 // 本地落后于服务端：按 (localMaxSeq, +∞) 分页拉齐离线消息
                 if (seqGt(serverMaxSeq, localMaxSeq)) {
                     try {
-                        const missing = await this.fetchMessagesSince(ss.session_key, localMaxSeq);
+                        const missing = await this.fetchMessagesSince(ss.session_key, localMaxSeq, 50, 20, signal);
                         if (missing.length > 0 && sessionStore.currentSessionKey === ss.session_key) {
                             missing.forEach(m => messageStore.upsertMessage(m));
                         }
@@ -378,6 +402,7 @@ class ChatService {
         }
 
         // ── 2. 服务端未读数对齐（按 session_id 匹配本地会话）─────────────
+        if (signal.aborted) return;
         try {
             const convRes = await getUserSessions();
             if (convRes.code === 200 && convRes.data?.sessions) {
@@ -422,13 +447,14 @@ class ChatService {
                 break;
             case ImTypes.GroupOperationType.GROUP_OP_DISMISS:
                 break;
-            case ImTypes.GroupOperationType.GROUP_OP_JOIN:
-                let group = await groupService.fetchByIds([groupNotification.group_id]);
+            case ImTypes.GroupOperationType.GROUP_OP_JOIN: {
+                const group = await groupService.fetchByIds([groupNotification.group_id]);
                 if (group.length > 0) {
                     group[0].member_count++;
                     await cacheService.updateItems(UpdateAction.Update, ResourceType.GROUP, [group[0]]);
                 }
                 break;
+            }
             case ImTypes.GroupOperationType.GROUP_OP_LEAVE:
                 break;
             case ImTypes.GroupOperationType.GROUP_OP_KICK:

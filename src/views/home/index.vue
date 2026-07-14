@@ -155,6 +155,7 @@ onMounted(async () => {
     chatService.syncOfflineActiveSessions()
 });
 onUnmounted(async () => {
+    chatService.cancelOfflineSync()
     storeOfflineTimestamp()
     void sessionService.saveMany(
         sessionStore.sessionList.map((c) => ({
