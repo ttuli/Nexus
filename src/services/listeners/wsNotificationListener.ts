@@ -82,29 +82,39 @@ export function initWsNotificationListener(): void {
                 break
             }
 
-            case ImTypes.MessageType.GROUP_OP_NOTIFICATION: {
-                const result = await chatService.parseGroupNotification(data.payload)
-                if (result.msg) {
-                    sessionStore.addOrPinToTop(result.sessionKey || '')
-                    messageStore.upsertMessage(result.msg)
-                    if (result.shouldIncrementUnread) {
-                        sessionStore.incrementUnread(result.sessionKey || '')
-                    }
-                    if (result.shouldPlaySound) {
-                        windowService.playNotificationSound()
-                    }
-                    // 持久化通知消息到本地 SQLite
-                    void ipcService.invoke(IpcChannels.MSG_SAVE, JSON.parse(JSON.stringify(toRaw(result.msg))));
+            // 统一通知消息：群操作、消息撤回等控制类事件的统一载体。
+            // 载荷为 NotifyMessage 信封（base + oneof body），落库分配的
+            // msg_id / session_id / seq 在 WSMessage 顶层回填。
+            case ImTypes.MessageType.NOTIFICATION: {
+                const notify = ImTypes.NotifyMessage.decode(data.payload.payload)
+                const envelope = {
+                    msgId: data.payload.msg_id,
+                    sessionId: data.payload.session_id || notify.base?.session_id,
+                    seq: data.payload.msg_seq,
                 }
-                break
-            }
 
-            case ImTypes.MessageType.MSG_OP_RECALL: {
-                const msgRecall = ImTypes.MessageRecall.decode(data.payload.payload)
-                const updatedMsg = messageStore.updateMessageStatus(msgRecall.session_id, '', ImTypes.MessageStatus.MESSAGE_STATUS_RECALLED, msgRecall.recall_time, msgRecall.msg_id)
-                if (updatedMsg) {
-                    // 同步更新本地 SQLite 的消息撤回状态
-                    void ipcService.invoke(IpcChannels.MSG_SAVE, JSON.parse(JSON.stringify(toRaw(updatedMsg))));
+                if (notify.group_notify) {
+                    const result = await chatService.parseGroupNotification(notify.group_notify, envelope)
+                    if (result.msg) {
+                        sessionStore.addOrPinToTop(result.sessionKey || '')
+                        messageStore.upsertMessage(result.msg)
+                        if (result.shouldIncrementUnread) {
+                            sessionStore.incrementUnread(result.sessionKey || '')
+                        }
+                        if (result.shouldPlaySound) {
+                            windowService.playNotificationSound()
+                        }
+                        // 持久化通知消息到本地 SQLite
+                        void ipcService.invoke(IpcChannels.MSG_SAVE, JSON.parse(JSON.stringify(toRaw(result.msg))));
+                    }
+                } else if (notify.recall) {
+                    // 撤回者 / 会话由信封 base 承载；msg_id 指被撤回的消息
+                    const sessionId = envelope.sessionId || ''
+                    const updatedMsg = messageStore.updateMessageStatus(sessionId, '', ImTypes.MessageStatus.MESSAGE_STATUS_RECALLED, notify.recall.recall_time, notify.recall.msg_id)
+                    if (updatedMsg) {
+                        // 同步更新本地 SQLite 的消息撤回状态
+                        void ipcService.invoke(IpcChannels.MSG_SAVE, JSON.parse(JSON.stringify(toRaw(updatedMsg))));
+                    }
                 }
                 break
             }

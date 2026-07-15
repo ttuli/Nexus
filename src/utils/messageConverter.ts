@@ -159,9 +159,16 @@ export function convertWSMessageToIChatMessage(wsMsg: ImTypes.WSMessage): IChatM
 }
 
 /**
- * 将群组操作通知转换为本地系统消息格式
+ * 将群组操作通知转换为本地系统消息格式。
+ * 群操作通知现在作为统一 NotifyMessage 信封的载荷投递：msg_id / session_id / seq
+ * 由信封（WSMessage 顶层，落库时回填）承载，GroupNotification 自身不再携带这些基础字段。
+ * @param notification 解码后的群操作通知载荷
+ * @param envelope 信封提供的基础字段（来自 WSMessage 顶层）
  */
-export function convertNotificationToChatMessage(notification: ImTypes.GroupNotification): IChatMessage {
+export function convertNotificationToChatMessage(
+    notification: ImTypes.GroupNotification,
+    envelope?: { msgId?: string; sessionId?: string; seq?: string },
+): IChatMessage {
     const sessionKey = String(notification.group_id);
     const chatMsg: ILocalSystemMessage = {
         type: ImTypes.MessageType.GROUP_OP_NOTIFICATION,
@@ -170,12 +177,12 @@ export function convertNotificationToChatMessage(notification: ImTypes.GroupNoti
         targetIds: notification.target_ids,
         reason: notification.reason,
 
-        msgId: notification.msg_id,
-        sessionId: notification.session_id || '',
+        msgId: envelope?.msgId || '',
+        sessionId: envelope?.sessionId || '',
         sessionKey: sessionKey,
         sendTime: notification.op_time,
         fromUserId: notification.operator_id,
-        seq: '0',
+        seq: envelope?.seq && seqPositive(envelope.seq) ? toSeq(envelope.seq) : '0',
         status: ImTypes.MessageStatus.MESSAGE_STATUS_UNSPECIFIED,
         isRead: false,
         clientId: '',

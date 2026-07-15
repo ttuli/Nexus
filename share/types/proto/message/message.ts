@@ -6,6 +6,7 @@
 
 /* eslint-disable */
 import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
+import { GroupInfo } from "../group/group";
 
 export const protobufPackage = "message";
 
@@ -285,6 +286,104 @@ export function notificationTypeToJSON(object: NotificationType): string {
   }
 }
 
+export enum GroupOperationType {
+  /** GROUP_OP_CREATE - 创建 */
+  GROUP_OP_CREATE = 0,
+  /** GROUP_OP_DISMISS - 解散 */
+  GROUP_OP_DISMISS = 1,
+  /** GROUP_OP_JOIN - 加入 */
+  GROUP_OP_JOIN = 2,
+  /** GROUP_OP_LEAVE - 离开 */
+  GROUP_OP_LEAVE = 3,
+  /** GROUP_OP_KICK - 踢出 */
+  GROUP_OP_KICK = 4,
+  /** GROUP_OP_INVITE - 邀请 */
+  GROUP_OP_INVITE = 5,
+  /** GROUP_OP_UPDATE_INFO - 更新信息 */
+  GROUP_OP_UPDATE_INFO = 6,
+  /** GROUP_OP_MUTE - 禁言 */
+  GROUP_OP_MUTE = 7,
+  /** GROUP_OP_UNMUTE - 取消禁言 */
+  GROUP_OP_UNMUTE = 8,
+  /** GROUP_OP_INFO_UPDATE_NAME - 群名称更新 */
+  GROUP_OP_INFO_UPDATE_NAME = 9,
+  /** GROUP_OP_INFO_UPDATE_NOTICE - 群公告更新 */
+  GROUP_OP_INFO_UPDATE_NOTICE = 10,
+  UNRECOGNIZED = -1,
+}
+
+export function groupOperationTypeFromJSON(object: any): GroupOperationType {
+  switch (object) {
+    case 0:
+    case "GROUP_OP_CREATE":
+      return GroupOperationType.GROUP_OP_CREATE;
+    case 1:
+    case "GROUP_OP_DISMISS":
+      return GroupOperationType.GROUP_OP_DISMISS;
+    case 2:
+    case "GROUP_OP_JOIN":
+      return GroupOperationType.GROUP_OP_JOIN;
+    case 3:
+    case "GROUP_OP_LEAVE":
+      return GroupOperationType.GROUP_OP_LEAVE;
+    case 4:
+    case "GROUP_OP_KICK":
+      return GroupOperationType.GROUP_OP_KICK;
+    case 5:
+    case "GROUP_OP_INVITE":
+      return GroupOperationType.GROUP_OP_INVITE;
+    case 6:
+    case "GROUP_OP_UPDATE_INFO":
+      return GroupOperationType.GROUP_OP_UPDATE_INFO;
+    case 7:
+    case "GROUP_OP_MUTE":
+      return GroupOperationType.GROUP_OP_MUTE;
+    case 8:
+    case "GROUP_OP_UNMUTE":
+      return GroupOperationType.GROUP_OP_UNMUTE;
+    case 9:
+    case "GROUP_OP_INFO_UPDATE_NAME":
+      return GroupOperationType.GROUP_OP_INFO_UPDATE_NAME;
+    case 10:
+    case "GROUP_OP_INFO_UPDATE_NOTICE":
+      return GroupOperationType.GROUP_OP_INFO_UPDATE_NOTICE;
+    case -1:
+    case "UNRECOGNIZED":
+    default:
+      return GroupOperationType.UNRECOGNIZED;
+  }
+}
+
+export function groupOperationTypeToJSON(object: GroupOperationType): string {
+  switch (object) {
+    case GroupOperationType.GROUP_OP_CREATE:
+      return "GROUP_OP_CREATE";
+    case GroupOperationType.GROUP_OP_DISMISS:
+      return "GROUP_OP_DISMISS";
+    case GroupOperationType.GROUP_OP_JOIN:
+      return "GROUP_OP_JOIN";
+    case GroupOperationType.GROUP_OP_LEAVE:
+      return "GROUP_OP_LEAVE";
+    case GroupOperationType.GROUP_OP_KICK:
+      return "GROUP_OP_KICK";
+    case GroupOperationType.GROUP_OP_INVITE:
+      return "GROUP_OP_INVITE";
+    case GroupOperationType.GROUP_OP_UPDATE_INFO:
+      return "GROUP_OP_UPDATE_INFO";
+    case GroupOperationType.GROUP_OP_MUTE:
+      return "GROUP_OP_MUTE";
+    case GroupOperationType.GROUP_OP_UNMUTE:
+      return "GROUP_OP_UNMUTE";
+    case GroupOperationType.GROUP_OP_INFO_UPDATE_NAME:
+      return "GROUP_OP_INFO_UPDATE_NAME";
+    case GroupOperationType.GROUP_OP_INFO_UPDATE_NOTICE:
+      return "GROUP_OP_INFO_UPDATE_NOTICE";
+    case GroupOperationType.UNRECOGNIZED:
+    default:
+      return "UNRECOGNIZED";
+  }
+}
+
 /** 基础消息信息 */
 export interface BaseMessage {
   /** 消息ID */
@@ -489,14 +588,14 @@ export interface MessageRead {
   read_time: number;
 }
 
-/** 消息撤回 */
+/**
+ * 消息撤回（作为 NotifyMessage 的 oneof 载荷投递，撤回者/会话由信封的
+ * BaseMessage.from_user_id / session_id 承载；msg_id 指被撤回的消息，
+ * 区别于通知自身落库分配的 base.msg_id）
+ */
 export interface MessageRecall {
-  /** 消息ID */
+  /** 被撤回消息的ID */
   msg_id: string;
-  /** 撤回者ID */
-  user_id: number;
-  /** 会话ID */
-  session_id: string;
   /** 撤回时间 */
   recall_time: number;
   /** 撤回原因 */
@@ -548,6 +647,49 @@ export interface SystemNotification {
 export interface SystemNotification_DataEntry {
   key: string;
   value: string;
+}
+
+/**
+ * 群组操作通知（作为 NotifyMessage 的 oneof 载荷投递，
+ * msg_id / session_id 等基础字段由信封的 BaseMessage 承载）
+ */
+export interface GroupNotification {
+  /** 群组ID */
+  group_id: number;
+  /** 操作类型 */
+  op_type: GroupOperationType;
+  /** 操作者ID */
+  operator_id: number;
+  /** 目标用户ID列表 */
+  target_ids: number[];
+  /** 操作时间 */
+  op_time: number;
+  /** 操作原因 */
+  reason: string;
+  /** 群组信息 */
+  group_info: GroupInfo | undefined;
+}
+
+/**
+ * 统一通知消息：群操作、消息撤回等控制类事件的统一载体（WSMessage.Type = NOTIFICATION）。
+ * 与聊天消息一样发布到落库队列（DBSubject），由 Message 服务分配 msg_id / seq 后持久化，
+ * 离线客户端可按会话 seq 增量拉取到事件，不依赖在线广播。
+ */
+export interface NotifyMessage {
+  /** msg_id / session_id / msg_seq 由 Message 服务落库时回填 */
+  base:
+    | BaseMessage
+    | undefined;
+  /** 群操作通知（建群/入群/踢人/退群/解散等） */
+  group_notify?:
+    | GroupNotification
+    | undefined;
+  /** 消息撤回 */
+  recall?:
+    | MessageRecall
+    | undefined;
+  /** 系统通知 */
+  system?: SystemNotification | undefined;
 }
 
 function createBaseBaseMessage(): BaseMessage {
@@ -2565,19 +2707,13 @@ export const MessageRead: MessageFns<MessageRead> = {
 };
 
 function createBaseMessageRecall(): MessageRecall {
-  return { msg_id: "", user_id: 0, session_id: "", recall_time: 0, reason: "" };
+  return { msg_id: "", recall_time: 0, reason: "" };
 }
 
 export const MessageRecall: MessageFns<MessageRecall> = {
   encode(message: MessageRecall, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.msg_id !== "") {
       writer.uint32(10).string(message.msg_id);
-    }
-    if (message.user_id !== 0) {
-      writer.uint32(16).uint64(message.user_id);
-    }
-    if (message.session_id !== "") {
-      writer.uint32(26).string(message.session_id);
     }
     if (message.recall_time !== 0) {
       writer.uint32(32).int64(message.recall_time);
@@ -2601,22 +2737,6 @@ export const MessageRecall: MessageFns<MessageRecall> = {
           }
 
           message.msg_id = reader.string();
-          continue;
-        }
-        case 2: {
-          if (tag !== 16) {
-            break;
-          }
-
-          message.user_id = longToNumber(reader.uint64());
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
-            break;
-          }
-
-          message.session_id = reader.string();
           continue;
         }
         case 4: {
@@ -2651,16 +2771,6 @@ export const MessageRecall: MessageFns<MessageRecall> = {
         : isSet(object.msg_id)
         ? globalThis.String(object.msg_id)
         : "",
-      user_id: isSet(object.userId)
-        ? globalThis.Number(object.userId)
-        : isSet(object.user_id)
-        ? globalThis.Number(object.user_id)
-        : 0,
-      session_id: isSet(object.sessionId)
-        ? globalThis.String(object.sessionId)
-        : isSet(object.session_id)
-        ? globalThis.String(object.session_id)
-        : "",
       recall_time: isSet(object.recallTime)
         ? globalThis.Number(object.recallTime)
         : isSet(object.recall_time)
@@ -2674,12 +2784,6 @@ export const MessageRecall: MessageFns<MessageRecall> = {
     const obj: any = {};
     if (message.msg_id !== "") {
       obj.msgId = message.msg_id;
-    }
-    if (message.user_id !== 0) {
-      obj.userId = Math.round(message.user_id);
-    }
-    if (message.session_id !== "") {
-      obj.sessionId = message.session_id;
     }
     if (message.recall_time !== 0) {
       obj.recallTime = Math.round(message.recall_time);
@@ -2696,8 +2800,6 @@ export const MessageRecall: MessageFns<MessageRecall> = {
   fromPartial<I extends Exact<DeepPartial<MessageRecall>, I>>(object: I): MessageRecall {
     const message = createBaseMessageRecall();
     message.msg_id = object.msg_id ?? "";
-    message.user_id = object.user_id ?? 0;
-    message.session_id = object.session_id ?? "";
     message.recall_time = object.recall_time ?? 0;
     message.reason = object.reason ?? "";
     return message;
@@ -3242,6 +3344,320 @@ export const SystemNotification_DataEntry: MessageFns<SystemNotification_DataEnt
     const message = createBaseSystemNotification_DataEntry();
     message.key = object.key ?? "";
     message.value = object.value ?? "";
+    return message;
+  },
+};
+
+function createBaseGroupNotification(): GroupNotification {
+  return { group_id: 0, op_type: 0, operator_id: 0, target_ids: [], op_time: 0, reason: "", group_info: undefined };
+}
+
+export const GroupNotification: MessageFns<GroupNotification> = {
+  encode(message: GroupNotification, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.group_id !== 0) {
+      writer.uint32(8).uint64(message.group_id);
+    }
+    if (message.op_type !== 0) {
+      writer.uint32(16).int32(message.op_type);
+    }
+    if (message.operator_id !== 0) {
+      writer.uint32(24).uint64(message.operator_id);
+    }
+    writer.uint32(34).fork();
+    for (const v of message.target_ids) {
+      writer.uint64(v);
+    }
+    writer.join();
+    if (message.op_time !== 0) {
+      writer.uint32(40).int64(message.op_time);
+    }
+    if (message.reason !== "") {
+      writer.uint32(50).string(message.reason);
+    }
+    if (message.group_info !== undefined) {
+      GroupInfo.encode(message.group_info, writer.uint32(58).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GroupNotification {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGroupNotification();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.group_id = longToNumber(reader.uint64());
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.op_type = reader.int32() as any;
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.operator_id = longToNumber(reader.uint64());
+          continue;
+        }
+        case 4: {
+          if (tag === 32) {
+            message.target_ids.push(longToNumber(reader.uint64()));
+
+            continue;
+          }
+
+          if (tag === 34) {
+            const end2 = reader.uint32() + reader.pos;
+            while (reader.pos < end2) {
+              message.target_ids.push(longToNumber(reader.uint64()));
+            }
+
+            continue;
+          }
+
+          break;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.op_time = longToNumber(reader.int64());
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.reason = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.group_info = GroupInfo.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GroupNotification {
+    return {
+      group_id: isSet(object.groupId)
+        ? globalThis.Number(object.groupId)
+        : isSet(object.group_id)
+        ? globalThis.Number(object.group_id)
+        : 0,
+      op_type: isSet(object.opType)
+        ? groupOperationTypeFromJSON(object.opType)
+        : isSet(object.op_type)
+        ? groupOperationTypeFromJSON(object.op_type)
+        : 0,
+      operator_id: isSet(object.operatorId)
+        ? globalThis.Number(object.operatorId)
+        : isSet(object.operator_id)
+        ? globalThis.Number(object.operator_id)
+        : 0,
+      target_ids: globalThis.Array.isArray(object?.targetIds)
+        ? object.targetIds.map((e: any) => globalThis.Number(e))
+        : globalThis.Array.isArray(object?.target_ids)
+        ? object.target_ids.map((e: any) => globalThis.Number(e))
+        : [],
+      op_time: isSet(object.opTime)
+        ? globalThis.Number(object.opTime)
+        : isSet(object.op_time)
+        ? globalThis.Number(object.op_time)
+        : 0,
+      reason: isSet(object.reason) ? globalThis.String(object.reason) : "",
+      group_info: isSet(object.groupInfo)
+        ? GroupInfo.fromJSON(object.groupInfo)
+        : isSet(object.group_info)
+        ? GroupInfo.fromJSON(object.group_info)
+        : undefined,
+    };
+  },
+
+  toJSON(message: GroupNotification): unknown {
+    const obj: any = {};
+    if (message.group_id !== 0) {
+      obj.groupId = Math.round(message.group_id);
+    }
+    if (message.op_type !== 0) {
+      obj.opType = groupOperationTypeToJSON(message.op_type);
+    }
+    if (message.operator_id !== 0) {
+      obj.operatorId = Math.round(message.operator_id);
+    }
+    if (message.target_ids?.length) {
+      obj.targetIds = message.target_ids.map((e) => Math.round(e));
+    }
+    if (message.op_time !== 0) {
+      obj.opTime = Math.round(message.op_time);
+    }
+    if (message.reason !== "") {
+      obj.reason = message.reason;
+    }
+    if (message.group_info !== undefined) {
+      obj.groupInfo = GroupInfo.toJSON(message.group_info);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GroupNotification>, I>>(base?: I): GroupNotification {
+    return GroupNotification.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GroupNotification>, I>>(object: I): GroupNotification {
+    const message = createBaseGroupNotification();
+    message.group_id = object.group_id ?? 0;
+    message.op_type = object.op_type ?? 0;
+    message.operator_id = object.operator_id ?? 0;
+    message.target_ids = object.target_ids?.map((e) => e) || [];
+    message.op_time = object.op_time ?? 0;
+    message.reason = object.reason ?? "";
+    message.group_info = (object.group_info !== undefined && object.group_info !== null)
+      ? GroupInfo.fromPartial(object.group_info)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseNotifyMessage(): NotifyMessage {
+  return { base: undefined, group_notify: undefined, recall: undefined, system: undefined };
+}
+
+export const NotifyMessage: MessageFns<NotifyMessage> = {
+  encode(message: NotifyMessage, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.base !== undefined) {
+      BaseMessage.encode(message.base, writer.uint32(10).fork()).join();
+    }
+    if (message.group_notify !== undefined) {
+      GroupNotification.encode(message.group_notify, writer.uint32(18).fork()).join();
+    }
+    if (message.recall !== undefined) {
+      MessageRecall.encode(message.recall, writer.uint32(26).fork()).join();
+    }
+    if (message.system !== undefined) {
+      SystemNotification.encode(message.system, writer.uint32(34).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): NotifyMessage {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseNotifyMessage();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.base = BaseMessage.decode(reader, reader.uint32());
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.group_notify = GroupNotification.decode(reader, reader.uint32());
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.recall = MessageRecall.decode(reader, reader.uint32());
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.system = SystemNotification.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): NotifyMessage {
+    return {
+      base: isSet(object.base) ? BaseMessage.fromJSON(object.base) : undefined,
+      group_notify: isSet(object.groupNotify)
+        ? GroupNotification.fromJSON(object.groupNotify)
+        : isSet(object.group_notify)
+        ? GroupNotification.fromJSON(object.group_notify)
+        : undefined,
+      recall: isSet(object.recall) ? MessageRecall.fromJSON(object.recall) : undefined,
+      system: isSet(object.system) ? SystemNotification.fromJSON(object.system) : undefined,
+    };
+  },
+
+  toJSON(message: NotifyMessage): unknown {
+    const obj: any = {};
+    if (message.base !== undefined) {
+      obj.base = BaseMessage.toJSON(message.base);
+    }
+    if (message.group_notify !== undefined) {
+      obj.groupNotify = GroupNotification.toJSON(message.group_notify);
+    }
+    if (message.recall !== undefined) {
+      obj.recall = MessageRecall.toJSON(message.recall);
+    }
+    if (message.system !== undefined) {
+      obj.system = SystemNotification.toJSON(message.system);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<NotifyMessage>, I>>(base?: I): NotifyMessage {
+    return NotifyMessage.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<NotifyMessage>, I>>(object: I): NotifyMessage {
+    const message = createBaseNotifyMessage();
+    message.base = (object.base !== undefined && object.base !== null)
+      ? BaseMessage.fromPartial(object.base)
+      : undefined;
+    message.group_notify = (object.group_notify !== undefined && object.group_notify !== null)
+      ? GroupNotification.fromPartial(object.group_notify)
+      : undefined;
+    message.recall = (object.recall !== undefined && object.recall !== null)
+      ? MessageRecall.fromPartial(object.recall)
+      : undefined;
+    message.system = (object.system !== undefined && object.system !== null)
+      ? SystemNotification.fromPartial(object.system)
+      : undefined;
     return message;
   },
 };

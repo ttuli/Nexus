@@ -172,8 +172,9 @@ export const wsRouteTable: Record<number, MessageHandler> = {
     [ImTypes.MessageType.FRIEND_ADD]: handleNotification,
     [ImTypes.MessageType.FRIEND_DELETED]: handleNotification,
     [ImTypes.MessageType.GROUP_REQUEST]: handleNotification,
-    [ImTypes.MessageType.GROUP_OP_NOTIFICATION]: handleNotification,
-    [ImTypes.MessageType.MSG_OP_RECALL]: handleNotification,
+    // 群操作、消息撤回等统一为 NOTIFICATION 信封（NotifyMessage），
+    // 由 wsNotificationListener 按 oneof body 分派
+    [ImTypes.MessageType.NOTIFICATION]: handleNotification,
     [ImTypes.MessageType.USER_KICKOFF]: handleNotification,
 
 

@@ -429,9 +429,16 @@ class ChatService {
         }
     }
 
-    async parseGroupNotification(wsMsg: ImTypes.WSMessage) {
-        const groupNotification = ImTypes.GroupNotification.decode(wsMsg.payload);
-        const msg = convertNotificationToChatMessage(groupNotification);
+    /**
+     * 处理群操作通知（统一 NotifyMessage 信封的 group_notify 载荷）。
+     * @param groupNotification 已从信封解出的群操作通知载荷
+     * @param envelope 信封顶层基础字段（msg_id / session_id / seq，落库时回填）
+     */
+    async parseGroupNotification(
+        groupNotification: ImTypes.GroupNotification,
+        envelope?: { msgId?: string; sessionId?: string; seq?: string },
+    ) {
+        const msg = convertNotificationToChatMessage(groupNotification, envelope);
 
         let shouldIncrementUnread = false;
         let shouldPlaySound = false;
