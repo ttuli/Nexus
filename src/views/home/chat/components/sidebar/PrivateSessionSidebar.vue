@@ -1,7 +1,22 @@
 <template>
     <div class="private-sidebar">
-
+        <!-- Header -->
         <div class="sidebar-content scroll-bar-thin" v-if="friendInfo || userInfo">
+            <!-- Profile Card -->
+            <div class="profile-card">
+                <div class="avatar-wrapper">
+                    <Avatar :uid="targetId" type="user" width="68px" height="68px" class="profile-avatar" />
+                </div>
+                <h3 class="profile-name">{{ friendInfo?.remark || userInfo?.user_name || '未知用户' }}</h3>
+                <div class="profile-id" v-if="friendInfo?.remark && userInfo?.user_name">
+                    <span>用户名: {{ userInfo.user_name }}</span>
+                </div>
+                <div class="profile-signature" v-if="userInfo?.personal_signature" :title="userInfo.personal_signature">
+                    “{{ userInfo.personal_signature }}”
+                </div>
+            </div>
+
+            <!-- Settings Group 1: Remark -->
             <div class="detail-group mt-15">
                 <div class="detail-item remark-item">
                     <span class="label">备注</span>
@@ -18,30 +33,30 @@
                 </div>
             </div>
 
+            <!-- Settings Group 2: Switches -->
             <div class="detail-group mt-15">
                 <div class="detail-item action-toggle">
                     <span class="label">置顶聊天</span>
                     <CusSwitch :model-value="props.chat.is_top" :active-value="2" :inactive-value="1"
-                        @change="handleUpdatePinned" :loading="pinLoading" />
+                        @change="handleUpdatePinned" />
                 </div>
                 <div class="detail-item action-toggle">
                     <span class="label">消息免打扰</span>
                     <CusSwitch :model-value="props.chat.is_disturb" :active-value="2" :inactive-value="1"
-                        @change="handleUpdateDisturb" :loading="disturbLoading" />
+                        @change="handleUpdateDisturb" />
                 </div>
             </div>
 
+            <!-- Actions Section -->
             <div class="actions-section">
-                <div class="detail-group action-group">
-                    <div class="detail-item center-item text-primary" @click="clearChatData">
-                        清除聊天记录
-                    </div>
-                </div>
-                <div class="detail-group action-group mt-15">
-                    <div class="detail-item center-item text-danger" @click="confirmDeleteFriend">
-                        删除好友
-                    </div>
-                </div>
+                <button class="action-btn clear-btn" @click="clearChatData">
+                    <el-icon class="action-icon"><Delete /></el-icon>
+                    <span>清除聊天记录</span>
+                </button>
+                <button class="action-btn delete-btn" @click="confirmDeleteFriend">
+                    <el-icon class="action-icon"><Delete /></el-icon>
+                    <span>删除好友</span>
+                </button>
             </div>
         </div>
     </div>
@@ -58,8 +73,9 @@ import { useMessageStore } from '@/src/store/message';
 import { ImTypes } from '@shared/types';
 import { ElMessage } from 'element-plus';
 import { extractTargetIdFromSessionId } from '@/src/utils/sessionUtils';
-import { Edit } from '@element-plus/icons-vue';
+import { Edit, Delete } from '@element-plus/icons-vue';
 import { friendService, messageService } from '@/src/services';
+import Avatar from '@/src/components/Avatar.vue';
 
 const props = defineProps<{
     chat: ImTypes.Session;
@@ -71,10 +87,9 @@ const userStore = useUserStore();
 const sessionStore = useSessionStore();
 const messageStore = useMessageStore();
 
-const targetId = computed(() => extractTargetIdFromSessionId(props.chat.session_id, userStore.getUserID()));
-const targetIdVal = computed(() => targetId.value || 0);
-const friendInfo = computed(() => userStore.getFriend(targetIdVal.value));
-const userInfo = computed(() => userStore.getUser(targetIdVal.value));
+const targetId = computed(() => extractTargetIdFromSessionId(props.chat.session_key, userStore.getUserID()) || 0);
+const friendInfo = computed(() => userStore.getFriend(targetId.value));
+const userInfo = computed(() => userStore.getUser(targetId.value));
 
 // Remark Editing Logic
 const isEditingRemark = ref(false);
@@ -96,13 +111,13 @@ const handleSaveRemark = async () => {
     // Only save if changed
     if (editRemarkValue.value === (friendInfo.value?.remark || '')) return;
 
-    if (!targetIdVal.value || !friendInfo.value) {
+    if (!targetId.value || !friendInfo.value) {
         return;
     }
 
     try {
         await friendService.updateFriend({
-            friend_id: targetIdVal.value,
+            friend_id: targetId.value,
             remark: editRemarkValue.value,
             blocked: friendInfo.value.blocked || false,
             starred: friendInfo.value.starred || false
@@ -113,28 +128,31 @@ const handleSaveRemark = async () => {
     }
 };
 
-const pinLoading = ref(false);
-const disturbLoading = ref(false);
+const debounce = (fn: Function, delay = 300) => {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    return (...args: any[]) => {
+        if (timeoutId) clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+            fn(...args);
+        }, delay);
+    };
+};
 
-const handleUpdatePinned = async (_val: string | number | boolean) => {
-    if (pinLoading.value) return;
-    pinLoading.value = true;
+const handleUpdatePinned = debounce(async (_val: string | number | boolean) => {
     try {
         await sessionStore.updateSessionOptions(props.chat.session_key, 3 - props.chat.is_top, undefined);
-    } finally {
-        pinLoading.value = false;
+    } catch (error) {
+        console.error(error);
     }
-};
+});
 
-const handleUpdateDisturb = async (_val: string | number | boolean) => {
-    if (disturbLoading.value) return;
-    disturbLoading.value = true;
+const handleUpdateDisturb = debounce(async (_val: string | number | boolean) => {
     try {
         await sessionStore.updateSessionOptions(props.chat.session_key, undefined, 3 - props.chat.is_disturb);
-    } finally {
-        disturbLoading.value = false;
+    } catch (error) {
+        console.error(error);
     }
-};
+});
 
 const clearChatData = async () => {
     const res = await CusDialog.open({
@@ -191,38 +209,101 @@ const confirmDeleteFriend = async () => {
     height: 100%;
     display: flex;
     flex-direction: column;
-
-
+    width: 100%;
+    background-color: var(--bg-card);
 
     .sidebar-content {
         flex: 1;
         overflow-y: auto;
         padding: 20px;
-        padding-top: 2px;
+        display: flex;
+        flex-direction: column;
 
         .mt-15 {
             margin-top: 15px;
         }
 
+        .profile-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0px 10px 24px 10px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 10px;
+
+            .avatar-wrapper {
+                position: relative;
+                border-radius: 50%;
+                padding: 3px;
+                background: linear-gradient(135deg, var(--color-primary-light), var(--color-primary));
+                box-shadow: var(--shadow-sm);
+                margin-bottom: 12px;
+                display: inline-flex;
+            }
+
+            .profile-avatar {
+                transition: transform 0.3s ease;
+                cursor: pointer;
+
+                &:hover {
+                    transform: scale(1.05);
+                }
+            }
+
+            .profile-name {
+                font-size: 16px;
+                font-weight: 600;
+                color: var(--text-title);
+                margin: 0;
+            }
+
+            .profile-id {
+                font-size: 12px;
+                color: var(--text-secondary);
+                margin-top: 4px;
+            }
+
+            .profile-signature {
+                margin-top: 10px;
+                font-size: 12px;
+                color: var(--text-secondary);
+                font-style: italic;
+                text-align: center;
+                max-width: 90%;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                padding: 4px 8px;
+                background-color: var(--surface-subtle);
+                border-radius: 6px;
+            }
+        }
+
         .detail-group {
-            background-color: #f9fafb;
-            border-radius: 8px;
-            padding: 10px;
+            background-color: var(--surface-subtle);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 4px 14px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+
+            &:hover {
+                border-color: rgba(var(--color-primary), 0.2);
+            }
 
             .detail-item {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                padding: 12px 10px;
+                padding: 12px 0;
                 font-size: 14px;
-                border-bottom: 1px solid rgba($color-border, 0.5);
+                border-bottom: 1px solid var(--border-divider);
 
                 &:last-child {
                     border-bottom: none;
                 }
 
                 &.action-toggle {
-                    padding: 8px 10px;
+                    padding: 8px 0;
                 }
 
                 &.remark-item {
@@ -236,12 +317,13 @@ const confirmDeleteFriend = async () => {
 
                         .edit-icon {
                             cursor: pointer;
-                            color: $color-text-secondary;
+                            color: var(--text-secondary);
                             font-size: 14px;
-                            transition: color 0.2s;
+                            transition: all 0.2s;
 
                             &:hover {
-                                color: var(--el-color-primary, $color-text-primary);
+                                color: var(--color-primary);
+                                transform: scale(1.15);
                             }
                         }
                     }
@@ -251,7 +333,6 @@ const confirmDeleteFriend = async () => {
                         display: flex;
                         justify-content: flex-end;
 
-                        // Avoid input taking the full width pushing the label away completely
                         .el-input {
                             width: 150px;
                         }
@@ -259,13 +340,13 @@ const confirmDeleteFriend = async () => {
                 }
 
                 .label {
-                    color: $color-text-secondary;
+                    color: var(--text-secondary);
                     flex-shrink: 0;
                     margin-right: 15px;
                 }
 
                 .value {
-                    color: $color-text-primary;
+                    color: var(--text-primary);
                     text-align: right;
                     overflow: hidden;
                     text-overflow: ellipsis;
@@ -275,32 +356,56 @@ const confirmDeleteFriend = async () => {
         }
 
         .actions-section {
-            margin-top: 30px;
+            margin-top: auto;
+            padding-top: 30px;
             display: flex;
             flex-direction: column;
+            gap: 12px;
 
-            .action-group {
-                padding: 0;
+            .action-btn {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                width: 100%;
+                height: 38px;
+                border-radius: var(--radius-md);
+                border: none;
+                font-size: 14px;
+                font-weight: 500;
                 cursor: pointer;
-                transition: background-color 0.2s;
+                transition: all 0.2s ease;
 
-                &:hover {
-                    background-color: #f3f4f6;
+                .action-icon {
+                    font-size: 16px;
                 }
 
-                .center-item {
-                    justify-content: center;
-                    border-bottom: none;
-                    font-size: 15px;
-                    font-weight: 500;
+                &.clear-btn {
+                    background-color: var(--color-primary-bg);
+                    color: var(--color-primary);
+
+                    &:hover {
+                        background-color: var(--bg-hover);
+                        transform: translateY(-1px);
+                    }
+
+                    &:active {
+                        transform: translateY(0);
+                    }
                 }
 
-                .text-primary {
-                    color: $color-text-primary;
-                }
-
-                .text-danger {
+                &.delete-btn {
+                    background-color: rgba(255, 77, 79, 0.08);
                     color: $color-error;
+
+                    &:hover {
+                        background-color: rgba(255, 77, 79, 0.16);
+                        transform: translateY(-1px);
+                    }
+
+                    &:active {
+                        transform: translateY(0);
+                    }
                 }
             }
         }

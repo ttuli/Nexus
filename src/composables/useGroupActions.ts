@@ -22,13 +22,13 @@ export function useGroupActions() {
      * 加群或被拉入群后，在本地创建会话和系统提示消息
      */
     const setupNewGroupSession = (groupInfo: ImTypes.GroupInfo, memberIdsCount: number) => {
-        const sessionId = generateGroupSessionId(groupInfo.id);
-        sessionStore.addOrPinToTop(sessionId);
+        const sessionKey = generateGroupSessionId(groupInfo.id);
+        sessionStore.addOrPinToTop(sessionKey);
 
         const message: IChatMessage = {
             msgId: `local_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
             sessionId: '',
-            sessionKey: sessionId,
+            sessionKey: sessionKey,
             fromUserId: userStore.userID,
             sendTime: Date.now(),
             seq: '0',

@@ -151,7 +151,7 @@ const loadData = async () => {
         // 2. Load Chat List Users (Private Chats)
         const privateChats = sessionStore.sessionList.filter(c => c.type === ImTypes.SessionType.SESSION_TYPE_PRIVATE);
         if (privateChats.length > 0) {
-            const ids = privateChats.map(c => extractTargetIdFromSessionId(c.session_id, userStore.getUserID())).filter((id): id is number => id !== null); // Fix: Use targetId for private chat user ID
+            const ids = privateChats.map(c => extractTargetIdFromSessionId(c.session_key, userStore.getUserID())).filter((id): id is number => id !== null); // Fix: Use targetId for private chat user ID
             // Ensure we have user info for these IDs
             const users = await userService.fetchByIds(ids);
             // Update relation store or local cache if needed, but here we just need to display.

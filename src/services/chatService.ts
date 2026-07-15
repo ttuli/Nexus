@@ -473,7 +473,7 @@ class ChatService {
 
         return {
             msg,
-            sessionId: msg.sessionId,
+            sessionKey: msg.sessionKey,
             shouldIncrementUnread,
             shouldPlaySound,
         };

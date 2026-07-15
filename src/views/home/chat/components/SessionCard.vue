@@ -6,13 +6,12 @@
                 :type="props.data.type === ImTypes.SessionType.SESSION_TYPE_GROUP ? 'group' : 'user'" />
         </div>
         <div class="content-container">
-            <div class="top-row">
+            <div class="left-column">
                 <span class="name">{{ displayName }}</span>
-                <span class="time" v-if="props.data.last_content">{{ formatTime(props.data.last_message_time)
-                    }}</span>
-            </div>
-            <div class="bottom-row">
                 <span class="message">{{ displayContent }}</span>
+            </div>
+            <div class="right-column">
+                <span class="time" v-if="props.data.last_content">{{ formatTime(props.data.last_message_time) }}</span>
                 <div class="badge" :class="{ 'disturb-badge': props.data.is_disturb === 2 }"
                     v-if="props.data.unread_count > 0">
                     {{ props.data.unread_count > 99 ? '99+' : props.data.unread_count }}
@@ -138,45 +137,50 @@ const formatTime = (timestamp: number | null) => {
         flex: 1;
         min-width: 0; // flex child truncation fix
         display: flex;
-        flex-direction: column;
-        justify-content: center;
+        flex-direction: row;
+        align-items: center;
         height: 100%;
 
-        .top-row {
+        .left-column {
+            flex: 1;
+            min-width: 0;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 4px;
+            flex-direction: column;
+            justify-content: center;
 
             .name {
                 font-size: 16px;
                 font-weight: 500;
                 color: $color-text-primary;
                 @include ellipsis;
+                line-height: 22px;
+                margin-bottom: 4px;
             }
-
-            .time {
-                font-size: 12px;
-                color: $color-text-placeholder;
-                flex-shrink: 0;
-                margin-left: 8px;
-            }
-        }
-
-        .bottom-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
 
             .message {
                 font-size: 14px;
                 color: $color-text-secondary;
                 @include ellipsis;
-                flex: 1;
-                margin-right: 8px;
+                line-height: 20px;
+            }
+        }
+
+        .right-column {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            flex-shrink: 0;
+            margin-left: 12px;
+            height: 46px; // aligns with 22(name) + 4(margin) + 20(message)
+
+            .time {
+                font-size: 12px;
+                color: $color-text-placeholder;
+                line-height: 22px;
             }
 
             .badge {
+                margin-top: auto;
                 min-width: 18px;
                 height: 18px;
                 border-radius: 9px;
@@ -187,7 +191,10 @@ const formatTime = (timestamp: number | null) => {
                 text-align: center;
                 padding: 0 5px;
                 box-sizing: border-box;
-                flex-shrink: 0;
+
+                &:only-child {
+                    margin-bottom: auto;
+                }
 
                 &.disturb-badge {
                     background-color: #c0c4cc;
@@ -195,17 +202,21 @@ const formatTime = (timestamp: number | null) => {
             }
 
             .disturb-icon {
+                margin-top: auto;
                 width: 14px;
-                height: 14px;
+                height: 20px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 color: $color-text-placeholder;
-                flex-shrink: 0;
+
+                &:only-child {
+                    margin-bottom: auto;
+                }
 
                 :deep(svg) {
-                    width: 100%;
-                    height: 100%;
+                    width: 14px;
+                    height: 14px;
                 }
             }
         }

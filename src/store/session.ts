@@ -280,12 +280,9 @@ export const useSessionStore = defineStore('session', {
             chat.is_disturb = isDisturbVal;
             this.sortSessionList();
 
-            // 服务端尚未分配 session_id 的本地会话仅本地生效
-            if (!chat.session_id) return;
-
             try {
                 await updateSession({
-                    session_id: chat.session_id,
+                    session_id: sessionKey,
                     is_top: Number(isTopVal),
                     is_disturb: Number(isDisturbVal),
                 });

@@ -45,13 +45,17 @@ class ResourceManager {
         tokenManager.cleanout();
         // 清理纯内存缓存，保留磁盘缓存供下次加速
         cacheManager.clearMemory();
-        // 关闭当前账号的私有数据库连接（async，但无需等待）
-        closePrivateDB().catch(err => console.error('[ResourceManager] closePrivateDB error:', err));
+        
         wsManager.closeWs();
         windowManager.closeAllWindows().finally(() => {
-            windowManager.CreateWindow({
-                key: 'login',
-            })
+            // 先让所有窗口完成销毁和退出清理工作，最后再安全关闭私有数据库连接
+            closePrivateDB()
+                .catch(err => console.error('[ResourceManager] closePrivateDB error:', err))
+                .finally(() => {
+                    windowManager.CreateWindow({
+                        key: 'login',
+                    });
+                });
         });
     }
 
@@ -59,10 +63,11 @@ class ResourceManager {
 
     public destroy(): void {
         console.log('[ResourceManager] Destroying all resources...');
-        // 关闭所有数据库连接（包括共享库，async，等待完成后再退出）
-        closeAllDb().finally(() => {
+        // 先关闭所有窗口（等待退出清理及会话保存操作完成）
+        windowManager.closeAllWindows().finally(() => {
             wsManager.closeWs();
-            windowManager.closeAllWindows().finally(() => {
+            // 确保窗口全部销毁后，再安全关闭所有数据库连接
+            closeAllDb().finally(() => {
                 app.quit();
             });
         });

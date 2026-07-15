@@ -115,7 +115,6 @@ groupStore.$onAction(({ name, store }) => {
         if (oldVal !== undefined) {
             enterTimeGroup.value = oldVal;
         }
-        console.log("Group oldVal:", oldVal);
     }
 });
 

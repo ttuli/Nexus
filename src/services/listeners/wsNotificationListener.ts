@@ -85,10 +85,10 @@ export function initWsNotificationListener(): void {
             case ImTypes.MessageType.GROUP_OP_NOTIFICATION: {
                 const result = await chatService.parseGroupNotification(data.payload)
                 if (result.msg) {
-                    sessionStore.addOrPinToTop(result.sessionId)
+                    sessionStore.addOrPinToTop(result.sessionKey || '')
                     messageStore.upsertMessage(result.msg)
                     if (result.shouldIncrementUnread) {
-                        sessionStore.incrementUnread(result.sessionId)
+                        sessionStore.incrementUnread(result.sessionKey || '')
                     }
                     if (result.shouldPlaySound) {
                         windowService.playNotificationSound()

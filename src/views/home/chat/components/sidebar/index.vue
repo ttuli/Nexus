@@ -1,9 +1,15 @@
 <template>
     <div class="chat-sidebar-wrapper" :class="{ 'visible': visible }">
         <template v-if="chat">
-            <PrivateSessionSidebar v-if="chat.type === ImTypes.SessionType.SESSION_TYPE_PRIVATE" :chat="chat"
+            <PrivateSessionSidebar 
+                v-if="chat.type === ImTypes.SessionType.SESSION_TYPE_PRIVATE" 
+                :key="`private-${chat.session_id}`" 
+                :chat="chat"
                 @close="$emit('close')" />
-            <GroupSessionSidebar v-else-if="chat.type === ImTypes.SessionType.SESSION_TYPE_GROUP" :chat="chat"
+            <GroupSessionSidebar 
+                v-else-if="chat.type === ImTypes.SessionType.SESSION_TYPE_GROUP" 
+                :key="`group-${chat.session_id}`" 
+                :chat="chat"
                 @close="$emit('close')" />
         </template>
     </div>
@@ -18,7 +24,6 @@ defineProps<{
     visible: boolean;
     chat: ImTypes.Session | null;
 }>();
-
 defineEmits(['close']);
 </script>
 
