@@ -14,7 +14,7 @@ import { useSessionStore } from '@/src/store/session'
 import { useMessageStore } from '@/src/store/message'
 import { toRaw } from 'vue'
 import { generateGroupSessionId, generateSessionId } from '@/src/utils/sessionUtils';
-import { convertApplySrc2FriendSrc } from '@/src/utils/messageConverter';
+import { convertApplySrc2FriendSrc, formatSystemMessage } from '@/src/utils/messageConverter';
 import windowService from '../windowService'
 import cacheService from '../cacheService'
 import groupService from '../groupService'
@@ -85,18 +85,26 @@ export function initWsNotificationListener(): void {
             // 统一通知消息：群操作、消息撤回等控制类事件的统一载体。
             // 载荷为 NotifyMessage 信封（base + oneof body），落库分配的
             // msg_id / session_id / seq 在 WSMessage 顶层回填。
-            case ImTypes.MessageType.NOTIFICATION: {
+            case ImTypes.MessageType.GROUP_OP_NOTIFICATION: {
                 const notify = ImTypes.NotifyMessage.decode(data.payload.payload)
                 const envelope = {
                     msgId: data.payload.msg_id,
                     sessionId: data.payload.session_id || notify.base?.session_id,
+
                     seq: data.payload.msg_seq,
                 }
 
                 if (notify.group_notify) {
                     const result = await chatService.parseGroupNotification(notify.group_notify, envelope)
                     if (result.msg) {
-                        sessionStore.addOrPinToTop(result.sessionKey || '')
+                        sessionStore.upsertSession({
+                            session_id: envelope.sessionId,
+                            session_key: notify.base?.session_key as string,
+                            type: ImTypes.SessionType.SESSION_TYPE_GROUP,
+                            max_seq: notify.base!.msg_seq,
+                            update_time: data.payload.timestamp,
+                            last_content: formatSystemMessage(result.msg,notify.group_notify.operator_id),
+                        })
                         messageStore.upsertMessage(result.msg)
                         if (result.shouldIncrementUnread) {
                             sessionStore.incrementUnread(result.sessionKey || '')

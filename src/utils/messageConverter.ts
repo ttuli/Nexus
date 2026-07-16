@@ -8,6 +8,7 @@ import {
     ILocalVideoMessage, ILocalAudioMessage, ILocalFileMessage, ILocalSystemMessage,
 } from '@shared/types';
 import { seqPositive, toSeq } from '@shared/utils/seq';
+import { generateGroupSessionId } from './sessionUtils';
 
 /**
  * 将 WebSocket 推送的 WSMessage 转换为本地 IChatMessage 格式
@@ -169,7 +170,7 @@ export function convertNotificationToChatMessage(
     notification: ImTypes.GroupNotification,
     envelope?: { msgId?: string; sessionId?: string; seq?: string },
 ): IChatMessage {
-    const sessionKey = String(notification.group_id);
+    const sessionKey = generateGroupSessionId(notification.group_id);
     const chatMsg: ILocalSystemMessage = {
         type: ImTypes.MessageType.GROUP_OP_NOTIFICATION,
         opType: notification.op_type,

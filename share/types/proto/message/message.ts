@@ -95,6 +95,7 @@ export enum MessageExtraKey {
   MESSAGE_EXTRA_KEY_THUMB_WIDE = 12,
   MESSAGE_EXTRA_KEY_THUMB_HEIGHT = 13,
   MESSAGE_EXTRA_KEY_DURATION = 20,
+  MESSAGE_EXTRA_KEY_NOTIFY_PAYLOAD = 30,
   UNRECOGNIZED = -1,
 }
 
@@ -127,6 +128,9 @@ export function messageExtraKeyFromJSON(object: any): MessageExtraKey {
     case 20:
     case "MESSAGE_EXTRA_KEY_DURATION":
       return MessageExtraKey.MESSAGE_EXTRA_KEY_DURATION;
+    case 30:
+    case "MESSAGE_EXTRA_KEY_NOTIFY_PAYLOAD":
+      return MessageExtraKey.MESSAGE_EXTRA_KEY_NOTIFY_PAYLOAD;
     case -1:
     case "UNRECOGNIZED":
     default:
@@ -154,6 +158,8 @@ export function messageExtraKeyToJSON(object: MessageExtraKey): string {
       return "MESSAGE_EXTRA_KEY_THUMB_HEIGHT";
     case MessageExtraKey.MESSAGE_EXTRA_KEY_DURATION:
       return "MESSAGE_EXTRA_KEY_DURATION";
+    case MessageExtraKey.MESSAGE_EXTRA_KEY_NOTIFY_PAYLOAD:
+      return "MESSAGE_EXTRA_KEY_NOTIFY_PAYLOAD";
     case MessageExtraKey.UNRECOGNIZED:
     default:
       return "UNRECOGNIZED";

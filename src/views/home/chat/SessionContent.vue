@@ -133,7 +133,6 @@ const isSystemMessage = (type: number) => {
     const sysTypes = [
         MessageType.MSG_RECALL,
         MessageType.GROUP_OP_NOTIFICATION,
-        MessageType.NOTIFICATION
     ];
     return sysTypes.includes(type);
 };

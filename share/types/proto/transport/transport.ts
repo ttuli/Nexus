@@ -93,13 +93,7 @@ export enum MessageType {
   USER_STATUS_CHANGE = 403,
   /** USER_KICKOFF - 用户被踢 */
   USER_KICKOFF = 404,
-  /** GROUP_OP_NOTIFICATION - 群组操作 */
-  GROUP_OP_NOTIFICATION = 500,
-  /** MSG_OP_RECALL - 消息操作 */
-  MSG_OP_RECALL = 501,
-  /** NOTIFICATION - 通知类 600-699 */
-  NOTIFICATION = 600,
-  /** FRIEND_REQUEST - 好友请求 */
+  /** FRIEND_REQUEST - 通知类 600-699 */
   FRIEND_REQUEST = 601,
   /** FRIEND_ADD - 添加好友 */
   FRIEND_ADD = 602,
@@ -107,6 +101,10 @@ export enum MessageType {
   FRIEND_DELETED = 603,
   /** GROUP_REQUEST - 群请求 */
   GROUP_REQUEST = 604,
+  /** MSG_OP_RECALL - 消息撤回 */
+  MSG_OP_RECALL = 605,
+  /** GROUP_OP_NOTIFICATION - 群操作通知 */
+  GROUP_OP_NOTIFICATION = 606,
   /** UPDATE_SESSION - 内部消费消息 */
   UPDATE_SESSION = 700,
   /** USER_GROUP_SYNC - 用户群组映射同步 */
@@ -193,15 +191,6 @@ export function messageTypeFromJSON(object: any): MessageType {
     case 404:
     case "USER_KICKOFF":
       return MessageType.USER_KICKOFF;
-    case 500:
-    case "GROUP_OP_NOTIFICATION":
-      return MessageType.GROUP_OP_NOTIFICATION;
-    case 501:
-    case "MSG_OP_RECALL":
-      return MessageType.MSG_OP_RECALL;
-    case 600:
-    case "NOTIFICATION":
-      return MessageType.NOTIFICATION;
     case 601:
     case "FRIEND_REQUEST":
       return MessageType.FRIEND_REQUEST;
@@ -214,6 +203,12 @@ export function messageTypeFromJSON(object: any): MessageType {
     case 604:
     case "GROUP_REQUEST":
       return MessageType.GROUP_REQUEST;
+    case 605:
+    case "MSG_OP_RECALL":
+      return MessageType.MSG_OP_RECALL;
+    case 606:
+    case "GROUP_OP_NOTIFICATION":
+      return MessageType.GROUP_OP_NOTIFICATION;
     case 700:
     case "UPDATE_SESSION":
       return MessageType.UPDATE_SESSION;
@@ -282,12 +277,6 @@ export function messageTypeToJSON(object: MessageType): string {
       return "USER_STATUS_CHANGE";
     case MessageType.USER_KICKOFF:
       return "USER_KICKOFF";
-    case MessageType.GROUP_OP_NOTIFICATION:
-      return "GROUP_OP_NOTIFICATION";
-    case MessageType.MSG_OP_RECALL:
-      return "MSG_OP_RECALL";
-    case MessageType.NOTIFICATION:
-      return "NOTIFICATION";
     case MessageType.FRIEND_REQUEST:
       return "FRIEND_REQUEST";
     case MessageType.FRIEND_ADD:
@@ -296,6 +285,10 @@ export function messageTypeToJSON(object: MessageType): string {
       return "FRIEND_DELETED";
     case MessageType.GROUP_REQUEST:
       return "GROUP_REQUEST";
+    case MessageType.MSG_OP_RECALL:
+      return "MSG_OP_RECALL";
+    case MessageType.GROUP_OP_NOTIFICATION:
+      return "GROUP_OP_NOTIFICATION";
     case MessageType.UPDATE_SESSION:
       return "UPDATE_SESSION";
     case MessageType.USER_GROUP_SYNC:
