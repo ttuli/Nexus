@@ -36,12 +36,15 @@
                             transform: `translateY(${virtualRow.start}px)`
                         }"
                     >
-                        <!-- 系统 / 群通知消息气泡 -->
-                        <SystemMessageBubble v-if="isSystemMessage(messages[virtualRow.index].type)" :message="(messages[virtualRow.index] as any)" />
-                        <!-- 普通用户聊天气泡 -->
-                        <MessageBubble v-else :message="messages[virtualRow.index]" :is-self="isSelf(messages[virtualRow.index].fromUserId)"
-                            @contextmenu="handleMessageContextMenu"
-                            :class="{ 'is-self': isSelf(messages[virtualRow.index].fromUserId) }" />
+                        <!-- 动画包裹层：进场动画的 transform 必须与外层虚拟定位的 translateY 隔离 -->
+                        <div class="bubble-anim">
+                            <!-- 系统 / 群通知消息气泡 -->
+                            <SystemMessageBubble v-if="isSystemMessage(messages[virtualRow.index].type)" :message="(messages[virtualRow.index] as any)" />
+                            <!-- 普通用户聊天气泡 -->
+                            <MessageBubble v-else :message="messages[virtualRow.index]" :is-self="isSelf(messages[virtualRow.index].fromUserId)"
+                                @contextmenu="handleMessageContextMenu"
+                                :class="{ 'is-self': isSelf(messages[virtualRow.index].fromUserId) }" />
+                        </div>
                     </div>
                 </div>
                 <div v-else class="empty-messages">
@@ -87,7 +90,7 @@ import SystemMessageBubble from '@/src/views/home/chat/components/Bubble/SystemM
 import { IChatMessage, ILocalTextMessage } from '@shared/types/chatMessage';
 import { ImTypes } from '@shared/types';
 import ChatInput from './components/ChatInput.vue';
-import ChatSidebar from './components/sidebar/index.vue';
+import ChatSidebar from './components/Sidebar/index.vue';
 import AiSuggestions from './components/AiSuggestions.vue';
 import type { MenuOption } from '@/src/components/ContextMenu.vue';
 import { ElMessage } from 'element-plus';
@@ -237,26 +240,35 @@ const virtualizer = useVirtualizer(computed(() => ({
 const newAnimMessageIds = ref(new Set<string>());
 const seenMessageIds = new Set<string>();
 let lastMessageId = '';
+// 会话切换标记：缓存恢复时 messages 从旧会话数组直接替换为新会话数组（不经过空态），
+// 消息 watcher 无法仅凭新旧数组区分"切换会话"与"追加新消息"，靠该标记识别
+let sessionJustSwitched = false;
 
 // Watch chat change to reset seen messages, animation set, and sidebar
+// 注意：本 watcher 必须先于下方 messages watcher 注册（同一 flush 内按注册序执行），
+// sessionJustSwitched 才能在 messages watcher 读取前置位
 watch(currentSessionKey, () => {
     seenMessageIds.clear();
     newAnimMessageIds.value.clear();
     lastMessageId = '';
-    
+    sessionJustSwitched = true;
+
     if (currentSessionKey.value) {
         sidebarVisible.value = false;
     }
 });
 
 watch(() => [...messages.value], (newMsgs, oldMsgs) => {
+    const isSessionSwitch = sessionJustSwitched;
+    sessionJustSwitched = false;
+
     if (!newMsgs || newMsgs.length === 0) {
         seenMessageIds.clear();
         newAnimMessageIds.value.clear();
         lastMessageId = '';
         return;
     }
-    
+
     // Check if we should scroll to bottom (last message changed)
     const newLastMsg = newMsgs[newMsgs.length - 1];
     const newLastMsgId = newLastMsg.clientId || newLastMsg.msgId;
@@ -264,9 +276,10 @@ watch(() => [...messages.value], (newMsgs, oldMsgs) => {
         lastMessageId = newLastMsgId;
         scrollToBottom();
     }
-    
-    // Initial load: mark all as seen
-    if (!oldMsgs || oldMsgs.length === 0) {
+
+    // 首次加载或会话切换（含缓存恢复）：全部标记已读，不播放进场动画。
+    // 否则恢复的列表比旧会话长时，尾部差量会被误判为"新消息"而重播动画
+    if (isSessionSwitch || !oldMsgs || oldMsgs.length === 0) {
         newMsgs.forEach(m => {
             const id = m.clientId || m.msgId;
             if (id) seenMessageIds.add(id);
@@ -543,13 +556,16 @@ const startResize = (e: MouseEvent) => {
 
             .virtual-item {
                 will-change: transform;
-                
-                &.is-new {
+
+                // 进场动画放在内层 .bubble-anim 上：外层 .virtual-item 的 transform
+                // 承载虚拟列表定位的 translateY，若直接在其上跑 transform 关键帧动画，
+                // 动画会覆盖内联 translateY，导致新消息在列表顶部播完动画才跳回原位
+                &.is-new .bubble-anim {
                     animation: msg-slide-in-left 0.3s ease-out forwards;
-                    
-                    &.is-self {
-                        animation: msg-slide-in-right 0.3s ease-out forwards;
-                    }
+                }
+
+                &.is-new.is-self .bubble-anim {
+                    animation: msg-slide-in-right 0.3s ease-out forwards;
                 }
             }
         }

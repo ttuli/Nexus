@@ -95,6 +95,11 @@ class SessionStore {
 
     /**
      * 批量保存会话
+     *
+     * 注意：last_content / last_sender / last_message_time 受 last_message_time 单调门控
+     * （EXCLUDED.last_message_time >= sessions.last_message_time 才更新），用于防止乱序旧
+     * 摘要覆盖较新值。前提是调用方（renderer 内存层 updateSessionSummary/upsertSession）保证
+     * last_message_time 单调不回退——否则同一条最后消息因时间源不一致回退时，这些字段会被门控挡住。
      */
     async saveMany(sessions: (ImTypes.Session & { is_in_list?: number })[]): Promise<void> {
         if (!sessions.length) return;

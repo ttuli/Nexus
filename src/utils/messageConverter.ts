@@ -271,12 +271,24 @@ export function formatSystemMessage(
 }
 
 /**
+ * 判断是否为系统/通知类消息（会话预览不携带发送者前缀）
+ */
+export function isSystemNotificationMessage(type: ImTypes.MessageType): boolean {
+    return type === ImTypes.MessageType.GROUP_OP_NOTIFICATION
+        || type === ImTypes.MessageType.MSG_RECALL;
+}
+
+/**
  * 根据消息类型生成会话列表中展示的最后一条消息预览文字
  * @param message 本地消息对象
+ * @param meId 当前用户 ID（用于系统消息中把自己渲染为"你"）
+ * @param getUserName 用户名解析器（用于系统消息渲染操作者/目标名字）
  * @returns 预览字符串，如 '[图片]'、'[文件]' 或文本内容
  */
 export function getLastContent(
     message: IChatMessage,
+    meId?: number,
+    getUserName?: (userId: number) => string,
 ): string {
     let content: string = '';
     switch (message.type) {
@@ -302,6 +314,11 @@ export function getLastContent(
         case ImTypes.MessageType.CHAT_AUDIO:
         case ImTypes.MessageType.GROUP_AUDIO:
             content = '[音频]';
+            break;
+        case ImTypes.MessageType.GROUP_OP_NOTIFICATION:
+        case ImTypes.MessageType.MSG_RECALL:
+            // 系统消息复用统一格式化，保证会话预览与聊天气泡文案一致
+            content = formatSystemMessage(message as ILocalSystemMessage, meId, getUserName);
             break;
         default:
             content = '[消息]';

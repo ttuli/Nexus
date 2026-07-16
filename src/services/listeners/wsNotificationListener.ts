@@ -13,11 +13,14 @@ import { useRouter } from 'vue-router'
 import { useSessionStore } from '@/src/store/session'
 import { useMessageStore } from '@/src/store/message'
 import { toRaw } from 'vue'
+import { seqMax } from '@shared/utils/seq'
 import { generateGroupSessionId, generateSessionId } from '@/src/utils/sessionUtils';
 import { convertApplySrc2FriendSrc, formatSystemMessage } from '@/src/utils/messageConverter';
 import windowService from '../windowService'
 import cacheService from '../cacheService'
 import groupService from '../groupService'
+import userService from '../userService'
+import { sessionService } from '../sessionService'
 import { chatService } from '../chatService'
 
 export function initWsNotificationListener(): void {
@@ -90,30 +93,59 @@ export function initWsNotificationListener(): void {
                 const envelope = {
                     msgId: data.payload.msg_id,
                     sessionId: data.payload.session_id || notify.base?.session_id,
-
                     seq: data.payload.msg_seq,
                 }
 
                 if (notify.group_notify) {
                     const result = await chatService.parseGroupNotification(notify.group_notify, envelope)
                     if (result.msg) {
-                        sessionStore.upsertSession({
+                        // session_key 由 group_id 派生恒有值；base.session_key 可能缺失，不可依赖
+                        const sessionKey = result.sessionKey || ''
+                        const isFromSelf = notify.group_notify.operator_id === userStore.getUserID()
+                        const isCurrentSession = sessionStore.currentSessionKey === sessionKey
+
+                        // 操作者/目标用户可能从未缓存过（非好友被拉群、群成员互不相识、换设备后本地无数据），
+                        // fetchByIds 为缓存优先：命中时零网络开销，未命中由主进程自动回源 API 并落盘
+                        const missingIds = Array.from(new Set(
+                            [notify.group_notify.operator_id, ...(notify.group_notify.target_ids || [])]
+                                .filter(id => id && id !== userStore.getUserID() && !userStore.getUser(id))
+                        ))
+                        if (missingIds.length > 0) {
+                            try {
+                                await userService.fetchByIds(missingIds)
+                            } catch (e) {
+                                // 拉取失败不阻塞通知处理，名字降级为 "用户{id}"
+                                console.error('[WsNotificationListener] fetch users for group notification failed:', e)
+                            }
+                        }
+
+                        const updatedSession = sessionStore.upsertSession({
                             session_id: envelope.sessionId,
-                            session_key: notify.base?.session_key as string,
+                            session_key: sessionKey,
                             type: ImTypes.SessionType.SESSION_TYPE_GROUP,
-                            max_seq: notify.base!.msg_seq,
-                            update_time: data.payload.timestamp,
-                            last_content: formatSystemMessage(result.msg,notify.group_notify.operator_id),
+                            // 真实 seq 由服务端在 WSMessage 顶层回填，base 内为发送方原值，仅作兜底
+                            max_seq: seqMax(envelope.seq, notify.base?.msg_seq),
+                            update_time: data.payload.timestamp || result.msg.sendTime,
+                            // 系统消息无发送者语义，置 0 避免会话预览携带 "xx:" 前缀
+                            last_sender: 0,
+                            last_content: formatSystemMessage(result.msg, userStore.getUserID(), (id) => userStore.getDisplayName(id)),
                         })
                         messageStore.upsertMessage(result.msg)
-                        if (result.shouldIncrementUnread) {
-                            sessionStore.incrementUnread(result.sessionKey || '')
+
+                        // 正在查看的会话不累计未读，改为即时前进服务端已读游标
+                        if (isCurrentSession) {
+                            void sessionStore.reportSessionRead(sessionKey)
+                        } else if (result.shouldIncrementUnread && !isFromSelf) {
+                            sessionStore.incrementUnread(sessionKey)
                         }
-                        if (result.shouldPlaySound) {
+                        if (result.shouldPlaySound && !isFromSelf) {
                             windowService.playNotificationSound()
                         }
-                        // 持久化通知消息到本地 SQLite
+                        // 持久化通知消息与会话摘要到本地 SQLite
                         void ipcService.invoke(IpcChannels.MSG_SAVE, JSON.parse(JSON.stringify(toRaw(result.msg))));
+                        if (updatedSession) {
+                            void sessionService.saveMany([toRaw(updatedSession) as ImTypes.Session])
+                        }
                     }
                 } else if (notify.recall) {
                     // 撤回者 / 会话由信封 base 承载；msg_id 指被撤回的消息

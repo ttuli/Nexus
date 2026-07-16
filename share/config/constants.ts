@@ -54,6 +54,9 @@ export const Renderer_Config = {
 
     maxSessionListCount: 40,
 
+    /** 内存中保留消息列表缓存的会话数上限（LRU 淘汰） */
+    maxCachedMessageSessions: 8,
+
     imageCompressQuality: 80,
 };
 

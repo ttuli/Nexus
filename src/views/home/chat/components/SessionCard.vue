@@ -68,8 +68,12 @@ const displayName = computed(() => {
 
 const displayContent = computed(() => {
     if (props.data.type === ImTypes.SessionType.SESSION_TYPE_GROUP) {
+        const lastContent = props.data.last_content || '';
+        // 自己发送的消息不加发送者前缀
+        if (props.data.last_sender === userStore.userID) return lastContent;
+        // last_sender 为 0（系统消息）或用户信息未缓存时同样不加前缀
         const user = userStore.getUser(props.data.last_sender);
-        return `${user?.user_name}: ${props.data.last_content || ''}`;
+        return user?.user_name ? `${user.user_name}: ${lastContent}` : lastContent;
     }
     return props.data.last_content
 })

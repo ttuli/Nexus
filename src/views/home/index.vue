@@ -36,12 +36,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, toRaw } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import SideBar from './components/SideBar.vue';
 import { ipcService, websocketService } from '@/src/services';
 import { signalWindowReady } from '@/src/utils/window';
 import { useSessionStore } from '@/src/store/session';
+import { useMessageStore } from '@/src/store/message';
 import FilterColumn from '@/src/components/FilterColumn.vue';
 import CreateGroup from '@/src/components/CreateGroup.vue';
 import { createWindow } from '@/src/utils/window';
@@ -58,6 +59,7 @@ import { chatService } from '@/src/services/chatService';
 
 const router = useRouter();
 const sessionStore = useSessionStore()
+const messageStore = useMessageStore()
 const { navigateToChat } = useChatNavigation();
 
 const leftWidth = ref(250);
@@ -154,15 +156,12 @@ onMounted(async () => {
 
     chatService.syncOfflineActiveSessions()
 });
-onUnmounted(async () => {
+onUnmounted(() => {
+    // 会话变更已在各自发生处即时落盘，退出无需再全量保存，此处仅做清理。
+    // storeOfflineTimestamp 记录离线时刻，供下次上线的离线同步作为拉取起点。
     chatService.cancelOfflineSync()
     storeOfflineTimestamp()
-    void sessionService.saveMany(
-        sessionStore.sessionList.map((c) => ({
-            ...toRaw(c),
-            is_in_list: 1,
-        }))
-    );
+    messageStore.clearMessageCache();
     ipcService.off(IpcChannels.ROUTE_NAVIGATE);
 });
 </script>

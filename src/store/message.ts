@@ -3,7 +3,7 @@ import { useSessionStore } from './session';
 import { IChatMessage } from '@shared/types/chatMessage';
 import { toRaw } from 'vue';
 import { ImTypes, ApiTypes, CacheOptionType } from '@shared/types';
-import { APP_CONSTANTS } from '@shared/config/constants';
+import { APP_CONSTANTS, Renderer_Config } from '@shared/config/constants';
 import { ElMessage } from 'element-plus';
 import {
     buildTextWsMessage,
@@ -84,9 +84,62 @@ export const useMessageStore = defineStore('message', {
         messages: [] as IChatMessage[],
         isLoading: false,
         hasMore: true,
-        pageSize: 20
+        pageSize: 20,
+        /**
+         * 会话消息内存缓存：切换会话时暂存当前列表，切回时直接恢复免于重新查库。
+         * Map 迭代序即插入序，用作 LRU：命中/写入时先删后插移至队尾，超限淘汰队首。
+         */
+        sessionMessageCache: new Map<string, { messages: IChatMessage[]; hasMore: boolean }>(),
     }),
     actions: {
+        /**
+         * 将当前会话的消息列表暂存入缓存（切换会话前调用）
+         */
+        stashCurrentMessages(sessionKey: string) {
+            if (!sessionKey) return;
+            if (this.messages.length === 0) {
+                this.sessionMessageCache.delete(sessionKey);
+                return;
+            }
+            this.sessionMessageCache.delete(sessionKey);
+            this.sessionMessageCache.set(sessionKey, { messages: this.messages, hasMore: this.hasMore });
+            while (this.sessionMessageCache.size > Renderer_Config.maxCachedMessageSessions) {
+                const oldest = this.sessionMessageCache.keys().next().value;
+                if (oldest === undefined) break;
+                this.sessionMessageCache.delete(oldest);
+            }
+        },
+
+        /**
+         * 尝试从缓存恢复会话消息，命中返回 true（未命中时由调用方走 reset + 查库流程）
+         */
+        restoreMessagesFromCache(sessionKey: string): boolean {
+            const cached = this.sessionMessageCache.get(sessionKey);
+            if (!cached) return false;
+            // 刷新 LRU 顺序
+            this.sessionMessageCache.delete(sessionKey);
+            this.sessionMessageCache.set(sessionKey, cached);
+            this.messages = cached.messages;
+            this.hasMore = cached.hasMore;
+            this.isLoading = false;
+            return true;
+        },
+
+        /**
+         * 失效指定会话的消息缓存
+         * （离线补拉绕过内存写库、退群清理等使缓存过期的场景调用）
+         */
+        invalidateMessageCache(sessionKey: string) {
+            this.sessionMessageCache.delete(sessionKey);
+        },
+
+        /**
+         * 清空全部消息缓存（离开主界面/登出时调用）
+         */
+        clearMessageCache() {
+            this.sessionMessageCache.clear();
+        },
+
         /**
          * 更新文件消息的本地路径（下载完成后使用）
          */
@@ -121,10 +174,18 @@ export const useMessageStore = defineStore('message', {
             msgId?: string,
             seq?: string
         ): IChatMessage | undefined {
-            const msg = this.messages.find(m =>
+            const findIn = (list: IChatMessage[]) => list.find(m =>
                 (clientId && m.clientId === clientId) ||
                 (msgId && m.msgId === msgId)
             );
+            let msg = findIn(this.messages);
+            if (!msg) {
+                // 当前会话未命中：用户可能已切走，ACK/撤回状态仍需落到缓存中的消息上
+                for (const cached of this.sessionMessageCache.values()) {
+                    msg = findIn(cached.messages);
+                    if (msg) break;
+                }
+            }
             if (msg) {
                 msg.status = status;
                 if (sendTime) msg.sendTime = sendTime;
@@ -139,7 +200,8 @@ export const useMessageStore = defineStore('message', {
          * 添加或更新消息，返回 store 内的消息引用（响应式）
          *
          * messages 数组只承载当前会话：携带 sessionKey 且不属于当前会话的新消息
-         * 一律不入列（异步回调/Listener 到达时用户可能已切换会话），原样返回入参。
+         * 不入列（异步回调/Listener 到达时用户可能已切换会话），但若该会话有内存
+         * 缓存则同步追加进缓存，保证切回时尾部消息不缺失。
          */
         upsertMessage(message: IChatMessage): IChatMessage {
             const existing = this.messages.find(m =>
@@ -149,6 +211,14 @@ export const useMessageStore = defineStore('message', {
             if (!existing) {
                 const sessionStore = useSessionStore();
                 if (message.sessionKey && message.sessionKey !== sessionStore.currentSessionKey) {
+                    const cached = this.sessionMessageCache.get(message.sessionKey);
+                    if (cached) {
+                        const cachedExisting = cached.messages.find(m =>
+                            (message.clientId && message.clientId === m.clientId) ||
+                            (message.msgId && message.msgId === m.msgId)
+                        );
+                        if (!cachedExisting) cached.messages.push(message);
+                    }
                     return message;
                 }
                 this.messages.push(message);
@@ -444,5 +514,5 @@ export const useMessageStore = defineStore('message', {
                     ),
             }, 'sendVideoMessage', deps);
         },
-    }
+    },
 });

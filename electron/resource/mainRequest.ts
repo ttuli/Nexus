@@ -147,7 +147,7 @@ function executeRequest<T>(options: MainRequestOptions, token?: string): Promise
         request.on('error', (error) => {
             if (timeoutId) clearTimeout(timeoutId);
             console.error('[MainRequest] Network error:', error);
-            reject(new MainRequestError(error.message));
+            reject(new MainRequestError("网络错误"));
         });
 
         // 发送请求体（POST）

@@ -1,8 +1,9 @@
 import { useSessionStore } from '@/src/store/session';
 import { useMessageStore } from '@/src/store/message';
+import { useUserStore } from '@/src/store/user';
 import { sessionService } from '@/src/services/sessionService';
 import { chatService } from '@/src/services/chatService';
-import { getLastContent } from '@/src/utils/messageConverter';
+import { getLastContent, isSystemNotificationMessage } from '@/src/utils/messageConverter';
 import { useRouter } from 'vue-router';
 import { toRaw } from 'vue';
 
@@ -13,6 +14,7 @@ import { toRaw } from 'vue';
 export function useChatNavigation() {
     const sessionStore = useSessionStore();
     const messageStore = useMessageStore();
+    const userStore = useUserStore();
     const router = useRouter();
 
     /**
@@ -23,14 +25,23 @@ export function useChatNavigation() {
             router.push('/home/chat');
         }
 
-        const oldSessionId = sessionStore.currentSessionKey;
+        const oldSessionKey = sessionStore.currentSessionKey;
+        // 离开旧会话前将其消息列表暂存入缓存，供切回时直接恢复
+        messageStore.stashCurrentMessages(oldSessionKey);
 
-        if (sessionKey === oldSessionId) {
+        if (sessionKey === oldSessionKey) {
+            // 再次点击当前会话 → 取消选中
             sessionStore.setCurrentSession('');
-        } else {
-            sessionStore.setCurrentSession(sessionKey);
+            messageStore.resetMessageState();
+            return;
         }
-        messageStore.resetMessageState();
+        sessionStore.setCurrentSession(sessionKey);
+
+        // 缓存命中直接恢复，未命中才重置并走查库流程
+        const restored = messageStore.restoreMessagesFromCache(sessionKey);
+        if (!restored) {
+            messageStore.resetMessageState();
+        }
 
         const currentSession = sessionStore.currentSession;
         if (currentSession) {
@@ -41,7 +52,9 @@ export function useChatNavigation() {
             } as any]);
 
             // 初次加载该会话的历史消息
-            void loadInitialMessages(sessionKey);
+            if (!restored) {
+                void loadInitialMessages(sessionKey);
+            }
         }
     }
 
@@ -59,9 +72,10 @@ export function useChatNavigation() {
             const latestMsg = messages[messages.length - 1];
             if (latestMsg) {
                 const updatedSession = sessionStore.updateSessionSummary(targetSessionKey, {
-                    last_content: getLastContent(latestMsg),
+                    last_content: getLastContent(latestMsg, userStore.userID, (id) => userStore.getDisplayName(id)),
                     last_message_time: latestMsg.sendTime,
-                    last_sender: latestMsg.fromUserId
+                    // 系统消息无发送者语义，置 0 避免会话预览携带 "xx:" 前缀
+                    last_sender: isSystemNotificationMessage(latestMsg.type) ? 0 : latestMsg.fromUserId
                 });
                 if (updatedSession) {
                     void sessionService.saveMany([toRaw(updatedSession) as any]);

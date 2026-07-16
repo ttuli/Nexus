@@ -16,12 +16,12 @@ try {
     listenerService.init()
 
     ipcService.once(IpcChannels.APP_QUIT, async () => {
+        // 会话变更已在各自发生处即时落盘，退出无需再保存，此处仅卸载 UI 并关闭窗口。
         isAppMounted.value = false
         listenerService.destroy()
         ipcService.removeAllListeners()
-        await nextTick().then(() => {
-            window.close()
-        })
+        await nextTick()
+        window.close()
     })
     ipcService.on(IpcChannels.LOGOUT_REMIND, async (_e, data) => {
         // 身份已失效，立即中止在途的离线同步分页拉取，避免继续用失效凭证发请求

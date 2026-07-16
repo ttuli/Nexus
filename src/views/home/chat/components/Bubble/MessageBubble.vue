@@ -270,6 +270,10 @@ const formatTime = (timestamp: number) => {
 
             &:hover {
                 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+
+                &:not(.is-image):not(.is-video) {
+                    filter: brightness(0.93);
+                }
             }
         }
 

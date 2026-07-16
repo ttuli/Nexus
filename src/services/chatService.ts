@@ -388,8 +388,13 @@ class ChatService {
                 if (seqGt(serverMaxSeq, localMaxSeq)) {
                     try {
                         const missing = await this.fetchMessagesSince(ss.session_key, localMaxSeq, 50, 20, signal);
-                        if (missing.length > 0 && sessionStore.currentSessionKey === ss.session_key) {
-                            missing.forEach(m => messageStore.upsertMessage(m));
+                        if (missing.length > 0) {
+                            if (sessionStore.currentSessionKey === ss.session_key) {
+                                missing.forEach(m => messageStore.upsertMessage(m));
+                            } else {
+                                // 补拉的消息只写了库未进内存，该会话的消息缓存已过期
+                                messageStore.invalidateMessageCache(ss.session_key);
+                            }
                         }
                     } catch (e) {
                         console.error(`[ChatService] backfill offline messages for ${ss.session_key} failed:`, e);

@@ -1,7 +1,0 @@
-wsNotificationListener会话完善
-
-创建群聊时只能从聊天列表或好友列表选择，所以即便与对方已经不是好友，但是还有聊天会话还是存在，此时选中
-其并创建群聊，那么在对方收到这个创建通知的时候，能确保对方程序缓存过这个用户的信息吗？
-有会话就说明添加要么添加过好友，要么从群里点击用户然后发起聊天(不过目前私聊非好友关系被禁用了D:\Project\Nexus\src\views\home\chat\components\ChatInput.vue)，
-所以能保证D:\Project\Nexus\src\services\listeners\wsNotificationListener.ts里面处理group_op通知时，
-能直接从本地获取到缓存而不用调用userService.fetchUser吧

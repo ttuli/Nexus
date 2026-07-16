@@ -6,6 +6,7 @@ import configs from './windowAttribute';
 import { TrayManager } from './trayManager';
 import { IpcChannels } from '@shared/types';
 import { Main_Config as config } from '@shared/config/constants';
+import { closeAllDb } from '@/electron/db';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -42,7 +43,10 @@ class WindowManager {
             },
             onQuit: () => {
               this.closeAllWindows().finally(() => {
-                app.quit();
+                // 等 DB Worker 队列中的写入（含退出前的会话保存）落盘后再退出
+                closeAllDb()
+                  .catch((err) => console.error('[WindowManager] closeAllDb on quit failed:', err))
+                  .finally(() => app.quit());
               });
             }
           });
@@ -441,21 +445,19 @@ class WindowManager {
       }
     });
 
-    // 先绑定 close 事件，再发送退出信号并清理
+    // 先解除常驻监听，再发送退出信号
     const closePromises = windowsToClose.map((managed) => {
       return new Promise<void>((resolve) => {
-        // 在窗口关闭前保存状态和执行清理（此时窗口还未销毁）
-        managed.window.once('close', () => {
-          // 调用配置钩子（保存状态等）——已通过 hooks.onClose 处理。
-          // 在窗口销毁前执行清理
-          if (managed.cleanup) {
-            try {
-              managed.cleanup();
-            } catch (error) {
-              console.error(`Failed to cleanup window "${managed.key}":`, error);
-            }
+        // 提前移除常驻监听（含 home 窗口 close→隐藏到托盘的拦截）：
+        // 否则渲染进程收到 APP_QUIT 后调用的 window.close() 会被 preventDefault
+        // 拦下，只能等超时强制 destroy，退出被无谓拖长
+        if (managed.cleanup) {
+          try {
+            managed.cleanup();
+          } catch (error) {
+            console.error(`Failed to cleanup window "${managed.key}":`, error);
           }
-        });
+        }
 
         // 窗口销毁后 resolve
         managed.window.once('closed', () => {
@@ -472,7 +474,7 @@ class WindowManager {
       });
     });
 
-    // 等待所有窗口关闭和退出登录 API 完成，最多 3 秒
+    // 等待所有窗口完成落盘并关闭，最多 10 秒（渲染进程正常保存仅需数十毫秒）
     return new Promise<void>((resolve) => {
       const timeout = setTimeout(() => {
         // 超时后强制销毁未关闭的窗口

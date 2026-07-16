@@ -173,8 +173,14 @@ export const useSessionStore = defineStore('session', {
             const chat = this.getSession(sessionKey);
             if (chat) {
                 if (patch.last_content !== undefined) chat.last_content = patch.last_content;
-                if (patch.last_message_time !== undefined) chat.last_message_time = patch.last_message_time;
                 if (patch.last_sender !== undefined) chat.last_sender = patch.last_sender;
+                // last_message_time 单调不回退：点击会话重算摘要时，最后一条消息的
+                // sendTime（群通知为 op_time）可能早于收到时记录的服务端投递时间戳。
+                // 若在此回退，会话会在列表中下沉，且落库时触发 sessionStore SQL 的
+                // last_message_time 门控，导致 last_content / last_sender 无法写入。
+                if (patch.last_message_time !== undefined) {
+                    chat.last_message_time = Math.max(chat.last_message_time || 0, patch.last_message_time);
+                }
                 if (patch.max_seq !== undefined) chat.max_seq = seqMax(chat.max_seq, patch.max_seq);
                 this.sortSessionList();
                 return chat;

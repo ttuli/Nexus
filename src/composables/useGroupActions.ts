@@ -68,13 +68,14 @@ export function useGroupActions() {
      */
     const cleanupAfterLeaveGroup = (groupId: number) => {
         const sessionId = generateGroupSessionId(groupId);
-        
+
         // 如果当前正在查看这个群聊，清空消息列表
         if (sessionStore.currentSessionKey === sessionId) {
             messageStore.messages = [];
         }
-        
+
         // 清理缓存数据
+        messageStore.invalidateMessageCache(sessionId);
         groupStore.joinedGroupIds.delete(groupId);
         groupStore.groupMap.delete(groupId);
         sessionStore.removeSession(sessionId);

@@ -47,6 +47,15 @@ export const useUserStore = defineStore('user', {
       return this.userMap.get(id)
     },
 
+    /**
+     * 获取用户展示名：好友备注 > 昵称，未缓存返回空串
+     */
+    getDisplayName(id: number): string {
+      const friend = this.friendMap.get(id)
+      if (friend?.remark) return friend.remark
+      return this.userMap.get(id)?.user_name || ''
+    },
+
     // ==================== Friend ====================
     setFriend(friendInfo: ImTypes.Friend) {
       this.friendMap.set(friendInfo.friend_id, friendInfo)
