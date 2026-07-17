@@ -193,7 +193,7 @@ export const useSessionStore = defineStore('session', {
                 this.currentSessionKey = '';
                 return;
             }
-            this.addOrPinToTop(sessionkey);
+            // this.addOrPinToTop(sessionkey);
             this.currentSessionKey = sessionkey;
             this.clearUnread(sessionkey);
             void this.reportSessionRead(sessionkey);

@@ -60,5 +60,5 @@ export function storeOfflineTimestamp() {
 }
 
 export function getOfflineTimestamp() {
-    return Number(localStorage.getItem('message_timestamp_' + useUserStore().getUserID()))
+    return Number(localStorage.getItem('message_timestamp_' + useUserStore().getUserID())) || 0
 }

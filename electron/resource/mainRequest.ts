@@ -79,7 +79,7 @@ function executeRequest<T>(options: MainRequestOptions, token?: string): Promise
         if (timeout > 0) {
             timeoutId = setTimeout(() => {
                 request.abort();
-                reject(new MainRequestError('Request timeout', undefined, 408));
+                reject(new MainRequestError('请求超时', undefined, 408));
             }, timeout);
         }
 
