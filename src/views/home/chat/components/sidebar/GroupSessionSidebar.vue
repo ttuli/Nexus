@@ -343,9 +343,14 @@ const handleInviteMembers = async (data: { name: string; userIds: number[] }) =>
             group_id: targetIdVal.value,
             member_ids: data.userIds
         });
+        const successCount = res?.data?.success_count ?? 0;
         if (res && res.data && res.data.success_count !== undefined) {
-            ElMessage.success(`成功邀请 ${res.data.success_count} 位新成员`);
-            loadMembers(true);
+            // 邀请为待确认制：仅发送邀请，被邀请人接受后才入群
+            if (successCount > 0) {
+                ElMessage.success(`已向 ${successCount} 人发送入群邀请，等待对方确认`);
+            } else {
+                ElMessage.info('所选用户已在群中或已有待处理邀请');
+            }
             inviteDialogVisible.value = false;
         } else {
             ElMessage.error('邀请失败');

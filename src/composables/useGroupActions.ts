@@ -132,6 +132,30 @@ export function useGroupActions() {
     };
 
     /**
+     * 加载我收到的待处理入群邀请并写入 Store
+     */
+    const loadPendingInvites = async () => {
+        const invites = await groupService.fetchPendingInvites();
+        groupStore.setGroupInvites(invites);
+        return invites;
+    };
+
+    /**
+     * 处理入群邀请：accept=true 接受并在本地建立会话，false 拒绝。
+     */
+    const handleInvite = async (invite: ApiTypes.group.GroupInvite, accept: boolean) => {
+        const member = await groupService.handleGroupInvite(invite.id, accept);
+        groupStore.removeGroupInvite(invite.id);
+        if (accept) {
+            // 本地乐观建立群会话与群信息（服务端同时向群内成员广播 JOIN 通知）
+            groupStore.addJoinedGroup(invite.group_id);
+            sessionStore.addOrPinToTop(generateGroupSessionId(invite.group_id));
+            await loadGroupInfo(invite.group_id, true);
+        }
+        return member;
+    };
+
+    /**
      * 退出或解散群聊
      */
     const quitOrDismissGroup = async (groupId: number, isOwner: boolean) => {
@@ -158,5 +182,7 @@ export function useGroupActions() {
         loadGroupMembers,
         loadUserGroupIds,
         loadPendingApplies,
+        loadPendingInvites,
+        handleInvite,
     };
 }

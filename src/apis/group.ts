@@ -141,6 +141,32 @@ export async function inviteMembers(data: ApiTypes.group.InviteMembersReq) {
 }
 
 /**
+ * 处理入群邀请（被邀请人接受/拒绝）
+ * PUT /group/member/invite/handle
+ */
+export async function handleGroupInvite(data: ApiTypes.group.HandleGroupInviteReq) {
+    const reqData = ApiTypes.group.HandleGroupInviteReq.encode(data).finish()
+    const res = await instance<ApiResponse<ApiTypes.group.HandleGroupInviteResp>>({
+        method: 'put',
+        url: config.groupServer + '/group/member/invite/handle',
+        data: reqData
+    })
+    return decodeResponse(res.data, ApiTypes.group.HandleGroupInviteResp.decode)
+}
+
+/**
+ * 获取我收到的待处理入群邀请
+ * GET /group/member/invite/pending
+ */
+export async function getPendingInvites() {
+    const res = await instance<ApiResponse<ApiTypes.group.GetPendingInvitesResp>>({
+        method: 'get',
+        url: config.groupServer + '/group/member/invite/pending',
+    })
+    return decodeResponse(res.data, ApiTypes.group.GetPendingInvitesResp.decode)
+}
+
+/**
  * 退出群聊
  * POST /group/member/leave
  */

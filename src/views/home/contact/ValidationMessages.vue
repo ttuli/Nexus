@@ -41,7 +41,32 @@
             </div>
 
             <div class="list" v-else>
-                <div v-if="groupRequests.length === 0" class="empty">暂无群聊通知</div>
+                <div v-if="groupRequests.length === 0 && groupInvites.length === 0" class="empty">暂无群聊通知</div>
+
+                <!-- 我收到的入群邀请 -->
+                <div v-for="invite in groupInvites" :key="'invite-' + invite.id" class="req-item">
+                    <div class="avatar-box">
+                        <Avatar :uid="getGroupInfo(invite.group_id)?.id || 0" type="group"></Avatar>
+                    </div>
+                    <div class="info">
+                        <div class="top">
+                            <span class="name">
+                                {{ getGroupInfo(invite.group_id)?.name || invite.group_id }}
+                                - {{ getUserInfo(invite.inviter_id)?.user_name || invite.inviter_id }} 邀请你加入群聊
+                            </span>
+                        </div>
+                        <div class="msg" v-if="invite.invite_msg">留言: {{ invite.invite_msg }}</div>
+                    </div>
+                    <span class="date">{{ formatDate(Number(invite.create_time)) }}</span>
+                    <div class="actions">
+                        <template v-if="invite.status === INVITE_STATUS_PENDING">
+                            <CusButton type="primary" :show-icon="false" class="action-btn"
+                                @click="handleInviteAction(invite, 'accept')">同意</CusButton>
+                            <CusButton type="normal" :show-icon="false" class="action-btn"
+                                @click="handleInviteAction(invite, 'reject')">拒绝</CusButton>
+                        </template>
+                    </div>
+                </div>
 
                 <div v-for="req in groupRequests" :key="req.id" class="req-item"
                     :class="{ unread: isUnread(req, 'group') }">
@@ -85,9 +110,10 @@ import { useUserStore } from '@/src/store/user';
 import { useGroupStore } from '@/src/store/group';
 
 defineOptions({ name: 'ValidationMessages' });
-import { ImTypes, ValidationType } from '@shared/types';
+import { ImTypes, ApiTypes, ValidationType } from '@shared/types';
 import { groupService } from '@/src/services';
 import { useFriendActions } from '@/src/composables/useFriendActions';
+import { useGroupActions } from '@/src/composables/useGroupActions';
 import GlobalLoading from '@/src/components/GlobalLoading';
 import { ElMessage } from 'element-plus';
 import { currentValidationTab } from '@/src/composables/useValidationTab';
@@ -95,7 +121,11 @@ import { currentValidationTab } from '@/src/composables/useValidationTab';
 const type = ref<'friend' | 'group'>('friend');
 const userStore = useUserStore();
 const { handleFriendApply } = useFriendActions();
+const { loadPendingInvites, handleInvite } = useGroupActions();
 const groupStore = useGroupStore();
+
+// 入群邀请状态：1 待处理 2 已接受 3 已拒绝（对应后端 InviteStatus）
+const INVITE_STATUS_PENDING = 1;
 
 const enterTimeFriend = ref(0);
 const enterTimeGroup = ref(0);
@@ -127,6 +157,8 @@ watch(type, (newType) => {
     } else if (newType === 'group') {
         currentValidationTab.value = ValidationType.Group
         groupStore.updateLastReadGroupRequestTime(userStore.userID);
+        // 打开群聊通知时刷新邀请列表，确保收件箱为最新
+        void loadPendingInvites();
     }
 }, { immediate: true });
 
@@ -151,6 +183,28 @@ const friendRequests = computed(() => {
 const groupRequests = computed(() => {
     return Array.from(groupStore.groupRequestMap.values()).sort((a, b) => b.request_time - a.request_time);
 });
+
+const groupInvites = computed(() => {
+    return Array.from(groupStore.groupInviteMap.values()).sort((a, b) => Number(b.create_time) - Number(a.create_time));
+});
+
+const inviteHandling = ref<Set<number>>(new Set());
+
+const handleInviteAction = async (invite: ApiTypes.group.GroupInvite, actionType: 'accept' | 'reject') => {
+    if (inviteHandling.value.has(invite.id)) return;
+    inviteHandling.value.add(invite.id);
+    try {
+        GlobalLoading.show();
+        await handleInvite(invite, actionType === 'accept');
+        ElMessage.success(actionType === 'accept' ? '已加入群聊' : '已拒绝');
+    } catch (e) {
+        console.error('[ValidationMessages] handle invite failed', e);
+        ElMessage.error('处理失败');
+    } finally {
+        inviteHandling.value.delete(invite.id);
+        GlobalLoading.close();
+    }
+};
 
 const formatDate = (ts: number) => {
     return new Date(ts).toLocaleDateString();

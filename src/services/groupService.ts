@@ -10,7 +10,7 @@ import { ImTypes } from '@shared/types';
 
 import { ipcService } from './ipcService'
 import { ResourceType, IpcChannels, UpdateAction } from '@shared/types'
-import { updateGroup, setMemberNickname, joinGroup, createGroup, leaveGroup, handleGroupApply as apiHandleGroupApply, dismissGroup } from '@/src/apis/group'
+import { updateGroup, setMemberNickname, joinGroup, createGroup, leaveGroup, handleGroupApply as apiHandleGroupApply, dismissGroup, getPendingInvites as apiGetPendingInvites, handleGroupInvite as apiHandleGroupInvite } from '@/src/apis/group'
 import { ApiTypes } from '@shared/types'
 import cacheService from './cacheService'
 
@@ -219,6 +219,27 @@ class GroupService {
         } catch (e) {
             console.error('[GroupService] handleGroupApply failed:', e)
         }
+    }
+
+    /**
+     * 获取我收到的待处理入群邀请
+     */
+    async fetchPendingInvites(): Promise<ApiTypes.group.GroupInvite[]> {
+        try {
+            const res = await apiGetPendingInvites()
+            return res?.data?.data ?? []
+        } catch (e) {
+            console.error('[GroupService] fetchPendingInvites failed:', e)
+            return []
+        }
+    }
+
+    /**
+     * 处理入群邀请（接受/拒绝）。接受成功时返回入群成员信息，供上层更新本地会话/成员数。
+     */
+    async handleGroupInvite(inviteId: number, accept: boolean): Promise<ApiTypes.group.GroupMember | undefined> {
+        const res = await apiHandleGroupInvite({ invite_id: inviteId, accept })
+        return res?.data?.member
     }
 }
 

@@ -124,7 +124,8 @@ const displayMembers = computed(() => {
     .members-grid {
         display: grid;
         grid-template-columns: repeat(5, 1fr);
-        gap: 12px 8px;
+        gap: 4px 2px;
+        box-sizing: border-box;
 
         .member-item {
             display: flex;
@@ -132,6 +133,7 @@ const displayMembers = computed(() => {
             align-items: center;
             cursor: pointer;
             gap: 5px;
+            width: 40px;
 
             &:hover .avatar-wrapper {
                 opacity: 0.9;
@@ -139,8 +141,8 @@ const displayMembers = computed(() => {
 
             .avatar-wrapper {
                 position: relative;
-                width: 40px;
-                height: 40px;
+                width: 32px;
+                height: 32px;
                 // margin-bottom: 5px;
 
                 .avatar {
@@ -188,8 +190,8 @@ const displayMembers = computed(() => {
         .invite-btn {
             cursor: pointer;
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            width: 32px;
+            height: 32px;
             display: flex;
             align-items: center;
             justify-content: center;

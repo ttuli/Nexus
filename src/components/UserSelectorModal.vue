@@ -234,6 +234,8 @@ $border-color: #e5e6eb;
     label {
         font-size: 14px;
         color: #666;
+        user-select: none;
+        -webkit-user-select: none;
     }
 
     .input-wrapper {
@@ -260,6 +262,8 @@ $border-color: #e5e6eb;
     border-bottom: 1px solid $border-color;
     width: 100%;
     margin-top: 15px;
+    user-select: none;
+    -webkit-user-select: none;
 
     .selector-item {
         flex: 1;
@@ -319,6 +323,8 @@ $border-color: #e5e6eb;
     border-radius: 6px;
     margin-top: 15px;
     box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
 
     .loading-state,
     .empty-state {
@@ -428,5 +434,7 @@ $border-color: #e5e6eb;
 
 .dialog-btn {
     width: 80px;
+    user-select: none;
+    -webkit-user-select: none;
 }
 </style>

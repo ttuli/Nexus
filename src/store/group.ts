@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { reactive } from 'vue'
-import { ImTypes } from '@shared/types'
+import { ImTypes, ApiTypes } from '@shared/types'
 import { useUserStore } from './user'
 
 /**
@@ -13,6 +13,8 @@ export const useGroupStore = defineStore('group', {
         groupMap: reactive(new Map<number, ImTypes.GroupInfo>()),
         groupMemberMap: reactive(new Map<number, ImTypes.GroupMember[]>()),
         groupRequestMap: reactive(new Map<number, ImTypes.GroupApply>()),
+        // 我收到的入群邀请（被邀请人视角），key 为 invite id
+        groupInviteMap: reactive(new Map<number, ApiTypes.group.GroupInvite>()),
         joinedGroupIds: reactive(new Set<number>()),
 
         lastReadGroupRequestTime: 0,
@@ -120,6 +122,17 @@ export const useGroupStore = defineStore('group', {
             this.groupRequestMap.delete(requestId)
         },
 
+        // ==================== 群邀请（被邀请人视角）====================
+        setGroupInvites(invites: ApiTypes.group.GroupInvite[]) {
+            invites.forEach(invite => {
+                this.groupInviteMap.set(invite.id, invite)
+            })
+        },
+
+        removeGroupInvite(inviteId: number) {
+            this.groupInviteMap.delete(inviteId)
+        },
+
         // ==================== Joined ImTypes.GroupInfo IDs ====================
         addJoinedGroup(id: number) {
             this.joinedGroupIds.add(id)
@@ -138,6 +151,7 @@ export const useGroupStore = defineStore('group', {
             this.groupMap.clear()
             this.groupMemberMap.clear()
             this.groupRequestMap.clear()
+            this.groupInviteMap.clear()
             this.joinedGroupIds.clear()
             this.lastReadGroupRequestTime = 0
         }

@@ -14,7 +14,7 @@ export async function initRelationStore() {
     const ids = friends.map((friend: ImTypes.Friend) => friend.friend_id);
     ids.push(userStore.getUserID());
 
-    const { loadPendingApplies, loadGroupInfos, loadUserGroupIds } = useGroupActions();
+    const { loadPendingApplies, loadPendingInvites, loadGroupInfos, loadUserGroupIds } = useGroupActions();
 
     loadPendingApplies().then(grequests => {
         const reqGroupIds: number[] = [];
@@ -22,6 +22,18 @@ export async function initRelationStore() {
             reqGroupIds.push(request.group_id);
         });
         if (reqGroupIds.length) loadGroupInfos([...new Set(reqGroupIds)]);
+    });
+
+    // 加载我收到的入群邀请，预取相关群信息与邀请人信息供收件箱展示
+    loadPendingInvites().then(invites => {
+        const inviteGroupIds: number[] = [];
+        const inviterIds: number[] = [];
+        invites.forEach(invite => {
+            inviteGroupIds.push(invite.group_id);
+            inviterIds.push(invite.inviter_id);
+        });
+        if (inviteGroupIds.length) loadGroupInfos([...new Set(inviteGroupIds)]);
+        if (inviterIds.length) userService.fetchByIds([...new Set(inviterIds)]);
     });
 
     loadPendingRequests().then(requests => {

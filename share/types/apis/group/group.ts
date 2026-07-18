@@ -182,6 +182,50 @@ export interface InviteMembersResp {
   failed_ids: number[];
 }
 
+/** GroupInvite 群邀请记录（被邀请人视角） */
+export interface GroupInvite {
+  /** @gotags: json:"id" */
+  id: number;
+  /** @gotags: json:"group_id" */
+  group_id: number;
+  /** @gotags: json:"inviter_id" */
+  inviter_id: number;
+  /** @gotags: json:"invitee_id" */
+  invitee_id: number;
+  /** @gotags: json:"status" */
+  status: number;
+  /** @gotags: json:"invite_msg" */
+  invite_msg: string;
+  /** @gotags: json:"create_time" */
+  create_time: number;
+  /** @gotags: json:"update_time" */
+  update_time: number;
+}
+
+/** HandleGroupInviteReq 被邀请人接受/拒绝邀请（invitee_id 由服务端从 JWT 解析） */
+export interface HandleGroupInviteReq {
+  /** @gotags: json:"invite_id" */
+  invite_id: number;
+  /** @gotags: json:"accept" */
+  accept: boolean;
+}
+
+/** HandleGroupInviteResp */
+export interface HandleGroupInviteResp {
+  /** @gotags: json:"member,omitempty" */
+  member: GroupMember | undefined;
+}
+
+/** GetPendingInvitesReq */
+export interface GetPendingInvitesReq {
+}
+
+/** GetPendingInvitesResp */
+export interface GetPendingInvitesResp {
+  /** @gotags: json:"data" */
+  data: GroupInvite[];
+}
+
 /** RemoveMemberReq */
 export interface RemoveMemberReq {
   /** @gotags: json:"group_id" */
@@ -2002,6 +2046,452 @@ export const InviteMembersResp: MessageFns<InviteMembersResp> = {
     const message = createBaseInviteMembersResp();
     message.success_count = object.success_count ?? 0;
     message.failed_ids = object.failed_ids?.map((e) => e) || [];
+    return message;
+  },
+};
+
+function createBaseGroupInvite(): GroupInvite {
+  return {
+    id: 0,
+    group_id: 0,
+    inviter_id: 0,
+    invitee_id: 0,
+    status: 0,
+    invite_msg: "",
+    create_time: 0,
+    update_time: 0,
+  };
+}
+
+export const GroupInvite: MessageFns<GroupInvite> = {
+  encode(message: GroupInvite, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.id !== 0) {
+      writer.uint32(8).uint64(message.id);
+    }
+    if (message.group_id !== 0) {
+      writer.uint32(16).uint64(message.group_id);
+    }
+    if (message.inviter_id !== 0) {
+      writer.uint32(24).uint64(message.inviter_id);
+    }
+    if (message.invitee_id !== 0) {
+      writer.uint32(32).uint64(message.invitee_id);
+    }
+    if (message.status !== 0) {
+      writer.uint32(40).int32(message.status);
+    }
+    if (message.invite_msg !== "") {
+      writer.uint32(50).string(message.invite_msg);
+    }
+    if (message.create_time !== 0) {
+      writer.uint32(56).int64(message.create_time);
+    }
+    if (message.update_time !== 0) {
+      writer.uint32(64).int64(message.update_time);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GroupInvite {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGroupInvite();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.id = longToNumber(reader.uint64());
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.group_id = longToNumber(reader.uint64());
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.inviter_id = longToNumber(reader.uint64());
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.invitee_id = longToNumber(reader.uint64());
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.status = reader.int32();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.invite_msg = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.create_time = longToNumber(reader.int64());
+          continue;
+        }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+
+          message.update_time = longToNumber(reader.int64());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GroupInvite {
+    return {
+      id: isSet(object.id) ? globalThis.Number(object.id) : 0,
+      group_id: isSet(object.groupId)
+        ? globalThis.Number(object.groupId)
+        : isSet(object.group_id)
+        ? globalThis.Number(object.group_id)
+        : 0,
+      inviter_id: isSet(object.inviterId)
+        ? globalThis.Number(object.inviterId)
+        : isSet(object.inviter_id)
+        ? globalThis.Number(object.inviter_id)
+        : 0,
+      invitee_id: isSet(object.inviteeId)
+        ? globalThis.Number(object.inviteeId)
+        : isSet(object.invitee_id)
+        ? globalThis.Number(object.invitee_id)
+        : 0,
+      status: isSet(object.status) ? globalThis.Number(object.status) : 0,
+      invite_msg: isSet(object.inviteMsg)
+        ? globalThis.String(object.inviteMsg)
+        : isSet(object.invite_msg)
+        ? globalThis.String(object.invite_msg)
+        : "",
+      create_time: isSet(object.createTime)
+        ? globalThis.Number(object.createTime)
+        : isSet(object.create_time)
+        ? globalThis.Number(object.create_time)
+        : 0,
+      update_time: isSet(object.updateTime)
+        ? globalThis.Number(object.updateTime)
+        : isSet(object.update_time)
+        ? globalThis.Number(object.update_time)
+        : 0,
+    };
+  },
+
+  toJSON(message: GroupInvite): unknown {
+    const obj: any = {};
+    if (message.id !== 0) {
+      obj.id = Math.round(message.id);
+    }
+    if (message.group_id !== 0) {
+      obj.groupId = Math.round(message.group_id);
+    }
+    if (message.inviter_id !== 0) {
+      obj.inviterId = Math.round(message.inviter_id);
+    }
+    if (message.invitee_id !== 0) {
+      obj.inviteeId = Math.round(message.invitee_id);
+    }
+    if (message.status !== 0) {
+      obj.status = Math.round(message.status);
+    }
+    if (message.invite_msg !== "") {
+      obj.inviteMsg = message.invite_msg;
+    }
+    if (message.create_time !== 0) {
+      obj.createTime = Math.round(message.create_time);
+    }
+    if (message.update_time !== 0) {
+      obj.updateTime = Math.round(message.update_time);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GroupInvite>, I>>(base?: I): GroupInvite {
+    return GroupInvite.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GroupInvite>, I>>(object: I): GroupInvite {
+    const message = createBaseGroupInvite();
+    message.id = object.id ?? 0;
+    message.group_id = object.group_id ?? 0;
+    message.inviter_id = object.inviter_id ?? 0;
+    message.invitee_id = object.invitee_id ?? 0;
+    message.status = object.status ?? 0;
+    message.invite_msg = object.invite_msg ?? "";
+    message.create_time = object.create_time ?? 0;
+    message.update_time = object.update_time ?? 0;
+    return message;
+  },
+};
+
+function createBaseHandleGroupInviteReq(): HandleGroupInviteReq {
+  return { invite_id: 0, accept: false };
+}
+
+export const HandleGroupInviteReq: MessageFns<HandleGroupInviteReq> = {
+  encode(message: HandleGroupInviteReq, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.invite_id !== 0) {
+      writer.uint32(8).uint64(message.invite_id);
+    }
+    if (message.accept !== false) {
+      writer.uint32(16).bool(message.accept);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): HandleGroupInviteReq {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseHandleGroupInviteReq();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.invite_id = longToNumber(reader.uint64());
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.accept = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): HandleGroupInviteReq {
+    return {
+      invite_id: isSet(object.inviteId)
+        ? globalThis.Number(object.inviteId)
+        : isSet(object.invite_id)
+        ? globalThis.Number(object.invite_id)
+        : 0,
+      accept: isSet(object.accept) ? globalThis.Boolean(object.accept) : false,
+    };
+  },
+
+  toJSON(message: HandleGroupInviteReq): unknown {
+    const obj: any = {};
+    if (message.invite_id !== 0) {
+      obj.inviteId = Math.round(message.invite_id);
+    }
+    if (message.accept !== false) {
+      obj.accept = message.accept;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<HandleGroupInviteReq>, I>>(base?: I): HandleGroupInviteReq {
+    return HandleGroupInviteReq.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<HandleGroupInviteReq>, I>>(object: I): HandleGroupInviteReq {
+    const message = createBaseHandleGroupInviteReq();
+    message.invite_id = object.invite_id ?? 0;
+    message.accept = object.accept ?? false;
+    return message;
+  },
+};
+
+function createBaseHandleGroupInviteResp(): HandleGroupInviteResp {
+  return { member: undefined };
+}
+
+export const HandleGroupInviteResp: MessageFns<HandleGroupInviteResp> = {
+  encode(message: HandleGroupInviteResp, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.member !== undefined) {
+      GroupMember.encode(message.member, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): HandleGroupInviteResp {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseHandleGroupInviteResp();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.member = GroupMember.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): HandleGroupInviteResp {
+    return { member: isSet(object.member) ? GroupMember.fromJSON(object.member) : undefined };
+  },
+
+  toJSON(message: HandleGroupInviteResp): unknown {
+    const obj: any = {};
+    if (message.member !== undefined) {
+      obj.member = GroupMember.toJSON(message.member);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<HandleGroupInviteResp>, I>>(base?: I): HandleGroupInviteResp {
+    return HandleGroupInviteResp.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<HandleGroupInviteResp>, I>>(object: I): HandleGroupInviteResp {
+    const message = createBaseHandleGroupInviteResp();
+    message.member = (object.member !== undefined && object.member !== null)
+      ? GroupMember.fromPartial(object.member)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseGetPendingInvitesReq(): GetPendingInvitesReq {
+  return {};
+}
+
+export const GetPendingInvitesReq: MessageFns<GetPendingInvitesReq> = {
+  encode(_: GetPendingInvitesReq, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetPendingInvitesReq {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetPendingInvitesReq();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(_: any): GetPendingInvitesReq {
+    return {};
+  },
+
+  toJSON(_: GetPendingInvitesReq): unknown {
+    const obj: any = {};
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetPendingInvitesReq>, I>>(base?: I): GetPendingInvitesReq {
+    return GetPendingInvitesReq.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetPendingInvitesReq>, I>>(_: I): GetPendingInvitesReq {
+    const message = createBaseGetPendingInvitesReq();
+    return message;
+  },
+};
+
+function createBaseGetPendingInvitesResp(): GetPendingInvitesResp {
+  return { data: [] };
+}
+
+export const GetPendingInvitesResp: MessageFns<GetPendingInvitesResp> = {
+  encode(message: GetPendingInvitesResp, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.data) {
+      GroupInvite.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetPendingInvitesResp {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetPendingInvitesResp();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.data.push(GroupInvite.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetPendingInvitesResp {
+    return { data: globalThis.Array.isArray(object?.data) ? object.data.map((e: any) => GroupInvite.fromJSON(e)) : [] };
+  },
+
+  toJSON(message: GetPendingInvitesResp): unknown {
+    const obj: any = {};
+    if (message.data?.length) {
+      obj.data = message.data.map((e) => GroupInvite.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetPendingInvitesResp>, I>>(base?: I): GetPendingInvitesResp {
+    return GetPendingInvitesResp.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetPendingInvitesResp>, I>>(object: I): GetPendingInvitesResp {
+    const message = createBaseGetPendingInvitesResp();
+    message.data = object.data?.map((e) => GroupInvite.fromPartial(e)) || [];
     return message;
   },
 };
