@@ -26,6 +26,8 @@ export function setupTokenHandlers(): void {
         } else {
             await cacheManager.onLogin(tokenManager.getCurrentUserID());
         }
-        return { success: result.success, error: result.error };
+        // token 必须回传：渲染进程 request.ts 的 401 重试依赖它重放原请求，
+        // 缺失会被判定为刷新失败而触发登出
+        return { success: result.success, error: result.error, token: result.token };
     });
 }

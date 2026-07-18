@@ -2,13 +2,14 @@ import { toRaw } from 'vue';
 import { getHistory, getSession, getUserActiveSessions, getUserSessions } from '@/src/apis/message';
 import { ApiTypes, ImTypes, PartialExcept, ResourceType, UpdateAction } from '@shared/types';
 import { MessageStatus, MessageType } from '@shared/types/proto';
-import { IChatMessage } from '@shared/types/chatMessage';
+import { IChatMessage, ILocalSystemMessage } from '@shared/types/chatMessage';
 import { toSeq, seqPositive, seqLt, seqGt, seqCompare, seqPlusOne, seqMax } from '@shared/utils/seq';
 
 import { convertNotificationToChatMessage } from '@/src/utils/messageConverter';
 import { judgeSessionType, toServerSessionType } from '@/src/utils/sessionUtils';
 import { useSessionStore } from '@/src/store/session';
 import { useMessageStore } from '@/src/store/message';
+import { useUserStore } from '@/src/store/user';
 import { getOfflineTimestamp } from '@/src/store/init';
 import cacheService from './cacheService';
 import groupService from './groupService';
@@ -71,7 +72,10 @@ class ChatService {
         return Object.keys(out).length > 0 ? out : undefined;
     }
 
-    private mapApiMessage(message: ApiTypes.message.Message): IChatMessage | null {
+    private mapApiMessage(
+        message: ApiTypes.message.Message,
+        notifyCollector?: ImTypes.GroupNotification[],
+    ): IChatMessage | null {
         const extra = this.parseExtra(message.extra);
         const type = this.normalizeNumber(message.msg_type) as MessageType;
         const status = this.normalizeNumber(message.status) as MessageStatus;
@@ -143,7 +147,62 @@ class ChatService {
             };
         }
 
+        if (type === MessageType.GROUP_OP_NOTIFICATION) {
+            return this.mapApiNotifyMessage(message, extra, common, notifyCollector);
+        }
+
         return null;
+    }
+
+    /** hex 字符串 → 字节数组（服务端 extra 中的 protobuf 载荷以 hex 编码存储） */
+    private hexToBytes(hex: string): Uint8Array {
+        const clean = hex.length % 2 === 0 ? hex : '0' + hex;
+        const out = new Uint8Array(clean.length / 2);
+        for (let i = 0; i < out.length; i++) {
+            out[i] = parseInt(clean.slice(i * 2, i * 2 + 2), 16);
+        }
+        return out;
+    }
+
+    /**
+     * 历史接口中的通知类消息（GROUP_OP_NOTIFICATION）：服务端将原始 NotifyMessage
+     * 以 hex 编码存放在 extra.MESSAGE_EXTRA_KEY_NOTIFY_PAYLOAD，解码后复用 WS 路径
+     * 的转换器生成本地系统消息，保证离线拉取的群操作事件与在线推送展示一致。
+     * 载荷缺失或解码失败时，退化为仅展示服务端预生成 content 文本的系统消息。
+     * @param notifyCollector 传入时收集解码出的群操作通知（供离线补拉后统一应用缓存副作用）
+     */
+    private mapApiNotifyMessage(
+        message: ApiTypes.message.Message,
+        extra: Record<string, unknown>,
+        common: Omit<ILocalSystemMessage, 'type'>,
+        notifyCollector?: ImTypes.GroupNotification[],
+    ): IChatMessage | null {
+        const payloadHex = this.extraString(extra, 'MESSAGE_EXTRA_KEY_NOTIFY_PAYLOAD', 'notify_payload');
+        if (payloadHex) {
+            try {
+                const notify = ImTypes.NotifyMessage.decode(this.hexToBytes(payloadHex));
+                if (notify.group_notify) {
+                    notifyCollector?.push(notify.group_notify);
+                    return convertNotificationToChatMessage(notify.group_notify, {
+                        msgId: message.msg_id,
+                        sessionId: message.session_id,
+                        seq: toSeq(message.seq),
+                    });
+                }
+                // recall 等其他控制类 body 不作为消息行展示（撤回由原消息 status 承载）
+                return null;
+            } catch (e) {
+                console.error('[ChatService] decode notify payload failed:', e);
+            }
+        }
+
+        if (!message.content) return null;
+        const fallback: ILocalSystemMessage = {
+            ...common,
+            type: MessageType.GROUP_OP_NOTIFICATION,
+            content: message.content,
+        };
+        return fallback;
     }
 
     /**
@@ -188,7 +247,8 @@ class ChatService {
     private async fetchHistoryFromApi(
         sessionKey: string,
         pageSize: number,
-        range?: { startSeq?: string; endSeq?: string }
+        range?: { startSeq?: string; endSeq?: string },
+        notifyCollector?: ImTypes.GroupNotification[],
     ): Promise<IChatMessage[]> {
         const serverSessionId = await this.resolveServerSessionId(sessionKey);
         if (!serverSessionId) return [];
@@ -206,7 +266,7 @@ class ChatService {
         const resp = await getHistory(params);
         const list: ApiTypes.message.Message[] = Array.isArray(resp.data?.list) ? resp.data.list : [];
         let messages = list
-            .map((item: ApiTypes.message.Message) => this.mapApiMessage(item))
+            .map((item: ApiTypes.message.Message) => this.mapApiMessage(item, notifyCollector))
             .filter((item: IChatMessage | null): item is IChatMessage => item !== null);
 
         const hasStart = startSeq !== '-1';
@@ -257,11 +317,16 @@ class ChatService {
         signal?: AbortSignal,
     ): Promise<IChatMessage[]> {
         if (!sessionKey) return [];
-        // 本地无任何记录时不做全量回放，只取最新一页（更早历史由用户翻页按需拉取）
+        // 本地无任何记录时不做全量回放，只取最新一页（更早历史由用户翻页按需拉取）。
+        // 此路径不应用群操作副作用：无法判定页内事件是否早已处理过（如清库重装），
+        // 重放旧的踢人/退群事件会破坏成员缓存；成员一致性由 TTL 过期回源兜底。
         if (!seqPositive(afterSeq)) {
             return this.fetchHistoryFromApi(sessionKey, pageSize);
         }
 
+        // 严格增量补拉（seq > 本地最大值）拉到的事件必然未处理过，
+        // 收集群操作通知，拉齐后按序统一应用缓存副作用（与 WS 在线路径同一套逻辑）
+        const groupNotifications: ImTypes.GroupNotification[] = [];
         const all: IChatMessage[] = [];
         let cursor = toSeq(afterSeq);
         for (let page = 0; page < maxPages; page++) {
@@ -269,7 +334,7 @@ class ChatService {
             // startSeq 有界 + endSeq 无界 → 服务端按 seq ASC 返回
             const batch = await this.fetchHistoryFromApi(sessionKey, pageSize, {
                 startSeq: seqPlusOne(cursor),
-            });
+            }, groupNotifications);
             if (batch.length === 0) break;
             all.push(...batch);
 
@@ -278,6 +343,10 @@ class ChatService {
             cursor = lastSeq;
 
             if (batch.length < pageSize) break;
+        }
+
+        if (groupNotifications.length > 0 && !signal?.aborted) {
+            await this.applyGroupNotificationEffects(groupNotifications);
         }
         return all;
     }
@@ -445,50 +514,138 @@ class ChatService {
     ) {
         const msg = convertNotificationToChatMessage(groupNotification, envelope);
 
-        let shouldIncrementUnread = false;
-        let shouldPlaySound = false;
+        await this.applyGroupNotificationEffects([groupNotification]);
 
-        switch (groupNotification.op_type) {
-            case ImTypes.GroupOperationType.GROUP_OP_CREATE:
-                if (groupNotification.group_info) {
-                    await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP, [groupNotification.group_info as unknown as ImTypes.GroupInfo]);
-                    await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_JOINED, [groupNotification.group_info.id]);
-                }
-                shouldIncrementUnread = true;
-                shouldPlaySound = true;
-                break;
-            case ImTypes.GroupOperationType.GROUP_OP_DISMISS:
-                break;
-            case ImTypes.GroupOperationType.GROUP_OP_JOIN: {
-                const group = await groupService.fetchByIds([groupNotification.group_id]);
-                if (group.length > 0) {
-                    group[0].member_count++;
-                    await cacheService.updateItems(UpdateAction.Update, ResourceType.GROUP, [group[0]]);
-                }
-                break;
-            }
-            case ImTypes.GroupOperationType.GROUP_OP_LEAVE:
-                break;
-            case ImTypes.GroupOperationType.GROUP_OP_KICK:
-                break;
-            case ImTypes.GroupOperationType.GROUP_OP_INVITE:
-                break;
-            case ImTypes.GroupOperationType.GROUP_OP_UPDATE_INFO:
-                break;
-            case ImTypes.GroupOperationType.GROUP_OP_MUTE:
-                break;
-            case ImTypes.GroupOperationType.GROUP_OP_UNMUTE:
-                break;
-            case ImTypes.GroupOperationType.UNRECOGNIZED:
-                break;
-        }
-
+        const isCreate = groupNotification.op_type === ImTypes.GroupOperationType.GROUP_OP_CREATE;
         return {
             msg,
             sessionKey: msg.sessionKey,
-            shouldIncrementUnread,
-            shouldPlaySound,
+            shouldIncrementUnread: isCreate,
+            shouldPlaySound: isCreate,
         };
+    }
+
+    /**
+     * 将群操作通知的副作用应用到本地缓存（群信息 / 已加入群列表 / 群成员缓存）。
+     * WS 实时路径单条应用；离线补拉路径批量应用（严格递增，事件均未处理过）。
+     *
+     * 成员缓存策略：通知只携带 target_ids 不携带完整成员数据，因此
+     * 新增成员（JOIN/INVITE）与禁言状态变更走"有缓存才回源全量刷新"（主进程判定），
+     * 移除成员（LEAVE/KICK）直接按 user_id 删除缓存行；均为幂等操作。
+     * 批量应用时刷新按群去重且晚于删除执行，刷新取服务端当前真值，最终状态收敛。
+     */
+    private async applyGroupNotificationEffects(notifications: ImTypes.GroupNotification[]): Promise<void> {
+        const meId = useUserStore().getUserID();
+        const groupsToSync = new Set<number>();
+
+        for (const n of notifications) {
+            const groupId = n.group_id;
+            if (!groupId) continue;
+            const targets = n.target_ids || [];
+
+            try {
+                switch (n.op_type) {
+                    case ImTypes.GroupOperationType.GROUP_OP_CREATE:
+                        if (n.group_info) {
+                            await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP, [n.group_info as unknown as ImTypes.GroupInfo]);
+                            await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_JOINED, [groupId]);
+                        }
+                        break;
+
+                    // operator 即入群者；通知不带成员数据，刷新已有的成员缓存
+                    case ImTypes.GroupOperationType.GROUP_OP_JOIN:
+                        await this.adjustGroupMemberCount(groupId, 1, n.group_info);
+                        groupsToSync.add(groupId);
+                        break;
+
+                    case ImTypes.GroupOperationType.GROUP_OP_INVITE:
+                        if (meId && targets.includes(meId)) {
+                            await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_JOINED, [groupId]);
+                        }
+                        await this.adjustGroupMemberCount(groupId, targets.length, n.group_info);
+                        groupsToSync.add(groupId);
+                        break;
+
+                    // operator 即退群者
+                    case ImTypes.GroupOperationType.GROUP_OP_LEAVE:
+                        if (meId && n.operator_id === meId) {
+                            // 本账号在其他设备退群：本地成员视图整体失效
+                            await this.dropGroupMembership(groupId);
+                        } else if (n.operator_id) {
+                            await groupService.removeCachedMembers(groupId, [n.operator_id]);
+                            await this.adjustGroupMemberCount(groupId, -1, n.group_info);
+                        }
+                        break;
+
+                    case ImTypes.GroupOperationType.GROUP_OP_KICK:
+                        if (meId && targets.includes(meId)) {
+                            // 自己被移出群
+                            await this.dropGroupMembership(groupId);
+                        } else if (targets.length > 0) {
+                            await groupService.removeCachedMembers(groupId, targets);
+                            await this.adjustGroupMemberCount(groupId, -targets.length, n.group_info);
+                        }
+                        break;
+
+                    case ImTypes.GroupOperationType.GROUP_OP_DISMISS:
+                        // 群已解散：保留 GROUP 信息缓存供历史消息渲染群名，仅清成员与加入关系
+                        await this.dropGroupMembership(groupId);
+                        break;
+
+                    case ImTypes.GroupOperationType.GROUP_OP_UPDATE_INFO:
+                    case ImTypes.GroupOperationType.GROUP_OP_INFO_UPDATE_NAME:
+                    case ImTypes.GroupOperationType.GROUP_OP_INFO_UPDATE_NOTICE:
+                        if (n.group_info) {
+                            await cacheService.updateItems(UpdateAction.Update, ResourceType.GROUP, [n.group_info as unknown as ImTypes.GroupInfo]);
+                        }
+                        break;
+
+                    // 禁言截止时间（mute_until）通知不携带，刷新已有的成员缓存
+                    case ImTypes.GroupOperationType.GROUP_OP_MUTE:
+                    case ImTypes.GroupOperationType.GROUP_OP_UNMUTE:
+                        groupsToSync.add(groupId);
+                        break;
+                }
+            } catch (e) {
+                console.error('[ChatService] apply group notification effects failed:', n.op_type, groupId, e);
+            }
+        }
+
+        if (groupsToSync.size > 0) {
+            await Promise.all(
+                [...groupsToSync].map(groupId =>
+                    groupService.syncGroupMembers(groupId).catch(e =>
+                        console.error('[ChatService] sync group members failed:', groupId, e))
+                )
+            );
+        }
+    }
+
+    /**
+     * 自己不再是群成员（退群/被踢/群解散）时的缓存清理：
+     * 成员缓存整群删除 + 从已加入群列表移除
+     */
+    private async dropGroupMembership(groupId: number): Promise<void> {
+        await groupService.clearCachedMembers(groupId);
+        await cacheService.updateItems(UpdateAction.Delete, ResourceType.GROUP_JOINED, [groupId]);
+    }
+
+    /**
+     * 调整群信息缓存中的成员数。通知携带权威 group_info 时直接覆盖；
+     * 否则基于缓存值本地增减（缓存 miss 回源 API 时服务端计数已含本次变更，可能有轻微偏差，
+     * 以 group_info 或下次全量拉取为准）
+     */
+    private async adjustGroupMemberCount(groupId: number, delta: number, groupInfo?: unknown): Promise<void> {
+        if (groupInfo) {
+            await cacheService.updateItems(UpdateAction.Update, ResourceType.GROUP, [groupInfo as ImTypes.GroupInfo]);
+            return;
+        }
+        if (delta === 0) return;
+        const groups = await groupService.fetchByIds([groupId]);
+        if (groups.length > 0) {
+            const updated = { ...groups[0], member_count: Math.max(0, (groups[0].member_count || 0) + delta) };
+            await cacheService.updateItems(UpdateAction.Update, ResourceType.GROUP, [updated]);
+        }
     }
 
 }

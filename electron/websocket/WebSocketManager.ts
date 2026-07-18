@@ -215,40 +215,77 @@ export class WebSocketManager extends EventEmitter {
             // 不主动触发重连，close 事件随后会触发 handleDisconnect → scheduleReconnect
         });
 
-        this.ws.on('unexpected-response', async (request, response) => {
-            // 手动终止请求，防止劫持此事件后导致的底层对象内存泄漏
-            request.abort();
-
-            console.error(`[WebSocketManager] Unexpected response: ${response.statusCode}`);
-            if (response.statusCode === 401) {
-
-                if (this.isRecovering401) {
-                    console.error('[WebSocketManager] Token refresh failed or still 401 after refresh');
-                    this.closeWs();
-                    windowManager.broadcastMessage(IpcChannels.LOGOUT_REMIND, { type: LogoutType.LOGOUT });
-                    return;
-                }
-
-                console.log('[WebSocketManager] Token expired, attempting refresh...');
-                this.isRecovering401 = true;
-                const result = await tokenManager.requestTokenRefresh();
-
-                if (result.success) {
-                    console.log('[WebSocketManager] Token refresh success, reconnecting...');
-                    this.clearTimers();
-                    this.closeWs();
-                    this.setState(ConnectionState.DISCONNECTED);
-                    this.connect();
-                } else {
-                    console.error('[WebSocketManager] Token refresh failed:', result.error);
-                    this.isRecovering401 = false;
-                    this.closeWs();
-                    windowManager.broadcastMessage(IpcChannels.LOGOUT_REMIND, { type: LogoutType.LOGOUT });
-                }
-            } else {
-                this.handleDisconnect();
-            }
+        this.ws.on('unexpected-response', (request, response) => {
+            // 服务端错误响应的 HTTP 状态固定为 500，真实原因在 body 的 ApiResponse.code
+            // 中（ERR_UNAUTHORIZED=token 失效需刷新，ERR_KICKED_OUT=被踢下线），
+            // 因此必须先读完 body 再终止请求并分流处理
+            const chunks: Buffer[] = [];
+            let finalized = false;
+            const finalize = () => {
+                if (finalized) return;
+                finalized = true;
+                // 手动终止请求，防止劫持此事件后导致的底层对象内存泄漏
+                request.abort();
+                void this.handleUpgradeRejection(response.statusCode ?? 0, Buffer.concat(chunks));
+            };
+            response.on('data', (chunk: Buffer) => chunks.push(chunk));
+            response.on('end', finalize);
+            response.on('error', finalize);
         });
+    }
+
+    /**
+     * 处理 WS 升级被拒：按业务错误码分流。
+     * token 失效 → 刷新后重连（连续两次失败才判定身份失效）；被踢 → 通知下线；
+     * 其他（网关真实 5xx 等）→ 走常规断线重连。
+     */
+    private async handleUpgradeRejection(statusCode: number, body: Buffer): Promise<void> {
+        let bizCode = 0;
+        if (body.length > 0) {
+            try {
+                bizCode = ImTypes.ApiResponse.decode(new Uint8Array(body)).code;
+            } catch {
+                try {
+                    bizCode = Number(JSON.parse(body.toString('utf-8'))?.code) || 0;
+                } catch { /* body 无法解析，按未知错误走断线重连 */ }
+            }
+        }
+        console.error(`[WebSocketManager] Unexpected response: ${statusCode}, code: ${bizCode}`);
+
+        if (bizCode === ImTypes.ErrorCode.ERR_KICKED_OUT) {
+            this.closeWs();
+            windowManager.broadcastMessage(IpcChannels.LOGOUT_REMIND, { type: LogoutType.KICKED });
+            return;
+        }
+
+        if (statusCode === 401 || bizCode === ImTypes.ErrorCode.ERR_UNAUTHORIZED) {
+
+            if (this.isRecovering401) {
+                console.error('[WebSocketManager] Token refresh failed or still 401 after refresh');
+                this.closeWs();
+                windowManager.broadcastMessage(IpcChannels.LOGOUT_REMIND, { type: LogoutType.LOGOUT });
+                return;
+            }
+
+            console.log('[WebSocketManager] Token expired, attempting refresh...');
+            this.isRecovering401 = true;
+            const result = await tokenManager.requestTokenRefresh();
+
+            if (result.success) {
+                console.log('[WebSocketManager] Token refresh success, reconnecting...');
+                this.clearTimers();
+                this.closeWs();
+                this.setState(ConnectionState.DISCONNECTED);
+                this.connect();
+            } else {
+                console.error('[WebSocketManager] Token refresh failed:', result.error);
+                this.isRecovering401 = false;
+                this.closeWs();
+                windowManager.broadcastMessage(IpcChannels.LOGOUT_REMIND, { type: LogoutType.LOGOUT });
+            }
+        } else {
+            this.handleDisconnect();
+        }
     }
 
     private handleMessage(data: WebSocket.Data): void {

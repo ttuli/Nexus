@@ -12,7 +12,6 @@
 </template>
 
 <script setup lang="ts">
-import Avatar from '@/src/components/Avatar.vue';
 
 interface Props {
     id: number;
@@ -46,11 +45,11 @@ const handleClick = () => {
     align-items: center;
     padding: 12px;
     gap: 12px;
-    border-radius: 8px;
     cursor: pointer;
-    transition: all 0.2s;
     user-select: none;
     background-color: transparent;
+    width: 100%;
+    box-sizing: border-box;
 
     &:hover {
         background-color: var(--bg-hover);

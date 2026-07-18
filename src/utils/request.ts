@@ -3,12 +3,13 @@ import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/src/store/user'
 import { tokenService, windowService, LogoutType } from '@/src/services'
 import { ImTypes } from '@shared/types'
+import { APP_CONSTANTS } from '@shared/config/constants'
 
 /** 通用 HTTP 响应包装（泛型覆盖 im.proto ApiResponse 的 data 字段） */
 export type ApiResponse<T> = Omit<ImTypes.ApiResponse, 'data'> & { data: T }
 
 const instance = axios.create({
-  timeout: 10000,
+  timeout: APP_CONSTANTS.httpTimeoutMs,
   responseType: 'arraybuffer',
 })
 
@@ -151,6 +152,10 @@ instance.interceptors.response.use(
 
         if (result.success && result.token) {
           const token = result.token
+
+          // 立即写入 store：后续新请求的拦截器直接取到新 token，
+          // 不依赖主进程 AUTH 广播的异步到达
+          useUserStore().setToken(token)
 
           // 更新当前请求的 Authorization
           originalRequest.headers['Authorization'] = 'Bearer ' + token

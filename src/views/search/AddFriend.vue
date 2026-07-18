@@ -103,7 +103,6 @@ import { ImTypes } from '@shared/types';
 import SearchIcon from '@/src/assets/input/search.svg?url';
 import UserCard from './components/UserCard.vue';
 import GroupCard from './components/GroupCard.vue';
-import Avatar from '@/src/components/Avatar.vue';
 import GlobalLoading from '@/src/components/GlobalLoading';
 import { signalWindowReady } from '@/src/utils/window';
 import { userService, groupService } from '@/src/services';

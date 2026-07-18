@@ -60,15 +60,12 @@
 
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
-import { useGroupStore } from '@/src/store/group';
 import { generateGroupSessionId } from '@/src/utils/sessionUtils';
 import { useChatNavigation } from '@/src/composables/useChatNavigation';
-import { groupService } from '@/src/services';
+import { useGroup } from '@/src/composables/useGroup';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { ArrowLeft, CopyDocument, User } from '@element-plus/icons-vue';
-import Avatar from '@/src/components/Avatar.vue';
-import CusButton from '@/src/components/CusButton.vue';
 
 
 const props = defineProps<{
@@ -80,21 +77,19 @@ const emit = defineEmits<{
     (e: 'back'): void;
 }>();
 
-const groupStore = useGroupStore();
 const { navigateToChat } = useChatNavigation();
 const router = useRouter();
 
-const groupInfo = computed(() => groupStore.getGroup(props.groupId));
-const isMember = computed(() => groupStore.joinedGroupIds.has(props.groupId));
+const { groupInfo, isMember, loadInfo, copyGroupId: copyGroupIdToClipboard } = useGroup(() => props.groupId);
 
 const backgroundStyle = computed(() => {
     const url = groupInfo.value?.avatar || '';
     return url ? { backgroundImage: `url(${url})` } : { backgroundColor: '#34495e' };
 });
 
-onMounted(async () => {
+onMounted(() => {
     if (!groupInfo.value) {
-        await groupService.fetchByIds([props.groupId]);
+        loadInfo();
     }
 });
 
@@ -103,12 +98,8 @@ const handleBack = () => {
 };
 
 const copyId = async () => {
-    try {
-        await navigator.clipboard.writeText(String(props.groupId));
-        ElMessage.success('群号已复制');
-    } catch (e) {
-        ElMessage.error('复制失败');
-    }
+    const ok = await copyGroupIdToClipboard();
+    ok ? ElMessage.success('群号已复制') : ElMessage.error('复制失败');
 };
 
 const toChat = () => {

@@ -12,13 +12,16 @@
                 :chat="chat"
                 @close="$emit('close')" />
         </template>
+        <div v-else class="sidebar-loading-container">
+            <CusSpinner />
+        </div>
     </div>
 </template>
 
 <script setup lang="ts">
 import { ImTypes } from '@shared/types';
-import PrivateSessionSidebar from '@/src/views/home/chat/components/sidebar/PrivateSessionSidebar.vue';
-import GroupSessionSidebar from '@/src/views/home/chat/components/sidebar/GroupSessionSidebar.vue';
+import PrivateSessionSidebar from '@/src/views/home/chat/components/Sidebar/PrivateSessionSidebar.vue';
+import GroupSessionSidebar from '@/src/views/home/chat/components/Sidebar/GroupSessionSidebar.vue';
 
 defineProps<{
     visible: boolean;
@@ -55,6 +58,14 @@ defineEmits(['close']);
         height: 100%;
         display: flex;
         flex-direction: column;
+    }
+
+    .sidebar-loading-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        width: 100%;
     }
 }
 </style>

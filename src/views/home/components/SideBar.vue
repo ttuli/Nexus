@@ -131,14 +131,18 @@ watch(contactBadge, (newVal, oldVal) => {
 
         .badge {
             position: absolute;
-            top: -4px;
-            right: -4px;
+            // 收进按钮内侧压住图标右上角：两个图标（气泡/人形）的视觉留白不同，
+            // 外飘定位会让气泡角上的 badge 显得贴、人头旁的 badge 显得飘
+            top: -2px;
+            right: 0;
             background-color: #ff4d4f;
             color: white;
             font-size: 10px;
-            height: 22px;
-            width: 22px;
-            border-radius: 50%;
+            height: 18px;
+            min-width: 18px;
+            padding: 0 4px;
+            box-sizing: border-box;
+            border-radius: 9px;
             text-align: center;
             display: flex;
             justify-content: center;

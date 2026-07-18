@@ -36,6 +36,16 @@ export function setupGroupHandlers(): void {
         }
     });
 
+    ipcMain.handle(IpcChannels.GROUP_SYNC_MEMBERS, async (_event, groupId: number) => {
+        try {
+            const refreshed = await groupService.syncGroupMembersIfCached(groupId);
+            return { success: true, data: refreshed };
+        } catch (error) {
+            console.error('Failed to sync group members:', error);
+            return { success: false, error: (error as Error).message, data: false };
+        }
+    });
+
     ipcMain.handle(IpcChannels.GROUP_FETCH_PENDING_APPLIES, async () => {
         try {
             const data = await groupService.fetchPendingApplies();

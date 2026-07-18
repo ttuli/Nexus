@@ -65,9 +65,13 @@ const toggle = () => {
         height: 22px;
         border-radius: 11px;
         box-sizing: border-box;
-        background-color: #e4e4e4;
+        background-color: var(--border-divider, #e4e4e4);
         transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+
+        [data-theme='dark'] & {
+            background-color: var(--border-color, #334155);
+        }
     }
 
     &__action {

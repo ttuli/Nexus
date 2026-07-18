@@ -42,7 +42,6 @@ import { computed } from 'vue';
 import { ImTypes } from '@shared/types';
 import { useGroupStore } from '@/src/store/group';
 import { useUserStore } from '@/src/store/user';
-import Avatar from '@/src/components/Avatar.vue';
 
 const props = defineProps<{
     groupInfo: ImTypes.GroupInfo;

@@ -27,6 +27,9 @@ const sortedFriends = computed(() => {
 });
 
 const getFriendName = (friend: ImTypes.Friend) => {
+    if (friend.remark) {
+        return `${friend.remark}(${userStore.getUser(friend.friend_id)?.user_name})`
+    }
     return friend.remark || userStore.getUser(friend.friend_id)?.user_name || String(friend.friend_id);
 };
 
@@ -41,13 +44,11 @@ const handleSelect = (id: number) => {
 
 <style scoped>
 .friend-list {
-    padding: 8px;
-}
-
-.empty-tip {
-    padding: 24px;
-    text-align: center;
-    color: var(--text-secondary);
-    font-size: 13px;
+    .empty-tip {
+        padding: 24px;
+        text-align: center;
+        color: var(--text-secondary);
+        font-size: 13px;
+    }
 }
 </style>

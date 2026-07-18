@@ -30,8 +30,15 @@
             <TitleBar :needMax="true" class="title-bar" />
         </div>
 
-        <!-- Create ImTypes.GroupInfo Modal -->
-        <CreateGroup :visible="createGroupVisible" @close="createGroupVisible = false" @create="handleCreateGroup" />
+        <!-- Create Group Modal -->
+        <UserSelectorModal
+            :visible="createGroupVisible"
+            title="创建群聊"
+            confirm-text="创建"
+            show-group-name-input
+            @close="createGroupVisible = false"
+            @submit="handleCreateGroup"
+        />
     </div>
 </template>
 
@@ -43,8 +50,7 @@ import { ipcService, websocketService } from '@/src/services';
 import { signalWindowReady } from '@/src/utils/window';
 import { useSessionStore } from '@/src/store/session';
 import { useMessageStore } from '@/src/store/message';
-import FilterColumn from '@/src/components/FilterColumn.vue';
-import CreateGroup from '@/src/components/CreateGroup.vue';
+import UserSelectorModal from '@/src/components/UserSelectorModal.vue';
 import { createWindow } from '@/src/utils/window';
 import { useGroupActions } from '@/src/composables/useGroupActions'
 import { IpcChannels, ApiTypes, ConnectionState } from '@shared/types';
@@ -108,7 +114,7 @@ const handleCreateGroup = async (data: { name: string; userIds: number[] }) => {
         if (res?.data?.data) {
             const groupInfo = res.data.data as any;
             const sessionId = generateGroupSessionId(groupInfo.id);
-            navigateToChat(sessionId);
+            navigateToChat(sessionId, { toggle: false });
         }
         
         ElMessage.success('创建成功')
@@ -145,16 +151,32 @@ onMounted(async () => {
         }
     });
 
-    void sessionService.loadAll().then((sessions) => {
-        sessionStore.hydrateFromStorage(sessions as any);
-    });
     websocketService.connect()
 
-    await initRelationStore()
+    // 会话列表来自本地 SQLite，快且是首屏必需；同时是后续两步的前置：
+    // initRelationStore 要遍历 sessionList 收集对端 id，离线同步要比较本地 max_seq
+    try {
+        const sessions = await sessionService.loadAll();
+        sessionStore.hydrateFromStorage(sessions as any);
+    } catch (e) {
+        console.error('[Home] load local sessions failed:', e);
+    }
 
+    // 本地数据就绪即显示窗口，不阻塞在远端资源上
     signalWindowReady()
 
+    // 好友/群组等关系资源后台拉取：主进程有请求合并 + 双层缓存，
+    // 消费端全部经 store 响应式读取、组件对缺失用户有按需补拉，无需 await
+    void initRelationStore()
+
     chatService.syncOfflineActiveSessions()
+
+    // 预热联系人面板的懒加载 chunk，首次切换 tab 不再等待加载
+    void import('@/src/views/home/contact/components/ContactSidebar.vue');
+    void import('@/src/views/home/contact/ValidationMessages.vue');
+    void import('@/src/views/home/contact/FriendDetail.vue');
+    void import('@/src/views/home/contact/GroupDetail.vue');
+    void import('@/src/components/BlankPage.vue');
 });
 onUnmounted(() => {
     // 会话变更已在各自发生处即时落盘，退出无需再全量保存，此处仅做清理。

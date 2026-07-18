@@ -4,9 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node scripts/run-utf8.mjs vite",
     "build": "vue-tsc && vite build && electron-builder",
-    "preview": "vite preview",
+    "preview": "node scripts/run-utf8.mjs vite preview",
     "proto": "powershell ./gen-proto.ps1",
     "test": "jest"
   },

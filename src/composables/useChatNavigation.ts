@@ -19,10 +19,17 @@ export function useChatNavigation() {
 
     /**
      * 切换当前会话，并触发消息重新加载
+     * @param options.toggle 目标已是当前会话时是否取消选中（默认 true，
+     *   会话列表点击用；好友详情"发消息"等程序化入口传 false，保持选中直达聊天）
      */
-    function navigateToChat(sessionKey: string) {
+    function navigateToChat(sessionKey: string, options?: { toggle?: boolean }) {
         if (!router.currentRoute.value.path.includes('chat')) {
             router.push('/home/chat');
+        }
+
+        if (sessionKey === sessionStore.currentSessionKey && options?.toggle === false) {
+            // 已是当前会话且不允许反选：仅跳转路由，保持现状
+            return;
         }
 
         const oldSessionKey = sessionStore.currentSessionKey;

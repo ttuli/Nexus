@@ -37,7 +37,8 @@
     "src/**/*.vue",
     "electron",
     "share",
-    "__tests__"
+    "__tests__",
+    "components.d.ts"
   ],
   "references": [
     {

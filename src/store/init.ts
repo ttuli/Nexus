@@ -10,6 +10,7 @@ export async function initRelationStore() {
     const userStore = useUserStore()
     const { loadFriendList, loadPendingRequests } = useFriendActions();
     const friends = await loadFriendList();
+    console.log(friends)
     const ids = friends.map((friend: ImTypes.Friend) => friend.friend_id);
     ids.push(userStore.getUserID());
 

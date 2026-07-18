@@ -22,7 +22,7 @@ import { useSessionStore } from '@/src/store/session';
 import { useMessageStore } from '@/src/store/message';
 import { useChatNavigation } from '@/src/composables/useChatNavigation';
 import SessionCard from './components/SessionCard.vue';
-import ContextMenu, { type MenuOption } from '@/src/components/ContextMenu.vue';
+import type { MenuOption } from '@/src/components/ContextMenu.vue';
 import { ImTypes } from '@shared/types';
 
 import { sessionService } from '@/src/services/sessionService';

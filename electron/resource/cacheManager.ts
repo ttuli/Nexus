@@ -448,6 +448,36 @@ class CacheManager {
     }
 
     /**
+     * 删除某群的指定成员缓存（群操作通知同步用）
+     * @param userIds 为空数组时删除该群全部成员缓存
+     */
+    public async deleteGroupMembers(groupId: number, userIds: number[]): Promise<void> {
+        // 先失效内存，避免读到删除前的旧列表
+        this.caches.get(ResourceType.GROUP_MEMBER)?.delete(groupId);
+        try {
+            if (userIds.length === 0) {
+                await groupMemberStore.deleteByGroup(groupId);
+            } else {
+                await groupMemberStore.deleteMany(groupId, userIds);
+            }
+        } catch (err) {
+            console.error(`[CacheManager] Failed to delete group members of ${groupId}:`, err);
+        }
+    }
+
+    /**
+     * 以服务端全量成员列表替换某群缓存（全量拉取后调用，可清掉已退群成员的残留行）
+     */
+    public async replaceGroupMembers(groupId: number, members: any[]): Promise<void> {
+        this.caches.get(ResourceType.GROUP_MEMBER)?.delete(groupId);
+        try {
+            await groupMemberStore.replaceGroup(groupId, members, Date.now() + config.cacheExpirationMs);
+        } catch (err) {
+            console.error(`[CacheManager] Failed to replace group members of ${groupId}:`, err);
+        }
+    }
+
+    /**
      * 获取用户加入的群组 ID 列表（同步，来自内存）
      */
     public getUserGroupIds(): number[] {

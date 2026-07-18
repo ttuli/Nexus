@@ -94,7 +94,6 @@
 </template>
 
 <script setup lang="ts">
-import BoxReveal from '@/src/components/BoxReveal.vue';
 import { nextTick, onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { windowService, authService, userService, tokenService } from '@/src/services'

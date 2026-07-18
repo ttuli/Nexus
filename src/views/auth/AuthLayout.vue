@@ -59,7 +59,6 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import TitleBar from '@/src/components/TitleBar.vue';
 import AnimatedLoginForm from './components/AnimatedLoginForm.vue';
 import AnimatedRegisterForm from './components/AnimatedRegisterForm.vue';
 import { APP_CONSTANTS } from '@shared/config/constants';

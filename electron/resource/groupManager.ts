@@ -1,6 +1,6 @@
 import { cacheManager } from './cacheManager';
 import { mainGet, decodeMainResponse } from './mainRequest';
-import { ResourceType, ApiTypes, ImTypes } from '@shared/types';
+import { ResourceType, ApiTypes, ImTypes, UpdateAction } from '@shared/types';
 import { APP_CONSTANTS as config } from '@shared/config/constants';
 
 type Group = ImTypes.GroupInfo;
@@ -130,7 +130,11 @@ class GroupService {
         try {
             const membersApi = await this.doFetchGroupMembers(groupId);
             const members = membersApi.map(m => m as unknown as GroupMember);
-            await cacheManager.setItem(ResourceType.GROUP_MEMBER, { group_id: groupId, members });
+            // 全量列表用替换语义落盘，清掉已退群成员的残留行；
+            // 群至少有群主一人，空列表视为拉取失败，保留现有缓存
+            if (members.length > 0) {
+                await cacheManager.replaceGroupMembers(groupId, members);
+            }
             resolvePromise!(members);
             return members;
         } catch (error) {
@@ -139,6 +143,27 @@ class GroupService {
         } finally {
             this.pendingMembers.delete(groupId);
         }
+    }
+
+    /**
+     * 群操作通知触发的成员缓存同步：仅当本地已有该群成员缓存时才回源刷新。
+     * 从未打开过成员列表的群无需预热缓存，首次打开时自然会全量拉取。
+     * @returns 是否执行了刷新
+     */
+    public async syncGroupMembersIfCached(groupId: number): Promise<boolean> {
+        if (!groupId) return false;
+
+        const cached = await cacheManager.getItem<{ members?: GroupMember[] }>(ResourceType.GROUP_MEMBER, groupId);
+        if (!cached?.members?.length) return false;
+
+        const members = await this.fetchGroupMembers(groupId, true);
+        if (members.length > 0) {
+            // 广播 replace 语义：渲染进程用全量列表覆盖内存 store，而非合并
+            cacheManager.broadcastUpdate(ResourceType.GROUP_MEMBER, [
+                { action: UpdateAction.Update, replace: true, group_id: groupId, members },
+            ]);
+        }
+        return members.length > 0;
     }
 
     /**

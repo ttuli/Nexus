@@ -66,31 +66,51 @@ const close = () => {
 .context-menu {
     position: fixed;
     z-index: 9999;
-    background: rgba(255, 255, 255, 0.80);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-radius: 6px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
-    padding: 4px 0;
-    min-width: 100px;
-    border: 1px solid $color-border;
+    background: var(--surface-default, #ffffff);
+    border-radius: var(--radius-md, 8px);
+    box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.08));
+    // padding: 6px;
+    min-width: 120px;
+    border: 1px solid var(--border-color, #e2e8f0);
     transform: v-bind("props.align === 'right' ? 'translateX(-100%)' : 'none'");
-    // pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    
+    @supports (backdrop-filter: blur(16px)) or (-webkit-backdrop-filter: blur(16px)) {
+        background: rgba(255, 255, 255, 0.75);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        
+        [data-theme='dark'] & {
+            background: rgba(30, 41, 59, 0.75);
+        }
+    }
+    
+    [data-theme='dark'] & {
+        background: var(--bg-card, #1e293b);
+        border-color: var(--border-color, #334155);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+    }
 }
 
 .menu-item {
-    padding: 5px 8px;
-    font-size: 14px;
-    color: $color-text-primary;
+    padding: 6px 12px;
+    font-size: 13px;
+    color: var(--text-primary, #1e293b);
     cursor: pointer;
-    transition: background-color 0.2s;
+    border-radius: var(--radius-sm, 4px);
+    transition: all 0.2s ease;
     display: flex;
     align-items: center;
-    justify-content: center;
 
     &:hover {
-        background-color: $bg-hover;
-        // background-color: black;
+        background-color: var(--bg-hover, #f1f5f9);
+        color: var(--color-primary, #1890ff);
+        
+        .menu-icon {
+            color: var(--color-primary, #1890ff);
+        }
     }
 
     .menu-icon {
@@ -101,6 +121,8 @@ const close = () => {
         display: flex;
         align-items: center;
         justify-content: center;
+        color: var(--text-secondary, #64748b);
+        transition: color 0.2s ease;
 
         :deep(svg) {
             width: 100%;
@@ -110,6 +132,8 @@ const close = () => {
 
     .menu-label {
         flex: 1;
+        font-weight: 450;
+        text-align: left;
     }
 }
 

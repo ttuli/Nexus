@@ -74,7 +74,37 @@ class GroupService {
     }
 
     /**
-     * 获取待处理的群申请（通过 IPC 调用主进程） 
+     * 群操作通知触发的成员缓存同步：仅当主进程已有该群成员缓存时才回源刷新
+     * （入群/被邀请/禁言等通知不携带完整成员数据，需全量刷新才能保证一致）
+     */
+    async syncGroupMembers(groupId: number): Promise<void> {
+        const result = await ipcService.invoke<boolean>(IpcChannels.GROUP_SYNC_MEMBERS, groupId)
+        if (!result.success) {
+            console.error('[GroupService] syncGroupMembers failed:', result.error)
+        }
+    }
+
+    /**
+     * 从本地缓存中删除某群的指定成员（退群/被踢通知同步用）
+     */
+    async removeCachedMembers(groupId: number, userIds: number[]): Promise<void> {
+        if (!userIds.length) return
+        await cacheService.updateItems(UpdateAction.Delete, ResourceType.GROUP_MEMBER, [
+            { group_id: groupId, members: userIds.map(id => ({ user_id: id })) } as any,
+        ])
+    }
+
+    /**
+     * 清空某群的全部本地成员缓存（群解散/自己退出或被踢后调用）
+     */
+    async clearCachedMembers(groupId: number): Promise<void> {
+        await cacheService.updateItems(UpdateAction.Delete, ResourceType.GROUP_MEMBER, [
+            { group_id: groupId, members: [] } as any,
+        ])
+    }
+
+    /**
+     * 获取待处理的群申请（通过 IPC 调用主进程）
      */
     async fetchPendingApplies(): Promise<ImTypes.GroupApply[]> {
         const result = await ipcService.invoke<ImTypes.GroupApply[]>(IpcChannels.GROUP_FETCH_PENDING_APPLIES)
@@ -89,19 +119,20 @@ class GroupService {
     /**
      * 更新群组信息
      */
-    async updateGroup(data: { group: ImTypes.GroupInfo; name?: string; avatar?: string; join_type?: ImTypes.JoinType }): Promise<boolean> {
+    async updateGroup(data: { group: ImTypes.GroupInfo; name?: string; avatar?: string; notice?: string; join_type?: ImTypes.JoinType }): Promise<boolean> {
         try {
             await updateGroup({
                 group_id: data.group.id,
                 name: data.name || '',
                 avatar: data.avatar || '',
-                notice: data.group.notice,
+                notice: data.notice !== undefined ? data.notice : data.group.notice,
                 join_type: data.join_type ?? data.group.join_type,
             } as ApiTypes.group.UpdateGroupReq)
             if (data.name) {
                 data.group.name = data.name
             }
             if (data.avatar) data.group.avatar = data.avatar
+            if (data.notice !== undefined) data.group.notice = data.notice
             if (data.join_type !== undefined) data.group.join_type = data.join_type
 
             await cacheService.updateItems(UpdateAction.Update, ResourceType.GROUP, [{ ...data.group }])

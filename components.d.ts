@@ -16,7 +16,6 @@ declare module 'vue' {
     BlankPage: typeof import('./src/components/BlankPage.vue')['default']
     BoxReveal: typeof import('./src/components/BoxReveal.vue')['default']
     ContextMenu: typeof import('./src/components/ContextMenu.vue')['default']
-    CreateGroup: typeof import('./src/components/CreateGroup.vue')['default']
     CusButton: typeof import('./src/components/CusButton.vue')['default']
     CusCheckBox: typeof import('./src/components/CusCheckBox.vue')['default']
     CusDialog: typeof import('./src/components/CusDialog/CusDialog.vue')['default']
@@ -24,6 +23,8 @@ declare module 'vue' {
     CusInput: typeof import('./src/components/CusInput.vue')['default']
     CusInputDialog: typeof import('./src/components/CusInputDialog/CusInputDialog.vue')['default']
     CusInputHint: typeof import('./src/components/CusInputHint.vue')['default']
+    CusModal: typeof import('./src/components/CusModal.vue')['default']
+    CusSpinner: typeof import('./src/components/CusSpinner.vue')['default']
     CusSwitch: typeof import('./src/components/CusSwitch.vue')['default']
     FilterColumn: typeof import('./src/components/FilterColumn.vue')['default']
     GlobalLoading: typeof import('./src/components/GlobalLoading/GlobalLoading.vue')['default']
@@ -35,5 +36,6 @@ declare module 'vue' {
     ThemeToggle: typeof import('./src/components/ThemeToggle.vue')['default']
     TitleBar: typeof import('./src/components/TitleBar.vue')['default']
     Toggle: typeof import('./src/components/Toggle.vue')['default']
+    UserSelectorModal: typeof import('./src/components/UserSelectorModal.vue')['default']
   }
 }

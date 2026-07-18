@@ -96,9 +96,14 @@ function buildHandlerMap(
 
         [ResourceType.GROUP_MEMBER, (items) => {
             items.forEach((item: any) => {
-                const { action, group_id, members } = item
+                const { action, group_id, members, replace } = item
                 if (action !== UpdateAction.Delete) {
-                    groupStore.mergeGroupMembers(group_id, members)
+                    // replace：主进程全量刷新后的广播，整表覆盖以清掉已退群成员
+                    if (replace) {
+                        groupStore.setGroupMembers(group_id, members)
+                    } else {
+                        groupStore.mergeGroupMembers(group_id, members)
+                    }
                 } else if (members && members.length > 0) {
                     members.forEach((m: any) => groupStore.removeGroupMember(group_id, m.user_id))
                 } else {

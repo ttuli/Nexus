@@ -28,7 +28,9 @@ class TokenService {
         const result = await ipcService.invoke<{ token?: string }>(IpcChannels.RESOURCE_REQUEST_TOKEN_REFRESH)
         return {
             success: result.success,
-            error: result.error
+            error: result.error,
+            // 主进程 handler 在响应顶层携带新 token（非 data 包装），透传给调用方重放请求
+            token: (result as any).token,
         }
     }
 

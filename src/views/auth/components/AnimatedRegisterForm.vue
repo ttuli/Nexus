@@ -116,9 +116,6 @@
 import { ref, computed, watch, h, defineComponent } from 'vue'
 import { ElMessage } from 'element-plus'
 import { authService } from '@/src/services'
-import BoxReveal from '@/src/components/BoxReveal.vue'
-import CusInputHint from '@/src/components/CusInputHint.vue'
-import PasswordStrength from '@/src/components/PasswordStrength.vue'
 
 import NameIcon from '@/src/assets/input/input_name.svg?url'
 import PhoneIcon from '@/src/assets/input/input_phone.svg?url'

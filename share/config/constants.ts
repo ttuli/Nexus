@@ -63,6 +63,10 @@ export const Renderer_Config = {
 // 存放主进程和渲染进程通用的不变常量
 export const APP_CONSTANTS = {
     ApplicationName: 'Nexus',
+
+    /** HTTP 请求超时时间（毫秒），主进程 mainRequest 与渲染进程 axios 实例共用。
+     *  注：文件上传走独立 XHR 直传 OSS，不受此限制 */
+    httpTimeoutMs: 10000,
     /** Auth 服务器地址 */
     get authServer() { return getEnv('VITE_AUTH_SERVER') || 'http://localhost:8022'; },
 

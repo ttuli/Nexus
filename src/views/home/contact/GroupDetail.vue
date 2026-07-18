@@ -75,67 +75,52 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import Avatar from '@/src/components/Avatar.vue';
-import AvatarUpload from '@/src/components/AvatarUpload.vue';
-import CusButton from '@/src/components/CusButton.vue';
 import GroupMemberGrid from './components/GroupMemberGrid.vue';
 import { useUserStore } from '@/src/store/user';
 import { generateGroupSessionId } from '@/src/utils/sessionUtils';
 
 defineOptions({ name: 'GroupDetail' });
-import { useGroupStore } from '@/src/store/group';
 import { useChatNavigation } from '@/src/composables/useChatNavigation';
+import { useGroup } from '@/src/composables/useGroup';
 import { ElMessage } from 'element-plus';
 import { CopyDocument } from '@element-plus/icons-vue';
 import CusDialog from '@/src/components/CusDialog';
 import { DialogResult } from '@/src/components/CusDialog/types';
-import { useGroupActions } from '@/src/composables/useGroupActions';
-import { groupService } from '@/src/services';
 import CusInputDialog from '@/src/components/CusInputDialog';
 import { ImTypes } from '@shared/types';
 
 const route = useRoute();
 const router = useRouter();
 const userStore = useUserStore();
-const groupStore = useGroupStore();
 const { navigateToChat } = useChatNavigation();
-const { setMyGroupNickname, quitOrDismissGroup, loadGroupInfo, loadGroupMembers } = useGroupActions();
 
 const groupId = computed(() => parseInt(route.query.id as string));
-const groupInfo = computed(() => {
-    return groupStore.getGroup(groupId.value);
-})
-const members = computed(() => {
-    return groupStore.getGroupMembers(groupId.value);
-})
+const {
+    groupInfo,
+    members,
+    myNickname,
+    joinTypeLabel,
+    loadInfo,
+    loadMembers,
+    copyGroupId: copyGroupIdToClipboard,
+    updateGroup,
+    saveMyNickname,
+    quitOrDismiss,
+} = useGroup(groupId);
+
 const isMuted = ref(false);
-
-const myNickname = computed(() => {
-    const meInGroup = members.value.find(m => m.user_id === userStore.userID);
-    const meUser = userStore.getUser(userStore.userID);
-    return meInGroup?.nickname || meUser?.user_name || '我';
-});
-
-const joinTypeLabel = computed(() => {
-    if (!groupInfo.value) return '-';
-    switch (groupInfo.value.join_type) {
-        case ImTypes.JoinType.JOIN_TYPE_DIRECT: return '直接加入';
-        case ImTypes.JoinType.JOIN_TYPE_AFTER_APPROVAL: return '同意后加入';
-        default: return '同意后加入';
-    }
-});
 
 watch(groupId, (newId) => {
     if (newId) {
-        loadGroupInfo(newId, true);
-        loadGroupMembers(newId, true);
+        loadInfo(true);
+        loadMembers(true);
     }
 }, { immediate: true });
 
 const toChat = () => {
     if (!groupInfo.value) return;
     const sessionId = generateGroupSessionId(groupInfo.value.id);
-    navigateToChat(sessionId);
+    navigateToChat(sessionId, { toggle: false });
     router.push('/home/chat');
 };
 
@@ -144,13 +129,8 @@ const toggleMute = async (_val: boolean) => {
 };
 
 const copyGroupId = async () => {
-    if (!groupInfo.value?.id) return;
-    try {
-        await navigator.clipboard.writeText(groupInfo.value.id.toString());
-        ElMessage.success('群号已复制');
-    } catch (e) {
-        ElMessage.error('复制失败');
-    }
+    const ok = await copyGroupIdToClipboard();
+    ok ? ElMessage.success('群号已复制') : ElMessage.error('复制失败');
 };
 
 const editGroupName = async () => {
@@ -164,10 +144,7 @@ const editGroupName = async () => {
     });
 
     if (newName !== undefined && newName !== groupInfo.value.name) {
-        const success = await groupService.updateGroup({
-            group: groupInfo.value,
-            name: newName
-        });
+        const success = await updateGroup({ name: newName });
         if (success) {
             ElMessage.success('群名称修改成功');
         } else {
@@ -187,7 +164,7 @@ const editMyNickname = async () => {
     });
 
     if (newNickname !== undefined && newNickname !== myNickname.value) {
-        const success = await setMyGroupNickname(groupInfo.value.id, newNickname);
+        const success = await saveMyNickname(newNickname);
         if (success) {
             ElMessage.success('昵称修改成功');
         } else {
@@ -213,10 +190,7 @@ const editJoinType = async () => {
         const newJoinType = currentIsDirect
             ? ImTypes.JoinType.JOIN_TYPE_AFTER_APPROVAL
             : ImTypes.JoinType.JOIN_TYPE_DIRECT;
-        const success = await groupService.updateGroup({
-            group: groupInfo.value,
-            join_type: newJoinType,
-        });
+        const success = await updateGroup({ join_type: newJoinType });
         if (success) {
             ElMessage.success('加群方式修改成功');
         } else {
@@ -227,10 +201,7 @@ const editJoinType = async () => {
 
 const handleAvatarSuccess = async (url: string) => {
     if (!groupInfo.value) return;
-    const success = await groupService.updateGroup({
-        group: groupInfo.value,
-        avatar: url
-    });
+    const success = await updateGroup({ avatar: url });
     if (success) {
         ElMessage.success('群头像修改成功');
     } else {
@@ -252,7 +223,7 @@ const confirmQuit = async () => {
 
         } else if (res === DialogResult.Cancel) {
             // Dissolve
-            await quitOrDismissGroup(groupInfo.value.id, true);
+            await quitOrDismiss(true);
             ElMessage.success('已解散该群聊');
             router.push('/home/contact');
         }
@@ -275,7 +246,7 @@ const confirmQuit = async () => {
 const doQuit = async () => {
     if (!groupInfo.value) return;
     try {
-        await quitOrDismissGroup(groupInfo.value.id, false);
+        await quitOrDismiss(false);
         ElMessage.success('已退出该群聊');
         router.push('/home/contact');
     } catch (e) {

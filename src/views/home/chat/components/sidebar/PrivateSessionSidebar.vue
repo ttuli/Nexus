@@ -49,14 +49,16 @@
 
             <!-- Actions Section -->
             <div class="actions-section">
-                <button class="action-btn clear-btn" @click="clearChatData">
-                    <el-icon class="action-icon"><Delete /></el-icon>
-                    <span>清除聊天记录</span>
-                </button>
-                <button class="action-btn delete-btn" @click="confirmDeleteFriend">
-                    <el-icon class="action-icon"><Delete /></el-icon>
-                    <span>删除好友</span>
-                </button>
+                <div class="detail-group action-group">
+                    <div class="detail-item center-item text-primary" @click="clearChatData">
+                        清除聊天记录
+                    </div>
+                </div>
+                <div class="detail-group action-group mt-15">
+                    <div class="detail-item center-item text-danger" @click="confirmDeleteFriend">
+                        删除好友
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -64,7 +66,6 @@
 
 <script setup lang="ts">
 import { computed, ref, nextTick } from 'vue';
-import CusSwitch from '@/src/components/CusSwitch.vue';
 import CusDialog from '@/src/components/CusDialog';
 import { DialogResult } from '@/src/components/CusDialog/types';
 import { useUserStore } from '@/src/store/user';
@@ -75,7 +76,6 @@ import { ElMessage } from 'element-plus';
 import { extractTargetIdFromSessionId } from '@/src/utils/sessionUtils';
 import { Edit, Delete } from '@element-plus/icons-vue';
 import { friendService, messageService } from '@/src/services';
-import Avatar from '@/src/components/Avatar.vue';
 
 const props = defineProps<{
     chat: ImTypes.Session;
@@ -286,10 +286,6 @@ const confirmDeleteFriend = async () => {
             padding: 4px 14px;
             transition: border-color 0.2s, box-shadow 0.2s;
 
-            &:hover {
-                border-color: rgba(var(--color-primary), 0.2);
-            }
-
             .detail-item {
                 display: flex;
                 justify-content: space-between;
@@ -356,56 +352,36 @@ const confirmDeleteFriend = async () => {
         }
 
         .actions-section {
-            margin-top: auto;
-            padding-top: 30px;
+            margin-top: 30px;
             display: flex;
             flex-direction: column;
-            gap: 12px;
 
-            .action-btn {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 8px;
-                width: 100%;
-                height: 38px;
-                border-radius: var(--radius-md);
-                border: none;
-                font-size: 14px;
-                font-weight: 500;
+            .action-group {
+                padding: 0;
                 cursor: pointer;
-                transition: all 0.2s ease;
+                transition: background-color 0.2s;
 
-                .action-icon {
-                    font-size: 16px;
+                &:hover {
+                    background-color: var(--bg-hover, #f3f4f6);
                 }
 
-                &.clear-btn {
-                    background-color: var(--color-primary-bg);
+                .center-item {
+                    justify-content: center;
+                    border-bottom: none;
+                    font-size: 15px;
+                    font-weight: 500;
+                    padding: 12px 10px;
+                    display: flex;
+                    width: 100%;
+                    box-sizing: border-box;
+                }
+
+                .text-primary {
                     color: var(--color-primary);
-
-                    &:hover {
-                        background-color: var(--bg-hover);
-                        transform: translateY(-1px);
-                    }
-
-                    &:active {
-                        transform: translateY(0);
-                    }
                 }
 
-                &.delete-btn {
-                    background-color: rgba(255, 77, 79, 0.08);
-                    color: $color-error;
-
-                    &:hover {
-                        background-color: rgba(255, 77, 79, 0.16);
-                        transform: translateY(-1px);
-                    }
-
-                    &:active {
-                        transform: translateY(0);
-                    }
+                .text-danger {
+                    color: var(--color-error, #ff4d4f);
                 }
             }
         }

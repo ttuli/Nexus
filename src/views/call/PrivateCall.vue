@@ -34,7 +34,6 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, onUnmounted } from 'vue';
-import Avatar from '@/src/components/Avatar.vue';
 import CallControlBar from './components/CallControlBar.vue';
 import { useCallState } from './composables/useCallState';
 import { useUserStore } from '@/src/store/user';

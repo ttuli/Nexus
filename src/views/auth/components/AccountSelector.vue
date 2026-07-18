@@ -42,7 +42,6 @@ import { ClickOutside as vClickOutside } from 'element-plus';
 import DefaultAvatar from '@/src/assets/avatar/default.png?url';
 // We might need an arrow icon
 import ArrowDownIcon from '@/src/assets/input/arrow_down.svg?url';
-import CusInput from '@/src/components/CusInput.vue';
 
 export interface AccountOption {
     account: string;

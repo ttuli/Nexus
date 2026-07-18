@@ -77,8 +77,6 @@ import { useChatNavigation } from '@/src/composables/useChatNavigation';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { ArrowLeft, CopyDocument } from '@element-plus/icons-vue';
-import Avatar from '@/src/components/Avatar.vue';
-import CusButton from '@/src/components/CusButton.vue';
 import MaleIcon from '@/src/assets/gender/male.svg';
 import FemaleIcon from '@/src/assets/gender/female.svg';
 import { ImTypes } from '@shared/types';

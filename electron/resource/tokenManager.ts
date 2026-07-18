@@ -108,7 +108,8 @@ class TokenManager {
 
             // 通知所有等待的调用方
             this.pendingRefreshPromises.forEach((p) => p.resolve(result));
-            cacheManager.broadcastUpdate(ResourceType.AUTH, [result.token]);
+            // 广播形状须为 { token }：渲染进程 resourceListener 按 item.token 读取并写入 userStore
+            cacheManager.broadcastUpdate(ResourceType.AUTH, [{ token: result.token }]);
             return { success: result.success, token: result.token };
         } catch (error) {
             const errorResult = { success: false, error: (error as Error).message };

@@ -2,6 +2,7 @@ import { net, ClientRequest } from 'electron';
 import { tokenManager } from './tokenManager';
 import { ImTypes, IpcChannels, LogoutType } from '@shared/types';
 import { windowManager } from '@/electron/windows/windowManager';
+import { APP_CONSTANTS } from '@shared/config/constants';
 
 /**
  * 主进程 HTTP 请求配置
@@ -12,7 +13,7 @@ export interface MainRequestOptions {
     data?: any;                          // POST 请求体
     headers?: Record<string, string>;    // 额外请求头
     skipAuth?: boolean;                  // 跳过自动添加 Authorization
-    timeout?: number;                    // 超时时间（毫秒），默认 30000
+    timeout?: number;                    // 超时时间（毫秒），默认 APP_CONSTANTS.httpTimeoutMs（与渲染进程统一）
 }
 
 /**
@@ -67,7 +68,7 @@ export function decodeMainResponse<T>(
  */
 function executeRequest<T>(options: MainRequestOptions, token?: string): Promise<ApiResponse<T>> {
     return new Promise((resolve, reject) => {
-        const { method, url, data, headers, timeout = 30000 } = options;
+        const { method, url, data, headers, timeout = APP_CONSTANTS.httpTimeoutMs } = options;
 
         const request: ClientRequest = net.request({
             method,

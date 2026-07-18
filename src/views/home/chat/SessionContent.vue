@@ -327,9 +327,23 @@ const getMessageClass = (msg: IChatMessage) => {
 
 const scrollToBottom = () => {
     nextTick(() => {
-        if (virtualizer.value && messages.value.length > 0) {
-            virtualizer.value.scrollToIndex(messages.value.length - 1, { align: 'end' });
-        }
+        if (!virtualizer.value || messages.value.length === 0) return;
+        const scrollOnce = () => {
+            if (virtualizer.value && messages.value.length > 0) {
+                virtualizer.value.scrollToIndex(messages.value.length - 1, { align: 'end' });
+            }
+        };
+        scrollOnce();
+        // 首次加载时条目高度只有 estimateSize 估算值，scrollToIndex 按估算偏移
+        // 定位会落在偏上的位置；渲染后 measureElement 回填实测高度，这里连续
+        // 几帧重试直到收敛到真正的底部（已测量过的会话第一帧即命中，重试无感）
+        let attempts = 0;
+        const settle = () => {
+            if (attempts++ >= 3) return;
+            scrollOnce();
+            requestAnimationFrame(settle);
+        };
+        requestAnimationFrame(settle);
     });
 };
 
@@ -451,9 +465,23 @@ const startResize = (e: MouseEvent) => {
         padding: 0 20px;
         padding-top: 35px;
         padding-right: 0;
-        background: rgba(255, 255, 255, 0.8);
-        backdrop-filter: blur(10px);
-        border-bottom: 1px solid #ececec;
+        background: var(--surface-default, #ffffff);
+        border-bottom: 1px solid var(--border-divider, #ececec);
+
+        @supports (backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px)) {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+
+            [data-theme='dark'] & {
+                background: rgba(30, 41, 59, 0.8);
+            }
+        }
+
+        [data-theme='dark'] & {
+            background: var(--surface-default, #1e293b);
+            border-bottom: 1px solid var(--border-color, #334155);
+        }
 
         .title {
             font-size: 18px;
@@ -586,7 +614,7 @@ const startResize = (e: MouseEvent) => {
         .input-area {
             -webkit-app-region: no-drag;
             border-top: 1px solid $color-border;
-            background-color: white;
+            background-color: var(--surface-default, #ffffff);
             flex-shrink: 0;
         }
     }

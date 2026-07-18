@@ -2,7 +2,7 @@
     <div class="chat-card" :class="{ active: props.isActive, 'is-top': props.data.is_top === 2 }"
         @click.capture.stop="handleClick">
         <div class="avatar-container">
-            <Avatar :uid="getTargetId(props.data)"
+            <Avatar :uid="getTargetId(props.data) || 0"
                 :type="props.data.type === ImTypes.SessionType.SESSION_TYPE_GROUP ? 'group' : 'user'" />
         </div>
         <div class="content-container">

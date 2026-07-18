@@ -55,7 +55,6 @@
 <script setup lang="ts">
 import { ref, nextTick } from 'vue';
 import EmojiPicker from './EmojiPicker.vue';
-import CusButton from '@/src/components/CusButton.vue';
 import { ElMessage } from 'element-plus';
 
 import emoji from '@/src/assets/chat/emoji.svg?url';
@@ -187,7 +186,7 @@ defineExpose({
     height: 100%;
     display: flex;
     flex-direction: column;
-    background-color: white;
+    background-color: var(--surface-default, #ffffff);
     padding: 8px 16px;
     box-sizing: border-box;
     position: relative;
@@ -200,6 +199,10 @@ defineExpose({
         bottom: 0;
         background-color: rgba(255, 255, 255, 0.8);
         z-index: 10;
+        
+        [data-theme='dark'] & {
+            background-color: rgba(30, 41, 59, 0.8);
+        }
         display: flex;
         align-items: center;
         justify-content: center;
@@ -226,8 +229,9 @@ defineExpose({
             height: 20px;
             cursor: pointer;
             opacity: 0.7;
-            transition: opacity 0.2s, transform 0.2s;
+            transition: opacity 0.2s, transform 0.2s, filter 0.2s;
             -webkit-user-drag: none;
+            filter: var(--icon-filter, none);
 
             &:hover {
                 opacity: 1;

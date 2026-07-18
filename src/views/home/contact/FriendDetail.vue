@@ -24,7 +24,7 @@
                                     <CopyDocument />
                                 </el-icon>
                             </div>
-                            <div class="nickname" v-if="friendInfo?.remark">昵称: {{ userInfo.user_name }}</div>
+                            <div class="nickname" v-if="friendInfo?.remark">昵称: {{ friendInfo?.remark }}</div>
                         </div>
                     </div>
                 </div>
@@ -104,7 +104,7 @@ const userId = computed(() => Number(route.query.uid));
 const userInfo = computed(() => userStore.getUser(userId.value));
 const friendInfo = computed(() => userStore.getFriend(userId.value));
 const displayName = computed(() => {
-    return friendInfo.value?.remark || userInfo.value?.user_name || '用户';
+    return userInfo.value?.user_name || '用户';
 });
 
 const title = computed(() => displayName.value);
@@ -172,8 +172,8 @@ const toggleStarred = async (val: boolean) => {
             ...friendInfo.value,
             starred: val
         });
-        
-        ElMessage.success(val ? '已设为星标好友' : '已取消星标好友');
+        if (val)
+            ElMessage.success('设置成功');
     } catch (err: any) {
         ElMessage.error(err.message || '操作失败');
     } finally {
@@ -251,7 +251,7 @@ const addFriend = async () => {
 
 const sendMsg = () => {
     const sessionId = generateSessionId(userId.value, userStore.getUserID());
-    navigateToChat(sessionId);
+    navigateToChat(sessionId, { toggle: false });
     router.push('/home/chat');
 };
 
@@ -279,6 +279,7 @@ watch(userId, (newId) => {
         flex-direction: column;
         overflow: hidden;
         width: 100%;
+        -webkit-app-region: no-drag;
 
         .content-scroll {
             flex: 1;

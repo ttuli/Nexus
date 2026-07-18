@@ -21,7 +21,6 @@
 
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
-import Avatar from '@/src/components/Avatar.vue';
 import { ImTypes } from '@shared/types';
 import { useUserStore } from '@/src/store/user';
 import { userService } from '@/src/services';

@@ -105,8 +105,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useUserStore } from '@/src/store/user';
-import CusDropdown from '@/src/components/CusDropdown.vue';
-import Toggle from '@/src/components/Toggle.vue';
 
 const genderOptions = [
     { value: ImTypes.Gender.GENDER_MALE, label: '男', icon: '👨' },

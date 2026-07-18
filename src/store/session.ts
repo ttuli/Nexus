@@ -193,7 +193,11 @@ export const useSessionStore = defineStore('session', {
                 this.currentSessionKey = '';
                 return;
             }
-            // this.addOrPinToTop(sessionkey);
+            // 仅在会话不存在时创建并加入列表（好友详情"发消息"等入口可能指向
+            // 尚无会话的对象）；已存在的会话保持原位，点击不重排列表顺序
+            if (!this.getSession(sessionkey)) {
+                this.addOrPinToTop(sessionkey);
+            }
             this.currentSessionKey = sessionkey;
             this.clearUnread(sessionkey);
             void this.reportSessionRead(sessionkey);

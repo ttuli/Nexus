@@ -49,9 +49,15 @@ export function setupResourceHandlers(): void {
                 const deletePromises: Promise<void>[] = [];
                 for (const item of items) {
                     if (type === ResourceType.GROUP_JOINED) {
-                        if (Array.isArray(item)) {
-                            item.forEach(id => deletePromises.push(cacheManager.deleteItem(type, id)));
-                        }
+                        // 兼容平铺 ID 与数组两种传参；广播侧 data 为平铺 ID 列表
+                        const ids = Array.isArray(item) ? item : [item];
+                        ids.forEach(id => deletePromises.push(cacheManager.deleteItem(type, id)));
+                    } else if (type === ResourceType.GROUP_MEMBER) {
+                        // wrapper 携带 members 时按成员删除，否则删除整群成员缓存
+                        const memberIds: number[] = Array.isArray(item.members)
+                            ? item.members.map((m: any) => m?.user_id).filter((id: any) => typeof id === 'number')
+                            : [];
+                        deletePromises.push(cacheManager.deleteGroupMembers(item.group_id, memberIds));
                     } else {
                         const idKey = type === ResourceType.USER ? 'user_id' :
                             type === ResourceType.GROUP ? 'id' :

@@ -68,6 +68,7 @@ export const IpcChannels = {
     GROUP_FETCH_BY_NAME: 'group:fetch-by-name',
     GROUP_FETCH_MEMBERS: 'group:fetch-members',
     GROUP_FETCH_PENDING_APPLIES: 'group:fetch-pending-applies',
+    GROUP_SYNC_MEMBERS: 'group:sync-members',
 
     // WebSocket 相关
     WS_CONNECT: 'ws:connect',
