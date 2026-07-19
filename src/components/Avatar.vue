@@ -1,5 +1,5 @@
 <template>
-    <div class="avatar" @click="handleClick">
+    <div class="avatar" :class="{ 'disabled-click': props.disableClick }" @click="handleClick">
         <img :src="getSrc()" alt="加载失败" class="avatar-img" @error="handleError">
     </div>
 </template>
@@ -15,12 +15,14 @@ const props = withDefaults(
         radius?: string
         width?: string
         height?: string
+        disableClick?: boolean
     }>(),
     {
         type: 'user',
         radius: '50%',
         width: '40px',
         height: '40px',
+        disableClick: false
     }
 )
 
@@ -62,6 +64,7 @@ const handleError = (e: Event) => {
 }
 
 const handleClick = () => {
+    if (props.disableClick) return;
     if (!source.value) return;
     openPhotoViewer([source.value], 0);
 }
@@ -88,6 +91,10 @@ onMounted(async () => {
     height: v-bind(height);
     cursor: pointer;
 
+    &.disabled-click {
+        cursor: default;
+    }
+
     .avatar-img {
         width: 100%;
         height: 100%;
@@ -96,10 +103,10 @@ onMounted(async () => {
         -webkit-app-region: no-drag;
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
         transition: transform 0.1s;
+    }
 
-        &:hover {
-            transform: scale(1.05);
-        }
+    &:not(.disabled-click) .avatar-img:hover {
+        transform: scale(1.05);
     }
 }
 </style>

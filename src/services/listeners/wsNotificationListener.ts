@@ -156,9 +156,9 @@ export function initWsNotificationListener(): void {
                         } else if (result.shouldIncrementUnread && !isFromSelf) {
                             sessionStore.incrementUnread(sessionKey)
                         }
-                        // 免打扰会话静默（is_disturb: 2=开启）
+                        // 正在查看的会话与免打扰会话静默（is_disturb: 2=开启）
                         const isDisturbMuted = sessionStore.getSession(sessionKey)?.is_disturb === 2
-                        if (result.shouldPlaySound && !isFromSelf && !isDisturbMuted) {
+                        if (result.shouldPlaySound && !isFromSelf && !isCurrentSession && !isDisturbMuted) {
                             windowService.playNotificationSound()
                         }
                         // 持久化通知消息与会话摘要到本地 SQLite

@@ -31,30 +31,31 @@
                 </div>
 
                 <!-- Members Grid -->
-                <GroupMemberGrid :members="members" :total-count="groupInfo.member_count" :max-width="680" />
+                <GroupMemberGrid :members="members" 
+                :total-count="groupInfo.member_count" 
+                :max-width="600" />
+
+                <!-- Group Announcement -->
+                <div class="notice-card">
+                    <div class="notice-header">
+                        <span class="title">群公告</span>
+                    </div>
+                    <div class="notice-content">
+                        {{ groupInfo.notice || '暂无公告' }}
+                    </div>
+                </div>
 
 
                 <!-- Settings List -->
                 <div class="section-card settings">
                     <!-- ImTypes.GroupInfo Settings -->
-                    <div class="setting-item" @click="editGroupName">
+                    <div class="setting-item static">
                         <span class="label">群聊名称</span>
                         <span class="value">{{ groupInfo.name }}</span>
-                        <span class="arrow">›</span>
                     </div>
-                    <div class="setting-item" @click="editMyNickname">
+                    <div class="setting-item static">
                         <span class="label">我在本群的昵称</span>
                         <span class="value">{{ myNickname }}</span>
-                        <span class="arrow">›</span>
-                    </div>
-                    <div class="setting-item" @click="editJoinType" v-if="groupInfo.owner_id === userStore.userID">
-                        <span class="label">加群方式</span>
-                        <span class="value">{{ joinTypeLabel }}</span>
-                        <span class="arrow">›</span>
-                    </div>
-                    <div class="setting-item">
-                        <span class="label">消息免打扰</span>
-                        <el-switch v-model="isMuted" @change="toggleMute" />
                     </div>
                 </div>
             </div>
@@ -73,7 +74,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import GroupMemberGrid from './components/GroupMemberGrid.vue';
 import { useUserStore } from '@/src/store/user';
@@ -86,8 +87,6 @@ import { ElMessage } from 'element-plus';
 import { CopyDocument } from '@element-plus/icons-vue';
 import CusDialog from '@/src/components/CusDialog';
 import { DialogResult } from '@/src/components/CusDialog/types';
-import CusInputDialog from '@/src/components/CusInputDialog';
-import { ImTypes } from '@shared/types';
 
 const route = useRoute();
 const router = useRouter();
@@ -99,16 +98,12 @@ const {
     groupInfo,
     members,
     myNickname,
-    joinTypeLabel,
     loadInfo,
     loadMembers,
     copyGroupId: copyGroupIdToClipboard,
     updateGroup,
-    saveMyNickname,
     quitOrDismiss,
 } = useGroup(groupId);
-
-const isMuted = ref(false);
 
 watch(groupId, (newId) => {
     if (newId) {
@@ -124,79 +119,9 @@ const toChat = () => {
     router.push('/home/chat');
 };
 
-const toggleMute = async (_val: boolean) => {
-    // Call mute API
-};
-
 const copyGroupId = async () => {
     const ok = await copyGroupIdToClipboard();
     ok ? ElMessage.success('群号已复制') : ElMessage.error('复制失败');
-};
-
-const editGroupName = async () => {
-    if (!groupInfo.value) return;
-
-    const newName = await CusInputDialog.open({
-        title: '修改群名称',
-        placeholder: '请输入群名称',
-        initialValue: groupInfo.value.name,
-        maxLength: 30
-    });
-
-    if (newName !== undefined && newName !== groupInfo.value.name) {
-        const success = await updateGroup({ name: newName });
-        if (success) {
-            ElMessage.success('群名称修改成功');
-        } else {
-            ElMessage.error('修改失败');
-        }
-    }
-};
-
-const editMyNickname = async () => {
-    if (!groupInfo.value) return;
-
-    const newNickname = await CusInputDialog.open({
-        title: '修改我的群昵称',
-        placeholder: '请输入群昵称',
-        initialValue: myNickname.value,
-        maxLength: 20
-    });
-
-    if (newNickname !== undefined && newNickname !== myNickname.value) {
-        const success = await saveMyNickname(newNickname);
-        if (success) {
-            ElMessage.success('昵称修改成功');
-        } else {
-            ElMessage.error('修改失败');
-        }
-    }
-};
-
-const editJoinType = async () => {
-    if (!groupInfo.value) return;
-    if (groupInfo.value.owner_id !== userStore.userID) return;
-
-    const currentIsDirect = groupInfo.value.join_type === ImTypes.JoinType.JOIN_TYPE_DIRECT;
-    const res = await CusDialog.open({
-        title: '修改加群方式',
-        content: `当前加群方式为「${joinTypeLabel.value}」，是否切换为「${currentIsDirect ? '同意后加入' : '直接加入'}」？`,
-        showCancel: true,
-        confirmText: '切换',
-        cancelText: '取消',
-    });
-
-    if (res === DialogResult.Confirm) {
-        const newJoinType = currentIsDirect
-            ? ImTypes.JoinType.JOIN_TYPE_AFTER_APPROVAL
-            : ImTypes.JoinType.JOIN_TYPE_DIRECT;
-        const success = await updateGroup({ join_type: newJoinType });
-        if (success) {
-            ElMessage.success('加群方式修改成功');
-        } else {
-            ElMessage.error('修改失败');
-        }
-    }
 };
 
 const handleAvatarSuccess = async (url: string) => {
@@ -363,6 +288,35 @@ const doQuit = async () => {
                 }
             }
 
+            .notice-card {
+                background: $bg-card;
+                border-radius: 12px;
+                padding: 20px;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+                -webkit-app-region: no-drag;
+
+                .notice-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 12px;
+
+                    .title {
+                        font-size: 16px;
+                        font-weight: 600;
+                        color: $color-text-primary;
+                    }
+                }
+
+                .notice-content {
+                    font-size: 14px;
+                    color: $color-text-secondary;
+                    line-height: 1.6;
+                    white-space: pre-wrap;
+                    word-break: break-all;
+                }
+            }
+
             .settings {
                 background: $bg-card;
                 border-radius: 12px;
@@ -386,6 +340,13 @@ const doQuit = async () => {
 
                     &:hover {
                         background-color: var(--bg-hover);
+                    }
+
+                    &.static {
+                        cursor: default;
+                        &:hover {
+                            background-color: transparent;
+                        }
                     }
 
                     .label {

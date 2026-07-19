@@ -54,9 +54,9 @@ export function initWsMessageListener(): void {
         }
         useMessageStore().upsertMessage(chatMsg);
 
-        // 2. 副作用：提示音 + 任务栏闪烁（仅对方消息，免打扰会话静默，is_disturb: 2=开启）
+        // 2. 副作用：提示音 + 任务栏闪烁（仅对方消息；正在查看的会话与免打扰会话静默，is_disturb: 2=开启）
         const isDisturbMuted = sessionStore.getSession(chatMsg.sessionKey as string)?.is_disturb === 2;
-        if (!isFromSelf && !isDisturbMuted) {
+        if (!isFromSelf && !isCurrentSession && !isDisturbMuted) {
             windowService.playNotificationSound();
         }
 

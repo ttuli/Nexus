@@ -6,7 +6,9 @@
         <div class="member-grid">
             <div v-for="member in previewMembers" :key="member.user_id" class="member-item">
                 <div class="avatar-wrapper">
-                    <Avatar :uid="member.user_id" type="user" :width="'48px'" :height="'48px'" :radius="'50%'" />
+                    <Avatar :uid="member.user_id" type="user" :width="'48px'" 
+                    :height="'48px'" :radius="'50%'"
+                    :disable-click="true" />
                     <span v-if="member.role === ImTypes.GroupRole.GROUP_ROLE_OWNER" class="role-badge owner">群主</span>
                     <span v-else-if="member.role === ImTypes.GroupRole.GROUP_ROLE_ADMIN" class="role-badge admin">管理员</span>
                 </div>
@@ -97,25 +99,9 @@ onMounted(() => {
 
 .member-grid {
     display: flex;
-    overflow-x: auto;
+    overflow: hidden;
     gap: 16px;
     -webkit-app-region: no-drag;
-    padding-bottom: 8px; // Space for scrollbar
-
-    // Custom Scrollbar
-    &::-webkit-scrollbar {
-        height: 6px;
-        background-color: transparent;
-    }
-
-    &::-webkit-scrollbar-thumb {
-        background-color: transparent;
-        border-radius: 4px;
-    }
-
-    &:hover::-webkit-scrollbar-thumb {
-        background-color: var(--border-divider);
-    }
 
     .member-item {
         display: flex;
