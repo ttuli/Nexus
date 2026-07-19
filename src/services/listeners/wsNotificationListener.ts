@@ -7,7 +7,7 @@
 import { ipcService } from '../ipcService'
 import { useUserStore } from '@/src/store/user'
 import { useGroupStore } from '@/src/store/group'
-import { ResourceType, IpcChannels, UpdateAction, ImTypes, ValidationType } from '@shared/types'
+import { ResourceType, IpcChannels, UpdateAction, ImTypes, ValidationType, ILocalSystemMessage } from '@shared/types'
 import { currentValidationTab } from '@/src/composables/useValidationTab'
 import { useRouter } from 'vue-router'
 import { useSessionStore } from '@/src/store/session'
@@ -16,6 +16,7 @@ import { toRaw } from 'vue'
 import { seqMax } from '@shared/utils/seq'
 import { generateGroupSessionId, generateSessionId } from '@/src/utils/sessionUtils';
 import { convertApplySrc2FriendSrc, formatSystemMessage } from '@/src/utils/messageConverter';
+import { createGroupNameResolver } from '@/src/utils/displayName';
 import windowService from '../windowService'
 import cacheService from '../cacheService'
 import groupService from '../groupService'
@@ -85,6 +86,23 @@ export function initWsNotificationListener(): void {
                 break
             }
 
+            // 入群邀请：经路由表定向投递给被邀请者本人（social.GroupInvite 载荷）。
+            // 写入邀请收件箱即可，此时用户尚未入群，不建立群会话。
+            case ImTypes.MessageType.GROUP_INVITE: {
+                const invite = ImTypes.GroupInvite.decode(data.payload.payload)
+                groupStore.setGroupInvites([invite])
+                // 预取群与邀请人信息供收件箱展示（缓存优先，未命中由主进程回源）
+                const prefetch: Promise<unknown>[] = []
+                if (invite.group_id) prefetch.push(groupService.fetchByIds([invite.group_id]))
+                if (invite.inviter_id && !userStore.getUser(invite.inviter_id)) prefetch.push(userService.fetchByIds([invite.inviter_id]))
+                await Promise.allSettled(prefetch)
+                // 正在查看群聊通知标签时即时标记已读，避免红点闪烁
+                if (router.currentRoute.value.path.includes('contacts') && await windowService.isFocused() && currentValidationTab.value === ValidationType.Group) {
+                    groupStore.updateLastReadGroupRequestTime(userStore.userID)
+                }
+                break
+            }
+
             // 统一通知消息：群操作、消息撤回等控制类事件的统一载体。
             // 载荷为 NotifyMessage 信封（base + oneof body），落库分配的
             // msg_id / session_id / seq 在 WSMessage 顶层回填。
@@ -128,7 +146,7 @@ export function initWsNotificationListener(): void {
                             update_time: data.payload.timestamp || result.msg.sendTime,
                             // 系统消息无发送者语义，置 0 避免会话预览携带 "xx:" 前缀
                             last_sender: 0,
-                            last_content: formatSystemMessage(result.msg, userStore.getUserID(), (id) => userStore.getDisplayName(id)),
+                            last_content: formatSystemMessage(result.msg as ILocalSystemMessage, userStore.getUserID(), createGroupNameResolver(notify.group_notify.group_id)),
                         })
                         messageStore.upsertMessage(result.msg)
 
@@ -138,7 +156,9 @@ export function initWsNotificationListener(): void {
                         } else if (result.shouldIncrementUnread && !isFromSelf) {
                             sessionStore.incrementUnread(sessionKey)
                         }
-                        if (result.shouldPlaySound && !isFromSelf) {
+                        // 免打扰会话静默（is_disturb: 2=开启）
+                        const isDisturbMuted = sessionStore.getSession(sessionKey)?.is_disturb === 2
+                        if (result.shouldPlaySound && !isFromSelf && !isDisturbMuted) {
                             windowService.playNotificationSound()
                         }
                         // 持久化通知消息与会话摘要到本地 SQLite

@@ -29,7 +29,7 @@ interface Props {
     showClose?: boolean;
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
     title: '',
     width: '400px',
     showClose: true

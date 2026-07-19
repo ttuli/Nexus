@@ -10,7 +10,7 @@ import { ImTypes } from '@shared/types';
 
 import { ipcService } from './ipcService'
 import { ResourceType, IpcChannels, UpdateAction } from '@shared/types'
-import { updateGroup, setMemberNickname, joinGroup, createGroup, leaveGroup, handleGroupApply as apiHandleGroupApply, dismissGroup, getPendingInvites as apiGetPendingInvites, handleGroupInvite as apiHandleGroupInvite } from '@/src/apis/group'
+import { updateGroup, setMemberNickname, joinGroup, createGroup, leaveGroup, handleGroupApply as apiHandleGroupApply, dismissGroup, getPendingInvites as apiGetPendingInvites, handleGroupInvite as apiHandleGroupInvite, inviteMembers as apiInviteMembers, removeMember as apiRemoveMember } from '@/src/apis/group'
 import { ApiTypes } from '@shared/types'
 import cacheService from './cacheService'
 
@@ -222,12 +222,45 @@ class GroupService {
     }
 
     /**
+     * 邀请用户入群（待确认制）。返回成功发送的邀请数，响应异常返回 null。
+     */
+    async inviteMembers(groupId: number, userIds: number[]): Promise<number | null> {
+        const res = await apiInviteMembers({ group_id: groupId, member_ids: userIds })
+        return res?.data?.success_count ?? null
+    }
+
+    /**
+     * 批量移除群成员，返回是否成功
+     */
+    async removeMembers(groupId: number, userIds: number[]): Promise<boolean> {
+        const res = await apiRemoveMember({
+            group_id: groupId,
+            user_id: 0,
+            operator_id: 0, // 服务端以 JWT 身份为准，此字段仅为满足请求结构
+            user_ids: userIds,
+        } as ApiTypes.group.RemoveMemberReq)
+        return res?.code === 200
+    }
+
+    /**
      * 获取我收到的待处理入群邀请
      */
-    async fetchPendingInvites(): Promise<ApiTypes.group.GroupInvite[]> {
+    async fetchPendingInvites(): Promise<ImTypes.GroupInvite[]> {
         try {
             const res = await apiGetPendingInvites()
-            return res?.data?.data ?? []
+            const list = res?.data?.data ?? []
+            // HTTP DTO(ApiTypes.group.GroupInvite)→ 领域类型(ImTypes.GroupInvite/social)，字段同构，
+            // 仅 status 由 int32 收敛为 InviteStatus 枚举
+            return list.map(iv => ({
+                id: iv.id,
+                group_id: iv.group_id,
+                inviter_id: iv.inviter_id,
+                invitee_id: iv.invitee_id,
+                status: iv.status as ImTypes.InviteStatus,
+                invite_msg: iv.invite_msg,
+                create_time: iv.create_time,
+                update_time: iv.update_time,
+            }))
         } catch (e) {
             console.error('[GroupService] fetchPendingInvites failed:', e)
             return []

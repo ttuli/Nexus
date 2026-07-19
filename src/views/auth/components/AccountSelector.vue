@@ -171,10 +171,9 @@ const selectOption = (item: AccountOption) => {
     border-radius: 12px;
     box-shadow: var(--shadow-md);
     z-index: 3000;
-    max-height: 110px;
+    max-height: 115px;
     overflow-y: auto;
-    -webkit-app-region: no-drag;
-    padding: 8px 0;
+    -webkit-app-region: no-drag;;
 
     .dropdown-item {
         display: flex;

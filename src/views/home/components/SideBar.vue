@@ -4,11 +4,11 @@
             <Avatar :uid="userStore.getUserID()" @click.capture.stop="openUserInfo" />
             <div class="nav-item" :class="{ active: activeRoute.includes('chat') }" @click="navigateTo('chat')">
                 <img :src="ChatIcon" alt="Chat" />
-                <div v-if="chatBadge > 0" class="badge">{{ chatBadge > 99 ? '99+' : chatBadge }}</div>
+                <Badge :value="chatBadge" class="badge" />
             </div>
             <div class="nav-item" :class="{ active: activeRoute.includes('contacts') }" @click="navigateTo('contacts')">
                 <img :src="ContactsIcon" alt="Contacts" />
-                <div v-if="contactBadge > 0" class="badge">{{ contactBadge > 99 ? '99+' : contactBadge }}</div>
+                <Badge :value="contactBadge" class="badge" />
             </div>
 
         </div>
@@ -131,22 +131,8 @@ watch(contactBadge, (newVal, oldVal) => {
 
         .badge {
             position: absolute;
-            // 收进按钮内侧压住图标右上角：两个图标（气泡/人形）的视觉留白不同，
-            // 外飘定位会让气泡角上的 badge 显得贴、人头旁的 badge 显得飘
-            top: -2px;
-            right: 0;
-            background-color: #ff4d4f;
-            color: white;
-            font-size: 10px;
-            height: 18px;
-            min-width: 18px;
-            padding: 0 4px;
-            box-sizing: border-box;
-            border-radius: 9px;
-            text-align: center;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            top: -4px;
+            right: -4px;
         }
     }
 

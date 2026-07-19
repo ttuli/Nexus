@@ -49,16 +49,12 @@
 
             <!-- Actions Section -->
             <div class="actions-section">
-                <div class="detail-group action-group">
-                    <div class="detail-item center-item text-primary" @click="clearChatData">
-                        清除聊天记录
-                    </div>
-                </div>
-                <div class="detail-group action-group mt-15">
-                    <div class="detail-item center-item text-danger" @click="confirmDeleteFriend">
-                        删除好友
-                    </div>
-                </div>
+                <CusButton class="action-btn" type="normal" :show-icon="false" @click="clearChatData">
+                    清除聊天记录
+                </CusButton>
+                <CusButton class="action-btn danger mt-15" type="normal" :show-icon="false" @click="confirmDeleteFriend">
+                    删除好友
+                </CusButton>
             </div>
         </div>
     </div>
@@ -74,7 +70,7 @@ import { useMessageStore } from '@/src/store/message';
 import { ImTypes } from '@shared/types';
 import { ElMessage } from 'element-plus';
 import { extractTargetIdFromSessionId } from '@/src/utils/sessionUtils';
-import { Edit, Delete } from '@element-plus/icons-vue';
+import { Edit } from '@element-plus/icons-vue';
 import { friendService, messageService } from '@/src/services';
 
 const props = defineProps<{
@@ -356,32 +352,16 @@ const confirmDeleteFriend = async () => {
             display: flex;
             flex-direction: column;
 
-            .action-group {
-                padding: 0;
-                cursor: pointer;
-                transition: background-color 0.2s;
+            .action-btn {
+                &.danger {
+                    color: $color-error;
+                    border-color: rgba($color-error, 0.2);
 
-                &:hover {
-                    background-color: var(--bg-hover, #f3f4f6);
-                }
-
-                .center-item {
-                    justify-content: center;
-                    border-bottom: none;
-                    font-size: 15px;
-                    font-weight: 500;
-                    padding: 12px 10px;
-                    display: flex;
-                    width: 100%;
-                    box-sizing: border-box;
-                }
-
-                .text-primary {
-                    color: var(--color-primary);
-                }
-
-                .text-danger {
-                    color: var(--color-error, #ff4d4f);
+                    &:hover:not(:disabled) {
+                        color: #ffffff;
+                        border-color: $color-error;
+                        background-color: $color-error;
+                    }
                 }
             }
         }

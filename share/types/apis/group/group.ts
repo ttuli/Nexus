@@ -234,6 +234,8 @@ export interface RemoveMemberReq {
   user_id: number;
   /** @gotags: json:"operator_id" */
   operator_id: number;
+  /** @gotags: json:"user_ids" */
+  user_ids: number[];
 }
 
 /** LeaveGroupReq */
@@ -2497,7 +2499,7 @@ export const GetPendingInvitesResp: MessageFns<GetPendingInvitesResp> = {
 };
 
 function createBaseRemoveMemberReq(): RemoveMemberReq {
-  return { group_id: 0, user_id: 0, operator_id: 0 };
+  return { group_id: 0, user_id: 0, operator_id: 0, user_ids: [] };
 }
 
 export const RemoveMemberReq: MessageFns<RemoveMemberReq> = {
@@ -2511,6 +2513,11 @@ export const RemoveMemberReq: MessageFns<RemoveMemberReq> = {
     if (message.operator_id !== 0) {
       writer.uint32(24).uint64(message.operator_id);
     }
+    writer.uint32(34).fork();
+    for (const v of message.user_ids) {
+      writer.uint64(v);
+    }
+    writer.join();
     return writer;
   },
 
@@ -2545,6 +2552,24 @@ export const RemoveMemberReq: MessageFns<RemoveMemberReq> = {
           message.operator_id = longToNumber(reader.uint64());
           continue;
         }
+        case 4: {
+          if (tag === 32) {
+            message.user_ids.push(longToNumber(reader.uint64()));
+
+            continue;
+          }
+
+          if (tag === 34) {
+            const end2 = reader.uint32() + reader.pos;
+            while (reader.pos < end2) {
+              message.user_ids.push(longToNumber(reader.uint64()));
+            }
+
+            continue;
+          }
+
+          break;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -2571,6 +2596,11 @@ export const RemoveMemberReq: MessageFns<RemoveMemberReq> = {
         : isSet(object.operator_id)
         ? globalThis.Number(object.operator_id)
         : 0,
+      user_ids: globalThis.Array.isArray(object?.userIds)
+        ? object.userIds.map((e: any) => globalThis.Number(e))
+        : globalThis.Array.isArray(object?.user_ids)
+        ? object.user_ids.map((e: any) => globalThis.Number(e))
+        : [],
     };
   },
 
@@ -2585,6 +2615,9 @@ export const RemoveMemberReq: MessageFns<RemoveMemberReq> = {
     if (message.operator_id !== 0) {
       obj.operatorId = Math.round(message.operator_id);
     }
+    if (message.user_ids?.length) {
+      obj.userIds = message.user_ids.map((e) => Math.round(e));
+    }
     return obj;
   },
 
@@ -2596,6 +2629,7 @@ export const RemoveMemberReq: MessageFns<RemoveMemberReq> = {
     message.group_id = object.group_id ?? 0;
     message.user_id = object.user_id ?? 0;
     message.operator_id = object.operator_id ?? 0;
+    message.user_ids = object.user_ids?.map((e) => e) || [];
     return message;
   },
 };

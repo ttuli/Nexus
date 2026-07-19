@@ -10,6 +10,7 @@ import { ILocalSystemMessage } from '@shared/types/chatMessage';
 import { useUserStore } from '@/src/store/user';
 import { userService } from '@/src/services';
 import { formatSystemMessage } from '@/src/utils/messageConverter';
+import { createGroupNameResolver } from '@/src/utils/displayName';
 
 interface Props {
     message: ILocalSystemMessage;
@@ -43,12 +44,8 @@ onMounted(async () => {
 });
 
 const systemMessageText = computed(() => {
-    const getUserName = (userId: number) => {
-        const friend = userStore.getFriend(userId);
-        if (friend?.remark) return friend.remark;
-        const user = userStore.getUser(userId);
-        return user?.user_name || '';
-    };
+    // 群昵称 > 好友备注 > 用户名
+    const getUserName = createGroupNameResolver(props.message.groupId);
     return formatSystemMessage(props.message, userStore.userID, getUserName);
 });
 </script>

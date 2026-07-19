@@ -246,6 +246,13 @@ export function formatSystemMessage(
     const firstTargetName = targetIds.length > 0 ? resolveUserName(targetIds[0]) : '';
     const targetsDesc = targetIds.length > 1 ? `${firstTargetName}等` : firstTargetName;
 
+    // 目标列表文案：最多列出 maxNames 个名字，超出部分以"等N名成员"收尾
+    const formatTargetNames = (maxNames = 3) => {
+        const names = targetIds.slice(0, maxNames).map(resolveUserName).filter(Boolean);
+        const listed = names.join('、');
+        return targetIds.length > maxNames ? `${listed} 等${targetIds.length}名成员` : listed;
+    };
+
     switch (opType) {
         case ImTypes.GroupOperationType.GROUP_OP_CREATE:
             return `${operatorName} 邀请 ${targetsDesc} 加入了群聊`;
@@ -256,7 +263,7 @@ export function formatSystemMessage(
         case ImTypes.GroupOperationType.GROUP_OP_LEAVE:
             return `${operatorName} 退出了群聊`;
         case ImTypes.GroupOperationType.GROUP_OP_KICK:
-            return `${targetsDesc} 被 ${operatorName} 移出群聊${reason ? ' (' + reason + ')' : ''}`;
+            return `${operatorName} 移除了 ${formatTargetNames()}${reason ? ' (' + reason + ')' : ''}`;
         case ImTypes.GroupOperationType.GROUP_OP_INVITE:
             return `${operatorName} 邀请 ${targetsDesc} 加入了群聊`;
         case ImTypes.GroupOperationType.GROUP_OP_UPDATE_INFO:

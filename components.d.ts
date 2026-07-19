@@ -13,6 +13,7 @@ declare module 'vue' {
   export interface GlobalComponents {
     Avatar: typeof import('./src/components/Avatar.vue')['default']
     AvatarUpload: typeof import('./src/components/AvatarUpload.vue')['default']
+    Badge: typeof import('./src/components/Badge.vue')['default']
     BlankPage: typeof import('./src/components/BlankPage.vue')['default']
     BoxReveal: typeof import('./src/components/BoxReveal.vue')['default']
     ContextMenu: typeof import('./src/components/ContextMenu.vue')['default']

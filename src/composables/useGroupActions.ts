@@ -143,7 +143,7 @@ export function useGroupActions() {
     /**
      * 处理入群邀请：accept=true 接受并在本地建立会话，false 拒绝。
      */
-    const handleInvite = async (invite: ApiTypes.group.GroupInvite, accept: boolean) => {
+    const handleInvite = async (invite: ImTypes.GroupInvite, accept: boolean) => {
         const member = await groupService.handleGroupInvite(invite.id, accept);
         groupStore.removeGroupInvite(invite.id);
         if (accept) {
@@ -153,6 +153,24 @@ export function useGroupActions() {
             await loadGroupInfo(invite.group_id, true);
         }
         return member;
+    };
+
+    /**
+     * 邀请用户入群（待确认制）。返回成功发送的邀请数，响应异常返回 null。
+     */
+    const inviteGroupMembers = (groupId: number, userIds: number[]) =>
+        groupService.inviteMembers(groupId, userIds);
+
+    /**
+     * 批量移除群成员。API 成功后先行摘除本地成员缓存（幂等，成员列表即时刷新）；
+     * 移除系统消息、人数与本地 DB 的权威同步由服务端 KICK 通知回执驱动。
+     */
+    const removeGroupMembers = async (groupId: number, userIds: number[]): Promise<boolean> => {
+        const ok = await groupService.removeMembers(groupId, userIds);
+        if (ok) {
+            await groupService.removeCachedMembers(groupId, userIds);
+        }
+        return ok;
     };
 
     /**
@@ -184,5 +202,7 @@ export function useGroupActions() {
         loadPendingApplies,
         loadPendingInvites,
         handleInvite,
+        inviteGroupMembers,
+        removeGroupMembers,
     };
 }

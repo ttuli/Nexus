@@ -558,12 +558,10 @@ class ChatService {
                         groupsToSync.add(groupId);
                         break;
 
+                    // GROUP_OP_INVITE 不在此处理：邀请为待确认制，经 UserNotifier 定向
+                    // 投递给被邀请者、由 wsNotificationListener 刷新邀请收件箱，不落群会话；
+                    // 被邀请者接受后才发 GROUP_OP_JOIN 走上面的入群逻辑。
                     case ImTypes.GroupOperationType.GROUP_OP_INVITE:
-                        if (meId && targets.includes(meId)) {
-                            await cacheService.updateItems(UpdateAction.Add, ResourceType.GROUP_JOINED, [groupId]);
-                        }
-                        await this.adjustGroupMemberCount(groupId, targets.length, n.group_info);
-                        groupsToSync.add(groupId);
                         break;
 
                     // operator 即退群者

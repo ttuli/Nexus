@@ -90,6 +90,7 @@ defineExpose({
   display: flex;
   align-items: stretch;
   gap: 8px;
+  user-select: none;
 
   // 聊天软件风格外观
   width: 100%;

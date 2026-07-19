@@ -61,39 +61,14 @@
         </div>
 
         <!-- Add Friend Dialog -->
-        <el-dialog v-model="showAddDialog" :title="searchType === 'user' ? '申请添加好友' : '申请加入群聊'" width="320px" align-center>
-            <div class="dialog-content" v-if="targetUser || targetGroup">
-                <div class="user-preview">
-                    <Avatar :uid="targetUser ? targetUser.user_id : (targetGroup?.id || 0)"
-                        :type="targetUser ? 'user' : 'group'" class="avatar" />
-                    <div class="info">
-                        <div class="name">{{ (targetUser ? targetUser.user_name : targetGroup?.name) || '未命名' }}</div>
-                        <div class="sub-info">
-                            <span>{{ targetUser ? '账号: ' + targetUser.user_id : '群号: ' + targetGroup?.id }}</span>
-                            <template v-if="targetUser">
-                                <img :src="maleIcon" class="gender-icon"
-                                    v-if="targetUser.gender === ImTypes.Gender.GENDER_MALE" />
-                                <img :src="femaleIcon" class="gender-icon"
-                                    v-else-if="targetUser.gender === ImTypes.Gender.GENDER_FEMALE" />
-                            </template>
-                        </div>
-                        <div class="sub-info" v-if="targetUser && targetUser.phone">手机: {{ targetUser.phone }}</div>
-                    </div>
-                </div>
-
-                <div class="input-form">
-                    <div class="label">验证信息</div>
-                    <textarea v-model="applyMessage" class="msg-input" placeholder="请输入验证信息，例如：我是..."
-                        rows="3"></textarea>
-                </div>
-            </div>
-            <template #footer>
-                <div class="dialog-footer">
-                    <el-button @click="showAddDialog = false">取消</el-button>
-                    <el-button type="primary" @click="confirmAddFriend">确认</el-button>
-                </div>
-            </template>
-        </el-dialog>
+        <ApplyRelationModal
+            :visible="showAddDialog"
+            :search-type="searchType"
+            :target-user="targetUser"
+            :target-group="targetGroup"
+            @close="showAddDialog = false"
+            @submit="confirmAddFriend"
+        />
     </div>
 </template>
 
@@ -103,14 +78,12 @@ import { ImTypes } from '@shared/types';
 import SearchIcon from '@/src/assets/input/search.svg?url';
 import UserCard from './components/UserCard.vue';
 import GroupCard from './components/GroupCard.vue';
+import ApplyRelationModal from './components/ApplyRelationModal.vue';
 import GlobalLoading from '@/src/components/GlobalLoading';
 import { signalWindowReady } from '@/src/utils/window';
 import { userService, groupService } from '@/src/services';
 import { useFriendActions } from '@/src/composables/useFriendActions';
 import { ElMessage } from 'element-plus';
-
-import maleIcon from '@/src/assets/gender/male.svg?url';
-import femaleIcon from '@/src/assets/gender/female.svg?url';
 
 // Search State
 const searchType = ref<'user' | 'group'>('user');
@@ -133,7 +106,6 @@ const lastSearchType = ref('');
 const showAddDialog = ref(false);
 const targetUser = ref<ImTypes.UserInfo | null>(null);
 const targetGroup = ref<ImTypes.GroupInfo | null>(null);
-const applyMessage = ref('');
 
 // Reset state when switching types
 watch(searchType, () => {
@@ -234,19 +206,17 @@ const onLoad = async () => {
 const handleAddUser = async (user: ImTypes.UserInfo) => {
     targetUser.value = user;
     targetGroup.value = null;
-    applyMessage.value = ''; // Reset for now
     showAddDialog.value = true;
 };
 
 const handleAddGroup = (group: ImTypes.GroupInfo) => {
     targetGroup.value = group;
     targetUser.value = null;
-    applyMessage.value = '';
     showAddDialog.value = true;
 };
 
 // Confirm Add
-const confirmAddFriend = async () => {
+const confirmAddFriend = async (message: string) => {
     if (!targetUser.value && !targetGroup.value) return;
 
     try {
@@ -254,7 +224,7 @@ const confirmAddFriend = async () => {
         if (targetUser.value) {
             let res = await applyFriend({
                 to_user_id: targetUser.value.user_id,
-                apply_msg: applyMessage.value,
+                apply_msg: message,
                 source: searchMode.value
             });
             if (res.data.friend) {
@@ -265,7 +235,7 @@ const confirmAddFriend = async () => {
         } else if (targetGroup.value) {
             await groupService.joinGroup({
                 group_id: targetGroup.value.id,
-                message: applyMessage.value
+                message: message
             });
             
             ElMessage.success("发送入群申请成功");
@@ -450,93 +420,5 @@ onMounted(async () => {
     }
 }
 
-// Dialog Styles
-.dialog-content {
-    padding: $spacing-lg $spacing-xl;
-    display: flex;
-    flex-direction: column;
-    gap: $spacing-lg;
 
-    .user-preview {
-        display: flex;
-        align-items: center; // Align top for better info stacking? Center is fine.
-        gap: $spacing-md;
-        background-color: $bg-body;
-        padding: $spacing-md;
-        border-radius: 8px;
-
-        .avatar {
-            width: 56px;
-            height: 56px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 1px solid $color-border;
-        }
-
-        .info {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-            flex: 1;
-            min-width: 0;
-
-            .name {
-                font-size: $font-size-lg;
-                font-weight: bold;
-                color: $color-text-primary;
-                @include ellipsis;
-            }
-
-            .sub-info {
-                font-size: $font-size-sm;
-                color: $color-text-secondary;
-                display: flex;
-                align-items: center;
-                gap: 6px;
-
-                .gender-icon {
-                    width: 14px;
-                    height: 14px;
-                    object-fit: contain;
-                }
-            }
-        }
-    }
-
-    .input-form {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-
-        .label {
-            font-size: $font-size-sm;
-            color: $color-text-primary;
-            font-weight: $font-weight-medium;
-        }
-
-        .msg-input {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid $color-border;
-            border-radius: 8px;
-            font-size: $font-size-sm;
-            color: $color-text-primary;
-            background-color: $bg-body;
-            resize: none;
-            outline: none;
-            transition: all $transition-base;
-            font-family: inherit;
-            box-sizing: border-box;
-
-            &:focus {
-                border-color: $color-primary;
-                box-shadow: 0 0 0 2px rgba($color-primary, 0.1);
-            }
-
-            &::placeholder {
-                color: $color-text-placeholder;
-            }
-        }
-    }
-}
 </style>

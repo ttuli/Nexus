@@ -4,101 +4,112 @@
 
         <div class="content">
             <div class="tabs">
-                <div class="tab" :class="{ active: type === 'friend' }" @click="type = 'friend'">好友申请</div>
-                <div class="tab" :class="{ active: type === 'group' }" @click="type = 'group'">群聊通知</div>
+                <div class="tab" :class="{ active: type === 'friend' }" @click="type = 'friend'">
+                    好友申请
+                    <Badge :value="userStore.unreadPendingRequestCount" />
+                </div>
+                <div class="tab" :class="{ active: type === 'group' }" @click="type = 'group'">
+                    群聊通知
+                    <Badge :value="groupStore.unreadPendingRequestCount" />
+                </div>
             </div>
 
-            <div class="list" v-if="type === 'friend'">
-                <div v-if="friendRequests.length === 0" class="empty">暂无好友申请</div>
+            <Transition name="fade-slide" mode="out-in">
+                <div class="list" v-if="type === 'friend'" key="friend">
+                    <div v-if="friendRequests.length === 0" class="empty">暂无好友申请</div>
 
-                <div v-for="req in friendRequests" :key="req.id" class="req-item"
-                    :class="{ unread: isUnread(req, 'friend') }">
-                    <div class="avatar-box">
-                        <Avatar :uid="getRelatedUserInfo(req)?.user_id || 0"></Avatar>
-                    </div>
-                    <div class="info">
-                        <div class="top">
-                            <span class="name">{{ getRelatedUserInfo(req)?.user_name || (req.from_user_id ===
-                                userStore.userID ? req.to_user_id : req.from_user_id) }}</span>
+                    <div v-for="req in friendRequests" :key="req.id" class="req-item"
+                        :class="{ unread: isUnread(req, 'friend') }">
+                        <div class="avatar-box">
+                            <Avatar :uid="getRelatedUserInfo(req)?.user_id || 0"></Avatar>
                         </div>
-                        <div class="msg">留言: {{ req.apply_msg }}</div>
-                    </div>
-                    <span class="date">{{ formatDate(req.request_time) }}</span>
-                    <div class="actions">
+                        <div class="info">
+                            <div class="top">
+                                <span class="name">{{ getRelatedUserInfo(req)?.user_name || (req.from_user_id ===
+                                    userStore.userID ? req.to_user_id : req.from_user_id) }}</span>
+                            </div>
+                            <div class="msg">留言: {{ req.apply_msg }}</div>
+                        </div>
+                        <span class="date">{{ formatDate(req.request_time) }}</span>
+                        <div class="actions">
 
-                        <template v-if="req.status === ImTypes.ApplyStatus.APPLY_STATUS_PENDING">
-                            <template v-if="req.from_user_id !== userStore.userID">
-                                <CusButton type="primary" :show-icon="false" class="action-btn"
-                                    @click="handleApply(req, 'accept')">同意</CusButton>
-                                <CusButton type="normal" :show-icon="false" class="action-btn"
-                                    @click="handleApply(req, 'reject')">拒绝</CusButton>
+                            <template v-if="req.status === ImTypes.ApplyStatus.APPLY_STATUS_PENDING">
+                                <template v-if="req.from_user_id !== userStore.userID">
+                                    <CusButton type="primary" :show-icon="false" class="action-btn"
+                                        @click="handleApply(req, 'accept')">同意</CusButton>
+                                    <CusButton type="normal" :show-icon="false" class="action-btn"
+                                        @click="handleApply(req, 'reject')">拒绝</CusButton>
+                                </template>
+                                <span v-else class="status-text">等待验证</span>
                             </template>
-                            <span v-else class="status-text">等待验证</span>
-                        </template>
-                        <span v-else class="status-text">{{ getStatusText(req.status) }}</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="list" v-else>
-                <div v-if="groupRequests.length === 0 && groupInvites.length === 0" class="empty">暂无群聊通知</div>
-
-                <!-- 我收到的入群邀请 -->
-                <div v-for="invite in groupInvites" :key="'invite-' + invite.id" class="req-item">
-                    <div class="avatar-box">
-                        <Avatar :uid="getGroupInfo(invite.group_id)?.id || 0" type="group"></Avatar>
-                    </div>
-                    <div class="info">
-                        <div class="top">
-                            <span class="name">
-                                {{ getGroupInfo(invite.group_id)?.name || invite.group_id }}
-                                - {{ getUserInfo(invite.inviter_id)?.user_name || invite.inviter_id }} 邀请你加入群聊
-                            </span>
+                            <span v-else class="status-text">{{ getStatusText(req.status) }}</span>
                         </div>
-                        <div class="msg" v-if="invite.invite_msg">留言: {{ invite.invite_msg }}</div>
-                    </div>
-                    <span class="date">{{ formatDate(Number(invite.create_time)) }}</span>
-                    <div class="actions">
-                        <template v-if="invite.status === INVITE_STATUS_PENDING">
-                            <CusButton type="primary" :show-icon="false" class="action-btn"
-                                @click="handleInviteAction(invite, 'accept')">同意</CusButton>
-                            <CusButton type="normal" :show-icon="false" class="action-btn"
-                                @click="handleInviteAction(invite, 'reject')">拒绝</CusButton>
-                        </template>
                     </div>
                 </div>
 
-                <div v-for="req in groupRequests" :key="req.id" class="req-item"
-                    :class="{ unread: isUnread(req, 'group') }">
-                    <div class="avatar-box">
-                        <Avatar :uid="getGroupInfo(req.group_id)?.id || 0" type="group"></Avatar>
-                    </div>
-                    <div class="info">
-                        <div class="top">
-                            <span class="name">
-                                {{ getGroupInfo(req.group_id)?.name || req.group_id }}
-                                {{ req.sender_id === userStore.userID ? '' : '- 用户 ' +
-                                    (getUserInfo(req.sender_id)?.user_name ||
-                                        req.sender_id) + ' 申请加群' }}
-                            </span>
+                <div class="list" v-else key="group">
+                    <div v-if="groupRequests.length === 0 && groupInvites.length === 0" class="empty">暂无群聊通知</div>
+
+                    <!-- 我收到的入群邀请 -->
+                    <div v-for="invite in groupInvites" :key="'invite-' + invite.id" class="req-item"
+                    :class="{ unread: isUnread(invite, 'invite') }">
+                        <div class="avatar-box">
+                            <Avatar :uid="getGroupInfo(invite.group_id)?.id || 0" type="group"></Avatar>
                         </div>
-                        <div class="msg">留言: {{ req.apply_msg }}</div>
-                    </div>
-                    <span class="date">{{ formatDate(req.request_time) }}</span>
-                    <div class="actions">
-                        <template v-if="req.status === ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_PENDING">
-                            <template v-if="req.sender_id !== userStore.userID">
+                        <div class="info">
+                            <div class="top">
+                                <span class="name">
+                                    {{ getGroupInfo(invite.group_id)?.name || invite.group_id }}
+                                </span>
+                                <span class="name">
+                                    {{ getUserInfo(invite.inviter_id)?.user_name || invite.inviter_id }} 邀请你加入群聊
+                                </span>
+                            </div>
+                            <div class="msg" v-if="invite.invite_msg">留言: {{ invite.invite_msg }}</div>
+                        </div>
+                        <span class="date">{{ formatDate(Number(invite.create_time)) }}</span>
+                        <div class="actions">
+                            <template v-if="invite.status === INVITE_STATUS_PENDING">
                                 <CusButton type="primary" :show-icon="false" class="action-btn"
-                                    @click="handleGroupReq(req, 'accept')">同意</CusButton>
+                                    @click="handleInviteAction(invite, 'accept')">同意</CusButton>
                                 <CusButton type="normal" :show-icon="false" class="action-btn"
-                                    @click="handleGroupReq(req, 'reject')">拒绝</CusButton>
+                                    @click="handleInviteAction(invite, 'reject')">拒绝</CusButton>
                             </template>
-                            <span v-else class="status-text">等待验证</span>
-                        </template>
-                        <span v-else class="status-text">{{ getGroupStatusText(req.status) }}</span>
+                        </div>
+                    </div>
+
+                    <div v-for="req in groupRequests" :key="req.id" class="req-item"
+                        :class="{ unread: isUnread(req, 'group') }">
+                        <div class="avatar-box">
+                            <Avatar :uid="getGroupInfo(req.group_id)?.id || 0" type="group"></Avatar>
+                        </div>
+                        <div class="info">
+                            <div class="top">
+                                <span class="name">
+                                    {{ getGroupInfo(req.group_id)?.name || req.group_id }}
+                                    {{ req.sender_id === userStore.userID ? '' : '- 用户 ' +
+                                        (getUserInfo(req.sender_id)?.user_name ||
+                                            req.sender_id) + ' 申请加群' }}
+                                </span>
+                            </div>
+                            <div class="msg">留言: {{ req.apply_msg }}</div>
+                        </div>
+                        <span class="date">{{ formatDate(req.request_time) }}</span>
+                        <div class="actions">
+                            <template v-if="req.status === ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_PENDING">
+                                <template v-if="req.sender_id !== userStore.userID">
+                                    <CusButton type="primary" :show-icon="false" class="action-btn"
+                                        @click="handleGroupReq(req, 'accept')">同意</CusButton>
+                                    <CusButton type="normal" :show-icon="false" class="action-btn"
+                                        @click="handleGroupReq(req, 'reject')">拒绝</CusButton>
+                                </template>
+                                <span v-else class="status-text">等待验证</span>
+                            </template>
+                            <span v-else class="status-text">{{ getGroupStatusText(req.status) }}</span>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </Transition>
         </div>
     </div>
 </template>
@@ -110,7 +121,7 @@ import { useUserStore } from '@/src/store/user';
 import { useGroupStore } from '@/src/store/group';
 
 defineOptions({ name: 'ValidationMessages' });
-import { ImTypes, ApiTypes, ValidationType } from '@shared/types';
+import { ImTypes, ValidationType } from '@shared/types';
 import { groupService } from '@/src/services';
 import { useFriendActions } from '@/src/composables/useFriendActions';
 import { useGroupActions } from '@/src/composables/useGroupActions';
@@ -124,8 +135,8 @@ const { handleFriendApply } = useFriendActions();
 const { loadPendingInvites, handleInvite } = useGroupActions();
 const groupStore = useGroupStore();
 
-// 入群邀请状态：1 待处理 2 已接受 3 已拒绝（对应后端 InviteStatus）
-const INVITE_STATUS_PENDING = 1;
+// 入群邀请「待处理」状态（proto 生成的 InviteStatus 枚举）
+const INVITE_STATUS_PENDING = ImTypes.InviteStatus.INVITE_STATUS_PENDING;
 
 const enterTimeFriend = ref(0);
 const enterTimeGroup = ref(0);
@@ -162,17 +173,22 @@ watch(type, (newType) => {
     }
 }, { immediate: true });
 
-const isUnread = (req: any, reqType: 'friend' | 'group') => {
+const isUnread = (req: any, reqType: 'friend' | 'group' | 'invite') => {
     if (reqType === 'friend') {
         if (req.from_user_id === userStore.userID && req.status === ImTypes.ApplyStatus.APPLY_STATUS_PENDING) {
             return false;
         }
         return req.request_time > enterTimeFriend.value;
-    } else {
+    } else if (reqType === 'group') {
         if (req.sender_id === userStore.userID && req.status === ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_PENDING) {
             return false;
         }
         return req.request_time > enterTimeGroup.value;
+    } else if (reqType === 'invite') {
+        if (req.receiver_id === userStore.userID && req.status === ImTypes.InviteStatus.INVITE_STATUS_PENDING) {
+            return false;
+        }
+        return req.create_time > enterTimeGroup.value;
     }
 };
 
@@ -190,7 +206,7 @@ const groupInvites = computed(() => {
 
 const inviteHandling = ref<Set<number>>(new Set());
 
-const handleInviteAction = async (invite: ApiTypes.group.GroupInvite, actionType: 'accept' | 'reject') => {
+const handleInviteAction = async (invite: ImTypes.GroupInvite, actionType: 'accept' | 'reject') => {
     if (inviteHandling.value.has(invite.id)) return;
     inviteHandling.value.add(invite.id);
     try {
@@ -219,9 +235,11 @@ const getStatusText = (status: ImTypes.ApplyStatus) => {
     }
 };
 
-const getGroupStatusText = (status: ImTypes.GroupApplyStatus) => {
+const getGroupStatusText = (status: ImTypes.GroupApplyStatus | ImTypes.InviteStatus) => {
     switch (status) {
+        case ImTypes.InviteStatus.INVITE_STATUS_ACCEPTED:
         case ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_ACCEPTED: return '已同意';
+        case ImTypes.InviteStatus.INVITE_STATUS_REJECTED:
         case ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_REJECTED: return '已拒绝';
         case ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_IGNORED: return '已忽略';
         default: return '待处理';
@@ -304,11 +322,32 @@ const handleGroupReq = async (req: ImTypes.GroupApply, actionType: 'accept' | 'r
             cursor: pointer;
             color: $color-text-secondary;
             font-size: 15px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            position: relative;
+            transition: color 0.3s;
+
+            &::after {
+                content: '';
+                position: absolute;
+                bottom: -1px;
+                left: 0;
+                width: 100%;
+                height: 2px;
+                background-color: $color-primary;
+                transform: scaleX(0);
+                transform-origin: center;
+                transition: transform 0.28s cubic-bezier(0.25, 1, 0.5, 1);
+            }
 
             &.active {
                 color: $color-primary;
                 font-weight: 500;
-                border-bottom: 2px solid $color-primary;
+
+                &::after {
+                    transform: scaleX(1);
+                }
             }
         }
     }
@@ -361,7 +400,7 @@ const handleGroupReq = async (req: ImTypes.GroupApply, actionType: 'accept' | 'r
             .top {
                 display: flex;
                 justify-content: space-between;
-                margin-bottom: 4px;
+                flex-direction: column;
 
                 .name {
                     font-weight: 500;
@@ -398,6 +437,22 @@ const handleGroupReq = async (req: ImTypes.GroupApply, actionType: 'accept' | 'r
                 white-space: nowrap;
             }
         }
+    }
+
+    /* Fade & Slide Transition */
+    .fade-slide-enter-active,
+    .fade-slide-leave-active {
+        transition: opacity 0.22s ease, transform 0.22s ease;
+    }
+
+    .fade-slide-enter-from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    .fade-slide-leave-to {
+        opacity: 0;
+        transform: translateY(-8px);
     }
 }
 </style>

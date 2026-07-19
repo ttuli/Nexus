@@ -32,7 +32,7 @@
         </div>
 
         <!-- User List -->
-        <div class="user-list-container">
+        <div class="user-list-container scroll-bar-normal">
             <div v-if="loading" class="loading-state">
                 <CusSpinner text="加载中..." />
             </div>
@@ -219,10 +219,9 @@ watch(() => props.visible, (val) => {
 <style lang="scss" scoped>
 @use "@/src/style/constant.scss" as *;
 
-$primary-color: #3370ff;
-$bg-color: #ffffff;
-$text-color: #333333;
-$border-color: #e5e6eb;
+$primary-color: var(--color-primary, #3370ff);
+$text-color: var(--text-primary, #1d2129);
+$border-color: var(--border-divider, #e5e6eb);
 
 .form-group {
     display: flex;
@@ -233,14 +232,14 @@ $border-color: #e5e6eb;
 
     label {
         font-size: 14px;
-        color: #666;
+        color: var(--text-secondary, #86909c);
         user-select: none;
         -webkit-user-select: none;
     }
 
     .input-wrapper {
         width: 100%;
-        background: #f5f6f7;
+        background: var(--bg-body, #f8fafc);
         border-radius: 6px;
         padding: 8px 12px;
         box-sizing: border-box;
@@ -271,7 +270,7 @@ $border-color: #e5e6eb;
         padding: 10px 0;
         font-size: 14px;
         cursor: pointer;
-        color: #666;
+        color: var(--text-secondary, #86909c);
         position: relative;
         transition: color 0.2s;
 
@@ -300,6 +299,11 @@ $border-color: #e5e6eb;
         height: 38px;
         padding-left: 12px;
         border-radius: 6px;
+        background-color: var(--bg-body, #f8fafc);
+        
+        &:focus-within {
+            background-color: var(--surface-default, #ffffff);
+        }
 
         .chat-input-field {
             font-size: 14px;
@@ -325,6 +329,7 @@ $border-color: #e5e6eb;
     box-sizing: border-box;
     user-select: none;
     -webkit-user-select: none;
+    background-color: transparent;
 
     .loading-state,
     .empty-state {
@@ -332,7 +337,7 @@ $border-color: #e5e6eb;
         justify-content: center;
         align-items: center;
         height: 100%;
-        color: #999;
+        color: var(--text-placeholder, #86909c);
         font-size: 14px;
     }
 
@@ -346,12 +351,12 @@ $border-color: #e5e6eb;
             gap: 12px;
 
             &:hover {
-                background-color: #f5f7fa;
+                background-color: var(--bg-hover, #f2f3f5);
             }
 
             &.disabled {
                 cursor: not-allowed;
-                opacity: 0.75;
+                opacity: 0.6;
                 &:hover {
                     background-color: transparent;
                 }
@@ -360,7 +365,7 @@ $border-color: #e5e6eb;
             .checkbox {
                 width: 18px;
                 height: 18px;
-                border: 1px solid #c9cdd4;
+                border: 1px solid var(--border-color, #c9cdd4);
                 border-radius: 4px;
                 display: flex;
                 align-items: center;
@@ -373,14 +378,14 @@ $border-color: #e5e6eb;
                 }
 
                 &.disabled {
-                    background-color: #f3f4f6;
-                    border-color: #e5e6eb;
+                    background-color: var(--bg-disabled, #f3f4f6);
+                    border-color: var(--border-divider, #e5e6eb);
                     cursor: not-allowed;
                 }
 
                 &.checked.disabled {
-                    background-color: #e5e7eb;
-                    border-color: #d1d5db;
+                    background-color: var(--bg-hover, #e5e7eb);
+                    border-color: var(--border-color, #d1d5db);
                 }
 
                 .check-icon {
@@ -420,8 +425,8 @@ $border-color: #e5e6eb;
 
                 .status-tag {
                     font-size: 12px;
-                    color: #999;
-                    background-color: #f3f4f6;
+                    color: var(--text-placeholder, #999);
+                    background-color: var(--bg-hover, #f3f4f6);
                     padding: 2px 6px;
                     border-radius: 4px;
                     flex-shrink: 0;

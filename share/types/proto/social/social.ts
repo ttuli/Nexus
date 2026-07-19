@@ -65,6 +65,55 @@ export function groupApplyStatusToJSON(object: GroupApplyStatus): string {
   }
 }
 
+export enum InviteStatus {
+  /** INVITE_STATUS_UNSPECIFIED - 未知 */
+  INVITE_STATUS_UNSPECIFIED = 0,
+  /** INVITE_STATUS_PENDING - 待处理 */
+  INVITE_STATUS_PENDING = 1,
+  /** INVITE_STATUS_ACCEPTED - 已接受 */
+  INVITE_STATUS_ACCEPTED = 2,
+  /** INVITE_STATUS_REJECTED - 已拒绝 */
+  INVITE_STATUS_REJECTED = 3,
+  UNRECOGNIZED = -1,
+}
+
+export function inviteStatusFromJSON(object: any): InviteStatus {
+  switch (object) {
+    case 0:
+    case "INVITE_STATUS_UNSPECIFIED":
+      return InviteStatus.INVITE_STATUS_UNSPECIFIED;
+    case 1:
+    case "INVITE_STATUS_PENDING":
+      return InviteStatus.INVITE_STATUS_PENDING;
+    case 2:
+    case "INVITE_STATUS_ACCEPTED":
+      return InviteStatus.INVITE_STATUS_ACCEPTED;
+    case 3:
+    case "INVITE_STATUS_REJECTED":
+      return InviteStatus.INVITE_STATUS_REJECTED;
+    case -1:
+    case "UNRECOGNIZED":
+    default:
+      return InviteStatus.UNRECOGNIZED;
+  }
+}
+
+export function inviteStatusToJSON(object: InviteStatus): string {
+  switch (object) {
+    case InviteStatus.INVITE_STATUS_UNSPECIFIED:
+      return "INVITE_STATUS_UNSPECIFIED";
+    case InviteStatus.INVITE_STATUS_PENDING:
+      return "INVITE_STATUS_PENDING";
+    case InviteStatus.INVITE_STATUS_ACCEPTED:
+      return "INVITE_STATUS_ACCEPTED";
+    case InviteStatus.INVITE_STATUS_REJECTED:
+      return "INVITE_STATUS_REJECTED";
+    case InviteStatus.UNRECOGNIZED:
+    default:
+      return "UNRECOGNIZED";
+  }
+}
+
 export enum FriendSource {
   /** FRIEND_SOURCE_UNSPECIFIED - 未知 */
   FRIEND_SOURCE_UNSPECIFIED = 0,
@@ -252,6 +301,26 @@ export interface GroupApply {
   handle_time: number;
   /** 拒绝原因 */
   reject_reason: string;
+}
+
+/** 群邀请（被邀请人视角）：群成员邀请他人入群，待被邀请人确认 */
+export interface GroupInvite {
+  /** 邀请ID */
+  id: number;
+  /** 群组ID */
+  group_id: number;
+  /** 邀请人ID（群成员） */
+  inviter_id: number;
+  /** 被邀请人ID */
+  invitee_id: number;
+  /** 邀请状态 */
+  status: InviteStatus;
+  /** 邀请语 */
+  invite_msg: string;
+  /** 创建时间 */
+  create_time: number;
+  /** 更新时间 */
+  update_time: number;
 }
 
 /** 好友信息 */
@@ -518,6 +587,211 @@ export const GroupApply: MessageFns<GroupApply> = {
     message.request_time = object.request_time ?? 0;
     message.handle_time = object.handle_time ?? 0;
     message.reject_reason = object.reject_reason ?? "";
+    return message;
+  },
+};
+
+function createBaseGroupInvite(): GroupInvite {
+  return {
+    id: 0,
+    group_id: 0,
+    inviter_id: 0,
+    invitee_id: 0,
+    status: 0,
+    invite_msg: "",
+    create_time: 0,
+    update_time: 0,
+  };
+}
+
+export const GroupInvite: MessageFns<GroupInvite> = {
+  encode(message: GroupInvite, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.id !== 0) {
+      writer.uint32(8).uint64(message.id);
+    }
+    if (message.group_id !== 0) {
+      writer.uint32(16).uint64(message.group_id);
+    }
+    if (message.inviter_id !== 0) {
+      writer.uint32(24).uint64(message.inviter_id);
+    }
+    if (message.invitee_id !== 0) {
+      writer.uint32(32).uint64(message.invitee_id);
+    }
+    if (message.status !== 0) {
+      writer.uint32(40).int32(message.status);
+    }
+    if (message.invite_msg !== "") {
+      writer.uint32(50).string(message.invite_msg);
+    }
+    if (message.create_time !== 0) {
+      writer.uint32(56).int64(message.create_time);
+    }
+    if (message.update_time !== 0) {
+      writer.uint32(64).int64(message.update_time);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GroupInvite {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGroupInvite();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.id = longToNumber(reader.uint64());
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.group_id = longToNumber(reader.uint64());
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.inviter_id = longToNumber(reader.uint64());
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.invitee_id = longToNumber(reader.uint64());
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.status = reader.int32() as any;
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.invite_msg = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.create_time = longToNumber(reader.int64());
+          continue;
+        }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+
+          message.update_time = longToNumber(reader.int64());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GroupInvite {
+    return {
+      id: isSet(object.id) ? globalThis.Number(object.id) : 0,
+      group_id: isSet(object.groupId)
+        ? globalThis.Number(object.groupId)
+        : isSet(object.group_id)
+        ? globalThis.Number(object.group_id)
+        : 0,
+      inviter_id: isSet(object.inviterId)
+        ? globalThis.Number(object.inviterId)
+        : isSet(object.inviter_id)
+        ? globalThis.Number(object.inviter_id)
+        : 0,
+      invitee_id: isSet(object.inviteeId)
+        ? globalThis.Number(object.inviteeId)
+        : isSet(object.invitee_id)
+        ? globalThis.Number(object.invitee_id)
+        : 0,
+      status: isSet(object.status) ? inviteStatusFromJSON(object.status) : 0,
+      invite_msg: isSet(object.inviteMsg)
+        ? globalThis.String(object.inviteMsg)
+        : isSet(object.invite_msg)
+        ? globalThis.String(object.invite_msg)
+        : "",
+      create_time: isSet(object.createTime)
+        ? globalThis.Number(object.createTime)
+        : isSet(object.create_time)
+        ? globalThis.Number(object.create_time)
+        : 0,
+      update_time: isSet(object.updateTime)
+        ? globalThis.Number(object.updateTime)
+        : isSet(object.update_time)
+        ? globalThis.Number(object.update_time)
+        : 0,
+    };
+  },
+
+  toJSON(message: GroupInvite): unknown {
+    const obj: any = {};
+    if (message.id !== 0) {
+      obj.id = Math.round(message.id);
+    }
+    if (message.group_id !== 0) {
+      obj.groupId = Math.round(message.group_id);
+    }
+    if (message.inviter_id !== 0) {
+      obj.inviterId = Math.round(message.inviter_id);
+    }
+    if (message.invitee_id !== 0) {
+      obj.inviteeId = Math.round(message.invitee_id);
+    }
+    if (message.status !== 0) {
+      obj.status = inviteStatusToJSON(message.status);
+    }
+    if (message.invite_msg !== "") {
+      obj.inviteMsg = message.invite_msg;
+    }
+    if (message.create_time !== 0) {
+      obj.createTime = Math.round(message.create_time);
+    }
+    if (message.update_time !== 0) {
+      obj.updateTime = Math.round(message.update_time);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GroupInvite>, I>>(base?: I): GroupInvite {
+    return GroupInvite.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GroupInvite>, I>>(object: I): GroupInvite {
+    const message = createBaseGroupInvite();
+    message.id = object.id ?? 0;
+    message.group_id = object.group_id ?? 0;
+    message.inviter_id = object.inviter_id ?? 0;
+    message.invitee_id = object.invitee_id ?? 0;
+    message.status = object.status ?? 0;
+    message.invite_msg = object.invite_msg ?? "";
+    message.create_time = object.create_time ?? 0;
+    message.update_time = object.update_time ?? 0;
     return message;
   },
 };

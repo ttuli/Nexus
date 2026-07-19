@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { reactive } from 'vue'
-import { ImTypes, ApiTypes } from '@shared/types'
+import { ImTypes } from '@shared/types'
 import { useUserStore } from './user'
 
 /**
@@ -14,7 +14,7 @@ export const useGroupStore = defineStore('group', {
         groupMemberMap: reactive(new Map<number, ImTypes.GroupMember[]>()),
         groupRequestMap: reactive(new Map<number, ImTypes.GroupApply>()),
         // 我收到的入群邀请（被邀请人视角），key 为 invite id
-        groupInviteMap: reactive(new Map<number, ApiTypes.group.GroupInvite>()),
+        groupInviteMap: reactive(new Map<number, ImTypes.GroupInvite>()),
         joinedGroupIds: reactive(new Set<number>()),
 
         lastReadGroupRequestTime: 0,
@@ -35,17 +35,6 @@ export const useGroupStore = defineStore('group', {
             return this.groupMap.get(id)
         },
 
-        hasGroup(id: number): boolean {
-            return this.groupMap.has(id)
-        },
-
-        deleteGroup(id: number) {
-            this.groupMap.delete(id)
-            this.groupMemberMap.delete(id)
-            this.groupRequestMap.delete(id)
-            this.joinedGroupIds.delete(id)
-        },
-
         // ==================== ImTypes.GroupInfo Members ====================
         setGroupMembers(groupId: number, members: ImTypes.GroupMember[]) {
             this.groupMemberMap.set(groupId, members)
@@ -53,17 +42,6 @@ export const useGroupStore = defineStore('group', {
 
         getGroupMembers(groupId: number): ImTypes.GroupMember[] {
             return this.groupMemberMap.get(groupId) || []
-        },
-
-        addGroupMember(groupId: number, member: ImTypes.GroupMember) {
-            const members = this.groupMemberMap.get(groupId) || []
-            const idx = members.findIndex(m => m.user_id === member.user_id)
-            if (idx >= 0) {
-                members[idx] = member
-            } else {
-                members.push(member)
-            }
-            this.groupMemberMap.set(groupId, members)
         },
 
         removeGroupMember(groupId: number, userId: number) {
@@ -95,11 +73,19 @@ export const useGroupStore = defineStore('group', {
 
         // ==================== ImTypes.GroupInfo Requests ====================
         updateLastReadGroupRequestTime(userId: number) {
+            // 已读游标取「群申请 + 入群邀请」两个来源的最大时间，
+            // 与 unreadPendingRequestCount 的统计范围保持一致，避免读后仍残留红点
             let maxTime = 0
             for (const req of this.groupRequestMap.values()) {
                 const reqTime = Number(req.request_time)
                 if (reqTime >= maxTime) {
                     maxTime = reqTime
+                }
+            }
+            for (const invite of this.groupInviteMap.values()) {
+                const inviteTime = Number(invite.create_time)
+                if (inviteTime >= maxTime) {
+                    maxTime = inviteTime
                 }
             }
             this.lastReadGroupRequestTime = maxTime
@@ -114,16 +100,12 @@ export const useGroupStore = defineStore('group', {
             })
         },
 
-        getGroupRequest(requestId: number): ImTypes.GroupApply | undefined {
-            return this.groupRequestMap.get(requestId)
-        },
-
         removeGroupRequest(requestId: number) {
             this.groupRequestMap.delete(requestId)
         },
 
         // ==================== 群邀请（被邀请人视角）====================
-        setGroupInvites(invites: ApiTypes.group.GroupInvite[]) {
+        setGroupInvites(invites: ImTypes.GroupInvite[]) {
             invites.forEach(invite => {
                 this.groupInviteMap.set(invite.id, invite)
             })
@@ -144,31 +126,36 @@ export const useGroupStore = defineStore('group', {
 
         isJoinedGroup(id: number): boolean {
             return this.joinedGroupIds.has(id)
-        },
-
-        // ==================== Clear ====================
-        clearAll() {
-            this.groupMap.clear()
-            this.groupMemberMap.clear()
-            this.groupRequestMap.clear()
-            this.groupInviteMap.clear()
-            this.joinedGroupIds.clear()
-            this.lastReadGroupRequestTime = 0
         }
     },
     getters: {
-        // 获取未读待处理的群请求数量
+        // 群聊通知红点数：他人发来的群申请 + 我收到的入群邀请，
+        // 仅统计晚于上次已读时间（lastReadGroupRequestTime）、需我处理的条目。
         unreadPendingRequestCount: (state) => {
+            const meId = useUserStore().getUserID();
+            const lastRead = state.lastReadGroupRequestTime;
             let count = 0;
+
+            // 群申请：自己发出的待处理申请是「等待验证」，不计入需我处理的红点
             for (const req of state.groupRequestMap.values()) {
                 if (req.status === ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_PENDING
-                    && req.sender_id === useUserStore().getUserID()
+                    && req.sender_id === meId
                 ) continue;
 
-                if (Number(req.request_time) > state.lastReadGroupRequestTime) {
+                if (Number(req.request_time) > lastRead) {
                     count++;
                 }
             }
+
+            // 入群邀请：均为我收到的，仅统计待处理且晚于上次已读时间的
+            for (const invite of state.groupInviteMap.values()) {
+                if (invite.status !== ImTypes.InviteStatus.INVITE_STATUS_PENDING) continue;
+
+                if (Number(invite.create_time) > lastRead) {
+                    count++;
+                }
+            }
+
             return count;
         },
     }

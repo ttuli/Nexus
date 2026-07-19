@@ -4,9 +4,9 @@
         <div class="validation-entry" @click="goToValidation" :class="{ active: isValidationActive }">
             <div class="icon-box">
                 <span v-html="ValidationIcon" class="icon" />
-                <div v-if="pendingCount > 0" class="badge">{{ pendingCount }}</div>
             </div>
             <div class="text">验证消息</div>
+            <Badge :value="pendingCount" class="badge" />
         </div>
 
         <!-- Tabs -->
@@ -92,6 +92,7 @@ watch(pendingCount, (newVal, oldVal) => {
     cursor: pointer;
     transition: background-color 0.2s;
     border-bottom: 1px solid $color-border;
+    position: relative;
 
     &:hover {
         background-color: $bg-hover;
@@ -131,28 +132,21 @@ watch(pendingCount, (newVal, oldVal) => {
             height: 24px;
             filter: brightness(0) invert(1); // Make it white usually
         }
-
-        .badge {
-            position: absolute;
-            top: -6px;
-            right: -6px;
-            background-color: $color-error;
-            color: white;
-            font-size: 11px;
-            height: 18px;
-            width: 18px;
-            border-radius: 50%;
-            text-align: center;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
     }
 
     .text {
         font-size: 15px;
         color: $color-text-primary;
         font-weight: 400;
+    }
+    .badge {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        right: 16px;
+        margin: auto 0;
+        width: 25px;
+        height: 25px;
     }
 }
 
@@ -174,19 +168,26 @@ watch(pendingCount, (newVal, oldVal) => {
             color: $color-text-primary;
         }
 
+        &::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: $color-primary;
+            border-radius: 2px 2px 0 0;
+            transform: scaleX(0);
+            transform-origin: center;
+            transition: transform 0.28s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
         &.active {
             color: $color-primary;
             font-weight: 500;
 
             &::after {
-                content: '';
-                position: absolute;
-                bottom: 0;
-                left: 0;
-                right: 0;
-                height: 2px;
-                background-color: $color-primary;
-                border-radius: 2px 2px 0 0;
+                transform: scaleX(1);
             }
         }
     }

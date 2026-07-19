@@ -105,6 +105,8 @@ export enum MessageType {
   MSG_OP_RECALL = 605,
   /** GROUP_OP_NOTIFICATION - 群操作通知 */
   GROUP_OP_NOTIFICATION = 606,
+  /** GROUP_INVITE - 群邀请（定向投递给被邀请人） */
+  GROUP_INVITE = 607,
   /** UPDATE_SESSION - 内部消费消息 */
   UPDATE_SESSION = 700,
   /** USER_GROUP_SYNC - 用户群组映射同步 */
@@ -209,6 +211,9 @@ export function messageTypeFromJSON(object: any): MessageType {
     case 606:
     case "GROUP_OP_NOTIFICATION":
       return MessageType.GROUP_OP_NOTIFICATION;
+    case 607:
+    case "GROUP_INVITE":
+      return MessageType.GROUP_INVITE;
     case 700:
     case "UPDATE_SESSION":
       return MessageType.UPDATE_SESSION;
@@ -289,6 +294,8 @@ export function messageTypeToJSON(object: MessageType): string {
       return "MSG_OP_RECALL";
     case MessageType.GROUP_OP_NOTIFICATION:
       return "GROUP_OP_NOTIFICATION";
+    case MessageType.GROUP_INVITE:
+      return "GROUP_INVITE";
     case MessageType.UPDATE_SESSION:
       return "UPDATE_SESSION";
     case MessageType.USER_GROUP_SYNC:

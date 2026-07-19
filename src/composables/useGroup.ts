@@ -2,7 +2,7 @@ import { computed, toValue, type MaybeRefOrGetter } from 'vue';
 import { useUserStore } from '@/src/store/user';
 import { useGroupStore } from '@/src/store/group';
 import { useGroupActions } from './useGroupActions';
-import { groupService } from '@/src/services';
+import { groupService, userService } from '@/src/services';
 import { ImTypes } from '@shared/types';
 
 /**
@@ -23,6 +23,10 @@ export function useGroup(groupIdInput: MaybeRefOrGetter<number>) {
     const { setMyGroupNickname, quitOrDismissGroup, loadGroupInfo, loadGroupMembers } = useGroupActions();
 
     const groupId = computed(() => toValue(groupIdInput) || 0);
+    groupService.fetchGroupMembers(groupId.value).then((res) => {
+        userService.fetchByIds(res.map(member => member.user_id))
+        groupStore.setGroupMembers(groupId.value, res);
+    })
 
     // ---- 派生状态 ----
     const groupInfo = computed(() => groupStore.getGroup(groupId.value));

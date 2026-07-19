@@ -26,7 +26,7 @@
             <!-- 群成员列表 -->
             <GroupMembersCard :members="groupMembers" :max-display="14" 
             :can-invite="true" @view-all="viewAllMembers"
-            @invite="inviteMembers" />
+            @invite="inviteMembers" @remove="removeMembers" />
 
             <!-- 我在本群的昵称 -->
             <div class="detail-group mt-15">
@@ -66,16 +66,12 @@
             </div>
 
             <div class="actions-section">
-                <div class="detail-group action-group">
-                    <div class="detail-item center-item text-primary" @click="clearChatData">
-                        清除聊天记录
-                    </div>
-                </div>
-                <div class="detail-group action-group mt-15">
-                    <div class="detail-item center-item text-danger" @click="confirmQuitGroup">
-                        {{ isOwner ? '解散该群' : '退出群聊' }}
-                    </div>
-                </div>
+                <CusButton class="action-btn" type="normal" :show-icon="false" @click="clearChatData">
+                    清除聊天记录
+                </CusButton>
+                <CusButton class="action-btn danger mt-15" type="normal" :show-icon="false" @click="confirmQuitGroup">
+                    {{ isOwner ? '解散该群' : '退出群聊' }}
+                </CusButton>
             </div>
         </div>
 
@@ -123,23 +119,33 @@
             @close="inviteDialogVisible = false"
             @submit="handleInviteMembers"
         />
+
+        <!-- 全部群成员弹窗 -->
+        <AllGroupMembersModal
+            :visible="allMembersModalVisible"
+            :members="groupMembers"
+            @close="allMembersModalVisible = false"
+        />
+
+        <!-- 移除群成员弹窗 -->
+        <RemoveGroupMembersModal
+            :visible="removeDialogVisible"
+            :members="groupMembers"
+            :submit-loading="removeSubmitLoading"
+            @close="removeDialogVisible = false"
+            @submit="handleRemoveMembers"
+        />
     </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, onMounted, nextTick } from 'vue';
 import { Edit } from '@element-plus/icons-vue';
-import { useUserStore } from '@/src/store/user';
-import { useSessionStore } from '@/src/store/session';
-import { useMessageStore } from '@/src/store/message';
-import { useGroup } from '@/src/composables/useGroup';
 import { ImTypes } from '@shared/types';
-import { ElMessage, ElMessageBox } from 'element-plus';
-import { extractTargetIdFromSessionId } from '@/src/utils/sessionUtils';
+import { useGroupSessionSidebar } from '@/src/composables/useGroupSessionSidebar';
 import GroupMembersCard from './components/GroupMembersCard.vue';
+import AllGroupMembersModal from './components/AllGroupMembersModal.vue';
+import RemoveGroupMembersModal from './components/RemoveGroupMembersModal.vue';
 import UserSelectorModal from '@/src/components/UserSelectorModal.vue';
-import { inviteMembers as apiInviteMembers } from '@/src/apis/group';
-import { sessionService } from '@/src/services/sessionService';
 
 const props = defineProps<{
     chat: ImTypes.Session;
@@ -147,221 +153,47 @@ const props = defineProps<{
 
 const emit = defineEmits(['close']);
 
-const userStore = useUserStore();
-const sessionStore = useSessionStore();
-const messageStore = useMessageStore();
-
-const targetIdVal = computed(() => extractTargetIdFromSessionId(props.chat.session_key, userStore.getUserID()) || 0);
 const {
+    // 群状态
+    targetIdVal,
     groupInfo,
-    members: groupMembers,
+    groupMembers,
     currentUserMember,
     isOwner,
     isOwnerOrAdmin,
-    loadMembers,
-    copyGroupId: copyGroupIdToClipboard,
-    updateGroup,
-    saveMyNickname,
-    quitOrDismiss,
-} = useGroup(targetIdVal);
-
-// Group Nickname Editing Logic
-const isEditingNickname = ref(false);
-const editNicknameValue = ref('');
-const nicknameInputRef = ref();
-
-const startEditNickname = () => {
-    editNicknameValue.value = currentUserMember.value?.nickname || '';
-    isEditingNickname.value = true;
-    nextTick(() => {
-        nicknameInputRef.value?.focus();
-    });
-};
-
-const handleSaveNickname = async () => {
-    if (!isEditingNickname.value) return;
-    isEditingNickname.value = false;
-
-    const currentNickname = currentUserMember.value?.nickname || '';
-    if (editNicknameValue.value === currentNickname) return;
-
-    try {
-        const success = await saveMyNickname(editNicknameValue.value);
-        if (success) {
-            ElMessage.success('本群昵称修改成功');
-        } else {
-            ElMessage.error('修改失败');
-        }
-    } catch (err) {
-        ElMessage.error('请求失败');
-    }
-};
-
-const settingsDialogVisible = ref(false);
-const submitLoading = ref(false);
-const editForm = ref({
-    name: '',
-    join_type: ImTypes.JoinType.JOIN_TYPE_DIRECT,
-    notice: ''
-});
-
-const openGroupSettings = () => {
-    if (!groupInfo.value) return;
-    console.log(groupInfo.value)
-    editForm.value = {
-        name: groupInfo.value.name || '',
-        join_type: groupInfo.value.join_type ?? ImTypes.JoinType.JOIN_TYPE_DIRECT,
-        notice: groupInfo.value.notice || ''
-    };
-    settingsDialogVisible.value = true;
-};
-
-const saveGroupSettings = async () => {
-    if (!groupInfo.value) return;
-    if (!editForm.value.name.trim()) {
-        ElMessage.warning('群名称不能为空');
-        return;
-    }
-    submitLoading.value = true;
-    try {
-        const success = await updateGroup({
-            name: editForm.value.name.trim(),
-            notice: editForm.value.notice.trim(),
-            join_type: editForm.value.join_type
-        });
-        if (success) {
-            ElMessage.success('设置修改成功');
-            settingsDialogVisible.value = false;
-        } else {
-            ElMessage.error('修改失败');
-        }
-    } catch (err) {
-        ElMessage.error('网络请求失败');
-    } finally {
-        submitLoading.value = false;
-    }
-};
-
-const copyGroupId = async () => {
-    const ok = await copyGroupIdToClipboard();
-    ok ? ElMessage.success('已复制') : ElMessage.error('复制失败，请手动复制');
-};
-
-onMounted(() => {
-    if (targetIdVal.value && groupMembers.value.length === 0) {
-        loadMembers();
-    }
-});
-
-watch(() => targetIdVal.value, (newId) => {
-    if (newId) {
-        loadMembers();
-    }
-});
-
-const pinLoading = ref(false);
-const disturbLoading = ref(false);
-
-const handleUpdatePinned = async () => {
-    if (pinLoading.value) return;
-    pinLoading.value = true;
-    try {
-        await sessionStore.updateSessionOptions(props.chat.session_key, 3 - props.chat.is_top, undefined);
-    } finally {
-        pinLoading.value = false;
-    }
-};
-
-const handleUpdateDisturb = async () => {
-    if (disturbLoading.value) return;
-    disturbLoading.value = true;
-    try {
-        await sessionStore.updateSessionOptions(props.chat.session_key, undefined, 3 - props.chat.is_disturb);
-    } finally {
-        disturbLoading.value = false;
-    }
-};
-
-const clearChatData = () => {
-    ElMessageBox.confirm('确定要清除本地的聊天记录吗？这不会影响其他设备的数据。', '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-    }).then(async () => {
-        if (sessionStore.currentSessionKey === props.chat.session_key) {
-            messageStore.messages = [];
-        }
-        props.chat.max_seq = '0';
-        props.chat.last_content = '';
-        sessionStore.removeSession(props.chat.session_id);
-        void sessionService.deleteOne(props.chat.session_id);
-        ElMessage.success('聊天记录已清除');
-        emit('close');
-    }).catch(() => { });
-};
-
-const confirmQuitGroup = () => {
-    if (!targetIdVal.value) return;
-    const actionName = isOwner.value ? '解散' : '退出';
-    const numTargetId = targetIdVal.value;
-    ElMessageBox.confirm(`确定要${actionName}群聊 ${groupInfo.value?.name || numTargetId} 吗？`, '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-    }).then(async () => {
-        try {
-            const res = await quitOrDismiss(isOwner.value);
-            if (res.code === 200) {
-                ElMessage.success(`已${actionName}群聊`);
-                emit('close');
-            } else {
-                ElMessage.error(res.message || '操作失败');
-            }
-        } catch (e) {
-            ElMessage.error('请求失败');
-        }
-    }).catch(() => { });
-};
-
-const viewAllMembers = () => {
-    // TODO: Open a more detailed dialog/drawer for members list
-    ElMessage.info('查看全部群成员功能开发中');
-};
-
-const inviteDialogVisible = ref(false);
-const inviteSubmitLoading = ref(false);
-
-const inviteMembers = () => {
-    inviteDialogVisible.value = true;
-};
-
-const handleInviteMembers = async (data: { name: string; userIds: number[] }) => {
-    if (data.userIds.length === 0) return;
-    inviteSubmitLoading.value = true;
-    try {
-        const res = await apiInviteMembers({
-            group_id: targetIdVal.value,
-            member_ids: data.userIds
-        });
-        const successCount = res?.data?.success_count ?? 0;
-        if (res && res.data && res.data.success_count !== undefined) {
-            // 邀请为待确认制：仅发送邀请，被邀请人接受后才入群
-            if (successCount > 0) {
-                ElMessage.success(`已向 ${successCount} 人发送入群邀请，等待对方确认`);
-            } else {
-                ElMessage.info('所选用户已在群中或已有待处理邀请');
-            }
-            inviteDialogVisible.value = false;
-        } else {
-            ElMessage.error('邀请失败');
-        }
-    } catch (error) {
-        console.error('Failed to invite members', error);
-        ElMessage.error('网络请求失败');
-    } finally {
-        inviteSubmitLoading.value = false;
-    }
-};
+    // 群号
+    copyGroupId,
+    // 昵称编辑
+    isEditingNickname,
+    editNicknameValue,
+    startEditNickname,
+    handleSaveNickname,
+    // 群设置
+    settingsDialogVisible,
+    submitLoading,
+    editForm,
+    openGroupSettings,
+    saveGroupSettings,
+    // 置顶/免打扰
+    pinLoading,
+    disturbLoading,
+    handleUpdatePinned,
+    handleUpdateDisturb,
+    // 会话操作
+    clearChatData,
+    confirmQuitGroup,
+    // 成员弹窗
+    allMembersModalVisible,
+    viewAllMembers,
+    inviteDialogVisible,
+    inviteSubmitLoading,
+    inviteMembers,
+    handleInviteMembers,
+    removeDialogVisible,
+    removeSubmitLoading,
+    removeMembers,
+    handleRemoveMembers,
+} = useGroupSessionSidebar(() => props.chat, () => emit('close'));
 </script>
 
 <style scoped lang="scss">
@@ -559,28 +391,16 @@ const handleInviteMembers = async (data: { name: string; userIds: number[] }) =>
             display: flex;
             flex-direction: column;
 
-            .action-group {
-                padding: 0;
-                cursor: pointer;
-                transition: background-color 0.2s;
-
-                &:hover {
-                    background-color: var(--bg-hover, #f3f4f6);
-                }
-
-                .center-item {
-                    justify-content: center;
-                    border-bottom: none;
-                    font-size: 15px;
-                    font-weight: 500;
-                }
-
-                .text-primary {
-                    color: $color-text-primary;
-                }
-
-                .text-danger {
+            .action-btn {
+                &.danger {
                     color: $color-error;
+                    border-color: rgba($color-error, 0.2);
+
+                    &:hover:not(:disabled) {
+                        color: #ffffff;
+                        border-color: $color-error;
+                        background-color: $color-error;
+                    }
                 }
             }
         }

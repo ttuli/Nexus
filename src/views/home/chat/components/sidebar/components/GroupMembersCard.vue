@@ -3,7 +3,7 @@
         <div class="header">
             <span class="title">群成员 ({{ members.length }})</span>
             <span class="view-all" v-if="members.length > displayMembers.length" @click="$emit('view-all')">
-                查看全部 <el-icon><i class="el-icon-arrow-right"></i></el-icon>
+                查看全部 > <el-icon><i class="el-icon-arrow-right"></i></el-icon>
             </span>
         </div>
         <div class="members-grid">
@@ -114,6 +114,7 @@ const displayMembers = computed(() => {
             cursor: pointer;
             display: flex;
             align-items: center;
+            margin-right: -10px;
 
             &:hover {
                 opacity: 0.8;
