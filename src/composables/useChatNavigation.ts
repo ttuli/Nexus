@@ -6,9 +6,6 @@ import { chatService } from '@/src/services/chatService';
 import { getLastContent, isSystemNotificationMessage } from '@/src/utils/messageConverter';
 import { useRouter } from 'vue-router';
 import { toRaw } from 'vue';
-import { extractTargetIdFromSessionId, judgeSessionType } from '../utils/sessionUtils';
-import { ImTypes } from '@/share/types';
-import { groupService, userService } from '../services';
 
 /**
  * 封装切换会话的协调逻辑，避免 sessionStore ↔ messageStore 循环依赖。
@@ -29,7 +26,6 @@ export function useChatNavigation() {
         if (!router.currentRoute.value.path.includes('chat')) {
             router.push('/home/chat');
         }
-        console.log(sessionKey)
         if (sessionKey === sessionStore.currentSessionKey && options?.toggle === false) {
             // 已是当前会话且不允许反选：仅跳转路由，保持现状
             return;
@@ -46,12 +42,6 @@ export function useChatNavigation() {
             return;
         }
         sessionStore.setCurrentSession(sessionKey);
-        const target = extractTargetIdFromSessionId(sessionKey,userStore.userID) || 0;
-        if (judgeSessionType(sessionKey) === ImTypes.SessionType.SESSION_TYPE_PRIVATE) {
-            userService.fetchByIds([target]);
-        } else {
-            groupService.fetchByIds([target]);
-        }
 
         // 缓存命中直接恢复，未命中才重置并走查库流程
         const restored = messageStore.restoreMessagesFromCache(sessionKey);

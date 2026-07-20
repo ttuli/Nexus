@@ -13,7 +13,6 @@ import { ResourceType, IpcChannels, UpdateAction } from '@shared/types'
 import { updateGroup, setMemberNickname, joinGroup, createGroup, leaveGroup, handleGroupApply as apiHandleGroupApply, dismissGroup, getPendingInvites as apiGetPendingInvites, handleGroupInvite as apiHandleGroupInvite, inviteMembers as apiInviteMembers, removeMember as apiRemoveMember } from '@/src/apis/group'
 import { ApiTypes } from '@shared/types'
 import cacheService from './cacheService'
-import { useGroupStore } from '../store/group';
 
 class GroupService {
     /**
@@ -21,13 +20,8 @@ class GroupService {
      */
     async fetchByIds(groupIds: number[], forceUpdate: boolean = false): Promise<ImTypes.GroupInfo[]> {
         const result = await ipcService.invoke<{ items?: ImTypes.GroupInfo[] }>(IpcChannels.RESOURCE_GET, ResourceType.GROUP, groupIds, forceUpdate)
-        const groupStore = useGroupStore()
         if (result.success) {
-            const groups = result.data?.items || []
-            groups.forEach(group => {
-                groupStore.setGroup(group)
-            })
-            return groups
+            return result.data?.items || []
         }
         console.error('[GroupService] fetchByIds failed:', result.error)
         return []

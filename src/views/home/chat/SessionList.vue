@@ -35,8 +35,10 @@ import trash from '@/src/assets/chat/trash.svg?raw';
 import setmsgunread from '@/src/assets/chat/setmsgunread.svg?raw';
 import setmsgread from '@/src/assets/chat/setmsgread.svg?raw';
 
+
 const sessionStore = useSessionStore();
 const messageStore = useMessageStore();
+
 const { sessionList, currentSessionKey } = storeToRefs(sessionStore);
 const { navigateToChat } = useChatNavigation();
 
