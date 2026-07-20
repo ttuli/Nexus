@@ -52,7 +52,10 @@ export async function initRelationStore() {
     const groupIdsToFetch: number[] = [];
 
     sessionStore.sessionList.forEach((session: ImTypes.Session) => {
-        const targetId = extractTargetIdFromSessionId(session.session_id, userStore.getUserID());
+        // session_key 才是可解析的派生格式（群=groupId、私聊=uid_uid）；
+        // session_id 是服务端分配的 ID，解析出的目标 ID 是错值。
+        // 已退出/被踢的群不在 joinedGroupIds 里，其群名渲染依赖本路径预加载
+        const targetId = extractTargetIdFromSessionId(session.session_key || session.session_id, userStore.getUserID());
         if (session.type === ImTypes.SessionType.SESSION_TYPE_PRIVATE) {
             if (targetId && !isNaN(targetId)) ids.push(targetId);
         } else if (session.type === ImTypes.SessionType.SESSION_TYPE_GROUP) {

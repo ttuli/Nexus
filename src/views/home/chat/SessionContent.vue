@@ -7,7 +7,7 @@
                 <span v-if="currentSession.type === ImTypes.SessionType.SESSION_TYPE_PRIVATE" v-html="phoneIcon"
                     class="icon-btn phone" title="语音通话" @click="startCall">
                 </span>
-                <div class="icon-btn" title="聊天信息" @click="toggleSidebar">⋮</div>
+                <div class="icon-btn" :class="{ disabled: !canOpenSidebar }" title="聊天信息" @click="toggleSidebar">⋮</div>
             </div>
         </div>
 
@@ -108,8 +108,19 @@ const { loadMore, sendTextMessage, sendImageMessage, sendVideoMessage, sendFileM
 
 // Sidebar Logic
 const sidebarVisible = ref(false);
+
+// 群会话侧栏展示的是成员视角信息（成员列表/群昵称/退群等），
+// 已退群或被移出后不再允许打开；私聊侧栏不受限
+const canOpenSidebar = computed(() => {
+    if (!currentSession.value) return false;
+    if (currentSession.value.type !== ImTypes.SessionType.SESSION_TYPE_GROUP) return true;
+    const targetId = extractTargetIdFromSessionId(currentSessionKey.value, userStore.getUserID());
+    return !!targetId && groupStore.isJoinedGroup(targetId);
+});
+
 const toggleSidebar = (event: MouseEvent) => {
     event.stopPropagation(); // Prevent immediate closing
+    if (!canOpenSidebar.value) return;
     sidebarVisible.value = !sidebarVisible.value;
 };
 
@@ -119,6 +130,13 @@ const closeSidebar = () => {
         sidebarVisible.value = false;
     }
 };
+
+// 侧栏开着时被移出群/退群：立即收起，避免展示已失效的成员视角内容
+watch(canOpenSidebar, (allowed) => {
+    if (!allowed && sidebarVisible.value) {
+        sidebarVisible.value = false;
+    }
+});
 
 // Context Menu Logic
 const menuVisible = ref(false);
@@ -398,7 +416,8 @@ const handleSelectSuggestion = (text: string) => {
 
 const startCall = () => {
     if (!currentSession.value) return;
-    const targetId = extractTargetIdFromSessionId(currentSession.value.session_id, userStore.getUserID());
+    // session_key 才是可解析的派生格式，session_id 为服务端分配 ID
+    const targetId = extractTargetIdFromSessionId(currentSessionKey.value, userStore.getUserID());
     const targetType = currentSession.value.type === ImTypes.SessionType.SESSION_TYPE_PRIVATE ? 'private' : 'group';
 
     if (targetId) {
@@ -507,6 +526,15 @@ const startResize = (e: MouseEvent) => {
 
                 &:hover {
                     background-color: $bg-hover;
+                }
+
+                &.disabled {
+                    cursor: default;
+                    color: $color-text-placeholder;
+
+                    &:hover {
+                        background-color: transparent;
+                    }
                 }
             }
         }
