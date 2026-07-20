@@ -21,7 +21,10 @@ class GroupService {
     async fetchByIds(groupIds: number[], forceUpdate: boolean = false): Promise<ImTypes.GroupInfo[]> {
         const result = await ipcService.invoke<{ items?: ImTypes.GroupInfo[] }>(IpcChannels.RESOURCE_GET, ResourceType.GROUP, groupIds, forceUpdate)
         if (result.success) {
-            return result.data?.items || []
+            // 主进程 handler 直接返回 { success, items, missingIds }，ipcService 见有 success
+            // 即原样透传（不再包一层 data），故此处 items 在顶层而非 result.data 下。
+            // 与 userService.fetchByIds 保持一致的双结构兜底。
+            return (result.data as any)?.items ?? (result as any).items ?? []
         }
         console.error('[GroupService] fetchByIds failed:', result.error)
         return []

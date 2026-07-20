@@ -97,6 +97,7 @@ export function useGroupActions() {
         if (groups.length > 0) {
             groups.forEach(g => groupStore.setGroup(g));
         }
+        console.log(groupIds, groups, groupStore.getGroup(10000006))
         return groups;
     };
 
