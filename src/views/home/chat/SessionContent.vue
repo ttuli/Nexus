@@ -220,8 +220,14 @@ const chatDisableReason = computed(() => {
     const targetId = extractTargetIdFromSessionId(currentSessionKey.value, userStore.getUserID());
     if (!targetId) return '';
 
-    if (!userStore.isFriend(targetId) || !groupStore.isJoinedGroup(targetId)) {
-        return '无法在已退出的会话中发送消息';
+    // targetId 语义随会话类型变化（私聊=对方用户 ID、群聊=群 ID），
+    // 必须按类型分别判断，合并判断会对所有会话恒成立
+    if (currentSession.value.type === ImTypes.SessionType.SESSION_TYPE_PRIVATE) {
+        if (!userStore.isFriend(targetId)) {
+            return '您与对方非好友关系，无法发送消息';
+        }
+    } else if (!groupStore.isJoinedGroup(targetId)) {
+        return '您已不在此群聊中，无法发送消息';
     }
     return '';
 });
