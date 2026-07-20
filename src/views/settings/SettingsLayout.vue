@@ -78,7 +78,7 @@
                         <div class="app-logo">
                             <img :src="icon" alt="Nexus" @error="handleLogoError" />
                         </div>
-                        <h1 class="app-name">Nexus IM</h1>
+                        <h1 class="app-name">Nexus</h1>
                         <p class="app-version">Version 1.0.0 (Build 260616)</p>
                     </div>
 
@@ -208,7 +208,9 @@ onMounted(() => {
 // Left Navigation Sidebar
 .settings-sidebar {
     width: 200px;
-    background-color: $bg-card;
+    background-color: var(--bg-sidebar, $bg-body);
+    backdrop-filter: var(--sidebar-blur);
+    -webkit-backdrop-filter: var(--sidebar-blur);
     border-right: 1px solid $color-border;
     padding: $spacing-md;
     display: flex;
@@ -245,7 +247,7 @@ onMounted(() => {
         }
 
         &.active {
-            background-color: $bg-active;
+            background-color: $color-primary-bg;
             color: $color-primary;
             font-weight: 600;
 

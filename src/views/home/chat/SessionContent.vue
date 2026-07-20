@@ -11,11 +11,6 @@
             </div>
         </div>
 
-        <!-- Warning Area -->
-        <div class="chat-warning" v-if="chatDisableReason">
-            <span>{{ chatDisableReason }}</span>
-        </div>
-
         <!-- Content Area (Relative for Sidebar) -->
         <div class="content-wrapper">
             <!-- Message List -->
@@ -90,7 +85,7 @@ import SystemMessageBubble from '@/src/views/home/chat/components/Bubble/SystemM
 import { IChatMessage, ILocalTextMessage } from '@shared/types/chatMessage';
 import { ImTypes } from '@shared/types';
 import ChatInput from './components/ChatInput.vue';
-import ChatSidebar from './components/Sidebar/index.vue';
+import ChatSidebar from './components/sidebar/index.vue';
 import AiSuggestions from './components/AiSuggestions.vue';
 import type { MenuOption } from '@/src/components/ContextMenu.vue';
 import { ElMessage } from 'element-plus';
@@ -207,14 +202,8 @@ const chatDisableReason = computed(() => {
     const targetId = extractTargetIdFromSessionId(currentSessionKey.value, userStore.getUserID());
     if (!targetId) return '';
 
-    if (currentSession.value.type === ImTypes.SessionType.SESSION_TYPE_PRIVATE) {
-        if (!userStore.isFriend(targetId)) {
-            return '您与对方非好友关系，无法发送消息';
-        }
-    } else {
-        if (!groupStore.isJoinedGroup(targetId)) {
-            return '您已不在此群聊中，无法发送消息';
-        }
+    if (!userStore.isFriend(targetId) || !groupStore.isJoinedGroup(targetId)) {
+        return '无法在已退出的会话中发送消息';
     }
     return '';
 });
@@ -521,19 +510,6 @@ const startResize = (e: MouseEvent) => {
                 }
             }
         }
-    }
-
-    .chat-warning {
-        -webkit-app-region: no-drag;
-        background-color: rgba(253, 230, 232, 0.9);
-        color: $color-error;
-        padding: 8px 20px;
-        font-size: 13px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        z-index: 5;
     }
 
     .content-wrapper {

@@ -12,11 +12,10 @@
             </div>
             <div class="right-column">
                 <span class="time" v-if="props.data.last_content">{{ formatTime(props.data.last_message_time) }}</span>
-                <div class="badge" :class="{ 'disturb-badge': props.data.is_disturb === 2 }"
-                    v-if="props.data.unread_count > 0">
-                    {{ props.data.unread_count > 99 ? '99+' : props.data.unread_count }}
-                </div>
-                <span class="disturb-icon" v-else-if="props.data.is_disturb === 2 && props.data.unread_count === 0"
+                <Badge class="session-badge" :class="{ 'disturb-badge': props.data.is_disturb === 2 }"
+                    :value="props.data.unread_count" :is-dot="props.data.is_disturb === 2"
+                    :hidden="props.data.unread_count === 0" />
+                <span class="disturb-icon" v-if="props.data.is_disturb === 2 && props.data.unread_count === 0"
                     v-html="notdisturb"></span>
             </div>
         </div>
@@ -48,7 +47,7 @@ const userStore = useUserStore();
 const groupStore = useGroupStore();
 
 const getTargetId = (chat: ImTypes.Session) => {
-    return extractTargetIdFromSessionId(chat.session_key || chat.session_id || '', userStore.getUserID());
+    return extractTargetIdFromSessionId(chat.session_key || '', userStore.getUserID());
 }
 
 // 动态获取名称
@@ -183,25 +182,16 @@ const formatTime = (timestamp: number | null) => {
                 line-height: 22px;
             }
 
-            .badge {
+            .session-badge {
                 margin-top: auto;
-                min-width: 18px;
-                height: 18px;
-                border-radius: 9px;
-                background-color: $color-error;
-                color: white;
-                font-size: 10px;
-                line-height: 18px;
-                text-align: center;
-                padding: 0 5px;
-                box-sizing: border-box;
 
                 &:only-child {
                     margin-bottom: auto;
                 }
 
                 &.disturb-badge {
-                    background-color: #c0c4cc;
+                    background: #c0c4cc;
+                    box-shadow: none;
                 }
             }
 
