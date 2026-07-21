@@ -7,7 +7,7 @@
     "dev": "node scripts/run-utf8.mjs vite",
     "build": "vue-tsc && vite build && electron-builder",
     "preview": "node scripts/run-utf8.mjs vite preview",
-    "proto": "powershell ./gen-proto.ps1",
+    "proto": "powershell ./scripts/gen-proto.ps1",
     "test": "jest"
   },
   "dependencies": {
