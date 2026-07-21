@@ -227,6 +227,13 @@ export function formatSystemMessage(
         return `用户${userId}`;
     };
 
+    // 撤回：原消息 status 置为 RECALLED，任意类型统一渲染为撤回提示（优先于原 content）
+    if (message.status === ImTypes.MessageStatus.MESSAGE_STATUS_RECALLED) {
+        return meId !== undefined && message.fromUserId === meId
+            ? '你撤回了一条消息'
+            : `${resolveUserName(message.fromUserId)} 撤回了一条消息`;
+    }
+
     if (message.content) {
         return message.content;
     }

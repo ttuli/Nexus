@@ -1,5 +1,5 @@
 import { toRaw } from 'vue';
-import { getHistory, getSession, getUserActiveSessions, getUserSessions } from '@/src/apis/message';
+import { getHistory, getSession, getUserActiveSessions, getUserSessions, recallMessage as recallMessageApi } from '@/src/apis/message';
 import { ApiTypes, ImTypes, PartialExcept, ResourceType, UpdateAction } from '@shared/types';
 import { MessageStatus, MessageType } from '@shared/types/proto';
 import { IChatMessage, ILocalSystemMessage } from '@shared/types/chatMessage';
@@ -8,7 +8,7 @@ import { toSeq, seqPositive, seqLt, seqGt, seqCompare, seqPlusOne, seqMax } from
 import { convertNotificationToChatMessage } from '@/src/utils/messageConverter';
 import { judgeSessionType, toServerSessionType } from '@/src/utils/sessionUtils';
 import { useSessionStore } from '@/src/store/session';
-import { useMessageStore } from '@/src/store/message';
+import { useMessageStore, type HistoryPage } from '@/src/store/message';
 import { useUserStore } from '@/src/store/user';
 import { getOfflineTimestamp } from '@/src/store/init';
 import cacheService from './cacheService';
@@ -361,41 +361,87 @@ class ChatService {
         sessionKey: string,
         beforeSeq?: string,
         pageSize: number = 20,
-    ): Promise<IChatMessage[]> {
-        if (!sessionKey || pageSize <= 0) return [];
+        sessionMaxSeq?: string,
+    ): Promise<HistoryPage> {
+        if (!sessionKey || pageSize <= 0) return { messages: [] };
 
         // 本地查询：session_key 精确匹配，beforeSeq 直接传给 DB 层（排他上界：seq < beforeSeq）
-        // 首次加载（beforeSeq === undefined）表示不限上界
-        const local = await messageService.getLocalHistoryMessages(
-            sessionKey,
-            beforeSeq,
-            pageSize
-        );
+        // 首次加载（beforeSeq === undefined）表示不限上界；DB 层按 seq 升序返回（末条为最新）
+        const local = await messageService.getLocalHistoryMessages(sessionKey, beforeSeq, pageSize);
 
-        // 如果本地数据能填满一页，直接返回
-        if (local.length === pageSize) {
-            return local;
+        // 本地边界判断：不再以"是否满一页"决定阻塞拉取（小会话/末页会误触发 API 拖慢响应），
+        // 而是看本地这一页是否已抵达应有边界——首屏时本地最新一条是否已对齐会话 max_seq
+        // （max_seq 由调用方 store 传入，本服务不反向依赖 store）。
+        const isFirstPage = beforeSeq === undefined;
+        const newestLocalSeq = local.length > 0 ? local[local.length - 1].seq : undefined;
+        // 首屏本地已含最新消息（末条 seq ≥ 会话 max_seq）
+        const localHasNewest = isFirstPage && newestLocalSeq !== undefined && seqPositive(sessionMaxSeq)
+            && !seqLt(newestLocalSeq, sessionMaxSeq);
+        // 首屏本地落后于服务端最新（顶部有缺口，需补新消息）
+        const topGap = isFirstPage && seqPositive(sessionMaxSeq)
+            && (newestLocalSeq === undefined || seqLt(newestLocalSeq, sessionMaxSeq));
+
+        // 本地够用：拿到整页（更早的留给下次翻页/后台补），或首屏已含最新消息
+        const localSufficient = local.length >= pageSize || (local.length > 0 && localHasNewest);
+        if (localSufficient) {
+            // 本窗口未证实完整（不满页 → 可能缺更早的；或首屏落后最新 → 顶部缺口）时，
+            // 发起后台补齐 I/O 并把承诺随页返回；合并进 store 由调用方（message store）负责
+            const windowComplete = local.length >= pageSize && !topGap;
+            return windowComplete
+                ? { messages: local }
+                : { messages: local, reconcile: this.reconcileHistory(sessionKey, beforeSeq, pageSize) };
         }
 
-        // 本地未命中或数量不足，从远端 API 拉取以填补空缺
+        // 本地为空 / 不足且未对齐边界：同步补一页兜底（否则首屏空白或漏消息）
         // beforeSeq 有值：endSeq = beforeSeq - 1（含）；无值（首次加载）：无界（后端取最新）
-        // Lamport seq 仅作区间边界使用，-1n 不代表"上一条"
         const endSeq = beforeSeq && seqPositive(beforeSeq)
             ? (BigInt(toSeq(beforeSeq)) - 1n).toString()
             : undefined;
         const apiMessages = await this.fetchHistoryFromApi(sessionKey, pageSize, { endSeq });
-
-        // 如果 API 返回了新数据，说明填补了空缺，重新从本地查一次（确保混合本地 unconfirmed 消息并正确排序）
         if (apiMessages.length > 0) {
-            return await messageService.getLocalHistoryMessages(
-                sessionKey,
-                beforeSeq,
-                pageSize
-            );
+            // 重新从本地查一次（混合本地 unconfirmed 消息并正确排序）
+            return { messages: await messageService.getLocalHistoryMessages(sessionKey, beforeSeq, pageSize) };
         }
+        return { messages: local };
+    }
 
-        // 如果 API 也没有更多数据，就返回仅有的 local 数据
-        return local;
+    /**
+     * 后台补齐历史缺口（纯 I/O）：拉取远端同一窗口 → 落库（fetchHistoryFromApi 内已写 SQLite）→
+     * 返回补齐后的本地页。不触碰 store：并入由调用方（message store）负责。
+     * best-effort，失败仅记日志，返回空数组。
+     */
+    private async reconcileHistory(
+        sessionKey: string,
+        beforeSeq: string | undefined,
+        pageSize: number,
+    ): Promise<IChatMessage[]> {
+        try {
+            const endSeq = beforeSeq && seqPositive(beforeSeq)
+                ? (BigInt(toSeq(beforeSeq)) - 1n).toString()
+                : undefined;
+            const apiMessages = await this.fetchHistoryFromApi(sessionKey, pageSize, { endSeq });
+            if (apiMessages.length === 0) return [];
+            return await messageService.getLocalHistoryMessages(sessionKey, beforeSeq, pageSize);
+        } catch (e) {
+            console.error(`[ChatService] reconcile history for ${sessionKey} failed:`, e);
+            return [];
+        }
+    }
+
+    /**
+     * 撤回消息 I/O（仅发送者本人、2 分钟内，服务端校验）：仅调用服务端接口并返回结果。
+     * 本地乐观更新/落库由 composable 编排；服务端随后广播的 MSG_OP_RECALL 通知会幂等对齐
+     * （也覆盖其他成员/多端）。失败文案由请求拦截器统一 toast。
+     */
+    async recallMessage(msgId: string, sessionId: string): Promise<boolean> {
+        if (!msgId) return false;
+        try {
+            const res = await recallMessageApi({ msg_id: msgId, session_id: sessionId });
+            return res.code === 200;
+        } catch (e) {
+            console.error('[ChatService] recallMessage failed:', e);
+            return false;
+        }
     }
 
     /**

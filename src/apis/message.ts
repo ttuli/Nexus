@@ -60,6 +60,20 @@ export async function getUserSessions() {
     return decodeResponse(res.data, ApiTypes.message.GetUserSessionsResp.decode)
 }
 
+/**
+ * 撤回消息（仅发送者本人、2 分钟内；操作者由服务端从 JWT 解析）
+ * POST /message/recall
+ */
+export async function recallMessage(data: ApiTypes.message.RecallMessageReq) {
+    const reqData = ApiTypes.message.RecallMessageReq.encode(data).finish()
+    const res = await instance<ApiResponse<null>>({
+        method: 'post',
+        url: config.messageServer + '/message/recall',
+        data: reqData
+    })
+    return res.data
+}
+
 // ==================== Message APIs ====================
 
 /**

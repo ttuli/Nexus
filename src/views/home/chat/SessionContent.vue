@@ -33,8 +33,8 @@
                     >
                         <!-- 动画包裹层：进场动画的 transform 必须与外层虚拟定位的 translateY 隔离 -->
                         <div class="bubble-anim">
-                            <!-- 系统 / 群通知消息气泡 -->
-                            <SystemMessageBubble v-if="isSystemMessage(messages[virtualRow.index].type)" :message="(messages[virtualRow.index] as any)" />
+                            <!-- 系统 / 群通知 / 已撤回消息气泡 -->
+                            <SystemMessageBubble v-if="isSystemOrRecalled(messages[virtualRow.index])" :message="(messages[virtualRow.index] as any)" />
                             <!-- 普通用户聊天气泡 -->
                             <MessageBubble v-else :message="messages[virtualRow.index]" :is-self="isSelf(messages[virtualRow.index].fromUserId)"
                                 @contextmenu="handleMessageContextMenu"
@@ -85,7 +85,7 @@ import SystemMessageBubble from '@/src/views/home/chat/components/Bubble/SystemM
 import { IChatMessage, ILocalTextMessage } from '@shared/types/chatMessage';
 import { ImTypes } from '@shared/types';
 import ChatInput from './components/ChatInput.vue';
-import ChatSidebar from './components/sidebar/index.vue';
+import ChatSidebar from './components/Sidebar/index.vue';
 import AiSuggestions from './components/AiSuggestions.vue';
 import type { MenuOption } from '@/src/components/ContextMenu.vue';
 import { ElMessage } from 'element-plus';
@@ -104,7 +104,7 @@ const groupStore = useGroupStore();
 
 const { currentSession, currentSessionKey } = storeToRefs(sessionStore);
 const { messages, isLoading, hasMore } = storeToRefs(messageStore);
-const { loadMore, sendTextMessage, sendImageMessage, sendVideoMessage, sendFileMessage } = useChatPage();
+const { loadMore, sendTextMessage, sendImageMessage, sendVideoMessage, sendFileMessage, recallMessage } = useChatPage();
 
 // Sidebar Logic
 const sidebarVisible = ref(false);
@@ -145,6 +145,9 @@ const menuY = ref(0);
 const contextMenuTarget = ref<IChatMessage | null>(null);
 const MessageType = ImTypes.MessageType;
 
+const MessageStatus = ImTypes.MessageStatus;
+const RECALL_WINDOW_MS = 2 * 60 * 1000; // 撤回时间窗口：2 分钟（与服务端一致）
+
 const isSystemMessage = (type: number) => {
     const sysTypes = [
         MessageType.MSG_RECALL,
@@ -153,10 +156,14 @@ const isSystemMessage = (type: number) => {
     return sysTypes.includes(type);
 };
 
+// 撤回消息原类型不变但 status=RECALLED，与系统/通知消息一样居中渲染
+const isSystemOrRecalled = (msg: IChatMessage) =>
+    isSystemMessage(msg.type) || msg.status === MessageStatus.MESSAGE_STATUS_RECALLED;
+
 const menuOptions = ref<MenuOption[]>([]);
 
 const handleMessageContextMenu = (event: MouseEvent, message: IChatMessage) => {
-    if (isSystemMessage(message.type)) return;
+    if (isSystemOrRecalled(message)) return;
 
     let options: MenuOption[] = [];
 
@@ -164,6 +171,12 @@ const handleMessageContextMenu = (event: MouseEvent, message: IChatMessage) => {
         options = [
             { label: '复制', key: 'copy', icon: copyIcon }
         ];
+    }
+
+    // 撤回：仅本人、已落库（有 msgId）、2 分钟内的消息（服务端亦校验）
+    if (isSelf(message.fromUserId) && message.msgId
+        && Date.now() - Number(message.sendTime) <= RECALL_WINDOW_MS) {
+        options.push({ label: '撤回', key: 'recall', icon: trashIcon });
     }
 
     // 后续可以根据需要的消息类型（如图片等）添加其他菜单
@@ -193,6 +206,12 @@ const handleMenuSelect = async (option: MenuOption) => {
                 console.error('Failed to copy', err);
             }
         }
+    } else if (option.key === 'recall') {
+        const target = contextMenuTarget.value;
+        if (!target?.msgId) return;
+        // 失败文案由请求拦截器统一 toast（如"超过撤回时间限制"）
+        const ok = await recallMessage(target);
+        if (ok) ElMessage.success('已撤回');
     }
 };
 

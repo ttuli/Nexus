@@ -14,7 +14,7 @@ import {
 import { toResourceUrl } from '@/src/utils/resourceUrl';
 import { extractVideoFrame } from '@/src/utils/mediaUtils';
 import { useUserStore } from './user';
-import { seqPositive, toSeq } from '@shared/utils/seq';
+import { seqPositive, toSeq, seqCompare } from '@shared/utils/seq';
 
 // ─── Dependency Injection Interfaces ─────────────────────────────────────────
 // Store 不直接依赖任何 Service，所有外部 I/O 能力通过这些接口在调用方注入。
@@ -38,13 +38,23 @@ export interface IFileUploader {
     ): { promise: Promise<string>; abort: () => void }
 }
 
+/**
+ * 历史消息页：可立即返回的 messages + 可选的后台补齐承诺。
+ * reconcile resolve 为补齐后的完整页，由 store 负责并入（service 不触碰 store）。
+ */
+export interface HistoryPage {
+    messages: IChatMessage[]
+    reconcile?: Promise<IChatMessage[]>
+}
+
 /** 历史消息拉取能力 */
 export interface IHistoryFetcher {
     getHistoryMessages(
         sessionKey: string,
         beforeSeq?: string,
-        limit?: number
-    ): Promise<IChatMessage[]>
+        limit?: number,
+        sessionMaxSeq?: string,
+    ): Promise<HistoryPage>
 }
 
 /**
@@ -233,6 +243,40 @@ export const useMessageStore = defineStore('message', {
         },
 
         /**
+         * 将后台补齐的历史消息并入指定会话（当前列表或内存缓存），按 seq 去重排序。
+         * 会话已不在 store（未打开且未缓存）时静默忽略——对应「store 中还有这个会话的 key 才添加」。
+         */
+        mergeHistoryMessages(sessionKey: string, incoming: IChatMessage[]) {
+            if (!sessionKey || incoming.length === 0) return;
+            const sessionStore = useSessionStore();
+            const target = sessionStore.currentSessionKey === sessionKey
+                ? this.messages
+                : this.sessionMessageCache.get(sessionKey)?.messages;
+            if (!target) return;
+
+            let changed = false;
+            for (const msg of incoming) {
+                const exists = target.some(m =>
+                    (msg.clientId && m.clientId === msg.clientId) ||
+                    (msg.msgId && m.msgId === msg.msgId)
+                );
+                if (!exists) {
+                    target.push(msg);
+                    changed = true;
+                }
+            }
+            if (!changed) return;
+
+            target.sort((a, b) => {
+                if (seqPositive(a.seq) && seqPositive(b.seq)) {
+                    const cmp = seqCompare(a.seq, b.seq);
+                    if (cmp !== 0) return cmp;
+                }
+                return (a.sendTime || 0) - (b.sendTime || 0);
+            });
+        },
+
+        /**
          * 加载更多历史消息
          * @param fetcher  注入的历史消息拉取实现（由调用方传入 chatService）
          */
@@ -253,13 +297,17 @@ export const useMessageStore = defineStore('message', {
 
             this.isLoading = true;
             try {
-                const moreMessages = await fetcher.getHistoryMessages(
+                const sessionStore = useSessionStore();
+                // 会话 max_seq 由 store 读取后作为入参传入，fetcher（service）不再反向依赖 store
+                const maxSeq = sessionStore.getSession(sessionKey)?.max_seq;
+                const page = await fetcher.getHistoryMessages(
                     sessionKey,
                     oldestConfirmedSeq,
-                    this.pageSize
+                    this.pageSize,
+                    maxSeq,
                 );
+                const moreMessages = page.messages;
 
-                const sessionStore = useSessionStore();
                 if (sessionStore.currentSessionKey !== sessionKey) {
                     return [];
                 }
@@ -268,8 +316,15 @@ export const useMessageStore = defineStore('message', {
                     this.messages.unshift(...moreMessages);
                 }
 
-                if (moreMessages.length < this.pageSize) {
+                // 本地优先 + 后台补齐策略下，不足一页不代表到顶（可能只是本地这页较小，
+                // 更早的由后台/下次翻页补）。仅当整页为空（确无更早消息）时才停止翻页。
+                if (moreMessages.length === 0) {
                     this.hasMore = false;
+                }
+
+                // 后台补齐承诺 resolve 后由 store 自身并入（会话仍打开/缓存时）——合并逻辑归属 store
+                if (page.reconcile) {
+                    void page.reconcile.then(fresh => this.mergeHistoryMessages(sessionKey, fresh));
                 }
 
                 return moreMessages;

@@ -1,6 +1,8 @@
 $ErrorActionPreference = "Stop"
 
-$typesDir = Join-Path $PSScriptRoot "share\types"
+# 脚本位于 scripts/ 子目录，仓库根为其上一级
+$repoRoot = Split-Path -Parent $PSScriptRoot
+$typesDir = Join-Path $repoRoot "share\types"
 $apisDir = Join-Path $typesDir "apis"
 
 # 1. Generate Proto types using ts-proto
@@ -11,7 +13,7 @@ if ($protoFiles) {
     Write-Host "Found $($protoFiles.Count) proto files."
     
     $files = $protoFiles.FullName
-    $pluginPath = Join-Path $PSScriptRoot "node_modules\.bin\protoc-gen-ts_proto.cmd"
+    $pluginPath = Join-Path $repoRoot "node_modules\.bin\protoc-gen-ts_proto.cmd"
     
     if (-not (Test-Path $pluginPath)) {
         Write-Error "ts-proto plugin not found at $pluginPath. Please run 'npm install ts-proto --save-dev'"

@@ -1,4 +1,6 @@
 import { ref, toRaw } from 'vue';
+import { ImTypes } from '@shared/types';
+import type { IChatMessage } from '@shared/types/chatMessage';
 import { useSessionStore } from '@/src/store/session';
 import { useMessageStore } from '@/src/store/message';
 import { useUserStore } from '@/src/store/user';
@@ -159,6 +161,24 @@ export function useChatPage() {
         }
     }
 
+    /**
+     * 撤回消息：service 只做 I/O，成功后由本层做本地乐观更新并落库
+     * （服务端随后广播的 MSG_OP_RECALL 通知会幂等对齐，覆盖多端/其他成员）。
+     */
+    async function recallMessage(msg: IChatMessage): Promise<boolean> {
+        if (!msg.msgId) return false;
+        const ok = await chatService.recallMessage(msg.msgId, msg.sessionId);
+        if (!ok) return false;
+
+        const updated = messageStore.updateMessageStatus(
+            msg.sessionId, '', ImTypes.MessageStatus.MESSAGE_STATUS_RECALLED, Date.now(), msg.msgId,
+        );
+        if (updated) {
+            void messageService.saveMessage(toRaw(updated) as IChatMessage);
+        }
+        return true;
+    }
+
     return {
         inputText,
         isSending,
@@ -166,6 +186,7 @@ export function useChatPage() {
         sendImageMessage,
         sendFileMessage,
         sendVideoMessage,
-        loadMore
+        loadMore,
+        recallMessage
     };
 }
