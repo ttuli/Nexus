@@ -2,7 +2,8 @@
 import { nextTick, ref } from 'vue'
 import CusDialog from './components/CusDialog'
 import { useUserStore } from './store/user'
-import { ipcService, windowService, tokenService, listenerService, chatService, LogoutType } from '@/src/services'
+import { ipcService, windowService, tokenService, listenerService, LogoutType } from '@/src/services'
+import { cancelOfflineSync } from '@/src/composables/offlineSync'
 import { IpcChannels } from '@shared/types'
 import { useGroupStore } from './store/group'
 import { useTheme } from '@/src/composables/useTheme'
@@ -25,7 +26,7 @@ try {
     })
     ipcService.on(IpcChannels.LOGOUT_REMIND, async (_e, data) => {
         // 身份已失效，立即中止在途的离线同步分页拉取，避免继续用失效凭证发请求
-        chatService.cancelOfflineSync()
+        cancelOfflineSync()
         if (data.type === LogoutType.KICKED) {
             await CusDialog.open({
                 title: '消息',

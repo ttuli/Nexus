@@ -207,7 +207,6 @@ watch(userId, (newId) => {
 </script>
 
 <style scoped lang="scss">
-@use "sass:color";
 @use "@/src/style/_constant.scss" as *;
 
 .friend-detail {
@@ -424,7 +423,7 @@ watch(userId, (newId) => {
                 color: white !important;
 
                 &:hover {
-                    background-color: color.adjust($color-error, $lightness: -10%) !important;
+                    filter: brightness(0.9);
                 }
             }
         }

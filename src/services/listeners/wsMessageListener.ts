@@ -19,6 +19,7 @@ import { messageService } from '@/src/services/messageService';
 import { sessionService } from '@/src/services/sessionService';
 import { windowService } from '@/src/services/windowService';
 import { useSessionStore } from '@/src/store/session';
+import { reportSessionRead } from '@/src/composables/sessionActions';
 
 export function initWsMessageListener(): void {
 
@@ -48,7 +49,7 @@ export function initWsMessageListener(): void {
         });
         // 正在查看的会话不累计未读，而是即时前进服务端已读游标
         if (isCurrentSession) {
-            void sessionStore.reportSessionRead(chatMsg.sessionKey as string);
+            reportSessionRead(chatMsg.sessionKey as string);
         } else {
             sessionStore.incrementUnread(chatMsg.sessionKey as string);
         }

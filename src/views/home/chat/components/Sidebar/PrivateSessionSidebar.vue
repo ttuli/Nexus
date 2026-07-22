@@ -72,6 +72,7 @@ import { ElMessage } from 'element-plus';
 import { extractTargetIdFromSessionId } from '@/src/utils/sessionUtils';
 import { Edit } from '@element-plus/icons-vue';
 import { friendService, messageService } from '@/src/services';
+import { updateSessionOptions } from '@/src/composables/sessionActions';
 
 const props = defineProps<{
     chat: ImTypes.Session;
@@ -136,7 +137,7 @@ const debounce = (fn: Function, delay = 300) => {
 
 const handleUpdatePinned = debounce(async (_val: string | number | boolean) => {
     try {
-        await sessionStore.updateSessionOptions(props.chat.session_key, 3 - props.chat.is_top, undefined);
+        await updateSessionOptions(props.chat.session_key, 3 - props.chat.is_top, undefined);
     } catch (error) {
         console.error(error);
     }
@@ -144,7 +145,7 @@ const handleUpdatePinned = debounce(async (_val: string | number | boolean) => {
 
 const handleUpdateDisturb = debounce(async (_val: string | number | boolean) => {
     try {
-        await sessionStore.updateSessionOptions(props.chat.session_key, undefined, 3 - props.chat.is_disturb);
+        await updateSessionOptions(props.chat.session_key, undefined, 3 - props.chat.is_disturb);
     } catch (error) {
         console.error(error);
     }

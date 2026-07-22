@@ -8,6 +8,7 @@ import { useSessionStore } from '@/src/store/session';
 import { useMessageStore } from '@/src/store/message';
 import { useGroup } from './useGroup';
 import { useGroupActions } from './useGroupActions';
+import { updateSessionOptions } from './sessionActions';
 import { extractTargetIdFromSessionId } from '@/src/utils/sessionUtils';
 import { sessionService } from '@/src/services/sessionService';
 
@@ -143,7 +144,7 @@ export function useGroupSessionSidebar(
         if (pinLoading.value) return;
         pinLoading.value = true;
         try {
-            await sessionStore.updateSessionOptions(chat.value.session_key, 3 - chat.value.is_top, undefined);
+            await updateSessionOptions(chat.value.session_key, 3 - chat.value.is_top, undefined);
         } finally {
             pinLoading.value = false;
         }
@@ -153,7 +154,7 @@ export function useGroupSessionSidebar(
         if (disturbLoading.value) return;
         disturbLoading.value = true;
         try {
-            await sessionStore.updateSessionOptions(chat.value.session_key, undefined, 3 - chat.value.is_disturb);
+            await updateSessionOptions(chat.value.session_key, undefined, 3 - chat.value.is_disturb);
         } finally {
             disturbLoading.value = false;
         }

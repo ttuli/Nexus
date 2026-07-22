@@ -11,6 +11,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    ApplyRelationModal: typeof import('./src/components/ApplyRelationModal.vue')['default']
     Avatar: typeof import('./src/components/Avatar.vue')['default']
     AvatarUpload: typeof import('./src/components/AvatarUpload.vue')['default']
     Badge: typeof import('./src/components/Badge.vue')['default']

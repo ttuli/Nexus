@@ -9,6 +9,7 @@ import { useUserStore } from '@/src/store/user'
 import { useGroupStore } from '@/src/store/group'
 import { ResourceType, IpcChannels, UpdateAction, ImTypes, ValidationType, ILocalSystemMessage } from '@shared/types'
 import { currentValidationTab } from '@/src/composables/useValidationTab'
+import { reportSessionRead } from '@/src/composables/sessionActions'
 import { useRouter } from 'vue-router'
 import { useSessionStore } from '@/src/store/session'
 import { useMessageStore } from '@/src/store/message'
@@ -119,7 +120,7 @@ export function initWsNotificationListener(): void {
                 }
 
                 if (notify.group_notify) {
-                    const result = await chatService.parseGroupNotification(notify.group_notify, envelope)
+                    const result = await chatService.parseGroupNotification(notify.group_notify, userStore.getUserID(), envelope)
                     if (result.msg) {
                         // session_key 由 group_id 派生恒有值；base.session_key 可能缺失，不可依赖
                         const sessionKey = result.sessionKey || ''
@@ -157,7 +158,7 @@ export function initWsNotificationListener(): void {
 
                         // 正在查看的会话不累计未读，改为即时前进服务端已读游标
                         if (isCurrentSession) {
-                            void sessionStore.reportSessionRead(sessionKey)
+                            reportSessionRead(sessionKey)
                         } else if (result.shouldIncrementUnread && !isFromSelf) {
                             sessionStore.incrementUnread(sessionKey)
                         }

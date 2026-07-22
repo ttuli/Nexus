@@ -61,7 +61,7 @@ import GlobalLoading from '@/src/components/GlobalLoading';
 import { useChatNavigation } from '@/src/composables/useChatNavigation';
 import { generateGroupSessionId } from '@/src/utils/sessionUtils';
 import { sessionService } from '@/src/services/sessionService';
-import { chatService } from '@/src/services/chatService';
+import { syncOfflineActiveSessions, cancelOfflineSync } from '@/src/composables/offlineSync';
 
 const router = useRouter();
 const sessionStore = useSessionStore()
@@ -147,7 +147,7 @@ onMounted(async () => {
         }
         if (state === ConnectionState.CONNECTED && wsWasDisconnected) {
             wsWasDisconnected = false;
-            void chatService.syncOfflineActiveSessions();
+            void syncOfflineActiveSessions();
         }
     });
 
@@ -169,7 +169,7 @@ onMounted(async () => {
     // 消费端全部经 store 响应式读取、组件对缺失用户有按需补拉，无需 await
     void initRelationStore()
 
-    chatService.syncOfflineActiveSessions()
+    void syncOfflineActiveSessions()
 
     // 预热联系人面板的懒加载 chunk，首次切换 tab 不再等待加载
     void import('@/src/views/home/contact/components/ContactSidebar.vue');
@@ -181,7 +181,7 @@ onMounted(async () => {
 onUnmounted(() => {
     // 会话变更已在各自发生处即时落盘，退出无需再全量保存，此处仅做清理。
     // storeOfflineTimestamp 记录离线时刻，供下次上线的离线同步作为拉取起点。
-    chatService.cancelOfflineSync()
+    cancelOfflineSync()
     storeOfflineTimestamp()
     messageStore.clearMessageCache();
     ipcService.off(IpcChannels.ROUTE_NAVIGATE);

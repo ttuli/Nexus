@@ -181,7 +181,6 @@ const handleJoin = async () => {
 </script>
 
 <style scoped lang="scss">
-@use "sass:color";
 @use "@/src/style/_constant.scss" as *;
 
 .group-detail {
@@ -392,7 +391,7 @@ const handleJoin = async () => {
     color: white !important;
 
     &:hover {
-        background-color: color.adjust($color-error, $lightness: -10%) !important;
+        filter: brightness(0.9);
     }
 }
 
@@ -404,7 +403,7 @@ const handleJoin = async () => {
     border-radius: 10px !important;
 
     &:hover {
-        background-color: color.adjust($color-primary, $lightness: -10%) !important;
+        filter: brightness(0.9);
     }
 }
 </style>

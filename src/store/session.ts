@@ -2,8 +2,7 @@ import { defineStore } from 'pinia';
 import { ImTypes } from '@shared/types';
 import { Renderer_Config as config } from '@shared/config/constants';
 import { judgeSessionType } from '@/src/utils/sessionUtils';
-import { seqMax, seqPositive, toSeq } from '@shared/utils/seq';
-import { markSessionRead, updateSession } from '@/src/apis/message';
+import { seqMax, toSeq } from '@shared/utils/seq';
 
 export const useSessionStore = defineStore('session', {
     state: () => ({
@@ -200,7 +199,8 @@ export const useSessionStore = defineStore('session', {
             }
             this.currentSessionKey = sessionkey;
             this.clearUnread(sessionkey);
-            void this.reportSessionRead(sessionkey);
+            // 已读游标上报（I/O）不在此处：由编排层（sessionActions.reportSessionRead）
+            // 在切换会话等入口处显式触发，store 保持纯状态
         },
 
         /**
@@ -210,23 +210,6 @@ export const useSessionStore = defineStore('session', {
             const chat = this.getSession(sessionkey);
             if (chat) {
                 chat.unread_count = 0;
-            }
-        },
-
-        /**
-         * 上报会话已读游标到服务端（read_seq = 本地 max_seq）。
-         * Lamport seq 不连续，服务端未读数依赖该游标做点查计数；游标单调前进，重复/乱序上报无害。
-         */
-        async reportSessionRead(sessionkey: string) {
-            const chat = this.getSession(sessionkey);
-            if (!chat || !chat.session_id || !seqPositive(chat.max_seq)) return;
-            try {
-                await markSessionRead({
-                    session_id: chat.session_id,
-                    read_seq: toSeq(chat.max_seq),
-                });
-            } catch (error) {
-                console.error('[SessionStore] reportSessionRead failed:', error);
             }
         },
 
@@ -276,29 +259,36 @@ export const useSessionStore = defineStore('session', {
         },
 
         /**
-         * 更新会话配置（置顶、免打扰等）并同步到服务器
-         * @param sessionKey 本地会话 Key（store 以 session_key 索引；上报服务端时用真实 session_id）
+         * 更新会话配置（置顶、免打扰等，纯内存操作）
+         * @returns 更新后的 session，供编排层（sessionActions）同步服务端；无效入参返回 null
          */
-        async updateSessionOptions(sessionKey: string, isTop?: number, isDisturb?: number) {
+        setSessionOptions(sessionKey: string, isTop?: number, isDisturb?: number): ImTypes.Session | null {
             const chat = this.getSession(sessionKey);
-            if (!chat) return;
-            if (isTop === undefined && isDisturb === undefined) return;
+            if (!chat) return null;
+            if (isTop === undefined && isDisturb === undefined) return null;
 
-            let isTopVal = isTop ?? chat.is_top;
-            let isDisturbVal = isDisturb ?? chat.is_disturb;
-            chat.is_top = isTopVal;
-            chat.is_disturb = isDisturbVal;
+            chat.is_top = isTop ?? chat.is_top;
+            chat.is_disturb = isDisturb ?? chat.is_disturb;
             this.sortSessionList();
+            return chat;
+        },
 
-            try {
-                await updateSession({
-                    session_id: sessionKey,
-                    is_top: Number(isTopVal),
-                    is_disturb: Number(isDisturbVal),
-                });
-            } catch (error) {
-                console.error(error);
-            }
+        /**
+         * 以服务端下发的会话元数据对齐本地（未读数/置顶/免打扰，纯内存操作）。
+         * unread_count 传 undefined 表示不覆盖（正在查看的会话以本地已读为准）；
+         * is_top/is_disturb 仅在服务端有值（非 0）时覆盖。
+         * @returns 对齐后的 session，供调用方持久化；本地无此会话返回 null
+         */
+        syncServerSessionMeta(
+            sessionId: string,
+            meta: { unread_count?: number; is_top?: number; is_disturb?: number }
+        ): ImTypes.Session | null {
+            const local = this.sessionList.find(c => c.session_id === sessionId);
+            if (!local) return null;
+            if (meta.unread_count !== undefined) local.unread_count = meta.unread_count;
+            if (meta.is_top) local.is_top = meta.is_top;
+            if (meta.is_disturb) local.is_disturb = meta.is_disturb;
+            return local;
         },
     },
     getters: {

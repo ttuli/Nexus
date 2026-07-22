@@ -21,6 +21,7 @@ defineOptions({ name: 'SessionList' });
 import { useSessionStore } from '@/src/store/session';
 import { useMessageStore } from '@/src/store/message';
 import { useChatNavigation } from '@/src/composables/useChatNavigation';
+import { reportSessionRead, updateSessionOptions } from '@/src/composables/sessionActions';
 import SessionCard from './components/SessionCard.vue';
 import type { MenuOption } from '@/src/components/ContextMenu.vue';
 import { ImTypes } from '@shared/types';
@@ -87,7 +88,7 @@ const handleMenuSelect = (option: MenuOption) => {
             break;
         case 'mark_read':
             sessionStore.clearUnread(chat.session_key);
-            void sessionStore.reportSessionRead(chat.session_key);
+            reportSessionRead(chat.session_key);
             break;
         case 'delete':
             sessionStore.removeSession(chat.session_key);
@@ -99,10 +100,10 @@ const handleMenuSelect = (option: MenuOption) => {
             }
             break;
         case 'toggle_top':
-            sessionStore.updateSessionOptions(chat.session_key, 3 - chat.is_top, undefined);
+            void updateSessionOptions(chat.session_key, 3 - chat.is_top, undefined);
             break;
         case 'toggle_disturb':
-            sessionStore.updateSessionOptions(chat.session_key, undefined, 3 - chat.is_disturb);
+            void updateSessionOptions(chat.session_key, undefined, 3 - chat.is_disturb);
             break;
     }
 };

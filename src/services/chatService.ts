@@ -1,5 +1,5 @@
 import { toRaw } from 'vue';
-import { getHistory, getSession, getUserActiveSessions, getUserSessions, recallMessage as recallMessageApi } from '@/src/apis/message';
+import { getHistory, getSession, getUserActiveSessions, getUserSessions, markSessionRead, recallMessage as recallMessageApi, updateSession as updateSessionApi } from '@/src/apis/message';
 import { ApiTypes, ImTypes, PartialExcept, ResourceType, UpdateAction } from '@shared/types';
 import { MessageStatus, MessageType } from '@shared/types/proto';
 import { IChatMessage, ILocalSystemMessage } from '@shared/types/chatMessage';
@@ -8,20 +8,13 @@ import { toSeq, seqPositive, seqLt, seqGt, seqCompare, seqPlusOne, seqMax } from
 import { convertNotificationToChatMessage } from '@/src/utils/messageConverter';
 import { judgeSessionType, toServerSessionType } from '@/src/utils/sessionUtils';
 import { useSessionStore } from '@/src/store/session';
-import { useMessageStore, type HistoryPage } from '@/src/store/message';
-import { useUserStore } from '@/src/store/user';
-import { getOfflineTimestamp } from '@/src/store/init';
+import type { HistoryPage } from '@/src/store/message';
 import cacheService from './cacheService';
 import groupService from './groupService';
 import { messageService } from './messageService';
 import { sessionService } from './sessionService';
 
 class ChatService {
-    // 离线同步在途标记：防止挂载同步与重连同步并发重入
-    private offlineSyncInFlight = false;
-    // 离线同步取消令牌：登出/离开主界面时中止分页拉取序列
-    private offlineSyncAbort: AbortController | null = null;
-
     private normalizeNumber(value: unknown): number {
         if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
         if (typeof value === 'string') {
@@ -308,10 +301,12 @@ class ChatService {
      * 增量拉取 afterSeq 之后的全部消息（用于重连/上线后的离线消息补齐）。
      * Lamport seq 不连续，无法由区间宽度推断数量，按 ASC 分页循环直到拉尽。
      * @param afterSeq 排他性下界（本地已有的最大 seq，'0' 表示从头拉取最近页）
+     * @param meId 当前登录用户 id（应用群操作副作用时判断退群/被踢是否针对自己）
      */
     async fetchMessagesSince(
         sessionKey: string,
         afterSeq: string,
+        meId: number,
         pageSize: number = 50,
         maxPages: number = 20,
         signal?: AbortSignal,
@@ -346,7 +341,7 @@ class ChatService {
         }
 
         if (groupNotifications.length > 0 && !signal?.aborted) {
-            await this.applyGroupNotificationEffects(groupNotifications);
+            await this.applyGroupNotificationEffects(groupNotifications, meId);
         }
         return all;
     }
@@ -445,122 +440,64 @@ class ChatService {
     }
 
     /**
-     * 离线同步：
-     * 1. 拉取活跃会话，对 server actual_seq > 本地 max_seq 的会话按 seq 区间增量补拉离线消息
-     *    （离线期间服务端只存不推，上线后由客户端拉齐）
-     * 2. 拉取用户会话列表，以服务端计算的 unread_count（基于已读游标点查）覆盖本地未读数
+     * 上报会话已读游标（纯 I/O）。Lamport seq 不连续，服务端未读数依赖该游标做点查计数；
+     * 游标单调前进，重复/乱序上报无害。守卫（session_id 非空 / max_seq 为正）由调用方负责。
      */
-    async syncOfflineActiveSessions() {
-        if (this.offlineSyncInFlight) return;
-        this.offlineSyncInFlight = true;
-        const abort = new AbortController();
-        this.offlineSyncAbort = abort;
+    async reportRead(sessionId: string, readSeq: string): Promise<void> {
         try {
-            await this._doSyncOfflineActiveSessions(abort.signal);
-        } finally {
-            this.offlineSyncInFlight = false;
-            if (this.offlineSyncAbort === abort) {
-                this.offlineSyncAbort = null;
-            }
-        }
-    }
-
-    /** 中止在途的离线同步（登出、离开主界面时调用） */
-    cancelOfflineSync() {
-        this.offlineSyncAbort?.abort();
-    }
-
-    private async _doSyncOfflineActiveSessions(signal: AbortSignal) {
-        const sessionStore = useSessionStore();
-        const messageStore = useMessageStore();
-        const timestamp = getOfflineTimestamp();
-
-        // ── 1. 活跃会话 + 离线消息增量补拉 ─────────────────────────────
-        const res = await getUserActiveSessions({ timestamp });
-        if (res.code === 200 && res.data?.sessions) {
-            const updatedSessions: ImTypes.Session[] = [];
-            for (const ss of res.data.sessions) {
-                if (signal.aborted) break;
-                if (!ss.session_key) continue;
-                const localMaxSeq = toSeq(sessionStore.getSession(ss.session_key)?.max_seq);
-                // Lamport 语义下 max_seq 与 actual_seq 等价（服务端兼容返回）
-                const serverMaxSeq = seqMax(ss.max_seq, ss.actual_seq);
-
-                const updated = sessionStore.upsertSession({
-                    session_id: ss.session_id,
-                    session_key: ss.session_key,
-                    // 服务端 type 为 model 值(1/2)，与前端枚举(0/1)不同，统一由 session_key 推导
-                    type: judgeSessionType(ss.session_key),
-                    max_seq: serverMaxSeq,
-                    last_content: ss.last_content,
-                    last_sender: ss.last_sender,
-                    create_time: ss.create_time,
-                    update_time: ss.update_time,
-                });
-                if (updated) updatedSessions.push(toRaw(updated) as ImTypes.Session);
-
-                // 本地落后于服务端：按 (localMaxSeq, +∞) 分页拉齐离线消息
-                if (seqGt(serverMaxSeq, localMaxSeq)) {
-                    try {
-                        const missing = await this.fetchMessagesSince(ss.session_key, localMaxSeq, 50, 20, signal);
-                        if (missing.length > 0) {
-                            if (sessionStore.currentSessionKey === ss.session_key) {
-                                missing.forEach(m => messageStore.upsertMessage(m));
-                            } else {
-                                // 补拉的消息只写了库未进内存，该会话的消息缓存已过期
-                                messageStore.invalidateMessageCache(ss.session_key);
-                            }
-                        }
-                    } catch (e) {
-                        console.error(`[ChatService] backfill offline messages for ${ss.session_key} failed:`, e);
-                    }
-                }
-            }
-            if (updatedSessions.length > 0) {
-                void sessionService.saveMany(updatedSessions);
-            }
-        }
-
-        // ── 2. 服务端未读数对齐（按 session_id 匹配本地会话）─────────────
-        if (signal.aborted) return;
-        try {
-            const convRes = await getUserSessions();
-            if (convRes.code === 200 && convRes.data?.sessions) {
-                const toPersist: ImTypes.Session[] = [];
-                for (const us of convRes.data.sessions) {
-                    const local = sessionStore.sessionList.find(c => c.session_id === us.session_id);
-                    if (!local) continue;
-                    if (local.session_key === sessionStore.currentSessionKey) {
-                        // 正在查看的会话：本地已读为准，反向推进服务端游标
-                        void sessionStore.reportSessionRead(local.session_key);
-                    } else {
-                        local.unread_count = Number(us.unread_count) || 0;
-                    }
-                    if (us.is_top) local.is_top = us.is_top;
-                    if (us.is_disturb) local.is_disturb = us.is_disturb;
-                    toPersist.push(toRaw(local) as ImTypes.Session);
-                }
-                if (toPersist.length > 0) {
-                    void sessionService.saveMany(toPersist);
-                }
-            }
+            await markSessionRead({ session_id: sessionId, read_seq: readSeq });
         } catch (e) {
-            console.error('[ChatService] sync server unread counts failed:', e);
+            console.error('[ChatService] reportRead failed:', e);
         }
+    }
+
+    /**
+     * 更新会话设置（置顶/免打扰）到服务端（纯 I/O）。
+     * 服务端优先按 session_id 定位，id 为空时按 session_key 解析/创建。
+     * 失败文案由请求拦截器统一 toast，此处仅记日志。
+     */
+    async updateSessionOptions(sessionId: string, sessionKey: string, isTop: number, isDisturb: number): Promise<void> {
+        try {
+            await updateSessionApi({
+                session_id: sessionId,
+                session_key: sessionKey,
+                is_top: isTop,
+                is_disturb: isDisturb,
+            });
+        } catch (e) {
+            console.error('[ChatService] updateSessionOptions failed:', e);
+        }
+    }
+
+    /**
+     * 拉取 timestamp 之后有动态的活跃会话列表（纯 I/O）。
+     * 网络错误向上抛出，由调用方（离线同步编排 composables/offlineSync）处置。
+     */
+    async fetchActiveSessions(timestamp: number): Promise<ApiTypes.message.Session[]> {
+        const res = await getUserActiveSessions({ timestamp });
+        return res.code === 200 && Array.isArray(res.data?.sessions) ? res.data.sessions : [];
+    }
+
+    /** 拉取用户会话列表（含服务端计算的未读数/置顶/免打扰，纯 I/O），网络错误向上抛出 */
+    async fetchUserSessions(): Promise<ApiTypes.message.UserSession[]> {
+        const res = await getUserSessions();
+        return res.code === 200 && Array.isArray(res.data?.sessions) ? res.data.sessions : [];
     }
 
     /**
      * 处理群操作通知（统一 NotifyMessage 信封的 group_notify 载荷）。
      * @param groupNotification 已从信封解出的群操作通知载荷
+     * @param meId 当前登录用户 id（判断退群/被踢是否针对自己）
      * @param envelope 信封顶层基础字段（msg_id / session_id / seq，落库时回填）
      */
     async parseGroupNotification(
         groupNotification: ImTypes.GroupNotification,
+        meId: number,
         envelope?: { msgId?: string; sessionId?: string; seq?: string },
     ) {
         const msg = convertNotificationToChatMessage(groupNotification, envelope);
 
-        await this.applyGroupNotificationEffects([groupNotification]);
+        await this.applyGroupNotificationEffects([groupNotification], meId);
 
         const isCreate = groupNotification.op_type === ImTypes.GroupOperationType.GROUP_OP_CREATE;
         return {
@@ -580,8 +517,7 @@ class ChatService {
      * 移除成员（LEAVE/KICK）直接按 user_id 删除缓存行；均为幂等操作。
      * 批量应用时刷新按群去重且晚于删除执行，刷新取服务端当前真值，最终状态收敛。
      */
-    private async applyGroupNotificationEffects(notifications: ImTypes.GroupNotification[]): Promise<void> {
-        const meId = useUserStore().getUserID();
+    private async applyGroupNotificationEffects(notifications: ImTypes.GroupNotification[], meId: number): Promise<void> {
         const groupsToSync = new Set<number>();
 
         for (const n of notifications) {

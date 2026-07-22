@@ -1,6 +1,7 @@
 import { useSessionStore } from '@/src/store/session';
 import { useMessageStore } from '@/src/store/message';
 import { useUserStore } from '@/src/store/user';
+import { reportSessionRead } from '@/src/composables/sessionActions';
 import { sessionService } from '@/src/services/sessionService';
 import { chatService } from '@/src/services/chatService';
 import { getLastContent, isSystemNotificationMessage } from '@/src/utils/messageConverter';
@@ -42,6 +43,8 @@ export function useChatNavigation() {
             return;
         }
         sessionStore.setCurrentSession(sessionKey);
+        // 进入会话即前进服务端已读游标（原 setCurrentSession 内部行为，随 store 纯化上移至此）
+        reportSessionRead(sessionKey);
 
         // 缓存命中直接恢复，未命中才重置并走查库流程
         const restored = messageStore.restoreMessagesFromCache(sessionKey);

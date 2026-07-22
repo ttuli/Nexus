@@ -98,6 +98,8 @@ export interface GetHistoryResp {
 export interface UpdateSessionReq {
   /** @gotags: json:"session_id" */
   session_id: string;
+  /** @gotags: json:"session_key" */
+  session_key: string;
   /** @gotags: json:"is_top,optional" */
   is_top: number;
   /** @gotags: json:"is_disturb,optional" */
@@ -1037,7 +1039,7 @@ export const GetHistoryResp: MessageFns<GetHistoryResp> = {
 };
 
 function createBaseUpdateSessionReq(): UpdateSessionReq {
-  return { session_id: "", is_top: 0, is_disturb: 0 };
+  return { session_id: "", session_key: "", is_top: 0, is_disturb: 0 };
 }
 
 export const UpdateSessionReq: MessageFns<UpdateSessionReq> = {
@@ -1045,11 +1047,14 @@ export const UpdateSessionReq: MessageFns<UpdateSessionReq> = {
     if (message.session_id !== "") {
       writer.uint32(10).string(message.session_id);
     }
+    if (message.session_key !== "") {
+      writer.uint32(18).string(message.session_key);
+    }
     if (message.is_top !== 0) {
-      writer.uint32(16).int32(message.is_top);
+      writer.uint32(24).int32(message.is_top);
     }
     if (message.is_disturb !== 0) {
-      writer.uint32(24).int32(message.is_disturb);
+      writer.uint32(32).int32(message.is_disturb);
     }
     return writer;
   },
@@ -1070,15 +1075,23 @@ export const UpdateSessionReq: MessageFns<UpdateSessionReq> = {
           continue;
         }
         case 2: {
-          if (tag !== 16) {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.session_key = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
             break;
           }
 
           message.is_top = reader.int32();
           continue;
         }
-        case 3: {
-          if (tag !== 24) {
+        case 4: {
+          if (tag !== 32) {
             break;
           }
 
@@ -1101,6 +1114,11 @@ export const UpdateSessionReq: MessageFns<UpdateSessionReq> = {
         : isSet(object.session_id)
         ? globalThis.String(object.session_id)
         : "",
+      session_key: isSet(object.sessionKey)
+        ? globalThis.String(object.sessionKey)
+        : isSet(object.session_key)
+        ? globalThis.String(object.session_key)
+        : "",
       is_top: isSet(object.isTop)
         ? globalThis.Number(object.isTop)
         : isSet(object.is_top)
@@ -1119,6 +1137,9 @@ export const UpdateSessionReq: MessageFns<UpdateSessionReq> = {
     if (message.session_id !== "") {
       obj.sessionId = message.session_id;
     }
+    if (message.session_key !== "") {
+      obj.sessionKey = message.session_key;
+    }
     if (message.is_top !== 0) {
       obj.isTop = Math.round(message.is_top);
     }
@@ -1134,6 +1155,7 @@ export const UpdateSessionReq: MessageFns<UpdateSessionReq> = {
   fromPartial<I extends Exact<DeepPartial<UpdateSessionReq>, I>>(object: I): UpdateSessionReq {
     const message = createBaseUpdateSessionReq();
     message.session_id = object.session_id ?? "";
+    message.session_key = object.session_key ?? "";
     message.is_top = object.is_top ?? 0;
     message.is_disturb = object.is_disturb ?? 0;
     return message;
