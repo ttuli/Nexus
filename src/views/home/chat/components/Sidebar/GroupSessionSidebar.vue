@@ -141,6 +141,7 @@
 <script setup lang="ts">
 import { Edit } from '@element-plus/icons-vue';
 import { ImTypes } from '@shared/types';
+import { useGroupActions } from '@/src/composables/useGroupActions';
 import { useGroupSessionSidebar } from '@/src/composables/useGroupSessionSidebar';
 import GroupMembersCard from './components/GroupMembersCard.vue';
 import AllGroupMembersModal from './components/AllGroupMembersModal.vue';
@@ -152,6 +153,8 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits(['close']);
+
+const { quitOrDismissGroup } = useGroupActions();
 
 const {
     // 群状态
@@ -181,7 +184,6 @@ const {
     handleUpdateDisturb,
     // 会话操作
     clearChatData,
-    confirmQuitGroup,
     // 成员弹窗
     allMembersModalVisible,
     viewAllMembers,
@@ -194,6 +196,14 @@ const {
     removeMembers,
     handleRemoveMembers,
 } = useGroupSessionSidebar(() => props.chat, () => emit('close'));
+
+const confirmQuitGroup = async () => {
+    if (!targetIdVal.value) return;
+    const ok = await quitOrDismissGroup(targetIdVal.value, isOwner.value, { groupName: groupInfo.value?.name });
+    if (ok) {
+        emit('close');
+    }
+};
 </script>
 
 <style scoped lang="scss">

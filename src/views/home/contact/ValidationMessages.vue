@@ -36,9 +36,9 @@
                             <template v-if="req.status === ImTypes.ApplyStatus.APPLY_STATUS_PENDING">
                                 <template v-if="req.from_user_id !== userStore.userID">
                                     <CusButton type="primary" :show-icon="false" class="action-btn"
-                                        @click="handleApply(req, 'accept')">同意</CusButton>
+                                        @click="handleFriendApply(req, 'accept')">同意</CusButton>
                                     <CusButton type="normal" :show-icon="false" class="action-btn"
-                                        @click="handleApply(req, 'reject')">拒绝</CusButton>
+                                        @click="handleFriendApply(req, 'reject')">拒绝</CusButton>
                                 </template>
                                 <span v-else class="status-text">等待验证</span>
                             </template>
@@ -99,9 +99,9 @@
                             <template v-if="req.status === ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_PENDING">
                                 <template v-if="req.sender_id !== userStore.userID">
                                     <CusButton type="primary" :show-icon="false" class="action-btn"
-                                        @click="handleGroupReq(req, 'accept')">同意</CusButton>
+                                        @click="handleGroupApply(req, 'accept')">同意</CusButton>
                                     <CusButton type="normal" :show-icon="false" class="action-btn"
-                                        @click="handleGroupReq(req, 'reject')">拒绝</CusButton>
+                                        @click="handleGroupApply(req, 'reject')">拒绝</CusButton>
                                 </template>
                                 <span v-else class="status-text">等待验证</span>
                             </template>
@@ -122,7 +122,6 @@ import { useGroupStore } from '@/src/store/group';
 
 defineOptions({ name: 'ValidationMessages' });
 import { ImTypes, ValidationType } from '@shared/types';
-import { groupService } from '@/src/services';
 import { useFriendActions } from '@/src/composables/useFriendActions';
 import { useGroupActions } from '@/src/composables/useGroupActions';
 import GlobalLoading from '@/src/components/GlobalLoading';
@@ -132,7 +131,7 @@ import { currentValidationTab } from '@/src/composables/useValidationTab';
 const type = ref<'friend' | 'group'>('friend');
 const userStore = useUserStore();
 const { handleFriendApply } = useFriendActions();
-const { loadPendingInvites, handleInvite } = useGroupActions();
+const { loadPendingInvites, handleInvite, handleGroupApply } = useGroupActions();
 const groupStore = useGroupStore();
 
 // 入群邀请「待处理」状态（proto 生成的 InviteStatus 枚举）
@@ -260,37 +259,6 @@ const getGroupInfo = (groupId: number) => {
     return groupStore.getGroup(groupId);
 };
 
-const handleApply = async (req: ImTypes.FriendRequest, type: 'accept' | 'reject') => {
-    const status: ImTypes.ApplyStatus = type === 'accept' ? ImTypes.ApplyStatus.APPLY_STATUS_AGREED : ImTypes.ApplyStatus.APPLY_STATUS_REJECTED;
-    try {
-        GlobalLoading.show();
-        await handleFriendApply({
-            request_id: req.id,
-            result: status,
-            reject_reason: ''
-        });
-
-        userStore.updateLastReadFriendRequestTime()
-    } finally {
-        GlobalLoading.close();
-    }
-
-};
-
-const handleGroupReq = async (req: ImTypes.GroupApply, actionType: 'accept' | 'reject') => {
-    const status: ImTypes.GroupApplyStatus = actionType === 'accept' ? ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_ACCEPTED : ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_REJECTED;
-    try {
-        GlobalLoading.show();
-        await groupService.handleGroupApply({
-            apply_id: req.id,
-            result: status,
-            reject_reason: '',
-        });
-        ElMessage.success("处理成功")
-    } finally {
-        GlobalLoading.close();
-    }
-};
 </script>
 
 <style scoped lang="scss">

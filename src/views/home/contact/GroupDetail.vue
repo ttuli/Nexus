@@ -60,10 +60,15 @@
                 </div>
             </div>
 
-            <!-- Quit Button -->
+            <!-- Actions Section -->
             <div class="quit-section">
-                <CusButton type="primary" @click="toChat" :show-icon="false">发消息</CusButton>
-                <CusButton class="danger-btn" :show-icon="false" @click="confirmQuit">退出群聊</CusButton>
+                <template v-if="isMember">
+                    <CusButton type="primary" @click="toChat" :show-icon="false">发消息</CusButton>
+                    <CusButton class="danger-btn" :show-icon="false" @click="confirmQuit">退出群聊</CusButton>
+                </template>
+                <template v-else>
+                    <CusButton class="join-btn" type="primary" :show-icon="false" @click="handleJoin">加入群聊</CusButton>
+                </template>
             </div>
         </div>
 
@@ -75,7 +80,7 @@
 
 <script setup lang="ts">
 import { computed, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import GroupMemberGrid from './components/GroupMemberGrid.vue';
 import { useUserStore } from '@/src/store/user';
 import { generateGroupSessionId } from '@/src/utils/sessionUtils';
@@ -83,32 +88,34 @@ import { generateGroupSessionId } from '@/src/utils/sessionUtils';
 defineOptions({ name: 'GroupDetail' });
 import { useChatNavigation } from '@/src/composables/useChatNavigation';
 import { useGroup } from '@/src/composables/useGroup';
+import { useGroupActions } from '@/src/composables/useGroupActions';
 import { ElMessage } from 'element-plus';
 import { CopyDocument } from '@element-plus/icons-vue';
-import CusDialog from '@/src/components/CusDialog';
-import { DialogResult } from '@/src/components/CusDialog/types';
+import { useGroupStore } from '@/src/store/group.ts';
+import { groupService } from '@/src/services';
+import CusInputDialog from '@/src/components/CusInputDialog';
+import { ImTypes } from '@shared/types';
 
 const route = useRoute();
-const router = useRouter();
 const userStore = useUserStore();
+const groupStore = useGroupStore();
 const { navigateToChat } = useChatNavigation();
+const { quitOrDismissGroup, loadGroupInfo, loadGroupMembers } = useGroupActions();
 
 const groupId = computed(() => parseInt(route.query.id as string));
 const {
     groupInfo,
     members,
     myNickname,
-    loadInfo,
-    loadMembers,
+    isMember,
     copyGroupId: copyGroupIdToClipboard,
     updateGroup,
-    quitOrDismiss,
 } = useGroup(groupId);
 
 watch(groupId, (newId) => {
     if (newId) {
-        loadInfo(true);
-        loadMembers(true);
+        loadGroupInfo(newId, false);
+        loadGroupMembers(newId, false);
     }
 }, { immediate: true });
 
@@ -116,7 +123,6 @@ const toChat = () => {
     if (!groupInfo.value) return;
     const sessionId = generateGroupSessionId(groupInfo.value.id);
     navigateToChat(sessionId, { toggle: false });
-    router.push('/home/chat');
 };
 
 const copyGroupId = async () => {
@@ -135,47 +141,41 @@ const handleAvatarSuccess = async (url: string) => {
 };
 
 const confirmQuit = async () => {
-    if (groupInfo.value?.owner_id === userStore.userID) {
-        const res = await CusDialog.open({
-            title: '警告',
-            content: '您可选择解散群聊或仅自己退出',
-            showCancel: true,
-            confirmText: '仅自己退出',
-            cancelText: '解散群聊',
-        });
+    if (!groupInfo.value) return;
 
-        if (res === DialogResult.Confirm) {
-
-        } else if (res === DialogResult.Cancel) {
-            // Dissolve
-            await quitOrDismiss(true);
-            ElMessage.success('已解散该群聊');
-            router.push('/home/contact');
-        }
-        return;
-    }
-
-    const res = await CusDialog.open({
-        title: '警告',
-        content: '确定要退出该群聊吗？退出后将无法查看历史消息。',
-        showCancel: true,
-        confirmText: '确定退出',
-        cancelText: '取消',
-    });
-
-    if (res === DialogResult.Confirm) {
-        await doQuit();
-    }
+    return quitOrDismissGroup(groupInfo.value.id, groupInfo.value.owner_id === userStore.userID, { groupName: groupInfo.value.name });
 };
 
-const doQuit = async () => {
+const handleJoin = async () => {
     if (!groupInfo.value) return;
+
+    let message = '';
+    if (groupInfo.value.join_type === ImTypes.JoinType.JOIN_TYPE_AFTER_APPROVAL) {
+        const inputVal = await CusInputDialog.open({
+            title: '申请加入群聊',
+            placeholder: '请填写验证信息',
+            confirmText: '确定',
+            cancelText: '取消'
+        });
+        if (inputVal === undefined) return;
+        message = inputVal;
+    }
+
     try {
-        await quitOrDismiss(false);
-        ElMessage.success('已退出该群聊');
-        router.push('/home/contact');
+        await groupService.joinGroup({
+            group_id: groupInfo.value.id,
+            message: message
+        });
+        if (groupInfo.value.join_type === ImTypes.JoinType.JOIN_TYPE_AFTER_APPROVAL) {
+            ElMessage.success("发送入群申请成功");
+        } else {
+            ElMessage.success("加入群聊成功");
+            groupStore.addJoinedGroup(groupInfo.value.id);
+            loadGroupInfo(groupInfo.value.id, true);
+            loadGroupMembers(groupInfo.value.id, true);
+        }
     } catch (e) {
-        ElMessage.error('退出失败');
+        ElMessage.error("加入群聊失败");
     }
 };
 </script>
@@ -393,6 +393,18 @@ const doQuit = async () => {
 
     &:hover {
         background-color: color.adjust($color-error, $lightness: -10%) !important;
+    }
+}
+
+:deep(.join-btn) {
+    flex: 1;
+    background-color: $color-primary !important;
+    color: white !important;
+    height: 44px !important;
+    border-radius: 10px !important;
+
+    &:hover {
+        background-color: color.adjust($color-primary, $lightness: -10%) !important;
     }
 }
 </style>

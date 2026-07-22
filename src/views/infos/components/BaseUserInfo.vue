@@ -51,52 +51,50 @@
 
             <!-- Edit Dialog -->
             <Teleport to="body">
-                <Transition name="fade">
-                    <div v-if="showEditDialog" class="modal-overlay" @click="showEditDialog = false">
-                        <div class="modal-card" @click.stop>
-                            <div class="modal-header">
-                                <span>编辑资料</span>
-                                <button class="close-btn" @click="showEditDialog = false">×</button>
+                <ModalBackground :visible="showEditDialog" @close="showEditDialog = false">
+                    <div class="modal-card">
+                        <div class="modal-header">
+                            <span>编辑资料</span>
+                            <button class="close-btn" @click="showEditDialog = false">×</button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-item">
+                                <label>用户名</label>
+                                <input v-model="editForm.user_name" type="text" placeholder="请输入用户名" />
                             </div>
-                            <div class="modal-body">
-                                <div class="form-item">
-                                    <label>用户名</label>
-                                    <input v-model="editForm.user_name" type="text" placeholder="请输入用户名" />
-                                </div>
-                                <div class="form-item">
-                                    <label>性别</label>
-                                    <CusDropdown
-                                        v-model="editForm.gender"
-                                        :options="genderOptions"
-                                        placeholder="选择性别"
-                                    />
-                                </div>
-                                <div class="form-item row-layout">
-                                    <label>加好友需要验证</label>
-                                    <Toggle
-                                        v-model="editForm.join_type"
-                                        :active-value="ImTypes.JoinType.JOIN_TYPE_AFTER_APPROVAL"
-                                        :inactive-value="ImTypes.JoinType.JOIN_TYPE_DIRECT"
-                                    />
-                                </div>
-                                <div class="form-item">
-                                    <label>个性签名</label>
-                                    <textarea v-model="editForm.personal_signature" placeholder="请输入个性签名" rows="3"></textarea>
-                                </div>
+                            <div class="form-item">
+                                <label>性别</label>
+                                <CusDropdown
+                                    v-model="editForm.gender"
+                                    :options="genderOptions"
+                                    placeholder="选择性别"
+                                />
                             </div>
-                            <div class="modal-footer">
-                                <CusButton type="normal" @click="showEditDialog = false" :disabled="updating"
-                                    :show-icon="false">
-                                    取消
-                                </CusButton>
-                                <CusButton type="primary" @click="handleUpdateProfile" :loading="updating"
-                                    :show-icon="false">
-                                    保存
-                                </CusButton>
+                            <div class="form-item row-layout">
+                                <label>加好友需要验证</label>
+                                <Toggle
+                                    v-model="editForm.join_type"
+                                    :active-value="ImTypes.JoinType.JOIN_TYPE_AFTER_APPROVAL"
+                                    :inactive-value="ImTypes.JoinType.JOIN_TYPE_DIRECT"
+                                />
+                            </div>
+                            <div class="form-item">
+                                <label>个性签名</label>
+                                <textarea v-model="editForm.personal_signature" placeholder="请输入个性签名" rows="3"></textarea>
                             </div>
                         </div>
+                        <div class="modal-footer">
+                            <CusButton type="normal" @click="showEditDialog = false" :disabled="updating"
+                                :show-icon="false">
+                                取消
+                            </CusButton>
+                            <CusButton type="primary" @click="handleUpdateProfile" :loading="updating"
+                                :show-icon="false">
+                                保存
+                            </CusButton>
+                        </div>
                     </div>
-                </Transition>
+                </ModalBackground>
             </Teleport>
         </div>
     </div>
@@ -105,6 +103,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useUserStore } from '@/src/store/user';
+import ModalBackground from '@/src/components/ModalBackground/ModalBackground.vue';
 
 const genderOptions = [
     { value: ImTypes.Gender.GENDER_MALE, label: '男', icon: '👨' },
@@ -338,20 +337,6 @@ onMounted(async () => {
 }
 
 /* Modal Styles */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: $bg-overlay;
-    backdrop-filter: blur(4px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
-}
-
 .modal-card {
     background: $bg-card;
     border-radius: 16px;
@@ -361,7 +346,6 @@ onMounted(async () => {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    animation: modal-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .modal-header {
@@ -476,37 +460,6 @@ onMounted(async () => {
         height: 36px !important;
         border-radius: 8px !important;
         font-size: 14px !important;
-    }
-}
-
-@keyframes modal-in {
-    from {
-        opacity: 0;
-        transform: scale(0.95) translateY(10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-    }
-}
-
-// Vue Transition
-.fade-enter-active,
-.fade-leave-active {
-    transition: opacity 0.3s ease;
-
-    .modal-card {
-        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-}
-
-.fade-enter-from,
-.fade-leave-to {
-    opacity: 0;
-
-    .modal-card {
-        transform: scale(0.95);
     }
 }
 </style>

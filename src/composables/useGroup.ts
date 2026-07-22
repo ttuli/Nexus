@@ -1,7 +1,6 @@
 import { computed, toValue, type MaybeRefOrGetter } from 'vue';
 import { useUserStore } from '@/src/store/user';
 import { useGroupStore } from '@/src/store/group';
-import { useGroupActions } from './useGroupActions';
 import { groupService, userService } from '@/src/services';
 import { ImTypes } from '@shared/types';
 
@@ -20,7 +19,6 @@ import { ImTypes } from '@shared/types';
 export function useGroup(groupIdInput: MaybeRefOrGetter<number>) {
     const userStore = useUserStore();
     const groupStore = useGroupStore();
-    const { setMyGroupNickname, quitOrDismissGroup, loadGroupInfo, loadGroupMembers } = useGroupActions();
 
     const groupId = computed(() => toValue(groupIdInput) || 0);
     groupService.fetchGroupMembers(groupId.value).then((res) => {
@@ -60,12 +58,6 @@ export function useGroup(groupIdInput: MaybeRefOrGetter<number>) {
 
     // ---- 操作（返回结果值，不做 UI 提示）----
 
-    /** 加载群基本信息到 store */
-    const loadInfo = (force = false) => loadGroupInfo(groupId.value, force);
-
-    /** 加载群成员到 store */
-    const loadMembers = (force = false) => loadGroupMembers(groupId.value, force);
-
     /** 复制群号到剪贴板，返回是否成功（文案由调用方决定） */
     const copyGroupId = async (): Promise<boolean> => {
         const id = groupInfo.value?.id ?? groupId.value;
@@ -89,16 +81,6 @@ export function useGroup(groupIdInput: MaybeRefOrGetter<number>) {
         return groupService.updateGroup({ group: groupInfo.value, ...patch });
     };
 
-    /** 修改我在本群的昵称，返回是否成功 */
-    const saveMyNickname = async (nickname: string): Promise<boolean> => {
-        if (!groupId.value) return false;
-        return setMyGroupNickname(groupId.value, nickname);
-    };
-
-    /** 退出或解散本群（isOwner 缺省取当前身份） */
-    const quitOrDismiss = (asOwner: boolean = isOwner.value) =>
-        quitOrDismissGroup(groupId.value, asOwner);
-
     return {
         groupId,
         groupInfo,
@@ -109,11 +91,7 @@ export function useGroup(groupIdInput: MaybeRefOrGetter<number>) {
         isOwnerOrAdmin,
         myNickname,
         joinTypeLabel,
-        loadInfo,
-        loadMembers,
         copyGroupId,
         updateGroup,
-        saveMyNickname,
-        quitOrDismiss,
     };
 }

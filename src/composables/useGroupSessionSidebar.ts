@@ -28,7 +28,7 @@ export function useGroupSessionSidebar(
     const userStore = useUserStore();
     const sessionStore = useSessionStore();
     const messageStore = useMessageStore();
-    const { inviteGroupMembers, removeGroupMembers } = useGroupActions();
+    const { inviteGroupMembers, removeGroupMembers, loadGroupMembers, setMyGroupNickname } = useGroupActions();
 
     const chat = computed(() => toValue(chatInput));
     const targetIdVal = computed(() =>
@@ -40,22 +40,19 @@ export function useGroupSessionSidebar(
         currentUserMember,
         isOwner,
         isOwnerOrAdmin,
-        loadMembers,
         copyGroupId: copyGroupIdToClipboard,
         updateGroup,
-        saveMyNickname,
-        quitOrDismiss,
     } = useGroup(targetIdVal);
 
     onMounted(() => {
         if (targetIdVal.value && groupMembers.value.length === 0) {
-            loadMembers();
+            loadGroupMembers(targetIdVal.value);
         }
     });
 
     watch(() => targetIdVal.value, (newId) => {
         if (newId) {
-            loadMembers();
+            loadGroupMembers(newId);
         }
     });
 
@@ -86,7 +83,7 @@ export function useGroupSessionSidebar(
         if (editNicknameValue.value === currentNickname) return;
 
         try {
-            const success = await saveMyNickname(editNicknameValue.value);
+            const success = await setMyGroupNickname(targetIdVal.value, editNicknameValue.value);
             success ? ElMessage.success('本群昵称修改成功') : ElMessage.error('修改失败');
         } catch {
             ElMessage.error('请求失败');
@@ -184,33 +181,6 @@ export function useGroupSessionSidebar(
         onClose?.();
     };
 
-    // ---- 退出 / 解散群聊 ----
-    const confirmQuitGroup = async () => {
-        if (!targetIdVal.value) return;
-        const actionName = isOwner.value ? '解散' : '退出';
-        const res = await CusDialog.open({
-            title: '提示',
-            content: `确定要${actionName} ${groupInfo.value?.name || targetIdVal.value} 吗？`,
-            showCancel: true,
-            confirmText: '确定',
-            cancelText: '取消',
-        });
-        if (res !== DialogResult.Confirm) return;
-
-        try {
-            const result = await quitOrDismiss(isOwner.value);
-            if (result.code === 200) {
-                ElMessage.success(`已${actionName}群聊`);
-                onClose?.();
-            } else {
-                ElMessage.error(result.message || '操作失败');
-            }
-        } catch {
-            ElMessage.error('请求失败');
-        }
-    };
-
-    // ---- 全部成员弹窗 ----
     const allMembersModalVisible = ref(false);
     const viewAllMembers = () => {
         allMembersModalVisible.value = true;
@@ -314,7 +284,6 @@ export function useGroupSessionSidebar(
         handleUpdateDisturb,
         // 会话操作
         clearChatData,
-        confirmQuitGroup,
         // 成员弹窗
         allMembersModalVisible,
         viewAllMembers,

@@ -1,3 +1,7 @@
+import { ElMessage } from 'element-plus';
+import CusDialog from '@/src/components/CusDialog';
+import { DialogResult } from '@/src/components/CusDialog/types';
+import GlobalLoading from '@/src/components/GlobalLoading';
 import { useGroupStore } from '@/src/store/group';
 import { useSessionStore } from '@/src/store/session';
 import { useMessageStore } from '@/src/store/message';
@@ -175,20 +179,79 @@ export function useGroupActions() {
     };
 
     /**
-     * 退出或解散群聊
+     * 退出或解散群聊（包含确认弹窗、接口调用、本地数据清理及消息提示）
      */
-    const quitOrDismissGroup = async (groupId: number, isOwner: boolean) => {
-        let res;
-        if (isOwner) {
-            res = await groupService.dismissGroup({ group_id: groupId } as ApiTypes.group.DismissGroupReq);
-        } else {
-            res = await groupService.leaveGroup({ group_id: groupId } as ApiTypes.group.LeaveGroupReq);
+    const quitOrDismissGroup = async (
+        groupId: number,
+        isOwner: boolean,
+        options?: { groupName?: string; skipConfirm?: boolean }
+    ): Promise<boolean> => {
+        if (!groupId) return false;
+        let actionType = 0;
+        if(isOwner && !options?.skipConfirm){
+            const res = await CusDialog.open({
+                title: '警告',
+                content: '您可选择解散群聊或仅自己退出',
+                showCancel: true,
+                confirmText: '仅自己退出',
+                cancelText: '解散群聊',
+            });
+            if (res === DialogResult.Confirm) {
+                actionType = 1
+            }
         }
 
-        if (res.code === 200) {
-            cleanupAfterLeaveGroup(groupId);
+        if (!options?.skipConfirm) {
+            const displayName = options?.groupName || groupId;
+            const actionName = actionType === 1 ? '解散' : '退出';
+            const confirmRes = await CusDialog.open({
+                title: '提示',
+                content: `确定要${actionName} ${displayName} 吗？`,
+                showCancel: true,
+                confirmText: '确定',
+                cancelText: '取消',
+            });
+            if (confirmRes !== DialogResult.Confirm) return false;
         }
-        return res;
+
+        try {
+            let res;
+            if (actionType === 1) {
+                res = await groupService.dismissGroup({ group_id: groupId } as ApiTypes.group.DismissGroupReq);
+            } else {
+                res = await groupService.leaveGroup({ group_id: groupId } as ApiTypes.group.LeaveGroupReq);
+            }
+
+            if (res.code === 200) {
+                cleanupAfterLeaveGroup(groupId);
+                ElMessage.success(`操作成功`);
+                return true;
+            } else {
+                ElMessage.error(res.message || '操作失败');
+                return false;
+            }
+        } catch {
+            ElMessage.error('请求失败');
+            return false;
+        }
+    };
+
+    /**
+     * 处理入群申请 (同意/拒绝)
+     */
+    const handleGroupApply = async (req: ImTypes.GroupApply, actionType: 'accept' | 'reject') => {
+        const status = actionType === 'accept' ? ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_ACCEPTED : ImTypes.GroupApplyStatus.GROUP_APPLY_STATUS_REJECTED;
+        try {
+            GlobalLoading.show();
+            await groupService.handleGroupApply({
+                apply_id: req.id,
+                result: status,
+                reject_reason: '',
+            });
+            ElMessage.success("处理成功");
+        } finally {
+            GlobalLoading.close();
+        }
     };
 
     return {
@@ -205,5 +268,6 @@ export function useGroupActions() {
         handleInvite,
         inviteGroupMembers,
         removeGroupMembers,
+        handleGroupApply,
     };
 }

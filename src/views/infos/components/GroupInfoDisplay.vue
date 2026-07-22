@@ -63,6 +63,7 @@ import { computed, onMounted } from 'vue';
 import { generateGroupSessionId } from '@/src/utils/sessionUtils';
 import { useChatNavigation } from '@/src/composables/useChatNavigation';
 import { useGroup } from '@/src/composables/useGroup';
+import { useGroupActions } from '@/src/composables/useGroupActions';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { ArrowLeft, CopyDocument, User } from '@element-plus/icons-vue';
@@ -79,8 +80,9 @@ const emit = defineEmits<{
 
 const { navigateToChat } = useChatNavigation();
 const router = useRouter();
+const { loadGroupInfo } = useGroupActions();
 
-const { groupInfo, isMember, loadInfo, copyGroupId: copyGroupIdToClipboard } = useGroup(() => props.groupId);
+const { groupInfo, isMember, copyGroupId: copyGroupIdToClipboard } = useGroup(() => props.groupId);
 
 const backgroundStyle = computed(() => {
     const url = groupInfo.value?.avatar || '';
@@ -89,7 +91,7 @@ const backgroundStyle = computed(() => {
 
 onMounted(() => {
     if (!groupInfo.value) {
-        loadInfo();
+        loadGroupInfo(props.groupId);
     }
 });
 

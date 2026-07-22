@@ -4,6 +4,7 @@ import { friendService, sessionService } from '@/src/services';
 import { generateSessionId } from '@/src/utils/sessionUtils';
 import { ApiTypes, ImTypes } from '@shared/types';
 import { toRaw } from 'vue';
+import GlobalLoading from '@/src/components/GlobalLoading';
 
 export function useFriendActions() {
     const sessionStore = useSessionStore();
@@ -43,17 +44,30 @@ export function useFriendActions() {
     /**
      * 处理好友申请 (同意/拒绝)
      */
-    const handleFriendApply = async (data: ApiTypes.user.HandleFriendApplyReq) => {
-        const res = await friendService.handleFriendApply(data, userStore.userID);
-        
-        if (res.data?.data) {
-            // Setup session if they are now friends
-            if (data.result === ImTypes.ApplyStatus.APPLY_STATUS_AGREED) {
-                const req = res.data.data;
-                setupNewFriendSession(req.from_user_id, req.to_user_id);
+    const handleFriendApply = async (req: ImTypes.FriendRequest, type: 'accept' | 'reject') => {
+        const status = type === 'accept' ? ImTypes.ApplyStatus.APPLY_STATUS_AGREED : ImTypes.ApplyStatus.APPLY_STATUS_REJECTED;
+        const data: ApiTypes.user.HandleFriendApplyReq = {
+            request_id: req.id,
+            result: status,
+            reject_reason: ''
+        };
+        try {
+            GlobalLoading.show();
+            const res = await friendService.handleFriendApply(data, userStore.userID);
+            
+            if (res.data?.data) {
+                // Setup session if they are now friends
+                if (data.result === ImTypes.ApplyStatus.APPLY_STATUS_AGREED) {
+                    const friendReq = res.data.data;
+                    setupNewFriendSession(friendReq.from_user_id, friendReq.to_user_id);
+                }
             }
+            
+            userStore.updateLastReadFriendRequestTime();
+            return res;
+        } finally {
+            GlobalLoading.close();
         }
-        return res;
     };
 
     /**
