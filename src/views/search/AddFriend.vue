@@ -78,12 +78,11 @@ import { ImTypes } from '@shared/types';
 import SearchIcon from '@/src/assets/input/search.svg?url';
 import UserCard from './components/UserCard.vue';
 import GroupCard from './components/GroupCard.vue';
-import ApplyRelationModal from './components/ApplyRelationModal.vue';
-import GlobalLoading from '@/src/components/GlobalLoading';
+import ApplyRelationModal from '@/src/components/ApplyRelationModal.vue';
+import { useFriendActions } from '@/src/composables/useFriendActions';
+import { useGroupActions } from '@/src/composables/useGroupActions';
 import { signalWindowReady } from '@/src/utils/window';
 import { userService, groupService } from '@/src/services';
-import { useFriendActions } from '@/src/composables/useFriendActions';
-import { ElMessage } from 'element-plus';
 
 // Search State
 const searchType = ref<'user' | 'group'>('user');
@@ -95,6 +94,7 @@ const hasSearched = ref(false);
 const resultList = ref<(ImTypes.UserInfo | ImTypes.GroupInfo)[]>([]);
 const loading = ref(false);
 const { applyFriend, loadFriendList, loadPendingRequests } = useFriendActions();
+const { joinGroup, loadUserGroupIds, loadPendingApplies, loadPendingInvites } = useGroupActions();
 const finished = ref(false);
 const page = ref(1);
 const pageSize = 20;
@@ -220,37 +220,30 @@ const confirmAddFriend = async (message: string) => {
     if (!targetUser.value && !targetGroup.value) return;
 
     try {
-        GlobalLoading.show('正在提交...');
         if (targetUser.value) {
-            let res = await applyFriend({
+            await applyFriend({
                 to_user_id: targetUser.value.user_id,
                 apply_msg: message,
                 source: searchMode.value
             });
-            if (res.data.friend) {
-                ElMessage.success("添加成功");
-            } else if (res.data.data) {
-                ElMessage.success("发送好友申请成功");
-            }
         } else if (targetGroup.value) {
-            await groupService.joinGroup({
+            await joinGroup({
                 group_id: targetGroup.value.id,
                 message: message
             });
-            
-            ElMessage.success("发送入群申请成功");
         }
     } finally {
-        GlobalLoading.close();
         showAddDialog.value = false;
     }
 };
 onMounted(async () => {
     signalWindowReady()
 
-    groupService.fetchUserGroupIds()
+    await loadUserGroupIds()
     await loadFriendList()
     await loadPendingRequests()
+    await loadPendingApplies()
+    await loadPendingInvites()
 })
 </script>
 

@@ -254,6 +254,20 @@ export function useGroupActions() {
         }
     };
 
+    /**
+     * 发起加入群聊申请
+     */
+    const joinGroup = async (data: ApiTypes.group.JoinGroupReq) => {
+        try {
+            GlobalLoading.show('正在提交...');
+            const res = await groupService.joinGroup(data);
+            ElMessage.success("发送入群申请成功");
+            return res;
+        } finally {
+            GlobalLoading.close();
+        }
+    };
+
     return {
         createGroup,
         setMyGroupNickname,
@@ -269,5 +283,6 @@ export function useGroupActions() {
         inviteGroupMembers,
         removeGroupMembers,
         handleGroupApply,
+        joinGroup,
     };
 }

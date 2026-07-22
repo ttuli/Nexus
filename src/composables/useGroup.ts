@@ -1,8 +1,8 @@
 import { computed, toValue, type MaybeRefOrGetter } from 'vue';
 import { useUserStore } from '@/src/store/user';
 import { useGroupStore } from '@/src/store/group';
-import { groupService, userService } from '@/src/services';
 import { ImTypes } from '@shared/types';
+import { groupService } from '@/src/services';
 
 /**
  * 单个群的响应式派生状态 + 常用操作。
@@ -21,10 +21,6 @@ export function useGroup(groupIdInput: MaybeRefOrGetter<number>) {
     const groupStore = useGroupStore();
 
     const groupId = computed(() => toValue(groupIdInput) || 0);
-    groupService.fetchGroupMembers(groupId.value).then((res) => {
-        userService.fetchByIds(res.map(member => member.user_id))
-        groupStore.setGroupMembers(groupId.value, res);
-    })
 
     // ---- 派生状态 ----
     const groupInfo = computed(() => groupStore.getGroup(groupId.value));

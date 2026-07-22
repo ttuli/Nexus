@@ -5,7 +5,6 @@ import { ApiTypes, ImTypes } from '@shared/types';
  */
 
 import { ipcService } from './ipcService'
-import { useUserStore } from '@/src/store/user'
 import { ResourceType, IpcChannels, UpdateAction } from '@shared/types'
 import { updateUserInfo } from '@/src/apis/user'
 import cacheService from './cacheService'
@@ -21,9 +20,6 @@ class UserService {
 
         if (result.success) {
             const users = (result.data as any)?.items ?? (result as any).items ?? []
-            // 更新 Store
-            const userStore = useUserStore()
-            users.forEach((user: ImTypes.UserInfo) => userStore.setUser(user))
             return users
         }
 
@@ -38,8 +34,6 @@ class UserService {
         const result = await ipcService.invoke<ImTypes.UserInfo[]>(IpcChannels.USER_FETCH_BY_PHONE, phone)
 
         if (result.success && result.data) {
-            const userStore = useUserStore()
-            result.data.forEach((user: ImTypes.UserInfo) => userStore.setUser(user))
             return result.data
         }
 
@@ -57,8 +51,6 @@ class UserService {
         const result = await ipcService.invoke<ImTypes.UserInfo[]>(IpcChannels.USER_FETCH_BY_NAME, name, limit, offset)
 
         if (result.success && result.data) {
-            const userStore = useUserStore()
-            result.data.forEach((user: ImTypes.UserInfo) => userStore.setUser(user))
             return result.data
         }
 
@@ -69,11 +61,9 @@ class UserService {
     /**
      * 更新用户信息
      */
-    async updateUserInfo(changes: ApiTypes.user.UpdateInfoReq): Promise<boolean> {
+    async updateUserInfo(changes: ApiTypes.user.UpdateInfoReq, currentUser: ImTypes.UserInfo): Promise<boolean> {
         try {
             await updateUserInfo(changes)
-            const userStore = useUserStore()
-            const currentUser = userStore.getUser(userStore.userID)
             await cacheService.updateItems(UpdateAction.Update, ResourceType.USER, [{ ...currentUser, ...changes } as ImTypes.UserInfo])
             return true
 

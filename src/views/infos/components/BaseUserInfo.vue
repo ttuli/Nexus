@@ -112,10 +112,12 @@ const genderOptions = [
 
 import { ImTypes, ResourceType, UpdateAction } from '@shared/types';
 import { ElMessage } from 'element-plus';
-import { cacheService, userService } from '@/src/services';
+import { useFriendActions } from '@/src/composables/useFriendActions';
 import { signalWindowReady } from '@/src/utils/window';
+import { cacheService, userService } from '@/src/services';
 
 const userStore = useUserStore();
+const { updateMyUserInfo, loadUserInfo } = useFriendActions();
 
 const userInfo = computed(() => userStore.getUser(userStore.getUserID()));
 
@@ -218,7 +220,7 @@ const handleUpdateProfile = async () => {
             return;
         }
 
-        const success = await userService.updateUserInfo(changes);
+        const success = await updateMyUserInfo(changes);
         if (success) {
             ElMessage.success('修改成功');
             showEditDialog.value = false;
@@ -232,7 +234,7 @@ const handleUpdateProfile = async () => {
     }
 };
 onMounted(async () => {
-    await userService.fetchByIds([userStore.getUserID()]);
+    await loadUserInfo(userStore.getUserID());
     signalWindowReady();
     console.log(userInfo.value)
 });

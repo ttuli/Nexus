@@ -94,7 +94,11 @@ export function initWsNotificationListener(): void {
                 // 预取群与邀请人信息供收件箱展示（缓存优先，未命中由主进程回源）
                 const prefetch: Promise<unknown>[] = []
                 if (invite.group_id) prefetch.push(groupService.fetchByIds([invite.group_id]))
-                if (invite.inviter_id && !userStore.getUser(invite.inviter_id)) prefetch.push(userService.fetchByIds([invite.inviter_id]))
+                if (invite.inviter_id && !userStore.getUser(invite.inviter_id)) {
+                    prefetch.push(userService.fetchByIds([invite.inviter_id]).then(users => {
+                        users.forEach(u => userStore.setUser(u))
+                    }))
+                }
                 await Promise.allSettled(prefetch)
                 // 正在查看群聊通知标签时即时标记已读，避免红点闪烁
                 if (router.currentRoute.value.path.includes('contacts') && await windowService.isFocused() && currentValidationTab.value === ValidationType.Group) {
@@ -130,7 +134,8 @@ export function initWsNotificationListener(): void {
                         ))
                         if (missingIds.length > 0) {
                             try {
-                                await userService.fetchByIds(missingIds)
+                                const users = await userService.fetchByIds(missingIds)
+                                users.forEach(u => userStore.setUser(u))
                             } catch (e) {
                                 // 拉取失败不阻塞通知处理，名字降级为 "用户{id}"
                                 console.error('[WsNotificationListener] fetch users for group notification failed:', e)

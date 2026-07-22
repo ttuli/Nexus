@@ -49,10 +49,7 @@
                 </div>
 
                 <div class="actions">
-                    <template v-if="isMe">
-                        <CusButton class="action-btn" type="primary" @click="toEdit">编辑资料</CusButton>
-                    </template>
-                    <template v-else-if="isFriend">
+                    <template v-if="isFriend">
                         <CusButton class="action-btn" type="primary" @click="toChat">发消息</CusButton>
                         <CusButton class="action-btn normal-btn" @click="toVoice">语音通话</CusButton>
                     </template>
@@ -66,11 +63,21 @@
                 <div class="spinner"></div>
             </div>
         </div>
+
+        <!-- Add Friend Dialog -->
+        <ApplyRelationModal
+            :visible="showAddDialog"
+            search-type="user"
+            :target-user="userInfo || null"
+            :target-group="null"
+            @close="showAddDialog = false"
+            @submit="confirmAddFriend"
+        />
     </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useUserStore } from '@/src/store/user';
 import { generateSessionId } from '@/src/utils/sessionUtils';
 import { useChatNavigation } from '@/src/composables/useChatNavigation';
@@ -80,6 +87,8 @@ import { ArrowLeft, CopyDocument } from '@element-plus/icons-vue';
 import MaleIcon from '@/src/assets/gender/male.svg';
 import FemaleIcon from '@/src/assets/gender/female.svg';
 import { ImTypes } from '@shared/types';
+import ApplyRelationModal from '@/src/components/ApplyRelationModal.vue';
+import { useFriendActions } from '@/src/composables/useFriendActions';
 
 const props = defineProps<{
     userId: number;
@@ -96,8 +105,23 @@ const router = useRouter();
 
 const userInfo = computed(() => userStore.getUser(props.userId));
 const friendInfo = computed(() => userStore.getFriend(props.userId));
-const isMe = computed(() => userStore.userID === props.userId);
 const isFriend = computed(() => !!friendInfo.value);
+
+const showAddDialog = ref(false);
+const { applyFriend } = useFriendActions();
+
+const confirmAddFriend = async (message: string) => {
+    if (!userInfo.value) return;
+    try {
+        await applyFriend({
+            to_user_id: userInfo.value.user_id,
+            apply_msg: message,
+            source: ImTypes.ApplySource.APPLY_SOURCE_SEARCH_NAME
+        });
+    } finally {
+        showAddDialog.value = false;
+    }
+};
 
 const displayName = computed(() => {
     
@@ -138,15 +162,10 @@ const toVoice = () => {
 };
 
 const toAdd = () => {
-    // Navigate to add friend or show dialog
-    // For now, check if search page handles generic adding or if we need a dialog here
-    // Usually repurpose AddFriend logic or emit event
-    router.push('/addFriend');
+    showAddDialog.value = true;
 };
 
-const toEdit = () => {
-    router.push('/userInfo');
-};
+
 </script>
 
 <style scoped lang="scss">

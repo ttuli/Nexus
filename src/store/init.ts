@@ -1,4 +1,3 @@
-import { userService } from "@/src/services";
 import { useGroupActions } from '@/src/composables/useGroupActions';
 import { useFriendActions } from '@/src/composables/useFriendActions';
 import { ImTypes } from '@shared/types';
@@ -8,7 +7,7 @@ import { extractTargetIdFromSessionId } from '@/src/utils/sessionUtils';
 
 export async function initRelationStore() {
     const userStore = useUserStore()
-    const { loadFriendList, loadPendingRequests } = useFriendActions();
+    const { loadFriendList, loadPendingRequests, loadUserInfos } = useFriendActions();
     const friends = await loadFriendList();
     const ids = friends.map((friend: ImTypes.Friend) => friend.friend_id);
     ids.push(userStore.getUserID());
@@ -32,7 +31,7 @@ export async function initRelationStore() {
             inviterIds.push(invite.inviter_id);
         });
         if (inviteGroupIds.length) loadGroupInfos([...new Set(inviteGroupIds)]);
-        if (inviterIds.length) userService.fetchByIds([...new Set(inviterIds)]);
+        if (inviterIds.length) loadUserInfos([...new Set(inviterIds)]);
     });
 
     loadPendingRequests().then(requests => {
@@ -44,7 +43,7 @@ export async function initRelationStore() {
                 reqIds.push(request.from_user_id);
             }
         });
-        if (reqIds.length) userService.fetchByIds([...new Set(reqIds)]);
+        if (reqIds.length) loadUserInfos([...new Set(reqIds)]);
     });
 
     const sessionStore = useSessionStore()
@@ -61,7 +60,7 @@ export async function initRelationStore() {
             if (targetId && !isNaN(targetId)) groupIdsToFetch.push(targetId);
         }
     })
-    await userService.fetchByIds([...new Set(ids)]);
+    await loadUserInfos([...new Set(ids)]);
 
     const groupIds = await loadUserGroupIds();
     const allGroupIds = [...new Set([...groupIds, ...groupIdsToFetch])];

@@ -66,6 +66,15 @@ const isApplying = computed(() => {
             return true;
         }
     }
+    for (const req of groupStore.groupInviteMap.values()) {
+        if (
+            req.group_id === props.groupInfo.id &&
+            req.invitee_id === userStore.userID &&
+            req.status === ImTypes.InviteStatus.INVITE_STATUS_PENDING
+        ) {
+            return true;
+        }
+    }
     return false;
 });
 

@@ -1,5 +1,5 @@
 <template>
-    <div class="cus-switch" :class="{ 'is-checked': isChecked, 'is-loading': loading }" @click="toggle">
+    <div class="cus-switch" :class="{ 'is-checked': isChecked, 'is-loading': loading || isCooldown }" @click="toggle">
         <div class="cus-switch__core" :style="{ backgroundColor: isChecked ? activeColor : inactiveColor }">
             <span class="cus-switch__action">
                 <span v-if="loading" class="loading-icon"></span>
@@ -9,7 +9,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 const props = withDefaults(defineProps<{
     modelValue?: boolean | number | string;
@@ -31,11 +31,18 @@ const isChecked = computed(() => {
     return props.modelValue === props.activeValue;
 });
 
+const isCooldown = ref(false);
+
 const toggle = () => {
-    if (props.loading) return;
+    if (props.loading || isCooldown.value) return;
     const newValue = isChecked.value ? props.inactiveValue : props.activeValue;
     emit('update:modelValue', newValue);
     emit('change', newValue);
+    
+    isCooldown.value = true;
+    setTimeout(() => {
+        isCooldown.value = false;
+    }, 2000);
 };
 </script>
 

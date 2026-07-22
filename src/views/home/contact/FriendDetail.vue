@@ -52,11 +52,11 @@
                     </div>
                     <div class="setting-item">
                         <span class="label">设为星标好友</span>
-                        <el-switch :model-value="friendInfo.starred" @change="toggleStarred" :loading="starredLoading" />
+                        <CusSwitch :model-value="friendInfo.starred" @change="toggleStarred" />
                     </div>
                     <div class="setting-item">
                         <span class="label">加入黑名单</span>
-                        <el-switch :model-value="friendInfo.blocked" @change="toggleBlocked" :loading="blockedLoading" />
+                        <CusSwitch :model-value="friendInfo.blocked" @change="toggleBlocked" />
                     </div>
                 </div>
             </div>
@@ -72,6 +72,16 @@
         <div v-else class="loading-state">
             <GlobalLoading />
         </div>
+
+        <!-- Add Friend Dialog -->
+        <ApplyRelationModal
+            :visible="showAddDialog"
+            search-type="user"
+            :target-user="userInfo || null"
+            :target-group="null"
+            @close="showAddDialog = false"
+            @submit="confirmAddFriend"
+        />
     </div>
 </template>
 
@@ -89,15 +99,14 @@ import FemaleIcon from '@/src/assets/gender/female.svg';
 import { ImTypes } from '@shared/types';
 import { ElMessage } from 'element-plus';
 import { CopyDocument } from '@element-plus/icons-vue';
-import { userService, friendService } from '@/src/services';
-import CusDialog from '@/src/components/CusDialog';
-import { DialogResult } from '@/src/components/CusDialog/types';
+
 import CusInputDialog from '@/src/components/CusInputDialog';
+import ApplyRelationModal from '@/src/components/ApplyRelationModal.vue';
 
 const route = useRoute();
 const router = useRouter();
 const userStore = useUserStore();
-const { applyFriend } = useFriendActions();
+const { applyFriend, updateFriendRemark, toggleFriendStarred, toggleFriendBlocked, deleteFriend, loadUserInfo } = useFriendActions();
 const { navigateToChat } = useChatNavigation();
 
 const userId = computed(() => Number(route.query.uid));
@@ -109,8 +118,6 @@ const displayName = computed(() => {
 
 const title = computed(() => displayName.value);
 
-const starredLoading = ref(false);
-const blockedLoading = ref(false);
 const submitLoading = ref(false);
 
 const handleCopy = async (text: string) => {
@@ -135,22 +142,9 @@ const openEditRemark = async () => {
     if (newRemark !== undefined && newRemark !== friendInfo.value.remark) {
         submitLoading.value = true;
         try {
-            await friendService.updateFriend({
-                friend_id: userId.value,
-                remark: newRemark,
-                blocked: friendInfo.value.blocked,
-                starred: friendInfo.value.starred
-            });
-
-            // Update local store immediately
-            userStore.setFriend({
-                ...friendInfo.value,
-                remark: newRemark
-            });
-
-            ElMessage.success('备注修改成功');
-        } catch (err: any) {
-            ElMessage.error(err.message || '修改失败');
+            await updateFriendRemark(userId.value, newRemark);
+        } catch (err) {
+            // Error is handled inside composable
         } finally {
             submitLoading.value = false;
         }
@@ -159,94 +153,44 @@ const openEditRemark = async () => {
 
 const toggleStarred = async (val: boolean) => {
     if (!friendInfo.value) return;
-    starredLoading.value = true;
     try {
-        await friendService.updateFriend({
-            friend_id: userId.value,
-            remark: friendInfo.value.remark,
-            blocked: friendInfo.value.blocked,
-            starred: val
-        });
-        
-        userStore.setFriend({
-            ...friendInfo.value,
-            starred: val
-        });
-        if (val)
-            ElMessage.success('设置成功');
-    } catch (err: any) {
-        ElMessage.error(err.message || '操作失败');
-    } finally {
-        starredLoading.value = false;
+        await toggleFriendStarred(userId.value, val);
+    } catch (err) {
+        // Error is handled inside toggleFriendStarred
     }
 };
 
 const toggleBlocked = async (val: boolean) => {
     if (!friendInfo.value) return;
-    blockedLoading.value = true;
     try {
-        await friendService.updateFriend({
-            friend_id: userId.value,
-            remark: friendInfo.value.remark,
-            blocked: val,
-            starred: friendInfo.value.starred
-        });
-        
-        userStore.setFriend({
-            ...friendInfo.value,
-            blocked: val
-        });
-        
-        ElMessage.success(val ? '已加入黑名单' : '已移出黑名单');
-    } catch (err: any) {
-        ElMessage.error(err.message || '操作失败');
-    } finally {
-        blockedLoading.value = false;
+        await toggleFriendBlocked(userId.value, val);
+    } catch (err) {
+        // Error is handled inside toggleFriendBlocked
     }
 };
 
 const confirmDelete = async () => {
     if (!friendInfo.value) return;
-    const res = await CusDialog.open({
-        title: '删除好友',
-        content: `确定要删除好友「${displayName.value}」吗？此操作不可逆。`,
-        showCancel: true,
-        confirmText: '确定删除',
-        cancelText: '取消',
-    });
+    await deleteFriend(userId.value, { friendName: displayName.value });
+};
 
-    if (res === DialogResult.Confirm) {
-        try {
-            await friendService.deleteFriend(userId.value);
-            userStore.deleteFriend(userId.value);
-            ElMessage.success('删除成功');
-            router.push('/home/contact');
-        } catch (err: any) {
-            ElMessage.error(err.message || '删除失败');
-        }
+const showAddDialog = ref(false);
+
+const confirmAddFriend = async (message: string) => {
+    if (!userInfo.value) return;
+    try {
+        await applyFriend({
+            to_user_id: userInfo.value.user_id,
+            apply_msg: message,
+            source: ImTypes.ApplySource.APPLY_SOURCE_SEARCH_NAME
+        });
+    } finally {
+        showAddDialog.value = false;
     }
 };
 
-const addFriend = async () => {
-    const reason = await CusInputDialog.open({
-        title: '添加好友申请',
-        placeholder: '请输入验证信息',
-        initialValue: `我是 ${userStore.getUser(userStore.userID)?.user_name || ''}`,
-        maxLength: 50
-    });
-
-    if (reason !== undefined) {
-        try {
-            await applyFriend({
-                to_user_id: userId.value,
-                apply_msg: reason,
-                source: 0
-            });
-            ElMessage.success('申请已发送');
-        } catch (err: any) {
-            ElMessage.error(err.message || '申请发送失败');
-        }
-    }
+const addFriend = () => {
+    showAddDialog.value = true;
 };
 
 const sendMsg = () => {
@@ -257,7 +201,7 @@ const sendMsg = () => {
 
 watch(userId, (newId) => {
     if (newId) {
-        userService.fetchByIds([newId], true);
+        loadUserInfo(newId, true);
     }
 }, { immediate: true });
 </script>
