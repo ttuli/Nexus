@@ -112,6 +112,9 @@ export function initWsNotificationListener(): void {
             // 统一通知消息：群操作、消息撤回等控制类事件的统一载体。
             // 载荷为 NotifyMessage 信封（base + oneof body），落库分配的
             // msg_id / session_id / seq 在 WSMessage 顶层回填。
+            // 撤回通知的顶层 Type 是 MSG_OP_RECALL（服务端按落库 MsgType 原样扇出），
+            // 与群操作通知共用本块，块内按 oneof body 分派
+            case ImTypes.MessageType.MSG_OP_RECALL:
             case ImTypes.MessageType.GROUP_OP_NOTIFICATION: {
                 const notify = ImTypes.NotifyMessage.decode(data.payload.payload)
                 const envelope = {

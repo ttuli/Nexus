@@ -1,7 +1,7 @@
 import { toRaw } from 'vue';
 import { getHistory, getSession, getUserActiveSessions, getUserSessions, markSessionRead, recallMessage as recallMessageApi, updateSession as updateSessionApi } from '@/src/apis/message';
 import { ApiTypes, ImTypes, PartialExcept, ResourceType, UpdateAction } from '@shared/types';
-import { MessageStatus, MessageType } from '@shared/types/proto';
+import { MessageStatus, MessageType, MessageExtraKey } from '@shared/types/proto';
 import { IChatMessage, ILocalSystemMessage } from '@shared/types/chatMessage';
 import { toSeq, seqPositive, seqLt, seqGt, seqCompare, seqPlusOne, seqMax } from '@shared/utils/seq';
 
@@ -43,23 +43,16 @@ class ChatService {
     }
 
     /**
-     * 服务端 extra JSON 中历史遗留 key（以枚举名字面量序列化，如 MESSAGE_EXTRA_KEY_WIDTH）
-     * 与新式 key（如 width）并存，按传入顺序取第一个命中的值。
+     * 服务端 extra 的 key 是 MessageExtraKey 的数字值字符串（如 WIDTH=10 → "10"）。
+     * 直接传枚举成员：extra 由 JSON.parse 得来、key 为字符串，JS 会把数字索引强转为字符串查找。
      */
-    private extraNumber(extra: Record<string, unknown>, ...keys: string[]): number {
-        for (const key of keys) {
-            const value = extra[key];
-            if (value) return this.normalizeNumber(value);
-        }
-        return 0;
+    private extraNum(extra: Record<string, unknown>, key: MessageExtraKey): number {
+        return this.normalizeNumber(extra[key]);
     }
 
-    private extraString(extra: Record<string, unknown>, ...keys: string[]): string | undefined {
-        for (const key of keys) {
-            const value = extra[key];
-            if (typeof value === 'string') return value;
-        }
-        return undefined;
+    private extraStr(extra: Record<string, unknown>, key: MessageExtraKey): string | undefined {
+        const value = extra[key];
+        return typeof value === 'string' ? value : undefined;
     }
 
     private toStringMap(value: unknown): Record<string, string> | undefined {
@@ -108,14 +101,14 @@ class ChatService {
                 ...common,
                 type,
                 url: message.media_url || message.content || '',
-                thumbnailUrl: this.extraString(extra, 'thumbnail_url'),
-                width: this.extraNumber(extra, 'MESSAGE_EXTRA_KEY_WIDTH', 'width'),
-                height: this.extraNumber(extra, 'MESSAGE_EXTRA_KEY_HEIGHT', 'height'),
-                thumbnailWidth: this.extraNumber(extra, 'MESSAGE_EXTRA_KEY_THUMB_WIDE', 'thumbnailWidth'),
-                thumbnailHeight: this.extraNumber(extra, 'MESSAGE_EXTRA_KEY_THUMB_HEIGHT', 'thumbnailHeight'),
-                size: this.extraNumber(extra, 'MESSAGE_EXTRA_KEY_SIZE', 'size'),
-                format: this.extraString(extra, 'MESSAGE_EXTRA_KEY_FORMAT', 'format') ?? '',
-                fileName: this.extraString(extra, 'MESSAGE_EXTRA_KEY_NAME'),
+                thumbnailUrl: typeof extra['thumbnail_url'] === 'string' ? extra['thumbnail_url'] : undefined,
+                width: this.extraNum(extra, MessageExtraKey.MESSAGE_EXTRA_KEY_WIDTH),
+                height: this.extraNum(extra, MessageExtraKey.MESSAGE_EXTRA_KEY_HEIGHT),
+                thumbnailWidth: this.extraNum(extra, MessageExtraKey.MESSAGE_EXTRA_KEY_THUMB_WIDE),
+                thumbnailHeight: this.extraNum(extra, MessageExtraKey.MESSAGE_EXTRA_KEY_THUMB_HEIGHT),
+                size: this.extraNum(extra, MessageExtraKey.MESSAGE_EXTRA_KEY_SIZE),
+                format: this.extraStr(extra, MessageExtraKey.MESSAGE_EXTRA_KEY_FORMAT) ?? '',
+                fileName: this.extraStr(extra, MessageExtraKey.MESSAGE_EXTRA_KEY_NAME),
             };
         }
 
@@ -124,15 +117,15 @@ class ChatService {
                 ...common,
                 type,
                 url: message.media_url || message.content || '',
-                thumbnailUrl: this.extraString(extra, 'thumbnail_url'),
-                duration: this.extraNumber(extra, 'MESSAGE_EXTRA_KEY_DURATION', 'duration'),
-                width: this.extraNumber(extra, 'MESSAGE_EXTRA_KEY_WIDTH', 'width'),
-                height: this.extraNumber(extra, 'MESSAGE_EXTRA_KEY_HEIGHT', 'height'),
-                thumbnailWidth: this.extraNumber(extra, 'MESSAGE_EXTRA_KEY_THUMB_WIDE', 'thumbnailWidth'),
-                thumbnailHeight: this.extraNumber(extra, 'MESSAGE_EXTRA_KEY_THUMB_HEIGHT', 'thumbnailHeight'),
-                size: this.extraNumber(extra, 'MESSAGE_EXTRA_KEY_SIZE', 'size'),
-                format: this.extraString(extra, 'MESSAGE_EXTRA_KEY_FORMAT', 'format') ?? '',
-                fileName: this.extraString(extra, 'MESSAGE_EXTRA_KEY_NAME') ?? '',
+                thumbnailUrl: typeof extra['thumbnail_url'] === 'string' ? extra['thumbnail_url'] : undefined,
+                duration: this.extraNum(extra, MessageExtraKey.MESSAGE_EXTRA_KEY_DURATION),
+                width: this.extraNum(extra, MessageExtraKey.MESSAGE_EXTRA_KEY_WIDTH),
+                height: this.extraNum(extra, MessageExtraKey.MESSAGE_EXTRA_KEY_HEIGHT),
+                thumbnailWidth: this.extraNum(extra, MessageExtraKey.MESSAGE_EXTRA_KEY_THUMB_WIDE),
+                thumbnailHeight: this.extraNum(extra, MessageExtraKey.MESSAGE_EXTRA_KEY_THUMB_HEIGHT),
+                size: this.extraNum(extra, MessageExtraKey.MESSAGE_EXTRA_KEY_SIZE),
+                format: this.extraStr(extra, MessageExtraKey.MESSAGE_EXTRA_KEY_FORMAT) ?? '',
+                fileName: this.extraStr(extra, MessageExtraKey.MESSAGE_EXTRA_KEY_NAME) ?? '',
             };
         }
 
@@ -141,14 +134,16 @@ class ChatService {
                 ...common,
                 type,
                 url: message.media_url || '',
-                fileName: this.extraString(extra, 'MESSAGE_EXTRA_KEY_NAME', 'file_name', 'fileName')
+                fileName: this.extraStr(extra, MessageExtraKey.MESSAGE_EXTRA_KEY_NAME)
                     ?? (message.content || ''),
-                size: this.extraNumber(extra, 'MESSAGE_EXTRA_KEY_SIZE', 'size'),
-                format: this.extraString(extra, 'MESSAGE_EXTRA_KEY_FORMAT', 'format') ?? '',
+                size: this.extraNum(extra, MessageExtraKey.MESSAGE_EXTRA_KEY_SIZE),
+                format: this.extraStr(extra, MessageExtraKey.MESSAGE_EXTRA_KEY_FORMAT) ?? '',
             };
         }
 
-        if (type === MessageType.GROUP_OP_NOTIFICATION) {
+        // 撤回通知的落库 msg_type 是 MSG_OP_RECALL（与群操作通知同为 NotifyMessage
+        // 信封，载荷同样存 extra.MESSAGE_EXTRA_KEY_NOTIFY_PAYLOAD），两者都要进解码分支
+        if (type === MessageType.GROUP_OP_NOTIFICATION || type === MessageType.MSG_OP_RECALL) {
             return this.mapApiNotifyMessage(message, extra, common, notifyCollector, recallCollector);
         }
 
@@ -181,7 +176,7 @@ class ChatService {
         notifyCollector?: ImTypes.GroupNotification[],
         recallCollector?: RecallEvent[],
     ): IChatMessage | null {
-        const payloadHex = this.extraString(extra, 'MESSAGE_EXTRA_KEY_NOTIFY_PAYLOAD', 'notify_payload');
+        const payloadHex = this.extraStr(extra, MessageExtraKey.MESSAGE_EXTRA_KEY_NOTIFY_PAYLOAD);
         if (payloadHex) {
             try {
                 const notify = ImTypes.NotifyMessage.decode(this.hexToBytes(payloadHex));
@@ -207,6 +202,10 @@ class ChatService {
                 console.error('[ChatService] decode notify payload failed:', e);
             }
         }
+
+        // 撤回通知行永不作为消息展示：其 content 是服务端预览文案（"撤回了一条消息"），
+        // 撤回语义由 recallCollector / 原消息 RECALLED 状态承载，不能走降级渲染
+        if (this.normalizeNumber(message.msg_type) === MessageType.MSG_OP_RECALL) return null;
 
         if (!message.content) return null;
         const fallback: ILocalSystemMessage = {

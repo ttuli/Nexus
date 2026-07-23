@@ -174,8 +174,11 @@ export const wsRouteTable: Record<number, MessageHandler> = {
     [ImTypes.MessageType.GROUP_REQUEST]: handleNotification,
     [ImTypes.MessageType.GROUP_INVITE]: handleNotification,
     // 群操作、消息撤回等统一为 NOTIFICATION 信封（NotifyMessage），
-    // 由 wsNotificationListener 按 oneof body 分派
+    // 由 wsNotificationListener 按 oneof body 分派。
+    // 注意：服务端扇出的 WSMessage.Type 原样携带落库 MsgType——撤回通知是
+    // MSG_OP_RECALL(605) 而非 GROUP_OP_NOTIFICATION(606)，两者都必须注册
     [ImTypes.MessageType.GROUP_OP_NOTIFICATION]: handleNotification,
+    [ImTypes.MessageType.MSG_OP_RECALL]: handleNotification,
     [ImTypes.MessageType.USER_KICKOFF]: handleNotification,
 
 
