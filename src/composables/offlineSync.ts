@@ -74,7 +74,7 @@ async function doSync(signal: AbortSignal): Promise<void> {
         // 本地落后于服务端：按 (localMaxSeq, +∞) 分页拉齐离线消息
         if (seqGt(serverMaxSeq, localMaxSeq)) {
             try {
-                const missing = await chatService.fetchMessagesSince(ss.session_key, localMaxSeq, meId, 50, 20, signal);
+                const { messages: missing, recalls } = await chatService.fetchMessagesSince(ss.session_key, localMaxSeq, meId, 50, 20, signal);
                 if (missing.length > 0) {
                     if (sessionStore.currentSessionKey === ss.session_key) {
                         missing.forEach(m => messageStore.upsertMessage(m));
@@ -83,6 +83,12 @@ async function doSync(signal: AbortSignal): Promise<void> {
                         messageStore.invalidateMessageCache(ss.session_key);
                     }
                 }
+                // 离线撤回对齐：SQLite 已在 service 侧落库；原消息仍在内存
+                // （当前列表或 LRU 缓存，updateMessageStatus 两处都搜）时就地更新，
+                // 不在内存则无需处理，下次打开会话时从库中读到的即是已撤回状态
+                recalls.forEach(r => messageStore.updateMessageStatus(
+                    r.sessionId, '', ImTypes.MessageStatus.MESSAGE_STATUS_RECALLED, r.recallTime, r.msgId,
+                ));
             } catch (e) {
                 console.error(`[OfflineSync] backfill offline messages for ${ss.session_key} failed:`, e);
             }

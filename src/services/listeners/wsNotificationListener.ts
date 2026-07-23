@@ -24,6 +24,7 @@ import groupService from '../groupService'
 import userService from '../userService'
 import { sessionService } from '../sessionService'
 import { chatService } from '../chatService'
+import { messageService } from '../messageService'
 
 export function initWsNotificationListener(): void {
     ipcService.on(IpcChannels.WS_NOTIFICATION, async (_event, data: { type: ImTypes.MessageType; payload: ImTypes.WSMessage }) => {
@@ -180,6 +181,23 @@ export function initWsNotificationListener(): void {
                     if (updatedMsg) {
                         // 同步更新本地 SQLite 的消息撤回状态
                         void ipcService.invoke(IpcChannels.MSG_SAVE, JSON.parse(JSON.stringify(toRaw(updatedMsg))));
+                    } else {
+                        // 原消息不在内存（会话未打开/缓存被 LRU 淘汰）：按 msgId 直接更新
+                        // SQLite，否则本地库中的原消息将永远保持未撤回状态
+                        void messageService.updateMessageStatus(sessionId, '', ImTypes.MessageStatus.MESSAGE_STATUS_RECALLED, notify.recall.msg_id)
+                    }
+                    // 推进本地已有会话的 max_seq 至撤回通知的 seq（通知行本身不落本地库），
+                    // 避免下次离线同步把这条已处理的通知再拉一遍
+                    const localSession = sessionId ? sessionStore.sessionList.find(c => c.session_id === sessionId) : null
+                    if (localSession) {
+                        const updatedSession = sessionStore.upsertSession({
+                            session_id: sessionId,
+                            session_key: localSession.session_key,
+                            max_seq: seqMax(envelope.seq, notify.base?.msg_seq),
+                        })
+                        if (updatedSession) {
+                            void sessionService.saveMany([toRaw(updatedSession) as ImTypes.Session])
+                        }
                     }
                 }
                 break

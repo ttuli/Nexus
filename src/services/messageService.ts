@@ -29,6 +29,18 @@ class MessageService {
     }
 
     /**
+     * 按 clientId / msgId 更新本地 SQLite 中的消息状态（无需完整消息对象，
+     * status 列与 data JSON 由主进程同步更新）。用于撤回等只持有 msgId 的场景。
+     * @param sessionKey 会话标识（非空即可，DB 定位实际按 msgId/clientId 全局查找）
+     */
+    async updateMessageStatus(sessionKey: string, clientId: string, status: number, msgId?: string, seq?: string): Promise<void> {
+        const res = await ipcService.invoke(IpcChannels.MSG_UPDATE_STATUS, sessionKey, clientId, status, msgId, seq);
+        if (!res.success) {
+            console.error('[MessageService] updateMessageStatus failed:', res.error);
+        }
+    }
+
+    /**
      * 从本地 SQLite 拉取历史消息
      * @param sessionKey  会话 session_key（本地标识，如 private_123_456）
      * @param beforeSeq   排他性上界（Lamport seq 字符串）：只返回 seq < beforeSeq 的消息；

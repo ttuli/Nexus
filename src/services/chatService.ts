@@ -14,6 +14,13 @@ import groupService from './groupService';
 import { messageService } from './messageService';
 import { sessionService } from './sessionService';
 
+/** 从历史/补拉数据中解出的撤回事件（msgId 指被撤回的原消息） */
+export interface RecallEvent {
+    msgId: string;
+    sessionId: string;
+    recallTime: number;
+}
+
 class ChatService {
     private normalizeNumber(value: unknown): number {
         if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
@@ -68,6 +75,7 @@ class ChatService {
     private mapApiMessage(
         message: ApiTypes.message.Message,
         notifyCollector?: ImTypes.GroupNotification[],
+        recallCollector?: RecallEvent[],
     ): IChatMessage | null {
         const extra = this.parseExtra(message.extra);
         const type = this.normalizeNumber(message.msg_type) as MessageType;
@@ -141,7 +149,7 @@ class ChatService {
         }
 
         if (type === MessageType.GROUP_OP_NOTIFICATION) {
-            return this.mapApiNotifyMessage(message, extra, common, notifyCollector);
+            return this.mapApiNotifyMessage(message, extra, common, notifyCollector, recallCollector);
         }
 
         return null;
@@ -163,12 +171,15 @@ class ChatService {
      * 的转换器生成本地系统消息，保证离线拉取的群操作事件与在线推送展示一致。
      * 载荷缺失或解码失败时，退化为仅展示服务端预生成 content 文本的系统消息。
      * @param notifyCollector 传入时收集解码出的群操作通知（供离线补拉后统一应用缓存副作用）
+     * @param recallCollector 传入时收集撤回事件（增量补拉不会重拉旧的原消息，
+     *   需由收集方将撤回状态落到本地已存的原消息上）
      */
     private mapApiNotifyMessage(
         message: ApiTypes.message.Message,
         extra: Record<string, unknown>,
         common: Omit<ILocalSystemMessage, 'type'>,
         notifyCollector?: ImTypes.GroupNotification[],
+        recallCollector?: RecallEvent[],
     ): IChatMessage | null {
         const payloadHex = this.extraString(extra, 'MESSAGE_EXTRA_KEY_NOTIFY_PAYLOAD', 'notify_payload');
         if (payloadHex) {
@@ -182,7 +193,15 @@ class ChatService {
                         seq: toSeq(message.seq),
                     });
                 }
-                // recall 等其他控制类 body 不作为消息行展示（撤回由原消息 status 承载）
+                // recall 等控制类 body 不作为消息行展示（撤回状态由原消息承载），
+                // 但需收集供拉取方对齐本地原消息的撤回状态
+                if (notify.recall?.msg_id) {
+                    recallCollector?.push({
+                        msgId: notify.recall.msg_id,
+                        sessionId: message.session_id || '',
+                        recallTime: Number(notify.recall.recall_time) || 0,
+                    });
+                }
                 return null;
             } catch (e) {
                 console.error('[ChatService] decode notify payload failed:', e);
@@ -242,6 +261,7 @@ class ChatService {
         pageSize: number,
         range?: { startSeq?: string; endSeq?: string },
         notifyCollector?: ImTypes.GroupNotification[],
+        recallCollector?: RecallEvent[],
     ): Promise<IChatMessage[]> {
         const serverSessionId = await this.resolveServerSessionId(sessionKey);
         if (!serverSessionId) return [];
@@ -259,7 +279,7 @@ class ChatService {
         const resp = await getHistory(params);
         const list: ApiTypes.message.Message[] = Array.isArray(resp.data?.list) ? resp.data.list : [];
         let messages = list
-            .map((item: ApiTypes.message.Message) => this.mapApiMessage(item, notifyCollector))
+            .map((item: ApiTypes.message.Message) => this.mapApiMessage(item, notifyCollector, recallCollector))
             .filter((item: IChatMessage | null): item is IChatMessage => item !== null);
 
         const hasStart = startSeq !== '-1';
@@ -302,6 +322,8 @@ class ChatService {
      * Lamport seq 不连续，无法由区间宽度推断数量，按 ASC 分页循环直到拉尽。
      * @param afterSeq 排他性下界（本地已有的最大 seq，'0' 表示从头拉取最近页）
      * @param meId 当前登录用户 id（应用群操作副作用时判断退群/被踢是否针对自己）
+     * @returns messages 为补拉到的可展示消息；recalls 为区间内的撤回事件——
+     *   SQLite 侧状态已由本方法落库，内存（store）侧对齐由调用方负责
      */
     async fetchMessagesSince(
         sessionKey: string,
@@ -310,18 +332,19 @@ class ChatService {
         pageSize: number = 50,
         maxPages: number = 20,
         signal?: AbortSignal,
-    ): Promise<IChatMessage[]> {
-        if (!sessionKey) return [];
+    ): Promise<{ messages: IChatMessage[]; recalls: RecallEvent[] }> {
+        if (!sessionKey) return { messages: [], recalls: [] };
         // 本地无任何记录时不做全量回放，只取最新一页（更早历史由用户翻页按需拉取）。
-        // 此路径不应用群操作副作用：无法判定页内事件是否早已处理过（如清库重装），
-        // 重放旧的踢人/退群事件会破坏成员缓存；成员一致性由 TTL 过期回源兜底。
+        // 此路径不应用群操作/撤回副作用：无法判定页内事件是否早已处理过（如清库重装），
+        // 且页内被撤回的原消息本就携带服务端已更新的 RECALLED 状态，落库即正确。
         if (!seqPositive(afterSeq)) {
-            return this.fetchHistoryFromApi(sessionKey, pageSize);
+            return { messages: await this.fetchHistoryFromApi(sessionKey, pageSize), recalls: [] };
         }
 
         // 严格增量补拉（seq > 本地最大值）拉到的事件必然未处理过，
         // 收集群操作通知，拉齐后按序统一应用缓存副作用（与 WS 在线路径同一套逻辑）
         const groupNotifications: ImTypes.GroupNotification[] = [];
+        const recalls: RecallEvent[] = [];
         const all: IChatMessage[] = [];
         let cursor = toSeq(afterSeq);
         for (let page = 0; page < maxPages; page++) {
@@ -329,7 +352,7 @@ class ChatService {
             // startSeq 有界 + endSeq 无界 → 服务端按 seq ASC 返回
             const batch = await this.fetchHistoryFromApi(sessionKey, pageSize, {
                 startSeq: seqPlusOne(cursor),
-            }, groupNotifications);
+            }, groupNotifications, recalls);
             if (batch.length === 0) break;
             all.push(...batch);
 
@@ -343,7 +366,17 @@ class ChatService {
         if (groupNotifications.length > 0 && !signal?.aborted) {
             await this.applyGroupNotificationEffects(groupNotifications, meId);
         }
-        return all;
+
+        // 撤回对齐：后端撤回 = 原消息状态改 RECALLED + 插入通知行；增量补拉只拉新 seq，
+        // 不会重拉旧的原消息，故按收集到的撤回事件把状态直接落到本地 SQLite（幂等）
+        if (recalls.length > 0 && !signal?.aborted) {
+            for (const r of recalls) {
+                await messageService.updateMessageStatus(
+                    sessionKey, '', MessageStatus.MESSAGE_STATUS_RECALLED, r.msgId,
+                );
+            }
+        }
+        return { messages: all, recalls };
     }
 
     /**
