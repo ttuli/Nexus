@@ -1,0 +1,5 @@
+D:\Project\Nexus\src\services\chatService.ts
+中的fetchHistoryFromApi及其内部调用的函数都没有操作recallCollector?: RecallEvent[]这个参数？
+后端给撤回消息赋值的msgType是msg_op_recall，但是没有看到相关的判断？listener中也没看到
+现在的逻辑是不是seq代表事件流，拉取离线消息时根据拉取到的下线后活跃的会话的信息(看看服务端是不是拉取完就删除redis对应字段)
+，然后再拉取缺失的事件(消息、群通知、撤回等)，然后撤回消息不需要加载到本地数据库，但是会话seq要同步为撤回消息的seq并持久化
