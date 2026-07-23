@@ -172,16 +172,14 @@ const handleMessageContextMenu = (event: MouseEvent, message: IChatMessage) => {
             { label: '复制', key: 'copy', icon: copyIcon }
         ];
     }
+    options.push({ label: '删除', key: 'remove', icon: trashIcon });
 
     // 撤回：仅本人、已落库（有 msgId）、2 分钟内的消息（服务端亦校验）
     if (isSelf(message.fromUserId) && message.msgId
         && Date.now() - Number(message.sendTime) <= RECALL_WINDOW_MS) {
         options.push({ label: '撤回', key: 'recall', icon: trashIcon });
     }
-
-    // 后续可以根据需要的消息类型（如图片等）添加其他菜单
-    options.push({ label: '删除', key: 'remove', icon: trashIcon });
-
+    
     menuOptions.value = options;
     menuX.value = event.clientX;
     menuY.value = event.clientY;
