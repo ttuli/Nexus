@@ -73,14 +73,6 @@ export enum MessageType {
   GROUP_NOTICE = 205,
   /** MSG_ACK - 消息状态 300-399 */
   MSG_ACK = 300,
-  /** MSG_READ - 消息已读 */
-  MSG_READ = 301,
-  /** MSG_DELIVERED - 消息送达 */
-  MSG_DELIVERED = 302,
-  /** MSG_RECALL - 消息撤回 */
-  MSG_RECALL = 303,
-  /** MSG_DELETE - 消息删除 */
-  MSG_DELETE = 304,
   /** MSG_PERSIST_ACK - 消息持久化确认 */
   MSG_PERSIST_ACK = 305,
   /** USER_ONLINE - 用户状态 400-499 */
@@ -163,18 +155,6 @@ export function messageTypeFromJSON(object: any): MessageType {
     case 300:
     case "MSG_ACK":
       return MessageType.MSG_ACK;
-    case 301:
-    case "MSG_READ":
-      return MessageType.MSG_READ;
-    case 302:
-    case "MSG_DELIVERED":
-      return MessageType.MSG_DELIVERED;
-    case 303:
-    case "MSG_RECALL":
-      return MessageType.MSG_RECALL;
-    case 304:
-    case "MSG_DELETE":
-      return MessageType.MSG_DELETE;
     case 305:
     case "MSG_PERSIST_ACK":
       return MessageType.MSG_PERSIST_ACK;
@@ -262,14 +242,6 @@ export function messageTypeToJSON(object: MessageType): string {
       return "GROUP_NOTICE";
     case MessageType.MSG_ACK:
       return "MSG_ACK";
-    case MessageType.MSG_READ:
-      return "MSG_READ";
-    case MessageType.MSG_DELIVERED:
-      return "MSG_DELIVERED";
-    case MessageType.MSG_RECALL:
-      return "MSG_RECALL";
-    case MessageType.MSG_DELETE:
-      return "MSG_DELETE";
     case MessageType.MSG_PERSIST_ACK:
       return "MSG_PERSIST_ACK";
     case MessageType.USER_ONLINE:

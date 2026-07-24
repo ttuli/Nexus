@@ -96,6 +96,7 @@ export function initWsMessageListener(): void {
 
         const msg = messageStore.updateMessageStatus(
             data.ack.session_id,
+            '',
             data.ack.client_id,
             newStatus!,
             data.timestamp
@@ -120,9 +121,9 @@ export function initWsMessageListener(): void {
 
         let msg: IChatMessage | undefined;
         if (data.ack.ack_status === ImTypes.AckStatus.ACK_STATUS_FAILED) {
-            msg = messageStore.updateMessageStatus(data.ack.session_id, data.ack.client_id, ImTypes.MessageStatus.MESSAGE_STATUS_FAILED, data.timestamp);
+            msg = messageStore.updateMessageStatus(data.ack.session_id, '', data.ack.client_id, ImTypes.MessageStatus.MESSAGE_STATUS_FAILED, data.timestamp);
         } else if (data.ack.ack_status === ImTypes.AckStatus.ACK_STATUS_SUCCESS) {
-            msg = messageStore.updateMessageStatus(data.ack.session_id, data.ack.client_id, ImTypes.MessageStatus.MESSAGE_STATUS_DELIVERED, data.timestamp, data.ack.msg_id, data.ack.seq);
+            msg = messageStore.updateMessageStatus(data.ack.session_id, data.ack.msg_id, data.ack.client_id, ImTypes.MessageStatus.MESSAGE_STATUS_DELIVERED, data.timestamp, data.ack.seq);
 
             // 自己发出的消息持久化成功后，同步前进会话 max_seq 并回填 session_id，
             // 避免本地游标滞后于服务端 actual_seq 导致下次上线误判离线缺口

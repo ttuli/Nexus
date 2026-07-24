@@ -357,10 +357,14 @@ export function useChatPage() {
         if (!ok) return false;
 
         const updated = messageStore.updateMessageStatus(
-            msg.sessionId, '', ImTypes.MessageStatus.MESSAGE_STATUS_RECALLED, Date.now(), msg.msgId,
+            msg.sessionId, msg.msgId, '', ImTypes.MessageStatus.MESSAGE_STATUS_RECALLED,
         );
         if (updated) {
             void messageService.saveMessage(toRaw(updated) as IChatMessage);
+        }
+        const session = sessionStore.getSession(msg.sessionKey || '')
+        if (session && session.max_seq === msg.seq) {
+            
         }
         return true;
     }

@@ -116,10 +116,10 @@ export const useMessageStore = defineStore('message', {
          */
         updateMessageStatus(
             _sessionId: string,
-            clientId: string,
+            msgId: string | undefined,
+            clientId: string | undefined,
             status: number,
             sendTime?: number,
-            msgId?: string,
             seq?: string
         ): IChatMessage | undefined {
             const findIn = (list: IChatMessage[]) => list.find(m =>

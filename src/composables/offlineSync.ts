@@ -87,7 +87,7 @@ async function doSync(signal: AbortSignal): Promise<void> {
                 // （当前列表或 LRU 缓存，updateMessageStatus 两处都搜）时就地更新，
                 // 不在内存则无需处理，下次打开会话时从库中读到的即是已撤回状态
                 recalls.forEach(r => messageStore.updateMessageStatus(
-                    r.sessionId, '', ImTypes.MessageStatus.MESSAGE_STATUS_RECALLED, r.recallTime, r.msgId,
+                    r.sessionId, r.msgId, '', ImTypes.MessageStatus.MESSAGE_STATUS_RECALLED
                 ));
             } catch (e) {
                 console.error(`[OfflineSync] backfill offline messages for ${ss.session_key} failed:`, e);

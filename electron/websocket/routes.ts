@@ -185,7 +185,6 @@ export const wsRouteTable: Record<number, MessageHandler> = {
     [ImTypes.MessageType.MSG_ACK]: handleMsgAck,
     [ImTypes.MessageType.MSG_PERSIST_ACK]: handleMsgPersistAck,
 
-    [ImTypes.MessageType.MSG_RECALL]: handleMessageRecall,
     [ImTypes.MessageType.USER_OFFLINE]: handleOfflineNotify,
     [ImTypes.MessageType.ERROR]: handleErrorMessage,
 };

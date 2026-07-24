@@ -98,7 +98,7 @@ export interface ILocalFileMessage extends ILocalMessageBase {
  */
 export interface ILocalSystemMessage extends ILocalMessageBase {
     type:
-    | MessageType.MSG_RECALL
+    | MessageType.MSG_OP_RECALL
     | MessageType.GROUP_OP_NOTIFICATION;
 
     // 可能包含直接显示的文本 (如撤回消息时的 "xxx撤回了一条消息")

@@ -150,7 +150,7 @@ const RECALL_WINDOW_MS = 2 * 60 * 1000; // 撤回时间窗口：2 分钟（与�
 
 const isSystemMessage = (type: number) => {
     const sysTypes = [
-        MessageType.MSG_RECALL,
+        MessageType.MSG_OP_RECALL,
         MessageType.GROUP_OP_NOTIFICATION,
     ];
     return sysTypes.includes(type);

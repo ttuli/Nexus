@@ -242,7 +242,7 @@ export function formatSystemMessage(
     const operatorName = resolveUserName(fromUserId);
     const isSelf = meId !== undefined && fromUserId === meId;
 
-    if (message.type === ImTypes.MessageType.MSG_RECALL) {
+    if (message.type === ImTypes.MessageType.MSG_OP_RECALL) {
         if (message.targetIds?.length && message.targetIds[0] === message.groupId) {
             return `${operatorName} 撤回了一条消息`;
         } else {
@@ -289,7 +289,7 @@ export function formatSystemMessage(
  */
 export function isSystemNotificationMessage(type: ImTypes.MessageType): boolean {
     return type === ImTypes.MessageType.GROUP_OP_NOTIFICATION
-        || type === ImTypes.MessageType.MSG_RECALL;
+        || type === ImTypes.MessageType.MSG_OP_RECALL;
 }
 
 /**
@@ -330,7 +330,7 @@ export function getLastContent(
             content = '[音频]';
             break;
         case ImTypes.MessageType.GROUP_OP_NOTIFICATION:
-        case ImTypes.MessageType.MSG_RECALL:
+        case ImTypes.MessageType.MSG_OP_RECALL:
             // 系统消息复用统一格式化，保证会话预览与聊天气泡文案一致
             content = formatSystemMessage(message as ILocalSystemMessage, meId, getUserName);
             break;

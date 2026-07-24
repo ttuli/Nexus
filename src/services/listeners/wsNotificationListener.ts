@@ -180,10 +180,10 @@ export function initWsNotificationListener(): void {
                 } else if (notify.recall) {
                     // 撤回者 / 会话由信封 base 承载；msg_id 指被撤回的消息
                     const sessionId = envelope.sessionId || ''
-                    const updatedMsg = messageStore.updateMessageStatus(sessionId, '', ImTypes.MessageStatus.MESSAGE_STATUS_RECALLED, notify.recall.recall_time, notify.recall.msg_id)
+                    const updatedMsg = messageStore.updateMessageStatus(sessionId, notify.recall.msg_id, '', ImTypes.MessageStatus.MESSAGE_STATUS_RECALLED)
                     if (updatedMsg) {
                         // 同步更新本地 SQLite 的消息撤回状态
-                        void ipcService.invoke(IpcChannels.MSG_SAVE, JSON.parse(JSON.stringify(toRaw(updatedMsg))));
+                        void messageService.saveMessage(updatedMsg)
                     } else {
                         // 原消息不在内存（会话未打开/缓存被 LRU 淘汰）：按 msgId 直接更新
                         // SQLite，否则本地库中的原消息将永远保持未撤回状态
