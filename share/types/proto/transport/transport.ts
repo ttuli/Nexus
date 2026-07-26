@@ -105,6 +105,30 @@ export enum MessageType {
   UPDATE_SESSION = 700,
   /** USER_GROUP_SYNC - 用户群组映射同步 */
   USER_GROUP_SYNC = 701,
+  /**
+   * CALL_INVITE - 通话信令 800-899（载荷见 proto/call/call.proto）
+   * 纯实时转发，不进 DBSubject、不落库；通话记录另由 CHAT_CALL=106 承载。
+   * 选 8xx 而非 7xx：700/701 已被内部消费消息占用。
+   */
+  CALL_INVITE = 800,
+  /** CALL_ACCEPT - 接听 */
+  CALL_ACCEPT = 801,
+  /** CALL_REJECT - 拒接 */
+  CALL_REJECT = 802,
+  /** CALL_CANCEL - 主叫振铃中取消 */
+  CALL_CANCEL = 803,
+  /** CALL_HANGUP - 通话中挂断 */
+  CALL_HANGUP = 804,
+  /** CALL_SDP - SDP 交换（纯透传） */
+  CALL_SDP = 805,
+  /** CALL_ICE - ICE candidate（纯透传） */
+  CALL_ICE = 806,
+  /** CALL_PENDING - 上线补投：仍在振铃的来电 */
+  CALL_PENDING = 807,
+  /** CALL_MEDIA_UPDATE - 摄像头/麦克风开关状态 */
+  CALL_MEDIA_UPDATE = 808,
+  /** CALL_END - 服务端主动终止（振铃超时等） */
+  CALL_END = 809,
   /** ERROR - 错误响应 900-999 */
   ERROR = 900,
   UNRECOGNIZED = -1,
@@ -205,6 +229,36 @@ export function messageTypeFromJSON(object: any): MessageType {
     case 701:
     case "USER_GROUP_SYNC":
       return MessageType.USER_GROUP_SYNC;
+    case 800:
+    case "CALL_INVITE":
+      return MessageType.CALL_INVITE;
+    case 801:
+    case "CALL_ACCEPT":
+      return MessageType.CALL_ACCEPT;
+    case 802:
+    case "CALL_REJECT":
+      return MessageType.CALL_REJECT;
+    case 803:
+    case "CALL_CANCEL":
+      return MessageType.CALL_CANCEL;
+    case 804:
+    case "CALL_HANGUP":
+      return MessageType.CALL_HANGUP;
+    case 805:
+    case "CALL_SDP":
+      return MessageType.CALL_SDP;
+    case 806:
+    case "CALL_ICE":
+      return MessageType.CALL_ICE;
+    case 807:
+    case "CALL_PENDING":
+      return MessageType.CALL_PENDING;
+    case 808:
+    case "CALL_MEDIA_UPDATE":
+      return MessageType.CALL_MEDIA_UPDATE;
+    case 809:
+    case "CALL_END":
+      return MessageType.CALL_END;
     case 900:
     case "ERROR":
       return MessageType.ERROR;
@@ -279,6 +333,26 @@ export function messageTypeToJSON(object: MessageType): string {
       return "UPDATE_SESSION";
     case MessageType.USER_GROUP_SYNC:
       return "USER_GROUP_SYNC";
+    case MessageType.CALL_INVITE:
+      return "CALL_INVITE";
+    case MessageType.CALL_ACCEPT:
+      return "CALL_ACCEPT";
+    case MessageType.CALL_REJECT:
+      return "CALL_REJECT";
+    case MessageType.CALL_CANCEL:
+      return "CALL_CANCEL";
+    case MessageType.CALL_HANGUP:
+      return "CALL_HANGUP";
+    case MessageType.CALL_SDP:
+      return "CALL_SDP";
+    case MessageType.CALL_ICE:
+      return "CALL_ICE";
+    case MessageType.CALL_PENDING:
+      return "CALL_PENDING";
+    case MessageType.CALL_MEDIA_UPDATE:
+      return "CALL_MEDIA_UPDATE";
+    case MessageType.CALL_END:
+      return "CALL_END";
     case MessageType.ERROR:
       return "ERROR";
     case MessageType.UNRECOGNIZED:

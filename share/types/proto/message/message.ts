@@ -6,6 +6,14 @@
 
 /* eslint-disable */
 import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
+import {
+  CallEndReason,
+  callEndReasonFromJSON,
+  callEndReasonToJSON,
+  CallMediaType,
+  callMediaTypeFromJSON,
+  callMediaTypeToJSON,
+} from "../call/call";
 import { GroupInfo } from "../group/group";
 
 export const protobufPackage = "message";
@@ -523,6 +531,31 @@ export interface FileMessage {
   /** 文件MD5 */
   md5: string;
   format: string;
+}
+
+/**
+ * 通话记录（WSMessage.Type = CHAT_CALL）
+ *
+ * 一通电话**只落一条**，且只在进入终态时由服务端生成 —— 不给 invite/cancel/reject
+ * 各写一条：那会推高 4 个 seq 并触发进会话 reconcile，而记录平面只需要 1 条气泡。
+ *
+ * base.from_user_id 恒为**主叫**，客户端据此判断展示视角（我方「已取消」/ 对方「未接来电」），
+ * 因此不再单列 caller_id。
+ *
+ * 注意：本类型**不注册进 transport 的 msgSpecRegistry** —— 通话记录只允许服务端在
+ * 状态机终态时铸造，客户端不能经普通发消息链路伪造一条通话记录。
+ */
+export interface CallMessage {
+  base:
+    | BaseMessage
+    | undefined;
+  /** 与信令平面的 call_id 同源，便于排查 */
+  call_id: string;
+  /** 决定「语音通话」还是「视频通话」文案 */
+  media_type: CallMediaType;
+  end_reason: CallEndReason;
+  /** 通话秒数；仅 COMPLETED 有意义，其余为 0 */
+  duration: number;
 }
 
 /** 位置消息 */
@@ -2027,6 +2060,144 @@ export const FileMessage: MessageFns<FileMessage> = {
     message.size = object.size ?? 0;
     message.md5 = object.md5 ?? "";
     message.format = object.format ?? "";
+    return message;
+  },
+};
+
+function createBaseCallMessage(): CallMessage {
+  return { base: undefined, call_id: "", media_type: 0, end_reason: 0, duration: 0 };
+}
+
+export const CallMessage: MessageFns<CallMessage> = {
+  encode(message: CallMessage, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.base !== undefined) {
+      BaseMessage.encode(message.base, writer.uint32(10).fork()).join();
+    }
+    if (message.call_id !== "") {
+      writer.uint32(18).string(message.call_id);
+    }
+    if (message.media_type !== 0) {
+      writer.uint32(24).int32(message.media_type);
+    }
+    if (message.end_reason !== 0) {
+      writer.uint32(32).int32(message.end_reason);
+    }
+    if (message.duration !== 0) {
+      writer.uint32(40).int32(message.duration);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CallMessage {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCallMessage();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.base = BaseMessage.decode(reader, reader.uint32());
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.call_id = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.media_type = reader.int32() as any;
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.end_reason = reader.int32() as any;
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.duration = reader.int32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CallMessage {
+    return {
+      base: isSet(object.base) ? BaseMessage.fromJSON(object.base) : undefined,
+      call_id: isSet(object.callId)
+        ? globalThis.String(object.callId)
+        : isSet(object.call_id)
+        ? globalThis.String(object.call_id)
+        : "",
+      media_type: isSet(object.mediaType)
+        ? callMediaTypeFromJSON(object.mediaType)
+        : isSet(object.media_type)
+        ? callMediaTypeFromJSON(object.media_type)
+        : 0,
+      end_reason: isSet(object.endReason)
+        ? callEndReasonFromJSON(object.endReason)
+        : isSet(object.end_reason)
+        ? callEndReasonFromJSON(object.end_reason)
+        : 0,
+      duration: isSet(object.duration) ? globalThis.Number(object.duration) : 0,
+    };
+  },
+
+  toJSON(message: CallMessage): unknown {
+    const obj: any = {};
+    if (message.base !== undefined) {
+      obj.base = BaseMessage.toJSON(message.base);
+    }
+    if (message.call_id !== "") {
+      obj.callId = message.call_id;
+    }
+    if (message.media_type !== 0) {
+      obj.mediaType = callMediaTypeToJSON(message.media_type);
+    }
+    if (message.end_reason !== 0) {
+      obj.endReason = callEndReasonToJSON(message.end_reason);
+    }
+    if (message.duration !== 0) {
+      obj.duration = Math.round(message.duration);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CallMessage>, I>>(base?: I): CallMessage {
+    return CallMessage.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CallMessage>, I>>(object: I): CallMessage {
+    const message = createBaseCallMessage();
+    message.base = (object.base !== undefined && object.base !== null)
+      ? BaseMessage.fromPartial(object.base)
+      : undefined;
+    message.call_id = object.call_id ?? "";
+    message.media_type = object.media_type ?? 0;
+    message.end_reason = object.end_reason ?? 0;
+    message.duration = object.duration ?? 0;
     return message;
   },
 };

@@ -1,3 +1,4 @@
+export * from './call/call';
 export * from './group/group';
 export * from './message/message';
 export * from './social/social';
