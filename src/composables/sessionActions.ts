@@ -4,8 +4,13 @@
  * 故与 useChatPage 等 hook 型 composable 不同，这里直接导出函数。
  */
 import { useSessionStore } from '@/src/store/session';
+import { useMessageStore } from '@/src/store/message';
 import { chatService } from '@/src/services/chatService';
+import { messageService } from '@/src/services';
 import { seqPositive, toSeq } from '@shared/utils/seq';
+import CusDialog from '@/src/components/CusDialog';
+import { DialogResult } from '@/src/components/CusDialog/types';
+import { ElMessage } from 'element-plus';
 
 /**
  * 上报会话已读游标到服务端（read_seq = 本地 max_seq）。
@@ -37,3 +42,52 @@ export async function updateSessionOptions(
         Number(updated.is_disturb),
     );
 }
+
+/**
+ * 清除指定会话的本地聊天记录（含弹窗确认与结果提示）。
+ * 包含：二次确认、内存消息与缓存清理、清空 DB 中的消息、重置会话最新消息显示。
+ *
+ * @param sessionKey 会话 session_key
+ * @param onSuccess 成功清除后的回调函数（可选，如关闭弹窗/侧栏）
+ * @returns 是否确认并完成了清除
+ */
+export async function clearSessionMessages(
+    sessionKey: string,
+    onSuccess?: () => void,
+): Promise<boolean> {
+    const res = await CusDialog.open({
+        title: '提示',
+        content: '确定要清除本地的聊天记录吗？这不会影响其他设备的数据。',
+        showCancel: true,
+        confirmText: '确定',
+        cancelText: '取消',
+    });
+
+    if (res !== DialogResult.Confirm) return false;
+
+    const sessionStore = useSessionStore();
+    const messageStore = useMessageStore();
+
+    // 1. 清理内存消息缓存和当前消息列表
+    messageStore.clearSessionMessage(sessionKey);
+
+    const session = sessionStore.getSession(sessionKey);
+    if (session) {
+        // 2. 清除数据库中的消息记录
+        if (session.session_id) {
+            await messageService.clearMessagesBySessionId(session.session_id || session.session_key);
+        }
+
+        // 3. 重置会话在列表中的最后一条消息显示
+        session.last_content = '';
+        session.unread_count = 0;
+        session.last_sender = 0;
+        session.last_message_time = 0;
+    }
+
+    ElMessage.success('聊天记录已清除');
+    onSuccess?.();
+    return true;
+}
+
+

@@ -128,17 +128,20 @@ class MessageStore {
         const existingPkMap = new Map<string, string>();
         const chunkSize = 900; // SQLite 一次 IN 查询变量安全上限
 
-        // 批量查询存在的 msgId
+        // 批量查询存在的 msgId。
+        // 注意：map 键必须与下方查找侧同域——统一用本地 session_key（convKey）。
+        // 曾因此处误用 session_id（雪花列）建键导致查找永不命中、REPLACE 走
+        // buildPk 的随机临时主键，把重复拉取的整页消息复制成多行。
         for (let i = 0; i < msgIds.length; i += chunkSize) {
             const chunk = msgIds.slice(i, i + chunkSize);
             const placeholders = chunk.map(() => '?').join(',');
-            const rows = await dbBridge.query<{ pk: string, session_id: string, msg_id: string }>(
+            const rows = await dbBridge.query<{ pk: string, session_key: string, msg_id: string }>(
                 'user',
-                `SELECT pk, session_id, msg_id FROM chat_messages WHERE msg_id IN (${placeholders})`,
+                `SELECT pk, session_key, msg_id FROM chat_messages WHERE msg_id IN (${placeholders})`,
                 chunk
             );
             for (const row of rows) {
-                existingPkMap.set(`${row.session_id}:msg:${row.msg_id}`, row.pk);
+                existingPkMap.set(`${row.session_key}:msg:${row.msg_id}`, row.pk);
             }
         }
 
@@ -146,13 +149,13 @@ class MessageStore {
         for (let i = 0; i < clientIds.length; i += chunkSize) {
             const chunk = clientIds.slice(i, i + chunkSize);
             const placeholders = chunk.map(() => '?').join(',');
-            const rows = await dbBridge.query<{ pk: string, session_id: string, client_id: string }>(
+            const rows = await dbBridge.query<{ pk: string, session_key: string, client_id: string }>(
                 'user',
-                `SELECT pk, session_id, client_id FROM chat_messages WHERE client_id IN (${placeholders})`,
+                `SELECT pk, session_key, client_id FROM chat_messages WHERE client_id IN (${placeholders})`,
                 chunk
             );
             for (const row of rows) {
-                existingPkMap.set(`${row.session_id}:cli:${row.client_id}`, row.pk);
+                existingPkMap.set(`${row.session_key}:cli:${row.client_id}`, row.pk);
             }
         }
 

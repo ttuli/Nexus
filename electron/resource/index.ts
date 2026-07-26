@@ -7,6 +7,7 @@ import { closePrivateDB, closeAllDb } from '@/electron/db';
 import settingManager from './settingManager';
 import { fileCacheManager } from './fileCacheManager';
 import { windowManager } from '@/electron/windows/windowManager'
+import { WindowKey } from '@shared/config/windowKeys';
 import { app } from 'electron';
 
 /**
@@ -37,7 +38,7 @@ class ResourceManager {
         setupIpcHandlers();
 
         windowManager.CreateWindow({
-            key: 'login',
+            key: WindowKey.Login,
         });
     }
 
@@ -53,7 +54,7 @@ class ResourceManager {
                 .catch(err => console.error('[ResourceManager] closePrivateDB error:', err))
                 .finally(() => {
                     windowManager.CreateWindow({
-                        key: 'login',
+                        key: WindowKey.Login,
                     });
                 });
         });

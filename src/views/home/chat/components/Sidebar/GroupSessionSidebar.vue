@@ -66,7 +66,7 @@
             </div>
 
             <div class="actions-section">
-                <CusButton class="action-btn" type="normal" :show-icon="false" @click="clearChatData">
+                <CusButton class="action-btn" type="normal" :show-icon="false" @click="handleClearChatData">
                     清除聊天记录
                 </CusButton>
                 <CusButton class="action-btn danger mt-15" type="normal" :show-icon="false" @click="confirmQuitGroup">
@@ -143,6 +143,7 @@ import { Edit } from '@element-plus/icons-vue';
 import { ImTypes } from '@shared/types';
 import { useGroupActions } from '@/src/composables/useGroupActions';
 import { useGroupSessionSidebar } from '@/src/composables/useGroupSessionSidebar';
+import { clearSessionMessages } from '@/src/composables/sessionActions';
 import GroupMembersCard from './components/GroupMembersCard.vue';
 import AllGroupMembersModal from './components/AllGroupMembersModal.vue';
 import RemoveGroupMembersModal from './components/RemoveGroupMembersModal.vue';
@@ -155,6 +156,10 @@ const props = defineProps<{
 const emit = defineEmits(['close']);
 
 const { quitOrDismissGroup } = useGroupActions();
+
+const handleClearChatData = () => {
+    void clearSessionMessages(props.chat.session_key, () => emit('close'));
+};
 
 const {
     // 群状态
@@ -182,8 +187,6 @@ const {
     disturbLoading,
     handleUpdatePinned,
     handleUpdateDisturb,
-    // 会话操作
-    clearChatData,
     // 成员弹窗
     allMembersModalVisible,
     viewAllMembers,
@@ -195,7 +198,7 @@ const {
     removeSubmitLoading,
     removeMembers,
     handleRemoveMembers,
-} = useGroupSessionSidebar(() => props.chat, () => emit('close'));
+} = useGroupSessionSidebar(() => props.chat);
 
 const confirmQuitGroup = async () => {
     if (!targetIdVal.value) return;

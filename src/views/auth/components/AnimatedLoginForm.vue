@@ -18,7 +18,7 @@
           @keydown.enter.prevent="setPasswordInputFocus"
         >
             <template #left-area>
-                <img :src="AccountIcon" class="input-icon" />
+                <User class="app-icon app-icon--md" />
             </template>
         </AccountSelector>
       </div>
@@ -30,14 +30,11 @@
         <CusInput ref="passwordInput" v-model="form.password" type="password" :visible="passwordVisible"
             placeholder="请输入密码(至少8位)" @keydown.enter.prevent="handleLogin">
             <template #left-area>
-                <img :src="PasswordIcon" class="input-icon" />
+                <LockPasswordOpen class="app-icon app-icon--md" />
             </template>
             <template #right-area>
-                <button type="button" class="password-toggle" @click="passwordVisible = !passwordVisible"
-                    :aria-label="passwordVisible ? '隐藏密码' : '显示密码'">
-                    <img v-show="passwordVisible" :src="EyeOpenIcon" class="icon" />
-                    <img v-show="!passwordVisible" :src="EyeClosedIcon" class="icon" />
-                </button>
+                <Eye v-show="passwordVisible" class="app-icon app-icon--lg app-icon--btn password-icon" @click="passwordVisible = !passwordVisible" />
+                <EyeOff v-show="!passwordVisible" class="app-icon app-icon--lg app-icon--btn password-icon" @click="passwordVisible = !passwordVisible" />
             </template>
         </CusInput>
       </div>
@@ -97,10 +94,8 @@
 import { nextTick, onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { windowService, authService, userService, tokenService } from '@/src/services'
-import AccountIcon from '@/src/assets/input/input_name.svg?url'
-import PasswordIcon from '@/src/assets/input/input_password.svg?url'
-import EyeOpenIcon from '@/src/assets/input/eye_open.svg?url'
-import EyeClosedIcon from '@/src/assets/input/eye_closed.svg?url'
+import { WindowKey } from '@shared/config/windowKeys'
+import { User, LockPasswordOpen, Eye, EyeOff } from 'reicon-vue';
 import { signalWindowReady } from '@/src/utils/window'
 import AccountSelector, { AccountOption } from './AccountSelector.vue';
 import { toResourceUrl } from '@/src/utils/resourceUrl';
@@ -163,7 +158,7 @@ const handleLogin = async () => {
     try {
         const res = await authService.login(form.value.account, form.value.password, form.value.rememberMe)
         if (res.success) {
-            windowService.createWindow('home')
+            windowService.createWindow(WindowKey.Home)
             window.close()
         } else {
             ElMessage.error(res.error || '登录失败')
@@ -183,7 +178,7 @@ const handleAutoLogin = async () => {
     try {
         const res = await tokenService.requestTokenRefresh()
         if (res.success === true) {
-            windowService.createWindow('home')
+            windowService.createWindow(WindowKey.Home)
             window.close()
         } else {
             ElMessage.error("登录失败")
@@ -321,19 +316,10 @@ onMounted(async () => {
       margin-left: 5px;
     }
 
-    .input-icon {
-      @include input-icon;
-    }
-
-    .password-toggle {
-      @include icon-button(36px);
-      
-      .icon {
-          width: 18px;
-          height: 18px;
-          filter: var(--icon-filter);
-          transition: filter 0.3s ease;
-      }
+    .password-icon {
+      margin-right: 6px;
+      filter: var(--icon-filter);
+      transition: filter 0.3s ease;
     }
   }
 }

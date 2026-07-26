@@ -78,10 +78,10 @@ export function useChatNavigation() {
         if (sessionStore.currentSessionKey !== targetSessionKey) return;
 
         const session = sessionStore.getSession(targetSessionKey)
-        if (session && (session.last_content === '' || 
-            session.last_message_time === 0 ||
-            session.last_sender === 0
-        )) {
+        // 仅当会话摘要确实为空（新会话尚无预览）时用首屏最新一条兜底填充。
+        // 不能用 last_sender === 0 作为"空"的判据：撤回/系统消息的 last_sender 合法即为 0，
+        // 否则每次打开这类会话都会重推摘要，覆盖掉已正确的撤回预览
+        if (session && (session.last_content === '' || session.last_message_time === 0)) {
             const latestMsg = messages[messages.length - 1];
             if (latestMsg) {
                 const updatedSession = sessionStore.updateSessionSummary(targetSessionKey, {

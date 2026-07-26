@@ -1,4 +1,5 @@
 import { BrowserWindow, app } from 'electron'
+import { WindowKey } from '@shared/config/windowKeys'
 
 // 窗口状态接口（用于持久化）
 export interface WindowState {
@@ -28,21 +29,17 @@ export interface WindowHooks {
 
 // 窗口创建配置接口
 export interface WindowConfig extends Electron.BrowserWindowConstructorOptions {
-    key: string;
+    key: WindowKey;
     url: string;
     data?: Record<string, any>;
-    parentId?: string;
-    // 是否允许关闭时最小化到托盘（仅对 home 窗口有效）
-    allowHideOnClose?: boolean;
-    // 最大化时的背景色，用于替代默认背景色
-    maximizeBackgroundColor?: string;
+    parentId?: WindowKey;
     // 窗口专属生命周期钩子
     hooks?: WindowHooks;
 }
 
 // 窗口创建请求接口
 export interface CreateWindowRequest {
-    key: string;
+    key: WindowKey;
     data?: Record<string, any>;
     /** 可选：覆盖窗口默认宽高（像素，主进程屏幕坐标系） */
     windowSize?: { width: number; height: number };
@@ -50,7 +47,7 @@ export interface CreateWindowRequest {
 
 // 管理的窗口接口
 export interface ManagedWindow {
-    key: string;
+    key: WindowKey;
     window: BrowserWindow;
     url: string;
     data?: Record<string, any>;
@@ -58,24 +55,21 @@ export interface ManagedWindow {
     cleanup?: () => void;
 }
 
-let configs: Map<string, WindowConfig> = new Map([
+let configs: Map<WindowKey, WindowConfig> = new Map([
     [
-        'login',
+        WindowKey.Login,
         {
-            key: 'login',
+            key: WindowKey.Login,
             url: '',
             width: 850,
             height: 600,
             resizable: false,
             frame: false,
             maximizable: false,
-            data: {
-                key: 'login'
-            },
             hooks: {
                 onClosed: (wm?: any) => {
                     // 如果不是在向 home 窗口过渡，则退出应用
-                    if (!wm || !wm.getWindow('home')) {
+                    if (!wm || !wm.getWindow(WindowKey.Home)) {
                         app.quit();
                     }
                 }
@@ -83,9 +77,9 @@ let configs: Map<string, WindowConfig> = new Map([
         }
     ],
     [
-        'home',
+        WindowKey.Home,
         {
-            key: 'home',
+            key: WindowKey.Home,
             url: '/home',
             modal: false,
             frame: false,
@@ -106,9 +100,9 @@ let configs: Map<string, WindowConfig> = new Map([
         }
     ],
     [
-        'addFriend',
+        WindowKey.AddFriend,
         {
-            key: 'addFriend',
+            key: WindowKey.AddFriend,
             url: '/addFriend',
             modal: false,
             frame: false,
@@ -118,9 +112,9 @@ let configs: Map<string, WindowConfig> = new Map([
         }
     ],
     [
-        'userInfo',
+        WindowKey.UserInfo,
         {
-            key: 'userInfo',
+            key: WindowKey.UserInfo,
             url: '/userInfo',
             modal: false,
             frame: false,
@@ -132,9 +126,9 @@ let configs: Map<string, WindowConfig> = new Map([
         }
     ],
     [
-        'settings',
+        WindowKey.Settings,
         {
-            key: 'settings',
+            key: WindowKey.Settings,
             url: '/settings',
             modal: false,
             frame: false,
@@ -146,9 +140,9 @@ let configs: Map<string, WindowConfig> = new Map([
         }
     ],
     [
-        'photoViewer',
+        WindowKey.PhotoViewer,
         {
-            key: 'photoViewer',
+            key: WindowKey.PhotoViewer,
             url: '/photoViewer',
             modal: false,
             frame: false,
@@ -164,9 +158,9 @@ let configs: Map<string, WindowConfig> = new Map([
         }
     ],
     [
-        'videoViewer',
+        WindowKey.VideoViewer,
         {
-            key: 'videoViewer',
+            key: WindowKey.VideoViewer,
             url: '/videoViewer',
             modal: false,
             frame: false,
@@ -182,9 +176,9 @@ let configs: Map<string, WindowConfig> = new Map([
         }
     ],
     [
-        'call',
+        WindowKey.Call,
         {
-            key: 'call',
+            key: WindowKey.Call,
             url: '/call',
             modal: false,
             frame: false,

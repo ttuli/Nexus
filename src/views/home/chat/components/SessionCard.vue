@@ -15,8 +15,7 @@
                 <Badge class="session-badge" :class="{ 'disturb-badge': props.data.is_disturb === 2 }"
                     :value="props.data.unread_count" :is-dot="props.data.is_disturb === 2"
                     :hidden="props.data.unread_count === 0" />
-                <span class="disturb-icon" v-if="props.data.is_disturb === 2 && props.data.unread_count === 0"
-                    v-html="notdisturb"></span>
+                <BellOff class="disturb-icon app-icon app-icon--xs" v-if="props.data.is_disturb === 2 && props.data.unread_count === 0" />
             </div>
         </div>
     </div>
@@ -28,8 +27,7 @@ import { ImTypes } from '@shared/types';
 import { useUserStore } from '@/src/store/user';
 import { useGroupStore } from '@/src/store/group';
 import { extractTargetIdFromSessionId } from '@/src/utils/sessionUtils';
-
-import notdisturb from '@/src/assets/chat/notdisturb.svg?raw';
+import { BellOff } from 'reicon-vue';
 
 // Props
 interface Props {
@@ -70,7 +68,7 @@ const displayContent = computed(() => {
         const lastContent = props.data.last_content || '';
         // 自己发送的消息不加发送者前缀
         if (props.data.last_sender === userStore.userID) return lastContent;
-        // last_sender 为 0（系统消息）或用户信息未缓存时同样不加前缀
+        // last_sender 为 0（系统消息，摘要已含操作人）或用户信息未缓存时同样不加前缀
         const user = userStore.getUser(props.data.last_sender);
         return user?.user_name ? `${user.user_name}: ${lastContent}` : lastContent;
     }

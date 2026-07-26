@@ -4,28 +4,28 @@
             {{ disableReason }}
         </div>
         <div class="toolbar">
-            <!-- P1: Icons for Emoji, Image, File (Placeholders) -->
+            <!-- Icons for Emoji, Image, File, AI -->
             <el-tooltip content="表情" placement="top" :show-after="500">
                 <div class="icon-wrapper" ref="emojiBtnRef" @click="toggleEmojiPicker">
-                    <img class="icon-btn" :src="emoji">
+                    <Smileys class="app-icon app-icon--md app-icon--btn" />
                 </div>
             </el-tooltip>
 
             <el-tooltip content="图片" placement="top" :show-after="500">
                 <div class="icon-wrapper" @click="triggerImageSelect">
-                    <img class="icon-btn" :src="picture">
+                    <Image class="app-icon app-icon--md app-icon--btn" />
                 </div>
             </el-tooltip>
 
             <el-tooltip content="文件" placement="top" :show-after="500">
                 <div class="icon-wrapper" @click="triggerFileSelect">
-                    <img class="icon-btn" :src="file">
+                    <Document class="app-icon app-icon--md app-icon--btn" />
                 </div>
             </el-tooltip>
 
             <el-tooltip content="AI建议" placement="top" :show-after="500">
                 <div class="icon-wrapper" @click="emit('triggerAi')">
-                    <img class="icon-btn bulb" :src="bulb">
+                    <Lightbulb class="app-icon app-icon--md app-icon--btn bulb" />
                 </div>
             </el-tooltip>
 
@@ -56,11 +56,7 @@
 import { ref, nextTick } from 'vue';
 import EmojiPicker from './EmojiPicker.vue';
 import { ElMessage } from 'element-plus';
-
-import emoji from '@/src/assets/chat/emoji.svg?url';
-import picture from '@/src/assets/chat/picture.svg?url';
-import file from '@/src/assets/chat/file.svg?url';
-import bulb from '@/src/assets/chat/bulb.svg?url';
+import { Smileys, Image, Document, Lightbulb } from 'reicon-vue';
 
 withDefaults(defineProps<{
     disableReason?: string;
@@ -216,26 +212,21 @@ defineExpose({
         gap: 16px;
         margin-bottom: 8px;
         padding-left: 4px;
+        color: var(--text-secondary);
 
         .icon-wrapper {
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-        }
 
-        .icon-btn {
-            width: 20px;
-            height: 20px;
-            cursor: pointer;
-            opacity: 0.7;
-            transition: opacity 0.2s, transform 0.2s, filter 0.2s;
-            -webkit-user-drag: none;
-            filter: var(--icon-filter, none);
+            .app-icon {
+                color: var(--text-secondary);
+                transition: color 0.2s ease, transform 0.2s ease;
 
-            &:hover {
-                opacity: 1;
-                transform: scale(1.1);
+                &:hover {
+                    color: $color-primary;
+                }
             }
         }
 

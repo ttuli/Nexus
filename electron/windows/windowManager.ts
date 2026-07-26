@@ -6,13 +6,13 @@ import configs from './windowAttribute';
 import { TrayManager } from './trayManager';
 import { IpcChannels } from '@shared/types';
 import { Main_Config as config } from '@shared/config/constants';
+import { WindowKey } from '@shared/config/windowKeys';
 import { closeAllDb } from '@/electron/db';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 class WindowManager {
-  private windows: Map<string, ManagedWindow> = new Map();
+  private windows: Map<WindowKey, ManagedWindow> = new Map();
   private trayManager: TrayManager | null = null;
   // Map of webContentsId -> showWindow callback for pending ready signals
   private pendingReadyWindows: Map<number, () => void> = new Map();
@@ -34,12 +34,12 @@ class WindowManager {
       }
 
       // 如果是 home 窗口，创建托盘
-      if (wc.key === 'home') {
+      if (wc.key === WindowKey.Home) {
         if (!this.trayManager) {
           this.trayManager = new TrayManager({
-            onShowHome: () => this.showWindow('home'),
+            onShowHome: () => this.showWindow(WindowKey.Home),
             onOpenSettings: () => {
-              this.showWindow('home');
+              this.showWindow(WindowKey.Home);
             },
             onQuit: () => {
               this.closeAllWindows().finally(() => {
@@ -196,12 +196,6 @@ class WindowManager {
         cleanup,
       });
 
-
-      // 监听渲染进程的控制台输出（便于调试）
-      // window.webContents.on('console-message', (_event, level, message, line, sourceId) => {
-      //   const levelName = ['log', 'warn', 'error'][level] || 'info';
-      //   console.log(`[Renderer:${key}] [${levelName}] ${message} (${sourceId}:${line})`);
-      // });
 
       // 如果是开发环境，以独立窗口打开调试工具
       if (process.env['VITE_DEV_SERVER_URL']) {
@@ -420,7 +414,7 @@ class WindowManager {
   /**
    * 获取窗口（带状态检查）
    */
-  public getWindow(key: string): BrowserWindow | null {
+  public getWindow(key: WindowKey): BrowserWindow | null {
     const managed = this.windows.get(key);
     if (managed && this.isValidWindow(managed.window)) {
       return managed.window;
@@ -487,7 +481,7 @@ class WindowManager {
         resolve();
       }, 10000);
 
-      Promise.all([...closePromises]).then(() => {
+      Promise.all(closePromises).then(() => {
         clearTimeout(timeout);
         this.windows.clear();
         this.trayManager?.destroy();
@@ -500,7 +494,7 @@ class WindowManager {
   /**
    * 向窗口发送消息（带错误处理）
    */
-  public sendMessage(key: string, channel: string, data?: any): boolean {
+  public sendMessage(key: WindowKey, channel: string, data?: any): boolean {
     const window = this.getWindow(key);
     if (window) {
       try {
@@ -532,7 +526,7 @@ class WindowManager {
   /**
    * 显示窗口
    */
-  public showWindow(key: string): boolean {
+  public showWindow(key: WindowKey): boolean {
     const window = this.getWindow(key);
     if (window) {
       try {
@@ -611,12 +605,12 @@ class WindowManager {
     });
 
     // 显示窗口
-    ipcMain.on(IpcChannels.WINDOW_SHOW, (_event: IpcMainEvent, key: string) => {
+    ipcMain.on(IpcChannels.WINDOW_SHOW, (_event: IpcMainEvent, key: WindowKey) => {
       this.showWindow(key);
     });
 
     // 向指定窗口发送消息
-    ipcMain.on(IpcChannels.WINDOW_SEND_TO, (_event: IpcMainEvent, { key, channel, data }: { key: string; channel: string; data?: any }) => {
+    ipcMain.on(IpcChannels.WINDOW_SEND_TO, (_event: IpcMainEvent, { key, channel, data }: { key: WindowKey; channel: string; data?: any }) => {
       this.sendMessage(key, channel, data);
     });
 

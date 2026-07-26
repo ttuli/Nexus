@@ -3,7 +3,7 @@
         <div v-show="visible" class="ai-suggestions-widget">
             <div class="header">
                 <span class="title">
-                    <img class="icon" :src="bulbIcon" /> AI 建议回复
+                    <Lightbulb class="app-icon app-icon--sm" /> AI 建议回复
                 </span>
                 <div class="actions">
                     <!-- <el-checkbox v-model="autoGenerate" size="small"
@@ -53,7 +53,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
 import { Refresh, RefreshRight, Loading, Close } from '@element-plus/icons-vue';
-import bulbIcon from '@/src/assets/chat/bulb.svg?url';
+import { Lightbulb } from 'reicon-vue';
 import llmService from '@/src/services/llmService';
 import { useMessageStore } from '@/src/store/message';
 import { useUserStore } from '@/src/store/user';

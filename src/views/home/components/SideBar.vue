@@ -3,18 +3,18 @@
         <div class="top-section">
             <Avatar :uid="userStore.getUserID()" @click.capture.stop="openUserInfo" />
             <div class="nav-item" :class="{ active: activeRoute.includes('chat') }" @click="navigateTo('chat')">
-                <img :src="ChatIcon" alt="Chat" />
+                <MessageDots class="app-icon app-icon--lg" />
                 <Badge :value="chatBadge" class="badge" />
             </div>
             <div class="nav-item" :class="{ active: activeRoute.includes('contacts') }" @click="navigateTo('contacts')">
-                <img :src="ContactsIcon" alt="Contacts" />
+                <AddressBook class="app-icon app-icon--lg" />
                 <Badge :value="contactBadge" class="badge" />
             </div>
 
         </div>
         <div class="bottom-section">
             <div class="nav-item" @click="openSetting">
-                <img :src="SettingIcon" alt="Setting" />
+                <Setting class="app-icon app-icon--lg" />
             </div>
         </div>
     </div>
@@ -26,13 +26,10 @@ import { useRouter, useRoute } from 'vue-router';
 import { useUserStore } from '@/src/store/user';
 import { useGroupStore } from '@/src/store/group';
 import { useSessionStore } from '@/src/store/session';
-
-import ChatIcon from '@/src/assets/sidebar/message.svg';
-import ContactsIcon from '@/src/assets/menu/contacts.svg';
-import SettingIcon from '@/src/assets/sidebar/setting.svg';
-import { createWindow } from '@/src/utils/window';
+import { MessageDots, AddressBook, Setting } from 'reicon-vue';
 import { windowService } from '@/src/services';
 import { NotifySoundType } from '@/src/services/windowService';
+import { WindowKey } from '@shared/config/windowKeys';
 
 const router = useRouter();
 const route = useRoute();
@@ -55,10 +52,10 @@ const navigateTo = (name: string) => {
     router.push(`/home/${name}`);
 };
 const openSetting = () => {
-    createWindow('settings');
+    windowService.createWindow(WindowKey.Settings);
 }
 const openUserInfo = () => {
-    createWindow('userInfo');
+    windowService.createWindow(WindowKey.UserInfo);
 }
 
 watch(contactBadge, (newVal, oldVal) => {
@@ -77,7 +74,7 @@ watch(contactBadge, (newVal, oldVal) => {
     flex-direction: column;
     justify-content: space-between;
     align-items: center;
-    padding: 20px 0;
+    padding: 20px 0 10px 0;
     -webkit-backdrop-filter: var(--sidebar-blur);
     backdrop-filter: var(--sidebar-blur);
 
@@ -104,28 +101,25 @@ watch(contactBadge, (newVal, oldVal) => {
         transition: all 0.3s ease;
         -webkit-app-region: no-drag;
 
-        img {
-            width: 24px;
-            height: 24px;
-            opacity: 0.6;
-            transition: opacity 0.3s;
-            filter: var(--icon-filter);
+        .app-icon {
+            color: var(--text-secondary);
+            transition: color 0.2s ease, opacity 0.2s ease;
         }
 
-        &:hover {
+        &:hover,
+        &:active {
             background-color: var(--bg-hover);
 
-            img {
-                opacity: 0.8;
+            .app-icon {
+                color: var(--text-title);
             }
         }
 
         &.active {
             background-color: var(--color-primary);
 
-            img {
-                opacity: 1;
-                filter: brightness(0) invert(1); // Make icon white
+            .app-icon {
+                color: #ffffff !important;
             }
         }
 

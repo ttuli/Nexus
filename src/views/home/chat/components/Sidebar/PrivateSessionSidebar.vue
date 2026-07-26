@@ -65,14 +65,12 @@ import { computed, ref, nextTick } from 'vue';
 import CusDialog from '@/src/components/CusDialog';
 import { DialogResult } from '@/src/components/CusDialog/types';
 import { useUserStore } from '@/src/store/user';
-import { useSessionStore } from '@/src/store/session';
-import { useMessageStore } from '@/src/store/message';
 import { ImTypes } from '@shared/types';
 import { ElMessage } from 'element-plus';
 import { extractTargetIdFromSessionId } from '@/src/utils/sessionUtils';
 import { Edit } from '@element-plus/icons-vue';
-import { friendService, messageService } from '@/src/services';
-import { updateSessionOptions } from '@/src/composables/sessionActions';
+import { friendService } from '@/src/services';
+import { updateSessionOptions, clearSessionMessages } from '@/src/composables/sessionActions';
 
 const props = defineProps<{
     chat: ImTypes.Session;
@@ -81,8 +79,6 @@ const props = defineProps<{
 const emit = defineEmits(['close']);
 
 const userStore = useUserStore();
-const sessionStore = useSessionStore();
-const messageStore = useMessageStore();
 
 const targetId = computed(() => extractTargetIdFromSessionId(props.chat.session_key, userStore.getUserID()) || 0);
 const friendInfo = computed(() => userStore.getFriend(targetId.value));
@@ -151,27 +147,8 @@ const handleUpdateDisturb = debounce(async (_val: string | number | boolean) => 
     }
 });
 
-const clearChatData = async () => {
-    const res = await CusDialog.open({
-        title: '提示',
-        content: '确定要清除本地的聊天记录吗？这不会影响其他设备的数据。',
-        showCancel: true,
-        confirmText: '确定',
-        cancelText: '取消',
-    });
-
-    if (res === DialogResult.Confirm) {
-        if (sessionStore.currentSessionKey === props.chat.session_key) {
-            messageStore.messages = [];
-        }
-
-        await messageService.clearMessagesBySessionId(props.chat.session_id);
-
-        props.chat.max_seq = '0';
-        props.chat.last_content = '';
-        ElMessage.success('聊天记录已清除');
-        emit('close');
-    }
+const clearChatData = () => {
+    void clearSessionMessages(props.chat.session_key, () => emit('close'));
 };
 
 const confirmDeleteFriend = async () => {

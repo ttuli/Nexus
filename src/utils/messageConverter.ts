@@ -304,6 +304,13 @@ export function getLastContent(
     meId?: number,
     getUserName?: (userId: number) => string,
 ): string {
+    // 已撤回消息：不论原类型（文本/图片/文件…）统一为撤回提示。
+    // 必须先于 type 分发判断——撤回只改 status 不改 type，
+    // 落到下方 case 会把原文/类型占位重新当作预览返回
+    if (message.status === ImTypes.MessageStatus.MESSAGE_STATUS_RECALLED) {
+        return formatSystemMessage(message as ILocalSystemMessage, meId, getUserName);
+    }
+
     let content: string = '';
     switch (message.type) {
         case ImTypes.MessageType.CHAT_TEXT:

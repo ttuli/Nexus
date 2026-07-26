@@ -14,9 +14,9 @@ import { useRouter } from 'vue-router'
 import { useSessionStore } from '@/src/store/session'
 import { useMessageStore } from '@/src/store/message'
 import { toRaw } from 'vue'
-import { seqMax } from '@shared/utils/seq'
+import { seqGt, seqMax, seqPositive } from '@shared/utils/seq'
 import { generateGroupSessionId, generateSessionId } from '@/src/utils/sessionUtils';
-import { convertApplySrc2FriendSrc, formatSystemMessage } from '@/src/utils/messageConverter';
+import { convertApplySrc2FriendSrc, formatSystemMessage, getLastContent } from '@/src/utils/messageConverter';
 import { createGroupNameResolver } from '@/src/utils/displayName';
 import windowService from '../windowService'
 import cacheService from '../cacheService'
@@ -154,7 +154,8 @@ export function initWsNotificationListener(): void {
                             // 真实 seq 由服务端在 WSMessage 顶层回填，base 内为发送方原值，仅作兜底
                             max_seq: seqMax(envelope.seq, notify.base?.msg_seq),
                             update_time: data.payload.timestamp || result.msg.sendTime,
-                            // 系统消息无发送者语义，置 0 避免会话预览携带 "xx:" 前缀
+                            // 实时路径本地信息更全（含被操作者），直接渲染成完整文案，
+                            // 不走服务端的 {sender} 模板；置 0 避免会话预览再叠加 "xx:" 前缀
                             last_sender: 0,
                             last_content: formatSystemMessage(result.msg as ILocalSystemMessage, userStore.getUserID(), createGroupNameResolver(notify.group_notify.group_id)),
                         })
@@ -193,12 +194,24 @@ export function initWsNotificationListener(): void {
                     // 避免下次离线同步把这条已处理的通知再拉一遍
                     const localSession = sessionId ? sessionStore.sessionList.find(c => c.session_id === sessionId) : null
                     if (localSession) {
+                        // 撤回的是会话最新一条时刷新预览——须在 max_seq 前进到通知 seq 之前判断。
+                        // 原消息不在内存（updatedMsg 为空）时无法判定，预览交由下次离线同步
+                        // 用服务端摘要对齐
+                        if (updatedMsg && seqPositive(updatedMsg.seq) && !seqGt(localSession.max_seq, updatedMsg.seq)) {
+                            sessionStore.updateSessionSummary(localSession.session_key, {
+                                last_content: getLastContent(updatedMsg, userStore.getUserID(), (id) => userStore.getDisplayName(id)),
+                                last_message_time: notify.recall.recall_time || Date.now(),
+                                // 撤回预览文案已含操作者语义，置 0 避免会话卡片再加 "xx:" 前缀
+                                last_sender: 0,
+                            })
+                        }
                         const updatedSession = sessionStore.upsertSession({
                             session_id: sessionId,
                             session_key: localSession.session_key,
                             max_seq: seqMax(envelope.seq, notify.base?.msg_seq),
                         })
                         if (updatedSession) {
+                            // updateSessionSummary 与 upsertSession 改的是同一对象，一次落盘即可
                             void sessionService.saveMany([toRaw(updatedSession) as ImTypes.Session])
                         }
                     }

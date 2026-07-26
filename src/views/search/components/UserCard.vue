@@ -7,8 +7,8 @@
             <div class="info-content">
                 <div class="name-row">
                     <span class="name" v-html="highlightKeyword(userInfo.user_name || '未命名')"></span>
-                    <img :src="maleIcon" class="gender-icon" v-if="userInfo.gender === ImTypes.Gender.GENDER_MALE" />
-                    <img :src="femaleIcon" class="gender-icon"
+                    <Male class="gender-icon app-icon app-icon--xs" v-if="userInfo.gender === ImTypes.Gender.GENDER_MALE" />
+                    <Female class="gender-icon app-icon app-icon--xs"
                         v-else-if="userInfo.gender === ImTypes.Gender.GENDER_FEMALE" />
                     <span v-if="isMe" class="me-tag">我</span>
                 </div>
@@ -50,8 +50,7 @@
 import { computed } from 'vue';
 import { ImTypes } from '@shared/types';
 import { useUserStore } from '@/src/store/user';
-import maleIcon from '@/src/assets/gender/male.svg?url';
-import femaleIcon from '@/src/assets/gender/female.svg?url';
+import { Male, Female } from 'reicon-vue';
 
 
 const props = defineProps<{

@@ -13,7 +13,7 @@
             </template>
             <template #right-area>
                 <div class="right-icon" @click.stop="toggleDropdown">
-                    <img :src="ArrowDownIcon" class="arrow-icon" :class="{ 'is-open': visible }" />
+                    <ArrowUp2 class="arrow-icon app-icon app-icon--sm" :class="{ 'is-open': visible }" />
                 </div>
             </template>
         </CusInput>
@@ -37,11 +37,11 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import { ArrowUp2 } from 'reicon-vue'
 import { ClickOutside as vClickOutside } from 'element-plus';
 // Use a generic default avatar if specific one is missing
 import DefaultAvatar from '@/src/assets/avatar/default.png?url';
 // We might need an arrow icon
-import ArrowDownIcon from '@/src/assets/input/arrow_down.svg?url';
 
 export interface AccountOption {
     account: string;
@@ -136,7 +136,6 @@ const selectOption = (item: AccountOption) => {
     position: relative;
     width: 100%;
     -webkit-app-region: no-drag;
-}
 
     .right-icon {
         cursor: pointer;
@@ -145,92 +144,93 @@ const selectOption = (item: AccountOption) => {
         justify-content: center;
         width: 24px;
         height: 24px;
-        padding: 12px;
+        padding: 4px;
         margin-right: 6px;
 
         .arrow-icon {
-            width: 12px;
-            height: 12px;
-            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s;
             opacity: 0.5;
+            transform: rotate(180deg); /* 默认关闭状态：箭头朝下 */
 
             &.is-open {
-                transform: rotate(180deg); /* 点击展开后箭头向下 */
+                transform: rotate(0deg); /* 展开状态：箭头朝上 */
+                opacity: 0.9;
             }
         }
     }
 
-.custom-dropdown {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    width: 100%;
-    margin-top: 8px;
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    box-shadow: var(--shadow-md);
-    z-index: 3000;
-    max-height: 115px;
-    overflow-y: auto;
-    -webkit-app-region: no-drag;;
+    .custom-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        margin-top: 8px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        box-shadow: var(--shadow-md);
+        z-index: 3000;
+        max-height: 115px;
+        overflow-y: auto;
+        -webkit-app-region: no-drag;
 
-    .dropdown-item {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 10px 16px;
-        cursor: pointer;
-        transition: background-color 0.2s;
-
-        &:hover {
-            background-color: var(--bg-hover);
-        }
-
-        .item-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            object-fit: cover;
-            background-color: var(--bg-disabled);
-            flex-shrink: 0;
-        }
-
-        .item-info {
+        .dropdown-item {
             display: flex;
-            flex-direction: column;
-            line-height: 1.3;
-            overflow: hidden;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            cursor: pointer;
+            transition: background-color 0.2s;
 
-            .item-name {
-                font-size: 14px;
-                color: var(--text-primary);
-                font-weight: 500;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
+            &:hover {
+                background-color: var(--bg-hover);
             }
 
-            .item-account {
-                font-size: 12px;
-                color: var(--text-secondary);
+            .item-avatar {
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                object-fit: cover;
+                background-color: var(--bg-disabled);
+                flex-shrink: 0;
+            }
+
+            .item-info {
+                display: flex;
+                flex-direction: column;
+                line-height: 1.3;
+                overflow: hidden;
+
+                .item-name {
+                    font-size: 14px;
+                    color: var(--text-primary);
+                    font-weight: 500;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+
+                .item-account {
+                    font-size: 12px;
+                    color: var(--text-secondary);
+                }
             }
         }
+
+        /* Scrollbar styling */
+        &::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        &::-webkit-scrollbar-thumb {
+            background-color: var(--border-divider);
+            border-radius: 3px;
+        }
+
+        &::-webkit-scrollbar-track {
+            background: transparent;
+        }
     }
-}
-
-/* Scrollbar styling */
-.custom-dropdown::-webkit-scrollbar {
-    width: 6px;
-}
-
-.custom-dropdown::-webkit-scrollbar-thumb {
-    background-color: var(--border-divider);
-    border-radius: 3px;
-}
-
-.custom-dropdown::-webkit-scrollbar-track {
-    background: transparent;
 }
 
 /* Transitions */

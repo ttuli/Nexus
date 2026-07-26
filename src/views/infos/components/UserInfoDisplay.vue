@@ -22,9 +22,9 @@
                 <div class="text-info">
                     <h1 class="user-name">
                         {{ displayName }}
-                        <img v-if="userInfo.gender === (ImTypes.Gender.GENDER_MALE as number)" :src="MaleIcon" class="gender-icon" />
-                        <img v-else-if="userInfo.gender === (ImTypes.Gender.GENDER_FEMALE as number)" :src="FemaleIcon"
-                            class="gender-icon" />
+                        <Male v-if="userInfo.gender === (ImTypes.Gender.GENDER_MALE as number)" class="gender-icon app-icon app-icon--sm" />
+                        <Female v-else-if="userInfo.gender === (ImTypes.Gender.GENDER_FEMALE as number)"
+                            class="gender-icon app-icon app-icon--sm" />
                     </h1>
                     <div class="user-id" @click="copyId">
                         <span>ID: {{ userInfo.user_id }}</span>
@@ -84,8 +84,7 @@ import { useChatNavigation } from '@/src/composables/useChatNavigation';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { ArrowLeft, CopyDocument } from '@element-plus/icons-vue';
-import MaleIcon from '@/src/assets/gender/male.svg';
-import FemaleIcon from '@/src/assets/gender/female.svg';
+import { Male, Female } from 'reicon-vue';
 import { ImTypes } from '@shared/types';
 import ApplyRelationModal from '@/src/components/ApplyRelationModal.vue';
 import { useFriendActions } from '@/src/composables/useFriendActions';

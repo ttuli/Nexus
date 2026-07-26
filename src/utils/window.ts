@@ -1,17 +1,5 @@
 import { IpcChannels } from '@shared/types'
-
-export enum LogoutType {
-    LOGOUT = 'logout',
-    KICKED = 'kicked',
-}
-
-export function createWindow(key: string, data?: any) {
-    window.ipcRenderer.send(IpcChannels.WINDOW_NEW, {
-        key: key,
-        data: data
-    })
-}
-
+import { WindowKey } from '@shared/config/windowKeys'
 
 /** 计算适合屏幕和媒体原始尺寸的窗口大小 */
 function calcViewerSize(
@@ -68,7 +56,7 @@ export async function openPhotoViewer(urls: string[], index = 0, initialSize?: {
     }
 
     window.ipcRenderer.send(IpcChannels.WINDOW_NEW, {
-        key: 'photoViewer',
+        key: WindowKey.PhotoViewer,
         data: { urls, index },
         windowSize,
     });
@@ -85,21 +73,12 @@ export function openVideoViewer(url: string, width?: number, height?: number): v
     const windowSize = calcViewerSize(mediaW, mediaH);
 
     window.ipcRenderer.send(IpcChannels.WINDOW_NEW, {
-        key: 'videoViewer',
+        key: WindowKey.VideoViewer,
         data: { url },
         windowSize,
     });
 }
 
-
-export function logout(type: LogoutType) {
-    window.ipcRenderer.send(IpcChannels.WINDOW_PUBLISH, {
-        channel: IpcChannels.LOGOUT_REMIND,
-        data: {
-            type: type
-        }
-    })
-}
 
 let signalSent = false;
 

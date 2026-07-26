@@ -28,14 +28,7 @@ import { ImTypes } from '@shared/types';
 
 import { sessionService } from '@/src/services/sessionService';
 
-import notdisturb from '@/src/assets/chat/notdisturb.svg?raw';
-import disturb from '@/src/assets/chat/disturb.svg?raw';
-import nottop from '@/src/assets/chat/nottop.svg?raw';
-import top from '@/src/assets/chat/top.svg?raw';
-import trash from '@/src/assets/chat/trash.svg?raw';
-import setmsgunread from '@/src/assets/chat/setmsgunread.svg?raw';
-import setmsgread from '@/src/assets/chat/setmsgread.svg?raw';
-
+import { Notification, BellOff, Pin, PinOff, Trash, CheckRead, Sms } from 'reicon-vue';
 
 const sessionStore = useSessionStore();
 const messageStore = useMessageStore();
@@ -55,19 +48,19 @@ const menuOptions = computed<MenuOption[]>(() => {
         {
             label: chat.unread_count === 0 ? '设为未读' : '设为已读',
             key: chat.unread_count === 0 ? 'mark_unread' : 'mark_read',
-            icon: chat.unread_count === 0 ? setmsgunread : setmsgread
+            icon: chat.unread_count === 0 ? Sms : CheckRead
         },
         {
             label: chat.is_top === 2 ? '取消置顶' : '置顶聊天',
             key: 'toggle_top',
-            icon: chat.is_top === 2 ? nottop : top
+            icon: chat.is_top === 2 ? PinOff : Pin
         },
         {
             label: chat.is_disturb === 2 ? '取消免打扰' : '消息免打扰',
             key: 'toggle_disturb',
-            icon: chat.is_disturb === 2 ? disturb : notdisturb
+            icon: chat.is_disturb === 2 ? Notification : BellOff
         },
-        { label: '删除聊天', key: 'delete', icon: trash },
+        { label: '删除聊天', key: 'delete', icon: Trash },
     ];
 });
 

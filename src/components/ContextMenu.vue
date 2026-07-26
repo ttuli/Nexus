@@ -1,12 +1,11 @@
 <template>
     <Teleport to="body">
-        <!-- Overlay to close menu on outside click -->
-        <div v-if="visible" class="menu-overlay" @click="close"></div>
         <div v-if="visible" ref="menuRef" class="context-menu"
             :style="{ top: posY + 'px', left: posX + 'px', visibility: ready ? 'visible' : 'hidden' }"
             @click.stop @mouseover.stop @mousemove.stop>
             <div v-for="(option, index) in options" :key="index" class="menu-item" @click.capture.stop="handleSelect(option)">
-                <span v-if="option.icon" class="menu-icon" v-html="option.icon" />
+                <component v-if="typeof option.icon === 'object' || typeof option.icon === 'function'" :is="option.icon" class="menu-icon app-icon app-icon--sm" />
+                <span v-else-if="option.icon" class="menu-icon" v-html="option.icon" />
                 <span class="menu-label">{{ option.label }}</span>
             </div>
         </div>
@@ -14,12 +13,12 @@
 </template>
 
 <script setup lang="ts">
-import { PropType, ref, watch, nextTick } from 'vue';
+import { ref, watch, nextTick, onUnmounted, type Component, type PropType } from 'vue';
 
 export interface MenuOption {
     label: string;
     key: string;
-    icon?: string;
+    icon?: string | Component;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     payload?: any;
 }
@@ -58,6 +57,28 @@ const posY = ref(0);
 // 测量并收敛坐标前先隐藏，避免在溢出位置先渲染再跳回造成闪烁
 const ready = ref(false);
 
+const handleOutsideAction = (event: Event) => {
+    if (!props.visible) return;
+    const target = event.target as Node | null;
+    if (menuRef.value && target && !menuRef.value.contains(target)) {
+        close();
+    }
+};
+
+const addOutsideListeners = () => {
+    window.addEventListener('pointerdown', handleOutsideAction, true);
+    window.addEventListener('mousedown', handleOutsideAction, true);
+    window.addEventListener('click', handleOutsideAction, true);
+    window.addEventListener('contextmenu', handleOutsideAction, true);
+};
+
+const removeOutsideListeners = () => {
+    window.removeEventListener('pointerdown', handleOutsideAction, true);
+    window.removeEventListener('mousedown', handleOutsideAction, true);
+    window.removeEventListener('click', handleOutsideAction, true);
+    window.removeEventListener('contextmenu', handleOutsideAction, true);
+};
+
 /**
  * 以点击点为锚点定位，再按菜单实际尺寸做视口收敛：
  * 贴右/下边缘时整体朝内平移，保证菜单不超出边界（仍尽量贴近点击点）。
@@ -89,14 +110,36 @@ async function adjustPosition() {
     ready.value = true;
 }
 
-// 打开时、或打开状态下坐标变化时重新定位
+// 监听 visible 改变
 watch(
-    () => [props.visible, props.x, props.y],
-    () => {
-        if (props.visible) adjustPosition();
-        else ready.value = false;
+    () => props.visible,
+    (visible) => {
+        if (visible) {
+            adjustPosition();
+            nextTick(() => {
+                addOutsideListeners();
+            });
+        } else {
+            ready.value = false;
+            removeOutsideListeners();
+        }
     },
+    { immediate: true }
 );
+
+// 监听坐标改变
+watch(
+    () => [props.x, props.y],
+    () => {
+        if (props.visible) {
+            adjustPosition();
+        }
+    }
+);
+
+onUnmounted(() => {
+    removeOutsideListeners();
+});
 
 const handleSelect = (option: MenuOption) => {
     emit('select', option);
@@ -104,6 +147,7 @@ const handleSelect = (option: MenuOption) => {
 };
 
 const close = () => {
+    removeOutsideListeners();
     emit('close');
     emit('update:visible', false);
 };
@@ -169,15 +213,5 @@ const close = () => {
         font-weight: 450;
         text-align: left;
     }
-}
-
-.menu-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 9998;
-    background: transparent;
 }
 </style>

@@ -89,6 +89,18 @@ export const useMessageStore = defineStore('message', {
         },
 
         /**
+         * 清除指定会话的消息缓存
+         */
+        clearSessionMessage(session_key: string) {
+            if (this.sessionMessageCache.has(session_key)) {
+                this.sessionMessageCache.delete(session_key);
+            }
+            if (this.messages.length && this.messages[0].sessionKey === session_key) {
+                this.messages = [];
+            }
+        },
+
+        /**
          * 更新文件消息的本地路径（下载完成后使用）
          */
         updateFileLocalPath(sessionkey: string, msgId: string, localPath: string) {

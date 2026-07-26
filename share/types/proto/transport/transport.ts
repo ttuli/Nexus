@@ -57,8 +57,10 @@ export enum MessageType {
   CHAT_FILE = 104,
   /** CHAT_LOCATION - 位置消息 */
   CHAT_LOCATION = 105,
+  /** CHAT_CALL - 通话消息 */
+  CHAT_CALL = 106,
   /** CHAT_CUSTOM - 自定义消息 */
-  CHAT_CUSTOM = 106,
+  CHAT_CUSTOM = 107,
   /** GROUP_TEXT - 群聊消息 200-299 */
   GROUP_TEXT = 200,
   /** GROUP_IMAGE - 群图片消息 */
@@ -132,6 +134,9 @@ export function messageTypeFromJSON(object: any): MessageType {
     case "CHAT_LOCATION":
       return MessageType.CHAT_LOCATION;
     case 106:
+    case "CHAT_CALL":
+      return MessageType.CHAT_CALL;
+    case 107:
     case "CHAT_CUSTOM":
       return MessageType.CHAT_CUSTOM;
     case 200:
@@ -226,6 +231,8 @@ export function messageTypeToJSON(object: MessageType): string {
       return "CHAT_FILE";
     case MessageType.CHAT_LOCATION:
       return "CHAT_LOCATION";
+    case MessageType.CHAT_CALL:
+      return "CHAT_CALL";
     case MessageType.CHAT_CUSTOM:
       return "CHAT_CUSTOM";
     case MessageType.GROUP_TEXT:

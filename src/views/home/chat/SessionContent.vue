@@ -4,9 +4,10 @@
         <div class="header">
             <span class="title">{{ title }}</span>
             <div class="actions">
-                <span v-if="currentSession.type === ImTypes.SessionType.SESSION_TYPE_PRIVATE" v-html="phoneIcon"
-                    class="icon-btn phone" title="语音通话" @click="startCall">
-                </span>
+                <div v-if="currentSession.type === ImTypes.SessionType.SESSION_TYPE_PRIVATE"
+                    class="icon-btn" title="语音通话" @click="startCall">
+                    <CallCalling class="app-icon app-icon--sm" />
+                </div>
                 <div class="icon-btn" :class="{ disabled: !canOpenSidebar }" title="聊天信息" @click="toggleSidebar">⋮</div>
             </div>
         </div>
@@ -89,11 +90,9 @@ import ChatSidebar from './components/Sidebar/index.vue';
 import AiSuggestions from './components/AiSuggestions.vue';
 import type { MenuOption } from '@/src/components/ContextMenu.vue';
 import { ElMessage } from 'element-plus';
-
-import copyIcon from '@/src/assets/chat/copy.svg?raw';
-import phoneIcon from '@/src/assets/call/phone.svg?raw';
-import trashIcon from '@/src/assets/chat/trash.svg?raw'
+import { CallCalling, Copy, Trash, Undo } from 'reicon-vue';
 import { windowService } from '@/src/services';
+import { WindowKey } from '@shared/config/windowKeys';
 import { useChatPage } from '@/src/composables/useChatPage';
 
 
@@ -169,15 +168,15 @@ const handleMessageContextMenu = (event: MouseEvent, message: IChatMessage) => {
 
     if (message.type === MessageType.CHAT_TEXT || message.type === MessageType.GROUP_TEXT) {
         options = [
-            { label: '复制', key: 'copy', icon: copyIcon }
+            { label: '复制', key: 'copy', icon: Copy }
         ];
     }
-    options.push({ label: '删除', key: 'remove', icon: trashIcon });
+    options.push({ label: '删除', key: 'remove', icon: Trash });
 
     // 撤回：仅本人、已落库（有 msgId）、2 分钟内的消息（服务端亦校验）
     if (isSelf(message.fromUserId) && message.msgId
         && Date.now() - Number(message.sendTime) <= RECALL_WINDOW_MS) {
-        options.push({ label: '撤回', key: 'recall', icon: trashIcon });
+        options.push({ label: '撤回', key: 'recall', icon: Undo });
     }
     
     menuOptions.value = options;
@@ -444,7 +443,7 @@ const startCall = () => {
     const targetType = currentSession.value.type === ImTypes.SessionType.SESSION_TYPE_PRIVATE ? 'private' : 'group';
 
     if (targetId) {
-        windowService.createWindow('call', {
+        windowService.createWindow(WindowKey.Call, {
             targetId: targetId,
             fromId: userStore.getUserID(),
             targetType
@@ -525,16 +524,9 @@ const startResize = (e: MouseEvent) => {
         .actions {
             -webkit-app-region: no-drag;
             display: flex;
-
-            .phone {
-                padding: 6px;
-                box-sizing: border-box;
-            }
-
-            .ai {
-                padding: 6px;
-                box-sizing: border-box;
-            }
+            flex-direction: row;
+            align-items: center;
+            gap: 4px;
 
             .icon-btn {
                 width: 32px;
@@ -542,18 +534,19 @@ const startResize = (e: MouseEvent) => {
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                border-radius: 4px;
+                border-radius: 6px;
                 cursor: pointer;
-                color: $color-text-secondary;
-                transition: background-color 0.2s;
+                color: var(--text-secondary);
+                transition: background-color 0.2s, color 0.2s;
 
                 &:hover {
-                    background-color: $bg-hover;
+                    background-color: var(--bg-hover);
+                    color: var(--text-title);
                 }
 
                 &.disabled {
                     cursor: default;
-                    color: $color-text-placeholder;
+                    color: var(--text-disabled);
 
                     &:hover {
                         background-color: transparent;

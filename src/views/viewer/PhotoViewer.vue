@@ -12,21 +12,21 @@
         <!-- Toolbar -->
         <div class="toolbar" @mousedown.stop>
             <div class="tool-btn" @click="rotate(-90)" title="向左旋转">
-                <img :src="LeftRotate" alt="Left" />
+                <RotateLeft class="app-icon app-icon--sm" />
             </div>
             <div class="tool-btn right-rotate" @click="rotate(90)" title="向右旋转">
-                <img :src="LeftRotate" alt="Right" />
+                <RotateRight class="app-icon app-icon--sm" />
             </div>
             <div class="divider"></div>
             <div class="tool-btn" @click="zoom(-0.1)" title="缩小">
-                <img :src="ZoomOut" alt="Out" />
+                <SearchZoomOut class="app-icon app-icon--sm" />
             </div>
             <div class="tool-btn" @click="zoom(0.1)" title="放大">
-                <img :src="ZoomIn" alt="In" />
+                <SearchZoomIn class="app-icon app-icon--sm" />
             </div>
             <div class="divider"></div>
             <div class="tool-btn" @click="downloadImage" title="保存图片">
-                <img :src="Download" alt="Save" />
+                <Download class="app-icon app-icon--sm" />
             </div>
         </div>
     </div>
@@ -35,10 +35,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
-import LeftRotate from '@/src/assets/photoView/left-rotate.svg?url';
-import ZoomIn from '@/src/assets/photoView/zoom-in.svg?url';
-import ZoomOut from '@/src/assets/photoView/zoom-out.svg?url';
-import Download from '@/src/assets/photoView/download.svg?url';
+import { RotateLeft, RotateRight, SearchZoomIn, SearchZoomOut, Download } from 'reicon-vue';
 import { signalWindowReady } from '@/src/utils/window';
 import { ElMessage } from 'element-plus';
 

@@ -1,0 +1,68 @@
+@use "./_constant.scss" as *;
+
+/* 全局 reicon-vue 图标基础样式与尺寸规范 */
+
+.app-icon,
+[class^="app-icon--"],
+[class*=" app-icon--"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  flex-shrink: 0;
+  color: currentColor;
+  transition: color 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
+}
+
+.app-icon {
+  &--xs {
+    width: $icon-size-xs;
+    height: $icon-size-xs;
+  }
+
+  &--sm {
+    width: $icon-size-sm;
+    height: $icon-size-sm;
+  }
+
+  &--md {
+    width: $icon-size-md;
+    height: $icon-size-md;
+  }
+
+  &--lg {
+    width: $icon-size-lg;
+    height: $icon-size-lg;
+  }
+
+  &--xl {
+    width: $icon-size-xl;
+    height: $icon-size-xl;
+  }
+
+  &--btn {
+    cursor: pointer;
+    border-radius: 6px;
+    padding: 4px;
+    box-sizing: content-box;
+
+    &:hover {
+      background-color: var(--bg-hover, rgba(0, 0, 0, 0.05));
+      color: $color-primary;
+    }
+
+    &:active {
+      background-color: var(--bg-active, rgba(0, 0, 0, 0.08));
+      color: $color-primary-dark;
+    }
+  }
+
+  &--disabled {
+    opacity: 0.5;
+    cursor: not-allowed !important;
+    &:hover {
+      background-color: transparent !important;
+      color: currentColor !important;
+    }
+  }
+}

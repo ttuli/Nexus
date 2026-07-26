@@ -3,31 +3,29 @@
     <div class="actions">
       <template v-if="isConnected">
         <button class="action-btn" :class="{ 'is-active': !isMuted }" @click="emit('toggle-mute')" :title="isMuted ? '打开麦克风' : '关闭麦克风'">
-          <img class="icon" :src="Microphone"></img>
+          <Microphone class="app-icon app-icon--md" />
         </button>
         <button class="action-btn" :class="{ 'is-active': isVideoEnabled }" @click="emit('toggle-video')" :title="isVideoEnabled ? '关闭摄像头' : '开启摄像头'">
-          <img class="icon" :src="Camera"></img>
+          <Video class="app-icon app-icon--md" />
         </button>
         <button v-if="showScreenShare" class="action-btn" @click="emit('toggle-screen-share')" title="共享屏幕">
-          <img class="icon">💻</img>
+          <Monitor class="app-icon app-icon--md" />
         </button>
       </template>
       <!-- 拒绝/挂断 -->
       <button class="action-btn hangup-btn" @click="emit('hangup')" :title="isIncoming && !isConnected ? '拒绝' : '挂断'">
-        <img class="icon" :src="Phone"></img>
+        <Phone class="app-icon app-icon--md" />
       </button>
       <!-- 接听 (被叫方且未接听时显示) -->
       <button class="action-btn accept-btn" v-if="isIncoming && !isConnected" @click="emit('accept')" title="接听">
-        <img class="icon" :src="Phone"></img>
+        <Phone class="app-icon app-icon--md" />
       </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import Microphone from '@/src/assets/call/Microphone.svg?url'
-import Camera from '@/src/assets/call/VideoCamera.svg?url'
-import Phone from '@/src/assets/call/phone.svg?url'
+import { Microphone, Video, Phone, Monitor } from 'reicon-vue';
 
 defineProps<{
   isMuted: boolean;

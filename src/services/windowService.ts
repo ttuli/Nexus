@@ -4,6 +4,7 @@
  */
 import { ipcService } from './ipcService'
 import { IpcChannels, IpcChannel, LogoutType } from '@shared/types'
+import { WindowKey } from '@shared/config/windowKeys'
 export { LogoutType }
 
 export enum NotifySoundType {
@@ -14,8 +15,7 @@ export enum NotifySoundType {
 import { CallWindowConfig } from '@shared/types/window'
 
 type WindowConfigMap = {
-    'call': CallWindowConfig;
-    [key: string]: any;
+    [WindowKey.Call]: CallWindowConfig;
 };
 
 class WindowService {
@@ -23,9 +23,9 @@ class WindowService {
     /**
      * 创建新窗口
      */
-    createWindow<K extends keyof WindowConfigMap>(
+    createWindow<K extends WindowKey>(
         key: K,
-        config?: WindowConfigMap[K]
+        config?: K extends keyof WindowConfigMap ? WindowConfigMap[K] : Record<string, any>
     ): void {
         ipcService.send(IpcChannels.WINDOW_NEW, {
             key,

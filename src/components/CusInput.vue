@@ -96,7 +96,7 @@ defineExpose({
   width: 100%;
   height: 48px;
   border-radius: var(--radius-md, 8px);
-  padding: 0 0 0 16px;
+  padding: 0 0 0 8px; // 调小左侧外内边距（原为 16px），让左侧图标往左靠拢
   box-sizing: border-box;
   overflow: hidden;
   transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
@@ -132,7 +132,7 @@ defineExpose({
     display: flex;
     align-items: center;
 
-    // 左侧 slot 保留左边的间距
+    // 左侧 slot
     &:first-child {
       padding-right: 0;
     }

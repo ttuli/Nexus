@@ -1,5 +1,5 @@
 <template>
-    <div class="message-bubble" :class="{ 'is-self': isSelf }">
+    <div class="message-bubble" :class="{ 'is-self': isSelf, 'is-recalling': recalling }">
         <div class="avatar-wrapper">
             <Avatar :uid="message.fromUserId" type="user" :size="36" />
         </div>
@@ -12,7 +12,7 @@
 
             <!-- New wrapper for bubble and status -->
             <div class="bubble-row" :class="{ 'is-self': isSelf }">
-                <div class="bubble" :class="{ 'is-image': isImageMessage, 'is-video': isVideoMessage, 'is-file': isFileMessage }"
+                <div class="bubble" :class="{ 'is-image': isImageMessage, 'is-video': isVideoMessage, 'is-file': isFileMessage, 'is-recalling': recalling }"
                     @contextmenu.prevent="handleContextMenu">
                     <!-- Image Messages -->
                     <ImageMessageBubble v-if="isImageMessage" :message="(message as ILocalImageMessage)" />
@@ -28,12 +28,15 @@
                     <div class="text" v-else>{{ messageContent }}</div>
                 </div>
 
-                <!-- Status Indicators (Only for self messages) -->
+                <!-- Status & Recalling Indicators -->
+                <div class="recalling-indicator" v-if="recalling">
+                    <span class="recalling-text">撤回中...</span>
+                </div>
                 <div class="status-indicator loading"
-                    v-if="isSelf && (message.status === MessageStatus.MESSAGE_STATUS_SENDING ||
+                    v-else-if="isSelf && (message.status === MessageStatus.MESSAGE_STATUS_SENDING ||
                      message.status === MessageStatus.MESSAGE_STATUS_SENT)"></div>
                 <div class="status-indicator failed"
-                    v-if="isSelf && message.status === MessageStatus.MESSAGE_STATUS_FAILED">!</div>
+                    v-else-if="isSelf && message.status === MessageStatus.MESSAGE_STATUS_FAILED">!</div>
             </div>
 
             <div class="footer" v-if="isSelf">
@@ -46,6 +49,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useUserStore } from '@/src/store/user';
+import { useChatPage } from '@/src/composables/useChatPage';
 import ImageMessageBubble from './ImageMessageBubble.vue';
 import FileMessageBubble from './FileMessageBubble.vue';
 import VideoMessageBubble from './VideoMessageBubble.vue';
@@ -65,6 +69,9 @@ interface Props {
 
 const props = defineProps<Props>();
 const userStore = useUserStore();
+const { isRecalling } = useChatPage();
+
+const recalling = computed(() => isRecalling(props.message.msgId));
 
 const senderName = computed(() => {
     if (props.isSelf) return '我';
@@ -137,9 +144,6 @@ const formatTime = (timestamp: number) => {
     return `${date.getFullYear()}-${month}-${day} ${timeStr}`;
 };
 
-// const handleAvatarClick = () => {
-//     console.log('avatar click');
-// };
 </script>
 
 <style scoped lang="scss">
@@ -151,6 +155,15 @@ const formatTime = (timestamp: number) => {
     padding: 0 16px;
     width: 100%;
     box-sizing: border-box;
+
+    &.is-recalling {
+        pointer-events: none;
+        user-select: none;
+
+        .bubble {
+            animation: messageRecallingPulse 1.2s ease-in-out infinite;
+        }
+    }
 
     &.is-self {
         flex-direction: row-reverse;
@@ -212,6 +225,35 @@ const formatTime = (timestamp: number) => {
             /* Reverse order for self messages so status is on the left */
             &.is-self {
                 flex-direction: row-reverse;
+            }
+        }
+
+        .recalling-indicator {
+            display: flex;
+            align-items: center;
+            height: 20px;
+            user-select: none;
+            padding: 0 2px;
+
+            .recalling-text {
+                font-size: 11px;
+                font-weight: 500;
+                line-height: 1;
+                white-space: nowrap;
+                color: #94a3b8;
+                background: linear-gradient(
+                    90deg,
+                    #94a3b8 0%,
+                    #94a3b8 35%,
+                    #ffffff 50%,
+                    #94a3b8 65%,
+                    #94a3b8 100%
+                );
+                background-size: 200% 100%;
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+                animation: recallingTextPulse 1.6s linear infinite;
             }
         }
 
@@ -300,6 +342,34 @@ const formatTime = (timestamp: number) => {
 
     100% {
         transform: rotate(360deg);
+    }
+}
+
+@keyframes messageRecallingPulse {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.45;
+        transform: scale(0.98);
+        filter: blur(0.6px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes recallingTextPulse {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
     }
 }
 </style>

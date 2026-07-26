@@ -535,7 +535,10 @@ class ChatService {
         return {
             msg,
             sessionKey: msg.sessionKey,
-            shouldIncrementUnread: isCreate,
+            // 群操作通知（含建群）不计未读：未读只统计需要"读"的聊天消息，
+            // 与服务端 CountUnread 口径一致（已按 msg_type 排除通知类），
+            // 否则本地 +1 会在下次离线同步被服务端未读数覆盖、造成抖动
+            shouldIncrementUnread: false,
             shouldPlaySound: isCreate,
         };
     }

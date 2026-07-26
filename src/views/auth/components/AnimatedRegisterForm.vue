@@ -7,7 +7,7 @@
         <label>名称 <span class="required">*</span></label>
         <CusInput v-model="form.nickname" placeholder="请输入昵称" @keydown.enter.prevent="focusPhoneInput">
           <template #left-area>
-            <img :src="NameIcon" class="input-icon" />
+            <User class="app-icon app-icon--md" />
           </template>
           <template #right-area>
             <span v-if="form.nickname" class="input-count">{{ form.nickname.length }}/20</span>
@@ -22,7 +22,7 @@
         <label>手机号 <span class="required">*</span></label>
         <CusInput ref="phoneInput" v-model="form.phone" placeholder="请输入手机号" @keydown.enter.prevent="focusCodeInput">
           <template #left-area>
-            <img :src="PhoneIcon" class="input-icon" />
+            <Phone class="app-icon app-icon--md" />
           </template>
           <template #right-area>
             <div class="phone-input-area">
@@ -42,7 +42,7 @@
         <label>验证码 <span class="required">*</span></label>
         <CusInput ref="codeInput" v-model="form.code" placeholder="请输入验证码" @keydown.enter.prevent="focusPasswordInput">
           <template #left-area>
-            <img :src="CodeIcon" class="input-icon" />
+            <ShieldCheck class="app-icon app-icon--md" />
           </template>
         </CusInput>
       </div>
@@ -56,14 +56,11 @@
           placeholder="请输入密码 (至少8位)" @keydown.enter.prevent="focusConfirmPasswordInput" @focus="handlePasswordFocus"
           @blur="handlePasswordBlur">
           <template #left-area>
-            <img :src="PasswordIcon" class="input-icon" />
+            <Lock class="app-icon app-icon--md" />
           </template>
           <template #right-area>
-            <button type="button" class="password-toggle" @click="passwordVisible = !passwordVisible"
-              :aria-label="passwordVisible ? '隐藏密码' : '显示密码'">
-              <img v-if="passwordVisible" :src="EyeOpenIcon" class="icon" />
-              <img v-else :src="EyeClosedIcon" class="icon" />
-            </button>
+            <Eye v-if="passwordVisible" class="app-icon app-icon--md app-icon--btn password-icon" @click="passwordVisible = !passwordVisible" />
+            <EyeOff v-else class="app-icon app-icon--md app-icon--btn password-icon" @click="passwordVisible = !passwordVisible" />
           </template>
         </CusInput>
         <CusInputHint :visible="passwordFocused" :targetRef="passwordInput">
@@ -82,12 +79,12 @@
         <CusInput ref="confirmPasswordInput" v-model="form.confirmPassword" type="password"
           :visible="confirmPasswordVisible" placeholder="请再次输入密码" @keydown.enter.prevent="handleRegister">
           <template #left-area>
-            <img :src="PasswordIcon" class="input-icon" />
+            <Lock class="app-icon app-icon--md" />
           </template>
           <template #right-area>
             <span v-if="form.confirmPassword" :class="['status-icon', passwordMatch ? 'valid' : 'invalid']">
-              <img v-if="passwordMatch" :src="CheckValidIcon" class="icon" />
-              <img v-else :src="CheckInvalidIcon" class="icon" />
+              <Check v-if="passwordMatch" class="app-icon app-icon--md icon" />
+              <CloseCircle v-else class="app-icon app-icon--md icon" />
             </span>
           </template>
         </CusInput>
@@ -116,15 +113,7 @@
 import { ref, computed, watch, h, defineComponent } from 'vue'
 import { ElMessage } from 'element-plus'
 import { authService } from '@/src/services'
-
-import NameIcon from '@/src/assets/input/input_name.svg?url'
-import PhoneIcon from '@/src/assets/input/input_phone.svg?url'
-import PasswordIcon from '@/src/assets/input/input_password.svg?url'
-import EyeOpenIcon from '@/src/assets/input/eye_open.svg?url'
-import EyeClosedIcon from '@/src/assets/input/eye_closed.svg?url'
-import CheckValidIcon from '@/src/assets/input/check_valid.svg?url'
-import CheckInvalidIcon from '@/src/assets/input/check_invalid.svg?url'
-import CodeIcon from '@/src/assets/input/input_code.svg?url'
+import { User, Phone, Lock, ShieldCheck, Eye, EyeOff, Check, CloseCircle } from 'reicon-vue';
 import CusDialog from '@/src/components/CusDialog';
 
 const emit = defineEmits<{
@@ -352,19 +341,11 @@ const showPrivacy = (e: Event): void => {
       position: relative;
     }
 
-    .input-icon {
-      @include input-icon;
-    }
 
-    .password-toggle {
-      @include icon-button(36px);
-
-      .icon {
-        width: 18px;
-        height: 18px;
-        filter: var(--icon-filter);
-        transition: filter 0.3s ease;
-      }
+    .password-icon {
+      margin-right: 6px;
+      filter: var(--icon-filter);
+      transition: filter 0.3s ease;
     }
 
     .input-count {
@@ -378,11 +359,6 @@ const showPrivacy = (e: Event): void => {
       align-items: center;
       justify-content: center;
       margin-right: 8px;
-
-      .icon {
-        width: 18px;
-        height: 18px;
-      }
     }
 
     .phone-input-area {

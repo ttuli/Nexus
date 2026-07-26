@@ -94,28 +94,6 @@ const handleNotification: MessageHandler = async (message: WsMessage) => {
 };
 
 /**
- * Handle message recall
- */
-const handleMessageRecall: MessageHandler = async (message: WsMessage) => {
-    try {
-        const payload = message.payload instanceof Uint8Array
-            ? ImTypes.MessageRecall.decode(message.payload)
-            : message.payload;
-
-        console.log('[Routes] Received message recall:', payload);
-
-        // Broadcast to renderers
-        windowManager.broadcastMessage(IpcChannels.WS_MESSAGE, {
-            type: message.type,
-            payload: payload,
-            timestamp: message.timestamp,
-        });
-    } catch (e) {
-        console.error('Failed to decode MessageRecall', e);
-    }
-};
-
-/**
  * Handle offline notification (kicked by another device)
  * Using CustomMessage or SystemNotification if specific type unknown, 
  * or assuming payload is JSON bytes.

@@ -13,23 +13,20 @@
             </div>
         </div>
         <button class="min-btn" @click="onMin" v-if="needMin">
-            <img :src="Min"></img>
+            <Minus class="app-icon app-icon--xs" />
         </button>
         <button v-if="needMax" class="max-btn" @click="onMax">
-            <img :src="UnMax" v-if="isMax"></img>
-            <img :src="Max" v-else></img>
+            <ExitFullscreenSquare class="app-icon app-icon--xs" v-if="isMax" />
+            <AspectRatioSquare class="app-icon app-icon--xs" v-else />
         </button>
         <button class="close-btn" @click="handleClose">
-            <img :src="X"></img>
+            <X class="app-icon app-icon--xs" />
         </button>
     </div>
 </template>
 
 <script lang="ts" setup>
-import Min from '@/src/assets/window/Minimize2.svg'
-import X from '@/src/assets/window/x.svg'
-import Max from '@/src/assets/window/Maximize1.svg'
-import UnMax from '@/src/assets/window/Maximize2.svg'
+import { Minus, AspectRatioSquare, ExitFullscreenSquare, X } from 'reicon-vue';
 import { onMounted, onUnmounted, ref, computed } from 'vue';
 import { windowService, websocketService } from '@/src/services';
 import { ConnectionState } from '@shared/types';
@@ -166,6 +163,7 @@ onUnmounted(() => {
         height: v-bind('props.height');
         border: none;
         background-color: transparent;
+        color: var(--text-primary);
         cursor: pointer;
         transition: all 0.3s ease;
         -webkit-app-region: no-drag;
@@ -174,11 +172,6 @@ onUnmounted(() => {
         align-items: center;
         justify-content: center;
 
-        img {
-            width: 50%;
-            height: 50%;
-            pointer-events: none;
-        }
     }
 
     .close-btn {
@@ -230,12 +223,6 @@ onUnmounted(() => {
                     }
                 }
             }
-        }
-    }
-
-    button {
-        img {
-            filter: invert(1);
         }
     }
 

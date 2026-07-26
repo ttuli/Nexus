@@ -46,12 +46,12 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import SideBar from './components/SideBar.vue';
-import { ipcService, websocketService } from '@/src/services';
+import { ipcService, websocketService, windowService } from '@/src/services';
 import { signalWindowReady } from '@/src/utils/window';
 import { useSessionStore } from '@/src/store/session';
 import { useMessageStore } from '@/src/store/message';
 import UserSelectorModal from '@/src/components/UserSelectorModal.vue';
-import { createWindow } from '@/src/utils/window';
+import { WindowKey } from '@shared/config/windowKeys';
 import { useGroupActions } from '@/src/composables/useGroupActions'
 import { IpcChannels, ApiTypes, ConnectionState } from '@shared/types';
 import { initRelationStore, storeOfflineTimestamp } from '@/src/store/init';
@@ -125,7 +125,7 @@ const handleCreateGroup = async (data: { name: string; userIds: number[] }) => {
 
 const handleMenuSelect = (key: string) => {
     if (key === 'search') {
-        createWindow('addFriend');
+        windowService.createWindow(WindowKey.AddFriend);
     } else if (key === 'createGroup') {
         createGroupVisible.value = true;
     }

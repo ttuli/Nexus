@@ -13,9 +13,9 @@
                         <div class="text-info">
                             <div class="main-info">
                                 <h2 class="name">{{ displayName }}</h2>
-                                <img :src="MaleIcon" class="gender-icon"
+                                <Male class="gender-icon app-icon app-icon--sm"
                                     v-if="userInfo.gender === ImTypes.Gender.GENDER_MALE" />
-                                <img :src="FemaleIcon" class="gender-icon"
+                                <Female class="gender-icon app-icon app-icon--sm"
                                     v-if="userInfo.gender === ImTypes.Gender.GENDER_FEMALE" />
                             </div>
                             <div class="user-id" @click="handleCopy(String(userInfo.user_id))" title="点击复制 ID">
@@ -94,8 +94,7 @@ import { useFriendActions } from '@/src/composables/useFriendActions';
 defineOptions({ name: 'FriendDetail' });
 import { generateSessionId } from '@/src/utils/sessionUtils';
 import { useChatNavigation } from '@/src/composables/useChatNavigation';
-import MaleIcon from '@/src/assets/gender/male.svg';
-import FemaleIcon from '@/src/assets/gender/female.svg';
+import { Male, Female } from 'reicon-vue';
 import { ImTypes } from '@shared/types';
 import { ElMessage } from 'element-plus';
 import { CopyDocument } from '@element-plus/icons-vue';

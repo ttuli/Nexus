@@ -4,13 +4,10 @@ import { ImTypes } from '@shared/types';
 import CusDialog from '@/src/components/CusDialog';
 import { DialogResult } from '@/src/components/CusDialog/types';
 import { useUserStore } from '@/src/store/user';
-import { useSessionStore } from '@/src/store/session';
-import { useMessageStore } from '@/src/store/message';
 import { useGroup } from './useGroup';
 import { useGroupActions } from './useGroupActions';
 import { updateSessionOptions } from './sessionActions';
 import { extractTargetIdFromSessionId } from '@/src/utils/sessionUtils';
-import { sessionService } from '@/src/services/sessionService';
 
 /**
  * 群聊会话侧栏的视图逻辑（GroupSessionSidebar 专属 view-model）。
@@ -20,15 +17,11 @@ import { sessionService } from '@/src/services/sessionService';
  * 本组合式函数只做面向该侧栏的粘合（含 toast / 确认弹窗等交互反馈）。
  *
  * @param chatInput 当前群会话（ref / getter / 原始值）
- * @param onClose 请求关闭侧栏的回调（如清除记录、退群后）
  */
 export function useGroupSessionSidebar(
     chatInput: MaybeRefOrGetter<ImTypes.Session>,
-    onClose?: () => void,
 ) {
     const userStore = useUserStore();
-    const sessionStore = useSessionStore();
-    const messageStore = useMessageStore();
     const { inviteGroupMembers, removeGroupMembers, loadGroupMembers, setMyGroupNickname } = useGroupActions();
 
     const chat = computed(() => toValue(chatInput));
@@ -160,28 +153,6 @@ export function useGroupSessionSidebar(
         }
     };
 
-    // ---- 清除本地聊天记录 ----
-    const clearChatData = async () => {
-        const res = await CusDialog.open({
-            title: '提示',
-            content: '确定要清除本地的聊天记录吗？这不会影响其他设备的数据。',
-            showCancel: true,
-            confirmText: '确定',
-            cancelText: '取消',
-        });
-        if (res !== DialogResult.Confirm) return;
-
-        if (sessionStore.currentSessionKey === chat.value.session_key) {
-            messageStore.messages = [];
-        }
-        chat.value.max_seq = '0';
-        chat.value.last_content = '';
-        sessionStore.removeSession(chat.value.session_id);
-        void sessionService.deleteOne(chat.value.session_id);
-        ElMessage.success('聊天记录已清除');
-        onClose?.();
-    };
-
     const allMembersModalVisible = ref(false);
     const viewAllMembers = () => {
         allMembersModalVisible.value = true;
@@ -283,8 +254,6 @@ export function useGroupSessionSidebar(
         disturbLoading,
         handleUpdatePinned,
         handleUpdateDisturb,
-        // 会话操作
-        clearChatData,
         // 成员弹窗
         allMembersModalVisible,
         viewAllMembers,
