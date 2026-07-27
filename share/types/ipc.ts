@@ -74,6 +74,8 @@ export const IpcChannels = {
     WS_CONNECT: 'ws:connect',
     WS_DISCONNECT: 'ws:disconnect',
     WS_SEND: 'ws:send',
+    /** 通话信令直发：绕开 MessageQueue 的去重/重试，不排队不补投 */
+    WS_SEND_SIGNAL: 'ws:send-signal',
     WS_GET_STATE: 'ws:get-state',
     WS_STATE_CHANGE: 'ws:state-change',
     WS_MESSAGE: 'ws:message',
@@ -81,6 +83,8 @@ export const IpcChannels = {
     WS_MESSAGE_PERSIST_ACK: 'ws:message-persist-ack',
     WS_NOTIFICATION: 'ws:notification',
     WS_OFFLINE_NOTIFY: 'ws:offline-notify',
+    /** 通话信令下行（800-809）：广播到所有窗口，主窗口负责拉起通话窗，通话窗自行消费 SDP/ICE */
+    WS_CALL_SIGNAL: 'ws:call-signal',
 
     // 窗口相关
     WINDOW_NEW: 'window:new-window',

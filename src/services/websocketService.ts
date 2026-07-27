@@ -22,6 +22,14 @@ class WebSocketService {
     async send(message: ImTypes.WSMessage, clientId = '', sessionId = ''): Promise<IpcResponse & { sent?: boolean, error?: string }> {
         return ipcService.invoke(IpcChannels.WS_SEND, message, clientId, sessionId)
     }
+
+    /**
+     * 发送通话信令：绕开 MessageQueue，断连即失败，不排队不补投。
+     * 信令易失，补发一条过期的 offer / ICE 只会让对端困惑。
+     */
+    async sendSignal(message: ImTypes.WSMessage): Promise<IpcResponse & { sent?: boolean, error?: string }> {
+        return ipcService.invoke(IpcChannels.WS_SEND_SIGNAL, message)
+    }
     /**
      * 监听连接状态变化
      */

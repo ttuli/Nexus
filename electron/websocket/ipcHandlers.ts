@@ -29,6 +29,16 @@ export function setupWsIpcHandlers(): void {
         }
     });
 
+    // 通话信令直发：不进队列，断连即返回 sent:false 让上层立即反馈
+    ipcMain.handle(IpcChannels.WS_SEND_SIGNAL, async (_event, message: ImTypes.WSMessage) => {
+        try {
+            return { sent: wsManager.sendSignal(message) };
+        } catch (error) {
+            console.error('[WS IPC] Send signal error:', error);
+            return { sent: false, error: (error as Error).message };
+        }
+    });
+
     console.log('[WS IPC] Handlers registered');
 }
 

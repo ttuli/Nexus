@@ -4,10 +4,19 @@
         <div class="header">
             <span class="title">{{ title }}</span>
             <div class="actions">
-                <div v-if="currentSession.type === ImTypes.SessionType.SESSION_TYPE_PRIVATE"
-                    class="icon-btn" title="语音通话" @click="startCall">
-                    <CallCalling class="app-icon app-icon--sm" />
-                </div>
+                <!-- 语音 / 视频分两个入口：media_type 发起时确定、通话期间不变。
+                     语音通话中不出现开摄像头入口——音频 SDP 没有 video m-line，
+                     中途加视频轨必然触发重协商，双按钮设计正是为规避这条 -->
+                <template v-if="currentSession.type === ImTypes.SessionType.SESSION_TYPE_PRIVATE">
+                    <div class="icon-btn" title="语音通话"
+                        @click="startCall(ImTypes.CallMediaType.CALL_MEDIA_TYPE_AUDIO)">
+                        <CallCalling class="app-icon app-icon--sm" />
+                    </div>
+                    <div class="icon-btn" title="视频通话"
+                        @click="startCall(ImTypes.CallMediaType.CALL_MEDIA_TYPE_VIDEO)">
+                        <Video class="app-icon app-icon--sm" />
+                    </div>
+                </template>
                 <div class="icon-btn" :class="{ disabled: !canOpenSidebar }" title="聊天信息" @click="toggleSidebar">⋮</div>
             </div>
         </div>
@@ -90,7 +99,7 @@ import ChatSidebar from './components/Sidebar/index.vue';
 import AiSuggestions from './components/AiSuggestions.vue';
 import type { MenuOption } from '@/src/components/ContextMenu.vue';
 import { ElMessage } from 'element-plus';
-import { CallCalling, Copy, Trash, Undo } from 'reicon-vue';
+import { CallCalling, Video, Copy, Trash, Undo } from 'reicon-vue';
 import { windowService } from '@/src/services';
 import { WindowKey } from '@shared/config/windowKeys';
 import { useChatPage } from '@/src/composables/useChatPage';
@@ -436,19 +445,25 @@ const handleSelectSuggestion = (text: string) => {
     aiSuggestionsVisible.value = false;
 };
 
-const startCall = () => {
+const startCall = (mediaType: ImTypes.CallMediaType) => {
     if (!currentSession.value) return;
     // session_key 才是可解析的派生格式，session_id 为服务端分配 ID
     const targetId = extractTargetIdFromSessionId(currentSessionKey.value, userStore.getUserID());
-    const targetType = currentSession.value.type === ImTypes.SessionType.SESSION_TYPE_PRIVATE ? 'private' : 'group';
+    if (!targetId) return;
 
-    if (targetId) {
-        windowService.createWindow(WindowKey.Call, {
-            targetId: targetId,
-            fromId: userStore.getUserID(),
-            targetType
-        });
-    }
+    const isVideo = mediaType === ImTypes.CallMediaType.CALL_MEDIA_TYPE_VIDEO;
+    windowService.createWindow(
+        WindowKey.Call,
+        {
+            peerId: targetId,
+            sessionKey: currentSessionKey.value,
+            mediaType,
+            isIncoming: 0,
+            targetType: 'private',
+        },
+        // call 窗默认 400×600 是竖屏语音尺寸，视频要放宽否则画面被挤变形
+        isVideo ? { width: 800, height: 600 } : undefined
+    );
 }
 
 // Resizer Logic

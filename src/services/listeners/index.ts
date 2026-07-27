@@ -5,6 +5,7 @@
 import { initResourceListener } from './resourceListener'
 import { initWsMessageListener } from './wsMessageListener'
 import { initWsNotificationListener } from './wsNotificationListener'
+import { initWsCallListener } from './wsCallListener'
 import { initWindowListener } from './windowListener'
 
 class ListenerService {
@@ -17,6 +18,7 @@ class ListenerService {
         initResourceListener()
         initWsMessageListener()
         initWsNotificationListener()
+        initWsCallListener()
         initWindowListener()
     }
 

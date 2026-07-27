@@ -137,6 +137,30 @@ export class WebSocketManager extends EventEmitter {
     }
 
     /**
+     * 发送通话信令：绕开 MessageQueue，不排队、不重试、不补投。
+     *
+     * 信令是易失的——离线时排队、重连后补发一条过期的 offer / ICE candidate
+     * 只会让对端困惑，通话早已由服务端 sweeper 收敛。断连即失败，让上层直接反馈用户。
+     *
+     * 另：MessageQueue.enqueue 对无 clientId 的帧直接 return，
+     * 而 send() 只发队列里的内容，信令走 send() 会被静默丢弃，必须走本方法。
+     */
+    sendSignal(message: ImTypes.WSMessage): boolean {
+        if (this.state !== ConnectionState.CONNECTED || !this.ws) {
+            console.warn('[WebSocketManager] Signal dropped (offline):', message.type);
+            return false;
+        }
+        try {
+            // 信令没有 clientId（不需要 ACK/去重），序列化只走 proto encode 不读该字段
+            this.sendDirect(message as WsMessage);
+            return true;
+        } catch (error) {
+            console.error('[WebSocketManager] Signal send error:', error);
+            return false;
+        }
+    }
+
+    /**
      * Send a message directly without queue management (for retries)
      */
     private sendDirect(message: WsMessage): void {

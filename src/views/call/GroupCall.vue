@@ -46,7 +46,6 @@
 <script setup lang="ts">
 import { ref, computed, onUnmounted } from 'vue';
 import CallControlBar from './components/CallControlBar.vue';
-import { useCallState } from './composables/useCallState';
 
 interface Participant {
   id: string;
@@ -56,17 +55,17 @@ interface Participant {
   isMuted: boolean;
 }
 
-const {
-  isConnected,
-  isMuted,
-  isVideoEnabled,
-  formattedDuration,
-  toggleMute,
-  toggleVideo,
-  hangup,
-  acceptCall,
-  stopDurationTimer,
-} = useCallState();
+// 群通话第一版不接信令：状态平面要维护 N 个参与者各自的 joined/left，复杂度跳一档。
+// 此处为纯 UI 占位，不复用 useCallState（那是私聊单对端的 PeerConnection 控制器）。
+const isConnected = ref(false);
+const isMuted = ref(false);
+const isVideoEnabled = ref(false);
+const formattedDuration = ref('00:00');
+const toggleMute = () => { isMuted.value = !isMuted.value; };
+const toggleVideo = () => { isVideoEnabled.value = !isVideoEnabled.value; };
+const hangup = () => window.close();
+const acceptCall = () => { isConnected.value = true; };
+const stopDurationTimer = () => { };
 
 const isIncoming = ref(false); // 是否是被叫方
 

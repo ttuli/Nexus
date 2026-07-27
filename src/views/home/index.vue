@@ -46,7 +46,7 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import SideBar from './components/SideBar.vue';
-import { ipcService, websocketService, windowService } from '@/src/services';
+import { ipcService, websocketService, windowService, callService } from '@/src/services';
 import { signalWindowReady } from '@/src/utils/window';
 import { useSessionStore } from '@/src/store/session';
 import { useMessageStore } from '@/src/store/message';
@@ -148,6 +148,9 @@ onMounted(async () => {
         if (state === ConnectionState.CONNECTED && wsWasDisconnected) {
             wsWasDisconnected = false;
             void syncOfflineActiveSessions();
+            // 闪断重连期间可能有来电：查一次是否仍在振铃。
+            // 必须在渲染层触发——主进程一连上就推的话，通话监听可能还没挂载
+            void callService.queryPending();
         }
     });
 
@@ -170,6 +173,10 @@ onMounted(async () => {
     void initRelationStore()
 
     void syncOfflineActiveSessions()
+
+    // 冷启动补投：登录前对方可能已拨入且仍在振铃窗口内。
+    // 服务端已复核主叫在线与剩余振铃时间，命中即由 wsCallListener 拉起接听界面
+    void callService.queryPending()
 
     // 预热联系人面板的懒加载 chunk，首次切换 tab 不再等待加载
     void import('@/src/views/home/contact/components/ContactSidebar.vue');

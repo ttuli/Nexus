@@ -25,11 +25,15 @@ class WindowService {
      */
     createWindow<K extends WindowKey>(
         key: K,
-        config?: K extends keyof WindowConfigMap ? WindowConfigMap[K] : Record<string, any>
+        config?: K extends keyof WindowConfigMap ? WindowConfigMap[K] : Record<string, any>,
+        windowSize?: { width: number; height: number }
     ): void {
+        // windowSize 是 CreateWindowRequest 的顶层字段，不能塞进 data ——
+        // data 会被序列化成 URL query 传给渲染层，放错位置不会报错但尺寸不生效
         ipcService.send(IpcChannels.WINDOW_NEW, {
             key,
-            data: config
+            data: config,
+            ...(windowSize ? { windowSize } : {})
         })
     }
 
