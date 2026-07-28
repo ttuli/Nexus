@@ -16,7 +16,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import PrivateCall from './PrivateCall.vue';
 import GroupCall from './GroupCall.vue';
 import { useRoute } from 'vue-router';
@@ -40,7 +40,7 @@ const isIncoming = ref<boolean>(String(route.query.isIncoming) === '1');
 
 const ready = ref(true);
 
-signalWindowReady();
+onMounted(signalWindowReady);
 </script>
 
 <style scoped lang="scss">

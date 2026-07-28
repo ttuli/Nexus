@@ -116,8 +116,11 @@ watch(remoteStream, (s) => {
   if (remoteVideoRef.value) remoteVideoRef.value.srcObject = s;
 });
 
-onMounted(() => {
-  void userService.fetchByIds([props.peerId]);
+onMounted(async () => {
+  if (userStore.getUser(props.peerId) === undefined) {
+    let res = await userService.fetchByIds([props.peerId]);
+    res.map((user: ImTypes.UserInfo) => userStore.setUser(user));
+  }
   // 呼出方在挂载后立即发起；来电方等用户点接听
   if (!props.isIncoming) void startCall();
 });
