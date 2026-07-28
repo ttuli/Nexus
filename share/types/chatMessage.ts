@@ -112,6 +112,23 @@ export interface ILocalSystemMessage extends ILocalMessageBase {
 }
 
 /**
+ * 通话记录（CHAT_CALL）
+ *
+ * 由服务端在通话终态铸造，一通电话只有一条，客户端不产生本地乐观副本。
+ * `fromUserId` 恒为**主叫**，客户端据此判断展示视角（我方「已取消」/ 对方「未接来电」）。
+ */
+export interface ILocalCallMessage extends ILocalMessageBase {
+    type: MessageType.CHAT_CALL;
+    callId: string;
+    /** call.CallMediaType：0=语音 1=视频 */
+    mediaType: number;
+    /** call.CallEndReason */
+    endReason: number;
+    /** 通话秒数，仅 COMPLETED 有意义 */
+    duration: number;
+}
+
+/**
  * 联合类型：聊天消息
  */
 export type IChatMessage =
@@ -120,6 +137,7 @@ export type IChatMessage =
     | ILocalVideoMessage
     | ILocalAudioMessage
     | ILocalFileMessage
+    | ILocalCallMessage
     | ILocalSystemMessage;
 // 未来可扩展其他类型
 

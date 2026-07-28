@@ -5,6 +5,7 @@ import { app, ipcMain } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { resourceManager } from './resource'
+import { setupMediaPermission } from './windows/mediaPermission'
 import { IpcChannels } from '@shared/types/ipc'
 import { APP_CONSTANTS } from '@shared/config/constants'
 
@@ -32,6 +33,9 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 
 app.setName(APP_CONSTANTS.ApplicationName)
 
 app.whenReady().then(() => {
+  // 通话需要麦克风/摄像头：显式放行，避免 getUserMedia 被静默拒绝
+  setupMediaPermission();
+
   // 初始化资源管理器
   resourceManager.init();
 

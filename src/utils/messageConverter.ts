@@ -6,6 +6,7 @@
 import {
     ImTypes, IChatMessage, ILocalTextMessage, ILocalImageMessage,
     ILocalVideoMessage, ILocalAudioMessage, ILocalFileMessage, ILocalSystemMessage,
+    ILocalCallMessage,
 } from '@shared/types';
 import { seqPositive, toSeq } from '@shared/utils/seq';
 import { generateGroupSessionId } from './sessionUtils';
@@ -58,6 +59,12 @@ export function convertWSMessageToIChatMessage(wsMsg: ImTypes.WSMessage): IChatM
                 const audioMsg = ImTypes.AudioMessage.decode(wsMsg.payload);
                 base = audioMsg.base;
                 contentObj = audioMsg;
+                break;
+            }
+            case ImTypes.MessageType.CHAT_CALL: {
+                const callMsg = ImTypes.CallMessage.decode(wsMsg.payload);
+                base = callMsg.base;
+                contentObj = callMsg;
                 break;
             }
             default:
@@ -156,6 +163,18 @@ export function convertWSMessageToIChatMessage(wsMsg: ImTypes.WSMessage): IChatM
         } as ILocalAudioMessage;
     }
 
+    if (wsMsg.type === ImTypes.MessageType.CHAT_CALL) {
+        const callMsg = contentObj as ImTypes.CallMessage;
+        return {
+            ...commonFields,
+            type: wsMsg.type,
+            callId: callMsg.call_id || '',
+            mediaType: callMsg.media_type || 0,
+            endReason: callMsg.end_reason || 0,
+            duration: callMsg.duration || 0,
+        } as ILocalCallMessage;
+    }
+
     return null;
 }
 
@@ -206,6 +225,47 @@ export function convertApplySrc2FriendSrc(src: ImTypes.ApplySource): ImTypes.Fri
         case ImTypes.ApplySource.APPLY_SOURCE_UNSPECIFIED:
         default:
             return ImTypes.FriendSource.FRIEND_SOURCE_UNSPECIFIED;
+    }
+}
+
+/** 通话秒数 → mm:ss / hh:mm:ss */
+export function formatCallDuration(sec: number): string {
+    const s = Math.max(0, Math.floor(sec));
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const r = s % 60;
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return h > 0 ? `${pad(h)}:${pad(m)}:${pad(r)}` : `${pad(m)}:${pad(r)}`;
+}
+
+/**
+ * 通话记录文案。
+ *
+ * 服务端下发的 preview 是**无主语中性文案**（"语音通话 未接听"），
+ * 因为同一条记录在主被叫两侧该显示的话不同，服务端无法为每个接收者预渲染 ——
+ * 与群通知 preview 同一套契约。此处按 `fromUserId`（恒为主叫）重算视角文案。
+ */
+export function formatCallMessage(message: ILocalCallMessage, meId?: number): string {
+    const isVideo = message.mediaType === ImTypes.CallMediaType.CALL_MEDIA_TYPE_VIDEO;
+    const kind = isVideo ? '视频通话' : '语音通话';
+    const iAmCaller = meId !== undefined && message.fromUserId === meId;
+
+    switch (message.endReason) {
+        case ImTypes.CallEndReason.CALL_END_REASON_COMPLETED:
+            return `${kind} ${formatCallDuration(message.duration)}`;
+        case ImTypes.CallEndReason.CALL_END_REASON_CANCELED:
+            // 主叫在振铃期间取消：主叫看到"已取消"，被叫看到的是一通没接到的电话
+            return iAmCaller ? `${kind} 已取消` : `未接${kind}`;
+        case ImTypes.CallEndReason.CALL_END_REASON_REJECTED:
+            return iAmCaller ? `${kind} 对方已拒绝` : `${kind} 已拒绝`;
+        case ImTypes.CallEndReason.CALL_END_REASON_MISSED:
+            return iAmCaller ? `${kind} 对方无应答` : `未接${kind}`;
+        case ImTypes.CallEndReason.CALL_END_REASON_PEER_OFFLINE:
+            return iAmCaller ? `${kind} 对方不在线` : `未接${kind}`;
+        case ImTypes.CallEndReason.CALL_END_REASON_BUSY:
+            return iAmCaller ? `${kind} 对方忙线` : `未接${kind}`;
+        default:
+            return `${kind} 未接通`;
     }
 }
 
@@ -335,6 +395,10 @@ export function getLastContent(
         case ImTypes.MessageType.CHAT_AUDIO:
         case ImTypes.MessageType.GROUP_AUDIO:
             content = '[音频]';
+            break;
+        case ImTypes.MessageType.CHAT_CALL:
+            // 与气泡文案同源，保证会话预览与聊天内容一致
+            content = formatCallMessage(message as ILocalCallMessage, meId);
             break;
         case ImTypes.MessageType.GROUP_OP_NOTIFICATION:
         case ImTypes.MessageType.MSG_OP_RECALL:

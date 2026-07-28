@@ -104,6 +104,14 @@ export enum MessageExtraKey {
   MESSAGE_EXTRA_KEY_THUMB_HEIGHT = 13,
   MESSAGE_EXTRA_KEY_DURATION = 20,
   MESSAGE_EXTRA_KEY_NOTIFY_PAYLOAD = 30,
+  /**
+   * MESSAGE_EXTRA_KEY_CALL_MEDIA_TYPE - 通话记录（CHAT_CALL）。时长复用 DURATION=20。
+   * 这些字段在 CallMessage payload 内，但历史接口只返回 content/media_url/extra，
+   * 不落 Extra 的话客户端翻历史时无法还原通话终态与类型
+   */
+  MESSAGE_EXTRA_KEY_CALL_MEDIA_TYPE = 40,
+  MESSAGE_EXTRA_KEY_CALL_END_REASON = 41,
+  MESSAGE_EXTRA_KEY_CALL_ID = 42,
   UNRECOGNIZED = -1,
 }
 
@@ -139,6 +147,15 @@ export function messageExtraKeyFromJSON(object: any): MessageExtraKey {
     case 30:
     case "MESSAGE_EXTRA_KEY_NOTIFY_PAYLOAD":
       return MessageExtraKey.MESSAGE_EXTRA_KEY_NOTIFY_PAYLOAD;
+    case 40:
+    case "MESSAGE_EXTRA_KEY_CALL_MEDIA_TYPE":
+      return MessageExtraKey.MESSAGE_EXTRA_KEY_CALL_MEDIA_TYPE;
+    case 41:
+    case "MESSAGE_EXTRA_KEY_CALL_END_REASON":
+      return MessageExtraKey.MESSAGE_EXTRA_KEY_CALL_END_REASON;
+    case 42:
+    case "MESSAGE_EXTRA_KEY_CALL_ID":
+      return MessageExtraKey.MESSAGE_EXTRA_KEY_CALL_ID;
     case -1:
     case "UNRECOGNIZED":
     default:
@@ -168,6 +185,12 @@ export function messageExtraKeyToJSON(object: MessageExtraKey): string {
       return "MESSAGE_EXTRA_KEY_DURATION";
     case MessageExtraKey.MESSAGE_EXTRA_KEY_NOTIFY_PAYLOAD:
       return "MESSAGE_EXTRA_KEY_NOTIFY_PAYLOAD";
+    case MessageExtraKey.MESSAGE_EXTRA_KEY_CALL_MEDIA_TYPE:
+      return "MESSAGE_EXTRA_KEY_CALL_MEDIA_TYPE";
+    case MessageExtraKey.MESSAGE_EXTRA_KEY_CALL_END_REASON:
+      return "MESSAGE_EXTRA_KEY_CALL_END_REASON";
+    case MessageExtraKey.MESSAGE_EXTRA_KEY_CALL_ID:
+      return "MESSAGE_EXTRA_KEY_CALL_ID";
     case MessageExtraKey.UNRECOGNIZED:
     default:
       return "UNRECOGNIZED";

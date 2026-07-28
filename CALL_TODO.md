@@ -2,69 +2,44 @@
 
 配对后端清单：`IMChat/CALL_TODO.md`
 
-**信令链路已打通**：入口按钮 → 发起 → 接听 → SDP/ICE 协商 → 挂断 → 上线补投，
-`vue-tsc --noEmit` 与 `npm run build` 通过。已完成部分的设计理由写在对应代码注释里，本文件只留待办。
+**功能已完整**：入口按钮 → 发起 → 铃声 → 接听 → SDP/ICE 协商 → 挂断 → 通话记录气泡 → 上线补投，
+含媒体权限、设备跟随、登出收尾。`vue-tsc --noEmit` + `vite build` 通过。
+已完成部分的设计理由写在对应代码注释里，本文件只留待办。
 
-**当前可用性**：能打通、能接听、能挂断；但**通话结束后聊天里不显示记录气泡**（§1），
-且**跨 NAT 大概率连不上**（依赖后端 TURN，见 `IMChat/CALL_TODO.md`）。
+**当前可用性**：局域网 / 同 NAT 下可完整跑通。
+**唯一阻塞项是跨 NAT 连不上**——只有 STUN，TURN 是后端待办。
 
 ---
 
-## 1. 通话记录渲染 ⬜ 未开始（链路闭环的最后一块）
+## 1. 发送码率封顶 ⬜
 
-后端已在终态落库 `CHAT_CALL(106)`，主进程路由也已注册，但渲染层还没有任何 106 分支，
-**目前通话结束后聊天记录里什么都不显示**。
+- [ ] SDP 改 `b=AS`（或 `RTCRtpSender.setParameters` 的 `maxBitrate`）显式封顶发送码率
+      - 采集侧约束已在 `CALL_CONFIG.videoConstraints`（720p/24fps），
+        但**采集分辨率 ≠ 发送码率**：上行带宽富余时编码器会一路冲高，
+        跑满上行既拖累对端也直接推高 TURN 中继成本
+      - 取值与后端 TURN 容量规划同一条决策
 
-- [ ] 新建 `src/views/home/chat/components/Bubble/CallMessageBubble.vue`
-      - 按 `media_type` + `end_reason` 分文案，并按 `base.from_user_id === 我` 区分主被叫视角：
-        主叫视角 `已取消` / `对方已拒绝` / `对方无应答`；被叫视角 `已取消` / `已拒绝` / `未接来电`
-      - `COMPLETED` 两边一致：`通话时长 03:21` / `视频通话 03:21`
-      - 未接来电点击可回拨，**回拨类型跟随原通话的 `media_type`**
-- [ ] `MessageBubble.vue` 增加 `CHAT_CALL(106)` 分派分支
-- [ ] `src/utils/messageConverter.ts` 的 `getLastContent` 增加 106 分支
-      - 函数顶部已有 `status === RECALLED` 前置判断，106 分支加在其后
-      - 服务端下发的是**无主语中性文案**（`语音通话 未接听`），客户端按 `from_user_id` 重算视角文案
-- [ ] `chatService.mapApiMessage` 增加 106 解码分支（「按 type 分派处必须补全」的地方）
+## 2. ICE / TURN ⬜（依赖后端）
 
-### 1.1 未读特判（后端口径：106 计入未读）
+- [ ] **改为后端下发**：`CALL_CONFIG.iceServers` 已做成 getter 并支持
+      `VITE_STUN_SERVER` / `VITE_TURN_SERVER` / `VITE_TURN_USERNAME` / `VITE_TURN_CREDENTIAL`，
+      后端接口就绪后**只需替换这个 getter 的实现**，调用方无需改动
+- [ ] 环境变量里的 TURN 凭证只是开发期兜底，**生产必须用后端下发的短时凭证** ——
+      静态密码放在客户端等于公开
 
-后端 `CountUnread` 不排除 106（未接来电必须有红点）。记录的 `from_user_id` 恒为主叫，
-所以只有被叫侧会产生未读。但被叫在「正常通话结束」「自己拒接」后同样会 +1，刚挂断就冒红点。
+## 3. 待定决策 ⬜
 
-- [ ] **`end_reason ∈ {COMPLETED, REJECTED}` 时改调 `reportSessionRead`，不要 `incrementUnread`**
-      - **必须推进服务端游标，不能只改本地数字**：服务端未读是点查、不存量化，
-        只改本地会在下次会话列表刷新时被打回
-      - `wsMessageListener` 里 `isCurrentSession` 分支已经是这个写法，照抄即可
-      - 其余终态（`CANCELED`/`MISSED`/`PEER_OFFLINE`/`BUSY`/`FAILED`）走正常 `incrementUnread`
-
-## 2. 设备与画面 ⬜
-
-- [ ] **ICE 配置改为后端下发**：`useCallState.ts` 的 `ICE_SERVERS` 目前硬编码公共 STUN，
-      跨 NAT 打不通。待后端 TURN 接口就绪后替换
-- [ ] `enumerateDevices` 摄像头/麦克风列表 + 通话中切换设备
-      （用 `replaceTrack`，**不要重建 PeerConnection**）
-- [ ] 分辨率与码率上限约束（`applyConstraints` / SDP 改 b=AS），与后端 TURN 带宽预算对齐
-- [ ] Electron 媒体权限：主进程 `setPermissionRequestHandler` 放行 media
-- [ ] Windows 系统级摄像头/麦克风隐私开关被关时的提示
-      （`useCallState.ensureLocalStream` 已有兜底文案，但未区分「权限拒绝」与「设备被占用」）
-
-## 3. 收尾 ⬜
-
-- [ ] 通话中主窗口退出/登出的处理（参考 `quit-persistence-flow` 的落盘约定）
-- [ ] 来电铃声（`public/phonering.wav` 已存在，改版后未接回）
-- [ ] `wsCallListener.forgetCall` 目前无人调用，`handledCalls` 只增不减。
-      长会话累积量极小，但接 §1 时顺手在通话记录到达处调一次更干净
-
-## 4. 待定决策 ⬜
-
-- [ ] **视频默认分辨率与码率上限** —— 决定 §2 的 `applyConstraints` 取值，与后端同一条决策
 - [ ] **视频通话是否允许以摄像头关闭状态接通**
       —— 若允许，建连时要显式 `addTransceiver('video', { direction: 'sendrecv' })` 占住 m-line，
-      否则接通后第一次开摄像头会变成加轨 → 触发重协商（当前实现假设不允许）
+      否则接通后第一次开摄像头会变成加轨 → 触发重协商。**当前实现假设不允许**
 
-## 5. 范围外（明确不做）
+## 4. 范围外（明确不做）
 
-- **群通话**：`GroupCall.vue` 保持 UI 占位、不接信令，已移除对 `useCallState` 的依赖
+- **手动选择音视频设备**：已定为**跟随系统默认**，不做设备下拉菜单。
+  用户在系统里换默认设备（插耳机等），通话自动跟过去
+- **摄像头跟随系统默认**：只做了麦克风。插 USB 摄像头时画面突然切换比较突兀，
+  且用户预期与音频不同。要加的话逻辑与麦克风完全一致
+- **群通话**：`GroupCall.vue` 保持 UI 占位、不接信令
 - **语音中途升级为视频**：音频 SDP 没有 video m-line，加视频轨必然重协商。
   双按钮设计已规避 —— 需保证语音通话界面不出现开摄像头入口
 
@@ -75,21 +50,36 @@
 | 模块 | 文件 | 要点 |
 |---|---|---|
 | proto | `share/types/proto/call/` | 与后端镜像；`index.ts` 的 `export *` 需手动维护 |
+| 配置 | `share/config/constants.ts` `CALL_CONFIG` | ICE / 视频窗口尺寸 / 采集约束 / 铃声 / 关窗延时。`IceServerConfig` 不用 DOM 的 `RTCIceServer`——本文件主进程也加载，那边没有 DOM lib |
+| 媒体权限 | `electron/windows/mediaPermission.ts` | 同时设 RequestHandler 与 CheckHandler（只设前者时查询侧可能先返回 denied）；只放行 media 类且校验请求方是应用自身页面 |
 | 主进程路由 | `electron/websocket/routes.ts` | 800-809 十个类型全注册 → 广播；补了 `CHAT_CALL(106)` → `handleChatMessage` |
 | 信令直发 | `WebSocketManager.sendSignal` | **绕开 MessageQueue**：`enqueue` 对无 `clientId` 的帧直接 return，走 `send()` 会被静默丢弃 |
 | service | `src/services/callService.ts` | 纯 I/O，7 个方法，不 import store |
 | listener | `listeners/wsCallListener.ts` | 只管拉起窗口；**必须排除主叫自己的 invite 回执**，否则给自己弹接听界面 |
-| 通话控制器 | `views/call/composables/useCallState.ts` | PeerConnection + 信令；late offer；`replaceTrack` 不重协商；关摄像头 `stop()` 灭指示灯 |
+| 通话控制器 | `src/composables/useCallState.ts` | PeerConnection + 信令；late offer；`replaceTrack` 不重协商；关摄像头 `stop()` 灭指示灯 |
 | 上线补投 | `views/home/index.vue` | 重连分支 + 冷启动分支各调一次 `queryPending` |
 | 入口 | `views/home/chat/SessionContent.vue` | 语音/视频两个按钮，`media_type` 发起时确定 |
-| 窗口 | `views/call/CallWindow.vue` | query 传参；视频用 `windowService.createWindow` 第三参覆盖为 800×600 |
+| 记录气泡 | `Bubble/CallMessageBubble.vue` | 按 `fromUserId` 算主被叫视角；未接标红；点击回拨类型跟随原通话 |
+| 记录解码 | `messageConverter.ts` / `chatService.ts` | WS 走 payload、历史走 extra 两条路径都要有 106 分支 |
+| 未读特判 | `listeners/wsMessageListener.ts` | `COMPLETED`/`REJECTED` 调 `reportSessionRead` 而非 `incrementUnread`，**必须推进服务端游标**否则刷新会被打回 |
 
-### 架构决定
+### 几个容易踩回去的点
 
 - **信令广播到所有窗口，主窗口与通话窗各取所需**：主窗口只处理 `CALL_INVITE`/`CALL_PENDING`
   （拉起窗口），SDP/ICE/END 由通话窗内的 `useCallState` 直接消费。
   避免主窗口做 ICE 中转——两个渲染进程之间转发高频小包很难看
 - **媒体状态走 WS `CALL_MEDIA_UPDATE`，不用 DataChannel**：首次 offer 之后再
   `createDataChannel` 会新增 `m=application` 段并触发重协商，正是要避开的东西
-- **`windowSize` 是 `CreateWindowRequest` 顶层字段**，塞进 `data` 会变成 URL query 而静默失效，
-  故 `windowService.createWindow` 加了第三个参数
+- **登出收尾必须挂 `LOGOUT_REMIND` 而不能只挂 `APP_QUIT`**：两条退出路径 WS 关闭时机不同——
+  退出应用是「窗口先关、WS 后断」，登出/被踢是「**WS 先断**、再关窗口」，
+  等到 APP_QUIT 时连接已经没了，hangup 必然发不出去，对端要等 sweeper 超时才收敛
+- **音频输出不需要任何代码**：从不调 `setSinkId()`，`<video>` 走系统默认输出并自动跟随；
+  **输入必须显式跟随**——`getUserMedia` 把 track 绑死在采集那一刻的默认设备上，
+  插耳机后自己听筒换了、对方听到的却还是内置麦克风
+- **通话窗需要 `autoplayPolicy: 'no-user-gesture-required'`**：新开窗口没有用户交互，
+  `new Audio().play()` 会被自动播放策略拦掉，而来电铃声恰恰必须在用户操作前响起。
+  远端音视频不受影响（Chromium 对 WebRTC MediaStream 免除该策略）
+- **`windowSize` 是 `CreateWindowRequest` 顶层字段**，塞进 `data` 会变成 URL query 而静默失效
+- **通话记录不做本地乐观插入**：由服务端铸造并投递给双方（后端已补投主叫）。
+  客户端合成会引入自造 msg_id/seq，与拉历史回来的服务端行按
+  `(session_key, msg_id/client_id)` 去重时容易变成重复行

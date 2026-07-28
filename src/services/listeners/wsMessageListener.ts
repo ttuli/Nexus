@@ -20,6 +20,22 @@ import { sessionService } from '@/src/services/sessionService';
 import { windowService } from '@/src/services/windowService';
 import { useSessionStore } from '@/src/store/session';
 import { reportSessionRead } from '@/src/composables/sessionActions';
+import { forgetCall } from './wsCallListener';
+
+/**
+ * 通话记录是否是「本人刚处理过」的通话，不应产生未读红点。
+ *
+ * 后端 `CountUnread` 不排除 CHAT_CALL（未接来电必须有红点），而记录的 fromUserId
+ * 恒为主叫，故只有被叫侧会计入未读。但 COMPLETED（接通聊完）与 REJECTED（自己拒接）
+ * 说明被叫本人刚参与过，不特判就会「刚挂断就冒红点」。
+ * 其余终态（CANCELED / MISSED / PEER_OFFLINE / BUSY / FAILED）都是没接到，红点是对的。
+ */
+function isSelfHandledCall(msg: IChatMessage): boolean {
+    if (msg.type !== ImTypes.MessageType.CHAT_CALL) return false;
+    const reason = (msg as any).endReason;
+    return reason === ImTypes.CallEndReason.CALL_END_REASON_COMPLETED
+        || reason === ImTypes.CallEndReason.CALL_END_REASON_REJECTED;
+}
 
 export function initWsMessageListener(): void {
 
@@ -43,17 +59,27 @@ export function initWsMessageListener(): void {
             session_key: chatMsg.sessionKey as string,
             session_id: chatMsg.sessionId,
             max_seq: chatMsg.seq,
-            last_content: getLastContent(chatMsg),
+            // 通话记录的预览按主被叫视角不同（"已取消" vs "未接来电"），必须传 meId，
+            // 否则主叫会在自己的会话列表看到"未接来电"
+            last_content: getLastContent(chatMsg, userStore.userID),
             last_sender: chatMsg.fromUserId,
             update_time: chatMsg.sendTime,
         });
-        // 正在查看的会话不累计未读，而是即时前进服务端已读游标
-        if (isCurrentSession) {
+        // 正在查看的会话不累计未读，而是即时前进服务端已读游标。
+        // 通话记录同理：本人刚参与过的通话（接通聊完 / 自己拒接）不该冒红点，
+        // 且必须推进服务端游标而非只改本地数字——服务端未读是点查、不存量化，
+        // 只改本地会在下次会话列表刷新时被打回
+        if (isCurrentSession || isSelfHandledCall(chatMsg)) {
             reportSessionRead(chatMsg.sessionKey as string);
         } else {
             sessionStore.incrementUnread(chatMsg.sessionKey as string);
         }
         useMessageStore().upsertMessage(chatMsg);
+
+        // 通话记录到达 = 这通电话已彻底收敛，释放 wsCallListener 的来电去重记录
+        if (chatMsg.type === ImTypes.MessageType.CHAT_CALL) {
+            forgetCall((chatMsg as any).callId);
+        }
 
         // 2. 副作用：提示音 + 任务栏闪烁（仅对方消息；正在查看的会话与免打扰会话静默，is_disturb: 2=开启）
         const isDisturbMuted = sessionStore.getSession(chatMsg.sessionKey as string)?.is_disturb === 2;

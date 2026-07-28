@@ -46,7 +46,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import CallControlBar from './components/CallControlBar.vue';
 import Avatar from '@/src/components/Avatar.vue';
-import { useCallState } from './composables/useCallState';
+import { useCallState } from '@/src/composables/useCallState';
 import { useUserStore } from '@/src/store/user';
 import { userService } from '@/src/services';
 import { ImTypes } from '@shared/types';

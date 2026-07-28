@@ -102,6 +102,7 @@ import { ElMessage } from 'element-plus';
 import { CallCalling, Video, Copy, Trash, Undo } from 'reicon-vue';
 import { windowService } from '@/src/services';
 import { WindowKey } from '@shared/config/windowKeys';
+import { CALL_CONFIG } from '@shared/config/constants';
 import { useChatPage } from '@/src/composables/useChatPage';
 
 
@@ -461,8 +462,7 @@ const startCall = (mediaType: ImTypes.CallMediaType) => {
             isIncoming: 0,
             targetType: 'private',
         },
-        // call 窗默认 400×600 是竖屏语音尺寸，视频要放宽否则画面被挤变形
-        isVideo ? { width: 800, height: 600 } : undefined
+        isVideo ? CALL_CONFIG.videoWindowSize : undefined
     );
 }
 

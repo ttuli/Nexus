@@ -14,6 +14,7 @@ import { ipcService } from '../ipcService'
 import { windowService } from '../windowService'
 import { IpcChannels, ImTypes } from '@shared/types'
 import { WindowKey } from '@shared/config/windowKeys'
+import { CALL_CONFIG } from '@shared/config/constants'
 import { useUserStore } from '@/src/store/user'
 
 interface CallSignalEvent {
@@ -48,8 +49,7 @@ function openIncomingCall(invite: ImTypes.CallInvite): void {
             isIncoming: 1,
             targetType: 'private',
         },
-        // 视频通话需要更宽的窗口：call 窗默认 400×600 是竖屏语音尺寸，视频会被挤变形
-        isVideo ? { width: 800, height: 600 } : undefined
+        isVideo ? CALL_CONFIG.videoWindowSize : undefined
     )
 }
 

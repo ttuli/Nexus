@@ -187,6 +187,13 @@ let configs: Map<WindowKey, WindowConfig> = new Map([
             height: 600,
             minWidth: 400,
             minHeight: 600,
+            webPreferences: {
+                // 通话窗是新开的，用户还没在里面产生过交互，默认自动播放策略会拦掉
+                // `new Audio().play()` —— 而来电铃声恰恰必须在用户操作之前就响起。
+                // 注：远端音视频不受影响（Chromium 对 getUserMedia/WebRTC 的 MediaStream 免除该策略），
+                // 这里放开只为铃声。
+                autoplayPolicy: 'no-user-gesture-required',
+            },
         }
     ]
 ])

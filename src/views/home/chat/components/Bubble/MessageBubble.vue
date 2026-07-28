@@ -23,7 +23,10 @@
                     <!-- File Messages -->
                     <FileMessageBubble v-else-if="isFileMessage" :message="(message as ILocalFileMessage)"
                         :isSelf="isSelf" />
-                    
+
+                    <!-- 通话记录 -->
+                    <CallMessageBubble v-else-if="isCallMessage" :message="(message as ILocalCallMessage)" />
+
                     <!-- Text & Fallback Messages -->
                     <div class="text" v-else>{{ messageContent }}</div>
                 </div>
@@ -52,10 +55,11 @@ import { useUserStore } from '@/src/store/user';
 import { useChatPage } from '@/src/composables/useChatPage';
 import ImageMessageBubble from './ImageMessageBubble.vue';
 import FileMessageBubble from './FileMessageBubble.vue';
+import CallMessageBubble from './CallMessageBubble.vue';
 import VideoMessageBubble from './VideoMessageBubble.vue';
 
 // Replace MessageItem definition with IChatMessage import
-import { IChatMessage, ILocalTextMessage, ILocalFileMessage, ILocalImageMessage, ILocalVideoMessage } from '@shared/types/chatMessage';
+import { IChatMessage, ILocalTextMessage, ILocalFileMessage, ILocalImageMessage, ILocalVideoMessage, ILocalCallMessage } from '@shared/types/chatMessage';
 import { ImTypes } from '@shared/types';
 
 // Rename MessageType/Status to avoid conflict if needed, or just use types.MessageType
@@ -91,6 +95,8 @@ const isVideoMessage = computed(() => {
 const isFileMessage = computed(() => {
     return props.message.type === MessageType.CHAT_FILE || props.message.type === MessageType.GROUP_FILE;
 });
+
+const isCallMessage = computed(() => props.message.type === MessageType.CHAT_CALL);
 
 // Helper to get message content based on type (for non-image, non-file messages)
 const messageContent = computed(() => {

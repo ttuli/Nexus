@@ -141,6 +141,19 @@ class ChatService {
             };
         }
 
+        // 通话记录：终态与类型在落库时被拆进 extra（历史接口不返回 payload），
+        // 从 extra 还原，否则翻历史只剩服务端下发的中性 content 文案
+        if (type === MessageType.CHAT_CALL) {
+            return {
+                ...common,
+                type,
+                callId: this.extraStr(extra, MessageExtraKey.MESSAGE_EXTRA_KEY_CALL_ID) ?? '',
+                mediaType: this.extraNum(extra, MessageExtraKey.MESSAGE_EXTRA_KEY_CALL_MEDIA_TYPE),
+                endReason: this.extraNum(extra, MessageExtraKey.MESSAGE_EXTRA_KEY_CALL_END_REASON),
+                duration: this.extraNum(extra, MessageExtraKey.MESSAGE_EXTRA_KEY_DURATION),
+            };
+        }
+
         // 撤回通知的落库 msg_type 是 MSG_OP_RECALL（与群操作通知同为 NotifyMessage
         // 信封，载荷同样存 extra.MESSAGE_EXTRA_KEY_NOTIFY_PAYLOAD），两者都要进解码分支
         if (type === MessageType.GROUP_OP_NOTIFICATION || type === MessageType.MSG_OP_RECALL) {
