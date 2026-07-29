@@ -166,6 +166,11 @@ onUnmounted(() => {
         width: 100%;
         height: 100%;
         object-fit: cover;
+        pointer-events: none;
+
+        &::-webkit-media-controls {
+          display: none !important;
+        }
       }
 
       .video-placeholder {

@@ -153,6 +153,11 @@ defineExpose({ callId });
   height: 100%;
   object-fit: cover;
   background: #000;
+  pointer-events: none;
+
+  &::-webkit-media-controls {
+    display: none !important;
+  }
 }
 
 .video-placeholder {
