@@ -61,7 +61,7 @@
 | 入口 | `views/home/chat/SessionContent.vue` | 语音/视频两个按钮，`media_type` 发起时确定 |
 | 记录气泡 | `Bubble/CallMessageBubble.vue` | 按 `fromUserId` 算主被叫视角；未接标红；点击回拨类型跟随原通话 |
 | 记录解码 | `messageConverter.ts` / `chatService.ts` | WS 走 payload、历史走 extra 两条路径都要有 106 分支 |
-| 未读特判 | `listeners/wsMessageListener.ts` | `COMPLETED`/`REJECTED` 调 `reportSessionRead` 而非 `incrementUnread`，**必须推进服务端游标**否则刷新会被打回 |
+| 未读特判 | `listeners/wsMessageListener.ts` | `!isFromSelf` 守卫 + 被叫侧 `COMPLETED`/`REJECTED` 调 `reportSessionRead` 而非 `incrementUnread`，**必须推进服务端游标**否则刷新会被打回 |
 
 ### 几个容易踩回去的点
 
@@ -83,3 +83,24 @@
 - **通话记录不做本地乐观插入**：由服务端铸造并投递给双方（后端已补投主叫）。
   客户端合成会引入自造 msg_id/seq，与拉历史回来的服务端行按
   `(session_key, msg_id/client_id)` 去重时容易变成重复行
+- **`wsMessageListener` 的未读分支必须先看 `isFromSelf`**：
+  常规消息的发送方收不到自己的副本，所以这个守卫历史上"看起来多余"；
+  但通话记录是**投递给双方**的，主叫会走到这个分支。漏掉就会给自己拨出的电话加红点，
+  而服务端 `CountUnread` 按 `from_user_id` 排除本人 → 两边口径不一致，
+  红点要等下次会话列表刷新才消失（2026-07-28 修）
+
+### 挂断后通话记录的完整链路（排查时按这条走）
+
+前端**没有**本地插入逻辑，全靠服务端铸造后投递：
+
+| # | 位置 | 动作 |
+|---|---|---|
+| 1 | `gateway/dispatch/call.go` `onCallTerminate` | `CallState.Terminate` CAS，**赢家**才继续 |
+| 2 | 同上 `publishCallRecord` | `util.NewCallRecordMsg` → JetStream 发 `DBSubject`，去重键 `call:{callID}` |
+| 3 | `Message/rpc/listener/index.go` `process()` | `ResolveSessionID` 反解 sessionId（记录里 SessionId 留空）→ `PersistMessage` 落库，通话字段拆进 Extra |
+| 4 | 同上 `deliverToUser` | 投 **Target**，**外加一份投 Sender**（主叫无本地副本，不补投就得等下次拉历史） |
+| 5 | `gateway/server.go` `handleSubscribeMessage` | 按 `RouteTarget` 找本地连接 → `conn.Send` |
+| 6 | `electron/websocket/routes.ts` | `wsRouteTable[CHAT_CALL]` → `handleChatMessage` → 广播 `WS_MESSAGE` |
+| 7 | `listeners/wsMessageListener.ts` | `convertWSMessageToIChatMessage` 的 106 分支 → upsert + 落库 |
+
+任一环断掉的症状都是「挂断后聊天里没有记录」，按上表逐段查。

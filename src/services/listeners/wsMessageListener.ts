@@ -65,14 +65,20 @@ export function initWsMessageListener(): void {
             last_sender: chatMsg.fromUserId,
             update_time: chatMsg.sendTime,
         });
-        // 正在查看的会话不累计未读，而是即时前进服务端已读游标。
-        // 通话记录同理：本人刚参与过的通话（接通聊完 / 自己拒接）不该冒红点，
-        // 且必须推进服务端游标而非只改本地数字——服务端未读是点查、不存量化，
-        // 只改本地会在下次会话列表刷新时被打回
-        if (isCurrentSession || isSelfHandledCall(chatMsg)) {
-            reportSessionRead(chatMsg.sessionKey as string);
-        } else {
-            sessionStore.incrementUnread(chatMsg.sessionKey as string);
+        // 自己发出的消息不计未读——服务端 CountUnread 同样按 from_user_id 排除本人，
+        // 本地跟着加会与服务端口径不一致（刷新会话列表时红点又消失）。
+        // 常规消息的发送方收不到自己的副本，但**通话记录是服务端铸造后投递给双方的**
+        // （主叫没有本地乐观副本，见 Message/rpc/listener 的补投），主叫这边会走到这里。
+        if (!isFromSelf) {
+            // 正在查看的会话不累计未读，而是即时前进服务端已读游标。
+            // 通话记录同理：被叫本人刚参与过的通话（接通聊完 / 自己拒接）不该冒红点，
+            // 且必须推进服务端游标而非只改本地数字——服务端未读是点查、不存量化，
+            // 只改本地会在下次会话列表刷新时被打回
+            if (isCurrentSession || isSelfHandledCall(chatMsg)) {
+                reportSessionRead(chatMsg.sessionKey as string);
+            } else {
+                sessionStore.incrementUnread(chatMsg.sessionKey as string);
+            }
         }
         useMessageStore().upsertMessage(chatMsg);
 
