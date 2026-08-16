@@ -19,6 +19,8 @@ export interface WindowHooks {
     onClosed?: (wm?: any) => void;
     /** 窗口获得焦点时 */
     onFocus?: (window: BrowserWindow) => void;
+    /** 窗口失去焦点时（弹层类窗口据此收起） */
+    onBlur?: (window: BrowserWindow) => void;
     /** 窗口最大化时 */
     onMaximize?: (window: BrowserWindow) => void;
     /** 窗口最小化时 */
@@ -194,6 +196,44 @@ let configs: Map<WindowKey, WindowConfig> = new Map([
                 // 这里放开只为铃声。
                 autoplayPolicy: 'no-user-gesture-required',
             },
+        }
+    ],
+    [
+        WindowKey.TrayMenu,
+        {
+            key: WindowKey.TrayMenu,
+            url: '/trayMenu',
+            modal: false,
+            frame: false,
+            resizable: false,
+            maximizable: false,
+            skipTaskbar: true,
+            alwaysOnTop: true,
+            // 系统投影会在透明窗上露出直角边框，投影改由页面 CSS 画
+            hasShadow: false,
+            transparent: true,
+            backgroundColor: '#00000000',
+            // 位置由 WindowManager 按托盘图标锚点计算，不能走默认的居中
+            center: false,
+            // 静默创建：随托盘一起建好并加载页面，但页面 ready 后不自动显示，
+            // 等右键托盘时才定位 + show，避免现用现建的加载延迟与首帧闪烁
+            show: false,
+            // 初始尺寸只是占位，渲染层测量完会上报真实尺寸（窗口此时还未显示，不会看到跳变）
+            width: 200,
+            height: 240,
+            // 弹层远小于普通窗口，必须压掉 createWindow 的 400x300 默认下限
+            minWidth: 80,
+            minHeight: 60,
+            webPreferences: {
+                // 开发环境不为弹层附带 DevTools 窗口：它会抢走焦点，菜单刚弹出就被失焦收起
+                devTools: false,
+            },
+            hooks: {
+                // 失焦即收起。窗口保留复用（下次右键直接 show），避免每次都重新加载页面
+                onBlur: (window: BrowserWindow) => {
+                    if (window.isVisible()) window.hide();
+                }
+            }
         }
     ]
 ])

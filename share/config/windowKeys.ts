@@ -11,4 +11,6 @@ export enum WindowKey {
     PhotoViewer = 'photoViewer',
     VideoViewer = 'videoViewer',
     Call = 'call',
+    /** 托盘右键菜单弹层：无边框透明小窗，由 TrayManager 按托盘图标锚点定位，失焦即隐藏 */
+    TrayMenu = 'trayMenu',
 }

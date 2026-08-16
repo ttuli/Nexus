@@ -99,6 +99,11 @@ const router = createRouter({
             path: '/call',
             name: '通话',
             component: () => import('@/src/views/call/CallWindow.vue')
+        },
+        {
+            path: '/trayMenu',
+            name: '托盘菜单',
+            component: () => import('@/src/views/tray/TrayMenu.vue')
         }
     ]
 })

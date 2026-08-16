@@ -5,11 +5,11 @@
         @dragover="handleDragOver"
         @dragleave="handleDragLeave"
         @drop="handleDrop"
-        @click="focus"
+        @click="handleClick"
     >
         <!-- 拖拽提示遮罩 -->
         <div class="drag-mask" v-if="isDragging">
-            <span class="drag-tip">松开鼠标添加图片 / 发送文件</span>
+            <span class="drag-tip">松开鼠标添加图片 / 文件</span>
         </div>
 
         <!-- contenteditable 可编辑输入框 -->
@@ -35,7 +35,8 @@ import { ref, onBeforeUnmount, nextTick } from 'vue';
 
 type MessageSegment =
     | { type: 'text'; content: string }
-    | { type: 'image'; file: File; url: string; fileId: string };
+    | { type: 'image'; file: File; url: string; fileId: string }
+    | { type: 'file'; file: File; fileId: string };
 
 withDefaults(defineProps<{
     placeholder?: string;
@@ -54,9 +55,25 @@ const editorRef = ref<HTMLDivElement | null>(null);
 const isDragging = ref(false);
 const isComposing = ref(false);
 const imageFileMap = new Map<string, { file: File; url: string }>();
+const fileMap = new Map<string, { file: File }>();
 let lastRange: Range | null = null;
 
 const ALLOWED_IMAGE_EXTS = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'];
+
+const escapeHtml = (str: string): string => {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+};
+
+const formatSize = (bytes: number): string => {
+    if (!bytes || bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    const val = parseFloat((bytes / Math.pow(k, i)).toFixed(1));
+    return val + ' ' + sizes[i];
+};
 
 // 1. 光标选区管理
 const saveSelection = () => {
@@ -127,30 +144,92 @@ const insertImage = (file: File) => {
     saveSelection();
 };
 
-// 3. 事件处理（粘贴、拖拽、回车）
+const insertFile = (file: File) => {
+    if (!editorRef.value) return;
+    const sel = window.getSelection();
+    if (!sel) return;
+
+    const fileId = `file_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    fileMap.set(fileId, { file });
+
+    const fileCard = document.createElement('span');
+    fileCard.className = 'rich-editor-file';
+    fileCard.contentEditable = 'false';
+    fileCard.dataset.fileId = fileId;
+    fileCard.title = `${file.name} (${formatSize(file.size)})`;
+
+    fileCard.innerHTML = `
+        <span class="file-icon">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
+            </svg>
+        </span>
+        <span class="file-info">
+            <span class="file-name">${escapeHtml(file.name)}</span>
+            <span class="file-size">${formatSize(file.size)}</span>
+        </span>
+        <span class="file-remove" title="删除">&times;</span>
+    `;
+
+    const range = getEffectiveRange();
+    range.deleteContents();
+    range.insertNode(fileCard);
+
+    range.setStartAfter(fileCard);
+    range.setEndAfter(fileCard);
+    sel.removeAllRanges();
+    sel.addRange(range);
+    saveSelection();
+};
+
+// 3. 事件处理（粘贴、拖拽、回车、点击）
+const handleClick = (e: MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target && target.closest('.file-remove')) {
+        e.stopPropagation();
+        e.preventDefault();
+        const fileCard = target.closest('.rich-editor-file') as HTMLElement;
+        if (fileCard) {
+            const fileId = fileCard.dataset.fileId;
+            if (fileId) {
+                fileMap.delete(fileId);
+            }
+            fileCard.remove();
+        }
+        return;
+    }
+    focus();
+};
+
 const handlePaste = (e: ClipboardEvent) => {
     const items = e.clipboardData?.items;
     if (!items || items.length === 0) return;
 
-    let hasImage = false;
+    let hasFiles = false;
     for (let i = 0; i < items.length; i++) {
         const item = items[i];
-        if (item.type.startsWith('image/')) {
-            e.preventDefault();
+        if (item.kind === 'file') {
             const file = item.getAsFile();
             if (file) {
-                insertImage(file);
-                hasImage = true;
+                const ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
+                if (file.type.startsWith('image/') || ALLOWED_IMAGE_EXTS.includes(ext)) {
+                    insertImage(file);
+                } else {
+                    insertFile(file);
+                }
+                hasFiles = true;
             }
-            break;
         }
     }
 
-    if (!hasImage) {
+    if (hasFiles) {
         e.preventDefault();
-        const text = e.clipboardData?.getData('text/plain') || '';
-        if (text) document.execCommand('insertText', false, text);
+        return;
     }
+
+    e.preventDefault();
+    const text = e.clipboardData?.getData('text/plain') || '';
+    if (text) document.execCommand('insertText', false, text);
 };
 
 const handleDragOver = (e: DragEvent) => {
@@ -179,7 +258,7 @@ const handleDrop = (e: DragEvent) => {
         if (file.type.startsWith('image/') || ALLOWED_IMAGE_EXTS.includes(ext)) {
             insertImage(file);
         } else {
-            emit('sendFile', file);
+            insertFile(file);
         }
     }
 };
@@ -220,6 +299,15 @@ const parseContent = (): MessageSegment[] => {
                         fileId: el.dataset.fileId
                     });
                 }
+            } else if (el.dataset.fileId && fileMap.has(el.dataset.fileId)) {
+                const fileInfo = fileMap.get(el.dataset.fileId);
+                if (fileInfo) {
+                    segments.push({
+                        type: 'file',
+                        file: fileInfo.file,
+                        fileId: el.dataset.fileId
+                    });
+                }
             } else if (el.tagName === 'BR') {
                 segments.push({ type: 'text', content: '\n' });
             } else if (el.innerText) {
@@ -251,6 +339,8 @@ const submit = () => {
             if (trimmed) emit('sendText', trimmed);
         } else if (seg.type === 'image') {
             emit('sendImage', seg.file);
+        } else if (seg.type === 'file') {
+            emit('sendFile', seg.file);
         }
     }
     clear();
@@ -260,6 +350,7 @@ const clear = () => {
     if (editorRef.value) editorRef.value.innerHTML = '';
     imageFileMap.forEach(({ url }) => URL.revokeObjectURL(url));
     imageFileMap.clear();
+    fileMap.clear();
     lastRange = null;
 };
 
@@ -275,11 +366,13 @@ const focus = () => {
 onBeforeUnmount(() => {
     imageFileMap.forEach(({ url }) => URL.revokeObjectURL(url));
     imageFileMap.clear();
+    fileMap.clear();
 });
 
 defineExpose({
     insertText,
     insertImage,
+    insertFile,
     clear,
     focus,
     submit
@@ -350,6 +443,92 @@ defineExpose({
             box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
             border: 1px solid rgba(0, 0, 0, 0.08);
             user-select: none;
+        }
+
+        :deep(.rich-editor-file) {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 8px;
+            margin: 2px 4px;
+            background: var(--bg-hover, rgba(0, 0, 0, 0.04));
+            border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+            border-radius: 6px;
+            vertical-align: middle;
+            user-select: none;
+            max-width: 260px;
+            cursor: default;
+            transition: background-color 0.2s ease, border-color 0.2s ease;
+
+            &:hover {
+                background: var(--bg-active, rgba(0, 0, 0, 0.06));
+                border-color: rgba(var(--color-primary-rgb, 64, 158, 255), 0.3);
+
+                .file-remove {
+                    opacity: 1;
+                }
+            }
+
+            .file-icon {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 26px;
+                height: 26px;
+                border-radius: 4px;
+                background: rgba(var(--color-primary-rgb, 64, 158, 255), 0.12);
+                color: $color-primary;
+                flex-shrink: 0;
+
+                svg {
+                    width: 15px;
+                    height: 15px;
+                }
+            }
+
+            .file-info {
+                display: flex;
+                flex-direction: column;
+                min-width: 0;
+                flex: 1;
+
+                .file-name {
+                    font-size: 12px;
+                    font-weight: 500;
+                    color: $color-text-primary;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    line-height: 1.3;
+                }
+
+                .file-size {
+                    font-size: 11px;
+                    color: $color-text-secondary;
+                    line-height: 1.2;
+                }
+            }
+
+            .file-remove {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 16px;
+                height: 16px;
+                border-radius: 50%;
+                color: $color-text-secondary;
+                font-size: 14px;
+                cursor: pointer;
+                opacity: 0.5;
+                transition: opacity 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+                flex-shrink: 0;
+
+                &:hover {
+                    opacity: 1;
+                    background: rgba(0, 0, 0, 0.1);
+                    color: $color-text-primary;
+                }
+            }
         }
     }
 }

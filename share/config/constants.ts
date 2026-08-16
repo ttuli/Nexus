@@ -111,7 +111,7 @@ export const CALL_CONFIG = {
     /** 铃声资源（public/ 下，打包后位于应用根） */
     ringtone: {
         /** 主叫侧回铃音 + 被叫侧来电铃声共用一段音频，靠音量区分 */
-        url: '/phonering.wav',
+        url: '/audio/phonering.wav',
         /** 被叫来电音量 */
         incomingVolume: 0.8,
         /** 主叫回铃音量：自己拨出的不需要那么响 */
@@ -127,6 +127,21 @@ export const CALL_CONFIG = {
         height: { ideal: 720 },
         frameRate: { ideal: 24, max: 30 },
     },
+};
+
+/**
+ * 托盘右键菜单弹层布局。
+ * 主进程按锚点定位窗口、渲染层绘制卡片与投影，两侧共用同一组数值。
+ */
+export const TRAY_MENU_CONFIG = {
+    /** 弹层与托盘图标之间的间距（像素） */
+    gap: 2,
+    /** 弹层与屏幕工作区边缘的最小间距 */
+    screenMargin: 4,
+    /** 窗口内围绕菜单卡片的透明留白，用于绘制 CSS 投影（渲染层上报尺寸时需加上） */
+    shadowPadding: 8,
+    /** 右键时若渲染层尺寸还没上报，等这么久就按占位尺寸先弹出，保证右键必有反馈 */
+    readyFallbackMs: 800,
 };
 
 // 存放主进程和渲染进程通用的不变常量

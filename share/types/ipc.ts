@@ -101,6 +101,16 @@ export const IpcChannels = {
     WINDOW_IS_FOCUSED: 'window:is-focused',
     WINDOW_FLASH_FRAME: 'window:flash-frame',
 
+    // 托盘相关
+    /** 托盘菜单渲染层上报测量到的弹层尺寸，主进程据此定位窗口 */
+    TRAY_MENU_READY: 'tray:menu-ready',
+    /** 弹层已显示，通知渲染层播放入场动画（窗口复用，DOM 不重建，必须显式触发） */
+    TRAY_MENU_SHOW: 'tray:menu-show',
+    /** 托盘菜单项被点击，携带 TrayMenuAction */
+    TRAY_MENU_ACTION: 'tray:menu-action',
+    /** 托盘菜单请求收起（点击空白处、Esc） */
+    TRAY_MENU_CLOSE: 'tray:menu-close',
+
     // 应用相关
     APP_QUIT: 'app-quit',
     LOGOUT: 'logout',

@@ -1,10 +1,12 @@
-import { BrowserWindow, ipcMain, IpcMainEvent, app, screen } from 'electron';
+import { BrowserWindow, app, screen } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WindowConfig, ManagedWindow, CreateWindowRequest, WindowState } from './windowAttribute';
 import configs from './windowAttribute';
 import { TrayManager } from './trayManager';
-import { IpcChannels } from '@shared/types';
+import { TrayMenuWindow } from './trayMenuWindow';
+import { setupWindowIpcHandlers } from './ipcHandlers';
+import { IpcChannels, TrayMenuAction, TrayMenuSize } from '@shared/types';
 import { Main_Config as config } from '@shared/config/constants';
 import { WindowKey } from '@shared/config/windowKeys';
 import { closeAllDb } from '@/electron/db';
@@ -16,9 +18,11 @@ class WindowManager {
   private trayManager: TrayManager | null = null;
   // Map of webContentsId -> showWindow callback for pending ready signals
   private pendingReadyWindows: Map<number, () => void> = new Map();
+  /** 托盘右键菜单弹层，窗口的创建/定位/显隐都在里面自成一套 */
+  private trayMenu = new TrayMenuWindow(this);
 
   constructor() {
-    this.setupIpcHandlers();
+    setupWindowIpcHandlers(this);
   }
 
   /**
@@ -39,8 +43,9 @@ class WindowManager {
           this.trayManager = new TrayManager({
             onShowHome: () => this.showWindow(WindowKey.Home),
             onOpenSettings: () => {
-              this.showWindow(WindowKey.Home);
+              this.CreateWindow({ key: WindowKey.Settings });
             },
+            onOpenMenu: (anchor) => this.trayMenu.show(anchor),
             onQuit: () => {
               this.closeAllWindows().finally(() => {
                 // 等 DB Worker 队列中的写入（含退出前的会话保存）落盘后再退出
@@ -52,6 +57,7 @@ class WindowManager {
           });
         }
         this.trayManager.createTray();
+        this.trayMenu.prepare();
       }
 
       // 合并 windowSize 到 wc（优先使用调用方传入的尺寸）
@@ -86,7 +92,7 @@ class WindowManager {
   /**
    * 检查窗口是否有效
    */
-  private isValidWindow(window: BrowserWindow | null): boolean {
+  public isValidWindow(window: BrowserWindow | null): boolean {
     return window !== null && !window.isDestroyed();
   }
 
@@ -144,6 +150,9 @@ class WindowManager {
         transparent = false,
         backgroundColor = '#00000000',
         backgroundMaterial,
+        skipTaskbar = false,
+        alwaysOnTop = false,
+        hasShadow = true,
         webPreferences = {},
       } = config;
 
@@ -170,6 +179,9 @@ class WindowManager {
         backgroundColor,
         backgroundMaterial,
         transparent,
+        skipTaskbar,
+        alwaysOnTop,
+        hasShadow,
         opacity: 1,
         icon: path.join(process.env.VITE_PUBLIC || __dirname, 'icon/icon_' + process.env.VITE_ICON_VERSION + '.png'),
         modal,
@@ -197,8 +209,8 @@ class WindowManager {
       });
 
 
-      // 如果是开发环境，以独立窗口打开调试工具
-      if (process.env['VITE_DEV_SERVER_URL']) {
+      // 如果是开发环境，以独立窗口打开调试工具（显式关掉 devTools 的窗口除外，如托盘菜单弹层）
+      if (process.env['VITE_DEV_SERVER_URL'] && webPreferences.devTools !== false) {
         const devtools = new BrowserWindow({
           width: 1000,
           height: 800,
@@ -233,6 +245,10 @@ class WindowManager {
     // 在窗口销毁前保存 webContents.id
     const webContentsId = window.webContents.id;
 
+    // 配置 show: false 表示静默创建（如托盘菜单弹层）：页面加载完也不自动显示，
+    // 由业务在合适的时机（右键托盘）自行定位并 show
+    const autoShowOnReady = windowConfig.show !== false;
+
     // 窗口是否已显示的标志
     let isShown = false;
     let readyTimeout: NodeJS.Timeout | null = null;
@@ -247,17 +263,20 @@ class WindowManager {
       }
       this.pendingReadyWindows.delete(webContentsId);
       window.show();
-      if (!window.isMaximized()) {
+      // 弹层类窗口（center: false）的位置由调用方按锚点算好，居中会把它挪走
+      if (windowConfig.center !== false && !window.isMaximized()) {
         window.center();
       }
     };
 
     // 注册到 pendingReadyWindows，等待 window:ready 信号
-    this.pendingReadyWindows.set(webContentsId, showWindow);
+    if (autoShowOnReady) {
+      this.pendingReadyWindows.set(webContentsId, showWindow);
+    }
 
     // 窗口加载完成 - 启动超时计时器
     const onDidFinishLoad = () => {
-      if (this.isValidWindow(window) && !isShown) {
+      if (autoShowOnReady && this.isValidWindow(window) && !isShown) {
         // 设置超时保护：3秒后如果还没收到 ready 信号，强制显示
         readyTimeout = setTimeout(() => {
           console.warn(`Window "${key}" ready timeout, forcing show`);
@@ -310,6 +329,12 @@ class WindowManager {
       }
     };
 
+    const onBlur = () => {
+      if (this.isValidWindow(window) && windowConfig.hooks?.onBlur) {
+        try { windowConfig.hooks.onBlur(window); } catch (e) { console.error(e); }
+      }
+    };
+
     // 窗口将要关闭时（window 还未销毁）
     const onClose = (e: Electron.Event) => {
       // 调用配置钩子（例如保存窗口状态）
@@ -349,6 +374,7 @@ class WindowManager {
     window.on('close', onClose);
     window.on('closed', onClosed);
     window.on('focus', onFocus);
+    window.on('blur', onBlur);
     window.webContents.on('did-fail-load', onDidFailLoad);
 
     // 返回清理函数
@@ -368,6 +394,7 @@ class WindowManager {
       window.removeListener('close', onClose);
       window.removeListener('closed', onClosed);
       window.removeListener('focus', onFocus);
+      window.removeListener('blur', onBlur);
     };
   }
 
@@ -486,6 +513,7 @@ class WindowManager {
         this.windows.clear();
         this.trayManager?.destroy();
         this.trayManager = null;
+        this.trayMenu.reset();
         resolve();
       });
     })
@@ -543,116 +571,37 @@ class WindowManager {
     }
     return false;
   }
+
   /**
-   * 设置IPC处理器
+   * 托盘菜单弹层：渲染层上报测量尺寸
    */
-  private setupIpcHandlers(): void {
-    // 创建新窗口
-    ipcMain.on(IpcChannels.WINDOW_NEW, (_e: IpcMainEvent, config: CreateWindowRequest) => {
-      this.CreateWindow(config);
-    });
+  public handleTrayMenuReady(size: TrayMenuSize): void {
+    this.trayMenu.handleReady(size);
+  }
 
-    // 最小化窗口
-    ipcMain.on(IpcChannels.WINDOW_MINIMIZE, (event: IpcMainEvent) => {
-      try {
-        const sender = BrowserWindow.fromWebContents(event.sender);
-        if (sender && this.isValidWindow(sender)) {
-          sender.minimize();
-        }
-      } catch (error) {
-        console.error('Failed to minimize window:', error);
-      }
-    });
+  /**
+   * 托盘菜单弹层：执行菜单项（先收起弹层，避免动作弹出的新窗口被菜单挡住）
+   */
+  public runTrayMenuAction(action: TrayMenuAction): void {
+    this.trayMenu.hide();
+    this.trayManager?.runMenuAction(action);
+  }
 
-    // 最大化/还原窗口
-    ipcMain.on(IpcChannels.WINDOW_MAXIMIZE, (event: IpcMainEvent) => {
-      try {
-        const sender = BrowserWindow.fromWebContents(event.sender);
-        if (sender && this.isValidWindow(sender)) {
-          if (sender.isMaximized()) {
-            sender.unmaximize();
-          } else {
-            sender.maximize();
-          }
-        }
-      } catch (error) {
-        console.error('Failed to maximize/unmaximize window:', error);
-      }
-    });
+  /**
+   * 托盘菜单弹层：收起
+   */
+  public hideTrayMenu(): void {
+    this.trayMenu.hide();
+  }
 
-    // 关闭窗口
-    ipcMain.on(IpcChannels.WINDOW_CLOSE, (event: IpcMainEvent) => {
-      try {
-        const sender = BrowserWindow.fromWebContents(event.sender);
-        if (sender && this.isValidWindow(sender)) {
-          sender.close();
-        }
-      } catch (error) {
-        console.error('Failed to close window:', error);
-      }
-    });
-
-    // 隐藏窗口（最小化到托盘）
-    ipcMain.on(IpcChannels.WINDOW_HIDE, (event: IpcMainEvent) => {
-      try {
-        const sender = BrowserWindow.fromWebContents(event.sender);
-        if (sender && this.isValidWindow(sender)) {
-          sender.hide();
-        }
-      } catch (error) {
-        console.error('Failed to hide window:', error);
-      }
-    });
-
-    // 显示窗口
-    ipcMain.on(IpcChannels.WINDOW_SHOW, (_event: IpcMainEvent, key: WindowKey) => {
-      this.showWindow(key);
-    });
-
-    // 向指定窗口发送消息
-    ipcMain.on(IpcChannels.WINDOW_SEND_TO, (_event: IpcMainEvent, { key, channel, data }: { key: WindowKey; channel: string; data?: any }) => {
-      this.sendMessage(key, channel, data);
-    });
-
-    // 广播消息到所有窗口
-    ipcMain.on(IpcChannels.WINDOW_PUBLISH, (_event: IpcMainEvent, { channel, data }: { channel: string; data?: any }) => {
-      this.broadcastMessage(channel, data);
-    });
-
-    // 窗口 ready 信号（统一处理所有窗口）
-    ipcMain.on(IpcChannels.WINDOW_READY, (event: IpcMainEvent) => {
-      const webContentsId = event.sender.id;
-      const showWindow = this.pendingReadyWindows.get(webContentsId);
-      if (showWindow) {
-        showWindow();
-      }
-    });
-
-    // 检查窗口是否焦点状态 (invoke)
-    ipcMain.handle(IpcChannels.WINDOW_IS_FOCUSED, (event) => {
-      try {
-        const sender = BrowserWindow.fromWebContents(event.sender);
-        return sender !== null && this.isValidWindow(sender) && sender.isFocused();
-      } catch (error) {
-        console.error('Failed to get window focused state:', error);
-        return false;
-      }
-    });
-
-    // 任务栏闪烁
-    ipcMain.on(IpcChannels.WINDOW_FLASH_FRAME, (event) => {
-      try {
-        const sender = BrowserWindow.fromWebContents(event.sender);
-        if (sender && this.isValidWindow(sender)) {
-          // 任务栏闪烁 (如果窗口未聚焦)
-          if (!sender.isFocused()) {
-            sender.flashFrame(true);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to handle flash frame request:', error);
-      }
-    });
+  /**
+   * 窗口渲染层就绪：显示等待中的窗口（静默创建的窗口不在等待表里，不受影响）
+   */
+  public notifyWindowReady(webContentsId: number): void {
+    const showWindow = this.pendingReadyWindows.get(webContentsId);
+    if (showWindow) {
+      showWindow();
+    }
   }
 }
 

@@ -1,7 +1,7 @@
 
-import { Tray, Menu, nativeImage, app } from 'electron';
+import { Tray, nativeImage, app, screen } from 'electron';
 import path from 'path';
-import { APP_CONSTANTS } from '@shared/config/constants';
+import { TrayMenuAction } from '@shared/types';
 
 /**
  * 托盘操作的回调接口
@@ -10,6 +10,8 @@ export interface TrayCallbacks {
     onShowHome: () => void;
     onOpenSettings: () => void;
     onQuit: () => void;
+    /** 右键托盘：在锚点矩形（托盘图标屏幕位置，DIP）附近弹出自定义菜单窗口 */
+    onOpenMenu: (anchor: Electron.Rectangle) => void;
 }
 
 /**
@@ -76,61 +78,54 @@ export class TrayManager {
 
             this.tray = new Tray(icon);
 
-            // 辅助函数：获取菜单图标
-            const getMenuIcon = (name: string) => {
-                const iconPath = path.join(publicPath, 'tray', name);
-                // 同样尝试 fallback
-                let menuIcon = nativeImage.createFromPath(iconPath);
-                if (menuIcon.isEmpty()) {
-                    menuIcon = nativeImage.createFromPath(path.join(process.cwd(), 'public', 'tray', name));
-                }
-                return menuIcon.resize({ width: 16, height: 16 });
-            };
-
-            const contextMenu = Menu.buildFromTemplate([
-                {
-                    label: APP_CONSTANTS.ApplicationName,
-                    enabled: false,
-                },
-                {
-                    type: 'separator',
-                },
-                {
-                    label: '打开主界面',
-                    icon: getMenuIcon('message.svg'),
-                    click: () => {
-                        this.callbacks.onShowHome();
-                    },
-                },
-                {
-                    label: '设置',
-                    icon: getMenuIcon('setting.svg'),
-                    click: () => {
-                        this.callbacks.onOpenSettings();
-                    },
-                },
-                {
-                    label: '退出',
-                    icon: getMenuIcon('exit.svg'),
-                    click: () => {
-                        this.callbacks.onQuit();
-                    },
-                },
-            ]);
-
             // 托盘图标点击事件
             this.tray.on('click', () => {
                 this.callbacks.onShowHome();
             });
 
-            // 托盘图标右键菜单
-            this.tray.setContextMenu(contextMenu);
+            // 右键弹出自定义菜单窗口（不调用 setContextMenu，系统默认菜单就不会出现）
+            this.tray.on('right-click', (_event, bounds) => {
+                this.callbacks.onOpenMenu(this.getAnchorRect(bounds));
+            });
+
             this.tray.setToolTip(app.getName());
 
             console.log('[TrayManager] Tray created successfully');
         } catch (error) {
             console.error('[TrayManager] Failed to create tray:', error);
         }
+    }
+
+    /**
+     * 分发自定义菜单窗口回传的菜单项动作
+     */
+    public runMenuAction(action: TrayMenuAction): void {
+        switch (action) {
+            case TrayMenuAction.ShowHome:
+                this.callbacks.onShowHome();
+                break;
+            case TrayMenuAction.OpenSettings:
+                this.callbacks.onOpenSettings();
+                break;
+            case TrayMenuAction.Quit:
+                this.callbacks.onQuit();
+                break;
+            default:
+                console.warn('[TrayManager] Unknown tray menu action:', action);
+        }
+    }
+
+    /**
+     * 计算菜单锚点：优先用 right-click 事件回传的图标矩形，
+     * 个别系统/多屏场景下拿不到（全 0）时退化为当前鼠标位置。
+     */
+    private getAnchorRect(bounds?: Electron.Rectangle): Electron.Rectangle {
+        const rect = bounds && bounds.width > 0 && bounds.height > 0 ? bounds : this.tray?.getBounds();
+        if (rect && rect.width > 0 && rect.height > 0) {
+            return rect;
+        }
+        const point = screen.getCursorScreenPoint();
+        return { x: point.x, y: point.y, width: 0, height: 0 };
     }
 
     /**

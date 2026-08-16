@@ -10,6 +10,7 @@
  * - groupService: 群组信息管理
  * - cacheService: 缓存管理
  * - windowService: 窗口操作
+ * - trayService: 托盘右键菜单弹层
  * - listenerService: IPC 监听器管理
  */
 
@@ -21,6 +22,7 @@ export { friendService } from './friendService'
 export { groupService } from './groupService'
 export { cacheService } from './cacheService'
 export { windowService } from './windowService'
+export { trayService } from './trayService'
 export { LogoutType } from '@shared/types'
 export { listenerService } from './listeners'
 export { websocketService } from './websocketService'

@@ -128,7 +128,7 @@ const handleImageSelect = (event: Event) => {
 const handleFileSelect = (event: Event) => {
     const target = event.target as HTMLInputElement;
     if (target.files && target.files.length > 0) {
-        emit('sendFile', target.files[0]);
+        richEditorRef.value?.insertFile(target.files[0]);
     }
     target.value = '';
 };
@@ -136,6 +136,7 @@ const handleFileSelect = (event: Event) => {
 defineExpose({
     insertText: (text: string) => richEditorRef.value?.insertText(text),
     insertImage: (file: File) => richEditorRef.value?.insertImage(file),
+    insertFile: (file: File) => richEditorRef.value?.insertFile(file),
     clear: () => richEditorRef.value?.clear(),
     focus: () => richEditorRef.value?.focus()
 });
