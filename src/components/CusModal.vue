@@ -5,7 +5,11 @@
                 <div class="modal-header">
                     <h3>{{ title }}</h3>
                     <button v-if="showClose" class="close-btn" @click="handleClose">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 6 6 18" />
+                            <path d="m6 6 12 12" />
+                        </svg>
                     </button>
                 </div>
                 <div class="modal-body">
@@ -54,8 +58,9 @@ const handleClose = () => {
     box-shadow: var(--shadow-md, 0 4px 24px rgba(0, 0, 0, 0.15));
     display: flex;
     flex-direction: column;
-    max-height: 85vh;
+    max-height: 70vh;
     box-sizing: border-box;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     [data-theme='dark'] & {
         background: var(--bg-card, #1e293b);

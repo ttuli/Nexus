@@ -94,7 +94,7 @@ import MessageBubble from '@/src/views/home/chat/components/Bubble/MessageBubble
 import SystemMessageBubble from '@/src/views/home/chat/components/Bubble/SystemMessageBubble.vue';
 import { IChatMessage, ILocalTextMessage } from '@shared/types/chatMessage';
 import { ImTypes } from '@shared/types';
-import ChatInput from './components/ChatInput.vue';
+import ChatInput from './components/ChatInput/ChatInput.vue';
 import ChatSidebar from './components/Sidebar/index.vue';
 import AiSuggestions from './components/AiSuggestions.vue';
 import type { MenuOption } from '@/src/components/ContextMenu.vue';

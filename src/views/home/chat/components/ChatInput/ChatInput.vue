@@ -3,8 +3,9 @@
         <div class="disabled-overlay" v-if="disableReason">
             {{ disableReason }}
         </div>
+
+        <!-- 顶部工具栏 -->
         <div class="toolbar">
-            <!-- Icons for Emoji, Image, File, AI -->
             <el-tooltip content="表情" placement="top" :show-after="500">
                 <div class="icon-wrapper" ref="emojiBtnRef" @click="toggleEmojiPicker">
                     <Smileys class="app-icon app-icon--md app-icon--btn" />
@@ -29,7 +30,6 @@
                 </div>
             </el-tooltip>
 
-            <!-- Hidden inputs for file selection -->
             <input type="file" ref="imageInputRef" accept=".jpg,.jpeg,.png,.gif,.bmp,.webp" style="display: none"
                 @change="handleImageSelect">
             <input type="file" ref="fileInputRef" style="display: none" @change="handleFileSelect">
@@ -38,14 +38,20 @@
         <EmojiPicker :visible="emojiPickerVisible" :trigger-rect="emojiTriggerRect" @select="onEmojiSelect"
             @close="emojiPickerVisible = false" />
 
+        <!-- 独立封装的富文本输入组件 -->
         <div class="input-wrapper">
-            <textarea ref="textareaRef" v-model="inputValue" class="input-field" placeholder="发送消息..."
-                @keydown.enter.exact.prevent="handleSend" @keydown.ctrl.enter="handleNewLine"></textarea>
+            <RichEditor 
+                ref="richEditorRef" 
+                @sendText="emit('send', $event)"
+                @sendImage="emit('sendImage', $event)"
+                @sendFile="emit('sendFile', $event)" 
+            />
         </div>
 
+        <!-- 底部操作栏 -->
         <div class="actions">
             <span class="tip">Enter 发送，Ctrl+Enter 换行</span>
-            <CusButton type="primary" :show-icon="false" class="send-btn" @click="handleSend">
+            <CusButton type="primary" :show-icon="false" class="send-btn" @click="richEditorRef?.submit()">
                 发送
             </CusButton>
         </div>
@@ -53,8 +59,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick } from 'vue';
-import EmojiPicker from './EmojiPicker.vue';
+import { ref } from 'vue';
+import EmojiPicker from './components/EmojiPicker.vue';
+import RichEditor from './components/RichEditor.vue';
 import { ElMessage } from 'element-plus';
 import { Smileys, Image, Document, Lightbulb } from 'reicon-vue';
 
@@ -64,10 +71,16 @@ withDefaults(defineProps<{
     disableReason: ''
 });
 
-const inputValue = ref('');
-const textareaRef = ref<HTMLTextAreaElement | null>(null);
+const emit = defineEmits<{
+    (e: 'send', content: string): void;
+    (e: 'sendImage', file: File): void;
+    (e: 'sendFile', file: File): void;
+    (e: 'triggerAi'): void;
+}>();
 
-// Emoji Picker Logic
+const richEditorRef = ref<InstanceType<typeof RichEditor> | null>(null);
+
+// 表情选择
 const emojiPickerVisible = ref(false);
 const emojiBtnRef = ref<HTMLElement | null>(null);
 const emojiTriggerRect = ref<DOMRect | null>(null);
@@ -80,33 +93,14 @@ const toggleEmojiPicker = () => {
 };
 
 const onEmojiSelect = (emoji: string) => {
-    // Insert emoji at cursor position
-    const textarea = textareaRef.value;
-    if (textarea) {
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        inputValue.value = inputValue.value.substring(0, start) + emoji + inputValue.value.substring(end);
-
-        // Restore focus and cursor position
-        nextTick(() => {
-            textarea.focus();
-            textarea.selectionStart = textarea.selectionEnd = start + emoji.length;
-        });
-    } else {
-        inputValue.value += emoji;
-    }
+    richEditorRef.value?.insertText(emoji);
     emojiPickerVisible.value = false;
 };
 
-const emit = defineEmits<{
-    (e: 'send', content: string): void;
-    (e: 'sendImage', file: File): void;
-    (e: 'sendFile', file: File): void;
-    (e: 'triggerAi'): void;
-}>();
-
+// 文件/图片选择
 const imageInputRef = ref<HTMLInputElement | null>(null);
 const fileInputRef = ref<HTMLInputElement | null>(null);
+const ALLOWED_IMAGE_EXTS = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'];
 
 const triggerImageSelect = () => {
     imageInputRef.value?.click();
@@ -115,8 +109,6 @@ const triggerImageSelect = () => {
 const triggerFileSelect = () => {
     fileInputRef.value?.click();
 };
-
-const ALLOWED_IMAGE_EXTS = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'];
 
 const handleImageSelect = (event: Event) => {
     const target = event.target as HTMLInputElement;
@@ -128,7 +120,7 @@ const handleImageSelect = (event: Event) => {
             target.value = '';
             return;
         }
-        emit('sendImage', file);
+        richEditorRef.value?.insertImage(file);
     }
     target.value = '';
 };
@@ -141,36 +133,11 @@ const handleFileSelect = (event: Event) => {
     target.value = '';
 };
 
-const handleSend = () => {
-    const content = inputValue.value.trim();
-    if (!content) return;
-
-    emit('send', content);
-    inputValue.value = '';
-};
-
-const handleNewLine = () => {
-    inputValue.value += '\n';
-};
-
-const insertText = (text: string) => {
-    const textarea = textareaRef.value;
-    if (textarea) {
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        inputValue.value = inputValue.value.substring(0, start) + text + inputValue.value.substring(end);
-
-        nextTick(() => {
-            textarea.focus();
-            textarea.selectionStart = textarea.selectionEnd = start + text.length;
-        });
-    } else {
-        inputValue.value += text;
-    }
-};
-
 defineExpose({
-    insertText
+    insertText: (text: string) => richEditorRef.value?.insertText(text),
+    insertImage: (file: File) => richEditorRef.value?.insertImage(file),
+    clear: () => richEditorRef.value?.clear(),
+    focus: () => richEditorRef.value?.focus()
 });
 </script>
 
@@ -189,22 +156,19 @@ defineExpose({
 
     .disabled-overlay {
         position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
+        inset: 0;
         background-color: rgba(255, 255, 255, 0.8);
         z-index: 10;
-        
-        [data-theme='dark'] & {
-            background-color: rgba(30, 41, 59, 0.8);
-        }
         display: flex;
         align-items: center;
         justify-content: center;
         color: $color-error;
         font-size: 14px;
         backdrop-filter: blur(2px);
+
+        [data-theme='dark'] & {
+            background-color: rgba(30, 41, 59, 0.8);
+        }
     }
 
     .toolbar {
@@ -238,23 +202,6 @@ defineExpose({
     .input-wrapper {
         flex: 1;
         overflow: hidden;
-
-        .input-field {
-            width: 100%;
-            height: 100%;
-            border: none;
-            outline: none;
-            resize: none;
-            font-size: 14px;
-            font-family: inherit;
-            color: $color-text-primary;
-            background: transparent;
-            line-height: 1.5;
-
-            &::placeholder {
-                color: $color-text-placeholder;
-            }
-        }
     }
 
     .actions {

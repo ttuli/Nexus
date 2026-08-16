@@ -17,8 +17,8 @@
           <div class="sub-info">
             <span>{{ targetUser ? '账号: ' + targetUser.user_id : '群号: ' + targetGroup?.id }}</span>
             <template v-if="targetUser">
-              <img :src="maleIcon" class="gender-icon" v-if="targetUser.gender === ImTypes.Gender.GENDER_MALE" />
-              <img :src="femaleIcon" class="gender-icon" v-else-if="targetUser.gender === ImTypes.Gender.GENDER_FEMALE" />
+              <Male class="gender-icon app-icon app-icon--sm male" v-if="targetUser.gender === ImTypes.Gender.GENDER_MALE" />
+              <Female class="gender-icon app-icon app-icon--sm female" v-else-if="targetUser.gender === ImTypes.Gender.GENDER_FEMALE" />
             </template>
           </div>
           <div class="sub-info" v-if="targetUser && targetUser.phone">手机: {{ targetUser.phone }}</div>
@@ -43,8 +43,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { ImTypes } from '@shared/types';
-import maleIcon from '@/src/assets/gender/male.svg?url';
-import femaleIcon from '@/src/assets/gender/female.svg?url';
+import { Male, Female } from 'reicon-vue';
 
 defineOptions({ name: 'ApplyRelationModal' });
 
@@ -126,7 +125,12 @@ const handleSubmit = () => {
         .gender-icon {
           width: 14px;
           height: 14px;
-          object-fit: contain;
+          &.male {
+            color: #409eff;
+          }
+          &.female {
+            color: #f56c6c;
+          }
         }
       }
     }

@@ -104,7 +104,7 @@ const onSelect = (emoji: string) => {
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 22px; // Slightly larger for clarity
+            font-size: 22px;
             width: 32px;
             height: 32px;
             border-radius: 6px;

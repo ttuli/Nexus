@@ -2,11 +2,11 @@
     <div class="filter-column">
         <div class="search-wrapper">
             <div class="search-input-box">
-                <span v-html="SearchIcon" class="search-icon" />
+                <Search class="app-icon app-icon--sm search-icon" />
                 <input class="search-input" placeholder="搜索" />
             </div>
             <button class="add-btn" @click="toggleMenu" ref="addBtnRef">
-                <span v-html="PlusIcon" class="add-icon" />
+                <Add class="app-icon app-icon--sm add-icon" />
             </button>
         </div>
         <ContextMenu v-model:visible="menuVisible" :x="menuX" :y="menuY" :options="menuOptions" align="right"
@@ -17,10 +17,9 @@
 
 <script lang="ts" setup>
 import { ref } from 'vue';
-import SearchIcon from '@/src/assets/input/search.svg?raw';
-import PlusIcon from '@/src/assets/input/plus.svg?raw';
-
+import { Search, Add, UserAdd, Messages } from 'reicon-vue';
 import ContextMenu, { MenuOption } from '@/src/components/ContextMenu.vue';
+
 const emit = defineEmits<{
     (e: 'menu-select', key: string): void;
 }>();
@@ -31,8 +30,8 @@ const menuX = ref(0);
 const menuY = ref(0);
 
 const menuOptions: MenuOption[] = [
-    { label: '添加关系', key: 'search', icon: SearchIcon },
-    { label: '发起群聊', key: 'createGroup', icon: PlusIcon }
+    { label: '添加关系', key: 'search', icon: UserAdd },
+    { label: '发起群聊', key: 'createGroup', icon: Messages }
 ];
 
 const toggleMenu = (event: MouseEvent) => {

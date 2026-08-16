@@ -16,48 +16,48 @@
             <div class="selector-item" :class="{ active: source === 'friend' }" @click="source = 'friend'">
                 从好友列表选择
             </div>
+            <div class="active-indicator" :class="{ 'is-right': source === 'friend' }"></div>
         </div>
 
         <!-- Search Bar -->
         <div class="search-bar-wrapper">
-            <CusInput
-                v-model="searchQuery"
-                placeholder="搜索成员名称"
-                class="search-input"
-            >
+            <CusInput v-model="searchQuery" placeholder="搜索成员名称" class="search-input">
                 <template #left-area>
-                    <img :src="SearchIcon" class="search-icon" />
+                    <Search4 class="search-icon" />
                 </template>
             </CusInput>
         </div>
 
         <!-- User List -->
         <div class="user-list-container scroll-bar-normal">
-            <div v-if="loading" class="loading-state">
-                <CusSpinner text="加载中..." />
-            </div>
-            <div v-else-if="filteredUsers.length === 0" class="empty-state">
-                暂无用户
-            </div>
-            <div v-else class="user-list">
-                <div v-for="user in filteredUsers" :key="user.id" class="user-item"
-                    :class="{ disabled: isExistingMember(user.id) }"
-                    @click="toggleSelection(user.id)">
-                    <div class="checkbox" :class="{ checked: isExistingMember(user.id) || selectedUsers.has(user.id), disabled: isExistingMember(user.id) }">
-                        <img v-if="isExistingMember(user.id) || selectedUsers.has(user.id)" :src="CheckIcon" class="check-icon" />
-                    </div>
-                    <img :src="user.avatar || DefaultAvatar" class="avatar" />
-                    <div class="user-info">
-                        <span class="name" v-html="highlightName(user.name)"></span>
-                        <span v-if="isExistingMember(user.id)" class="status-tag">已在群中</span>
+            <Transition name="tab-fade" mode="out-in">
+                <div v-if="loading" key="loading" class="loading-state">
+                    <CusSpinner text="加载中..." />
+                </div>
+                <div v-else-if="filteredUsers.length === 0" key="empty" class="empty-state">
+                    暂无用户
+                </div>
+                <div v-else :key="source" class="user-list">
+                    <div v-for="user in filteredUsers" :key="user.id" class="user-item"
+                        :class="{ disabled: isExistingMember(user.id) }" @click="toggleSelection(user.id)">
+                        <div class="checkbox"
+                            :class="{ checked: isExistingMember(user.id) || selectedUsers.has(user.id), disabled: isExistingMember(user.id) }">
+                            <Check v-if="isExistingMember(user.id) || selectedUsers.has(user.id)" class="check-icon" />
+                        </div>
+                        <img :src="user.avatar || DefaultAvatar" class="avatar" />
+                        <div class="user-info">
+                            <span class="name" v-html="highlightName(user.name)"></span>
+                            <span v-if="isExistingMember(user.id)" class="status-tag">已在群中</span>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </Transition>
         </div>
 
         <template #footer>
             <CusButton class="dialog-btn" type="normal" :show-icon="false" @click="handleClose">取消</CusButton>
-            <CusButton class="dialog-btn" type="primary" :show-icon="false" :disabled="!isValid" :loading="submitLoading" @click="handleSubmit">
+            <CusButton class="dialog-btn" type="primary" :show-icon="false" :disabled="!isValid"
+                :loading="submitLoading" @click="handleSubmit">
                 {{ confirmText }}
             </CusButton>
         </template>
@@ -76,8 +76,8 @@ import { userService } from '@/src/services';
 import { extractTargetIdFromSessionId } from '@/src/utils/sessionUtils';
 import { ImTypes } from '@shared/types';
 import DefaultAvatar from '@/src/assets/avatar/default.png?url';
-import CheckIcon from '@/src/assets/common/check.svg?url';
-import SearchIcon from '@/src/assets/input/search.svg?url';
+import { Check, Search4 } from 'reicon-vue';
+// import SearchIcon from '@/src/assets/input/search.svg?url';
 
 const props = withDefaults(defineProps<{
     visible: boolean;
@@ -263,6 +263,7 @@ $border-color: var(--border-divider, #e5e6eb);
     margin-top: 15px;
     user-select: none;
     -webkit-user-select: none;
+    position: relative;
 
     .selector-item {
         flex: 1;
@@ -272,21 +273,31 @@ $border-color: var(--border-divider, #e5e6eb);
         cursor: pointer;
         color: var(--text-secondary, #86909c);
         position: relative;
-        transition: color 0.2s;
+        transition: color 0.25s ease;
+        z-index: 1;
+
+        &:hover {
+            color: var(--text-primary, #1d2129);
+        }
 
         &.active {
             color: $primary-color;
             font-weight: 500;
+        }
+    }
 
-            &::after {
-                content: '';
-                position: absolute;
-                bottom: -1px;
-                left: 0;
-                width: 100%;
-                height: 2px;
-                background-color: $primary-color;
-            }
+    .active-indicator {
+        position: absolute;
+        bottom: -1px;
+        left: 0;
+        width: 50%;
+        height: 2px;
+        background-color: $primary-color;
+        border-radius: 2px;
+        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+        &.is-right {
+            transform: translateX(100%);
         }
     }
 }
@@ -300,7 +311,7 @@ $border-color: var(--border-divider, #e5e6eb);
         padding-left: 12px;
         border-radius: 6px;
         background-color: var(--bg-body, #f8fafc);
-        
+
         &:focus-within {
             background-color: var(--surface-default, #ffffff);
         }
@@ -320,9 +331,8 @@ $border-color: var(--border-divider, #e5e6eb);
 
 .user-list-container {
     width: 100%;
-    flex: 1;
+    height: 300px;
     overflow-y: auto;
-    min-height: 200px;
     border: 1px solid $border-color;
     border-radius: 6px;
     margin-top: 15px;
@@ -357,6 +367,7 @@ $border-color: var(--border-divider, #e5e6eb);
             &.disabled {
                 cursor: not-allowed;
                 opacity: 0.6;
+
                 &:hover {
                     background-color: transparent;
                 }
@@ -441,5 +452,20 @@ $border-color: var(--border-divider, #e5e6eb);
     width: 80px;
     user-select: none;
     -webkit-user-select: none;
+}
+
+.tab-fade-enter-active,
+.tab-fade-leave-active {
+    transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.tab-fade-enter-from {
+    opacity: 0;
+    transform: translateY(3px);
+}
+
+.tab-fade-leave-to {
+    opacity: 0;
+    transform: translateY(-3px);
 }
 </style>
