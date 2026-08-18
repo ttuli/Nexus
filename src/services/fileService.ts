@@ -12,7 +12,8 @@ class FileService {
     uploadFile(
         file: File,
         fileType: ApiTypes.file.FileType,
-        onProgress?: (progress: number) => void
+        onProgress?: (progress: number) => void,
+        timeoutMs?: number
     ): { promise: Promise<string>, abort: () => void } {
         let abortController = new AbortController();
 
@@ -49,6 +50,10 @@ class FileService {
                 const xhr = new XMLHttpRequest();
                 xhr.open('POST', policy.host);
 
+                // 设置上传超时时间（支持传参，默认根据文件大小与基础超时动态计算，至少 60s）
+                const uploadTimeout = timeoutMs ?? Math.max(config.uploadTimeoutMs || 60000, Math.ceil(file.size / (50 * 1024)) * 1000);
+                xhr.timeout = uploadTimeout;
+
                 // 监听取消信号
                 abortController.signal.addEventListener('abort', () => {
                     xhr.abort();
@@ -75,6 +80,10 @@ class FileService {
 
                 xhr.onerror = (ev) => reject(
                     new Error('Upload failed network error' + JSON.stringify(ev))
+                );
+
+                xhr.ontimeout = () => reject(
+                    new Error(`Upload timed out after ${Math.round(uploadTimeout / 1000)}s`)
                 );
 
                 xhr.send(formData);

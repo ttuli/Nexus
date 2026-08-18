@@ -151,6 +151,9 @@ export const APP_CONSTANTS = {
     /** HTTP 请求超时时间（毫秒），主进程 mainRequest 与渲染进程 axios 实例共用。
      *  注：文件上传走独立 XHR 直传 OSS，不受此限制 */
     httpTimeoutMs: 10000,
+
+    /** 文件上传默认基础超时时间（毫秒） */
+    uploadTimeoutMs: 60000,
     /** Auth 服务器地址 */
     get authServer() { return getEnv('VITE_AUTH_SERVER') || 'http://localhost:8022'; },
 

@@ -1,5 +1,5 @@
 <template>
-    <div class="file-message-bubble" :class="{ 'is-self': props.isSelf, 'is-downloaded': isDownloaded }" @click="handleClick">
+    <div class="file-message-bubble" :class="{ 'is-self': props.isSelf, 'is-downloaded': isDownloaded, 'is-in-progress': showProgress }" @click="handleClick">
         <!-- 主体信息区域 -->
         <div class="file-content-main">
             <!-- 左侧精致矢量折角文档图标 -->
@@ -93,8 +93,8 @@
         </div>
 
         <!-- 底部操作按钮区域 -->
-        <div class="file-action-bar" v-if="showActionBar" @click.stop="handleActionClick">
-            <button class="action-btn" :class="{ 'btn-cancel': showProgress }">
+        <div class="file-action-bar" v-if="showActionBar">
+            <button class="action-btn" :class="{ 'btn-cancel': showProgress }" @click.stop="handleActionClick">
                 <svg v-if="actionIcon === 'download'" class="action-icon" viewBox="0 0 24 24" width="13" height="13">
                     <path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
                 </svg>
@@ -298,6 +298,7 @@ const formatSize = (bytes: number) => {
 
 // --- 事件处理 ---
 const handleClick = async () => {
+    // 进度中点击文件气泡主体不触发操作，仅点击取消按钮才取消
     if (showProgress.value) return;
 
     if (!isDownloaded.value) {
@@ -307,20 +308,24 @@ const handleClick = async () => {
     }
 };
 
+const handleCancel = () => {
+    if (isUploading.value) {
+        if (props.message.clientId) {
+            cancelUpload(props.message.clientId);
+            ElMessage.success('已取消上传');
+        }
+    } else if (isDownloading.value) {
+        currentDownloadAbort.value?.();
+        isDownloading.value = false;
+        downloadProgress.value = 0;
+        currentDownloadAbort.value = null;
+        ElMessage.success('已取消下载');
+    }
+};
+
 const handleActionClick = () => {
     if (showProgress.value) {
-        if (isUploading.value) {
-            if (props.message.clientId) {
-                cancelUpload(props.message.clientId);
-                ElMessage.success('已取消上传');
-            }
-        } else if (isDownloading.value) {
-            currentDownloadAbort.value?.();
-            isDownloading.value = false;
-            downloadProgress.value = 0;
-            currentDownloadAbort.value = null;
-            ElMessage.success('已取消下载');
-        }
+        handleCancel();
     } else {
         if (!isDownloaded.value) {
             startDownload();
@@ -398,6 +403,10 @@ const openFile = async () => {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     user-select: none;
+
+    &.is-in-progress {
+        cursor: default;
+    }
 
     &:hover {
         border-color: rgba(var(--color-primary-rgb, 64, 158, 255), 0.35);

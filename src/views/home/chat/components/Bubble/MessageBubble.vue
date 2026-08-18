@@ -311,14 +311,14 @@ const formatTime = (timestamp: number) => {
             &.is-video,
             &.is-file {
                 padding: 0; // 图片、视频或文件气泡不需要外层 padding
-                background-color: transparent; // 图片、视频或文件气泡不需要外层背景色
+                background-color: transparent !important; // 图片、视频或文件气泡不需要外层背景色
                 box-shadow: none; // 阴影移交到内层
             }
 
             &:hover {
                 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 
-                &:not(.is-image):not(.is-video) {
+                &:not(.is-image):not(.is-video):not(.is-file) {
                     filter: brightness(0.93);
                 }
             }
