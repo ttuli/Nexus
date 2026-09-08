@@ -67,25 +67,6 @@ class SettingManager {
     }
 
     /**
-     * 将二进制图片数据直接保存为本地图片
-     * @param buffer 图片的二进制数据 (Uint8Array)
-     * @param fileName 可选的文件名，如果未提供则使用 UUID
-     * @returns 保存的本地绝对路径
-     */
-    saveImageBuffer(buffer: Uint8Array, fileName?: string): string {
-        const thumbnailsDir = path.join(this.getStoragePath(), 'thumbnails');
-        if (!fs.existsSync(thumbnailsDir)) {
-            fs.mkdirSync(thumbnailsDir, { recursive: true });
-        }
-
-        const name = fileName || `${Date.now()}_${Math.random().toString(36).substring(2, 8)}.jpg`;
-        const savePath = path.join(thumbnailsDir, name);
-
-        fs.writeFileSync(savePath, buffer);
-        return savePath;
-    }
-
-    /**
      * 在系统文件管理器中定位并高亮指定文件
      * @throws 文件不存在时抛出异常
      */

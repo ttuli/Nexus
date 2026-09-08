@@ -11,6 +11,15 @@
     "dist",
     "dist-electron"
   ],
+  // SQLCipher 的原生模块必须解包到 asar 之外才能被 dlopen 加载
+  "asarUnpack": [
+    "**/node_modules/better-sqlite3-multiple-ciphers/**"
+  ],
+  // 本项目的原生依赖（better-sqlite3-multiple-ciphers / koffi / bufferutil /
+  // utf-8-validate）全部自带预编译产物，其中 SQLCipher 走的是 N-API，ABI 跨
+  // Electron 版本稳定，不需要重编。放着不关的话 electron-builder 会调 node-gyp
+  // 从源码重编一遍，在没有完整 C++/Python 工具链的机器上直接失败。
+  "npmRebuild": false,
   "mac": {
     "target": [
       "dmg"

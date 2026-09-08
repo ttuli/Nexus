@@ -1,6 +1,7 @@
 import { net } from 'electron';
 import jwt from 'jsonwebtoken';
-import { storage, StorageKeys } from '@/electron/utils/storage';
+import { StorageKeys } from '@/electron/utils/storage';
+import { secureStore } from '@/electron/utils/secureStore';
 import { RefreshTokenPayload, TokenPayload, ResourceType, ImTypes, ApiTypes } from '@shared/types';
 import { cacheManager } from './cacheManager';
 import { APP_CONSTANTS as config } from '@shared/config/constants';
@@ -41,11 +42,11 @@ class TokenManager {
         this.deviceId = deviceId;
         this.platform = platform;
 
-        // 从本地读取 refreshToken
-        const savedRefreshToken = storage.get<string>(StorageKeys.REFRESH_TOKEN);
+        // 从本地读取 refreshToken（经 safeStorage 保护，换机器/换系统账户后会解不开，返回 null）
+        const savedRefreshToken = secureStore.get(StorageKeys.REFRESH_TOKEN);
         if (savedRefreshToken) {
             const decodedToken = jwt.decode(savedRefreshToken) as RefreshTokenPayload;
-            if (decodedToken.device_id !== this.deviceId) {
+            if (decodedToken?.device_id !== this.deviceId) {
                 this.refreshToken = '';
             } else {
                 this.storeRefreshToken = true;
@@ -181,7 +182,7 @@ class TokenManager {
                         this.setToken(token);
                         this.setRefreshToken(refresh_token);
                         if (this.storeRefreshToken) {
-                            storage.set(StorageKeys.REFRESH_TOKEN, refresh_token);
+                            secureStore.set(StorageKeys.REFRESH_TOKEN, refresh_token);
                         }
                         resolve({ success: true, token, refreshToken: refresh_token });
                     } catch (error) {
@@ -202,9 +203,9 @@ class TokenManager {
 
     public operateLocalRefreshToken(save: boolean) {
         if (save) {
-            storage.set(StorageKeys.REFRESH_TOKEN, this.refreshToken);
+            secureStore.set(StorageKeys.REFRESH_TOKEN, this.refreshToken);
         } else {
-            storage.delete(StorageKeys.REFRESH_TOKEN);
+            secureStore.delete(StorageKeys.REFRESH_TOKEN);
         }
     }
 
@@ -214,7 +215,7 @@ class TokenManager {
      * 退出登录时清理 Token 状态
      */
     public cleanout(): void {
-        storage.delete(StorageKeys.REFRESH_TOKEN);
+        secureStore.delete(StorageKeys.REFRESH_TOKEN);
         this.token = '';
         this.refreshToken = '';
     }

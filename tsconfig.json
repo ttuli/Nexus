@@ -28,6 +28,11 @@
       ],
       "@shared/*": [
         "./share/*"
+      ],
+      // 该包自带 index.d.ts，但 package.json 的 exports 没映射 types，
+      // moduleResolution: bundler 解析不到，这里直接指过去
+      "better-sqlite3-multiple-ciphers": [
+        "./node_modules/better-sqlite3-multiple-ciphers/index.d.ts"
       ]
     }
   },

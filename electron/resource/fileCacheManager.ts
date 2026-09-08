@@ -186,6 +186,23 @@ class FileCacheManager {
         return path.join(dir, `${hash}.bin`);
     }
 
+    /**
+     * 把一段内存中的图片字节写进当前账户的私有缓存，返回本地绝对路径。
+     *
+     * 用于渲染进程就地生成的图片（如发送视频前用 canvas 抓的首帧封面）。
+     * 走 getLocalPath 落盘意味着：
+     *   1. 文件名是 {sha256}.bin，资源管理器不会渲染缩略图预览
+     *   2. 按 userId 分目录，与其它聊天缓存的隔离约定一致
+     *   3. 调用方给的名字只参与哈希、不拼进路径，天然免疫路径穿越
+     */
+    public saveImageBuffer(buffer: Uint8Array, fileName?: string): string {
+        // 每次调用都要落一个新文件，因此 cacheKey 必须唯一（内容相同也不复用）
+        const cacheKey = `generated:${fileName || ''}:${Date.now()}:${crypto.randomBytes(8).toString('hex')}`;
+        const localPath = this.getLocalPath(cacheKey);
+        fs.writeFileSync(localPath, buffer);
+        return localPath;
+    }
+
     private async doFetch(url: string, cacheKey: string, ft: ApiTypes.file.FileType, isShared: boolean = false) {
         const process = cacheKey.split('|')[1] || '';
         try {

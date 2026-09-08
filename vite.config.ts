@@ -28,7 +28,7 @@ export default defineConfig(({ mode }) => {
                   main: 'electron/main.ts',
                   'db.worker': 'electron/db/db.worker.ts',
                 },
-                external: ['dotenv', 'koffi', 'better-sqlite3'],
+                external: ['dotenv', 'koffi', 'better-sqlite3-multiple-ciphers'],
               },
             },
             resolve: {

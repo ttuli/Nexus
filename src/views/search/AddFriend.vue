@@ -18,7 +18,7 @@
                     <CusInput v-model="keyword" :placeholder="searchType === 'user' ? '请输入手机号/账号/名字' : '请输入群号/群名称'"
                         @submit="startSearch">
                         <template #left-area>
-                            <img :src="SearchIcon" class="search-icon" />
+                            <Magnifier />
                         </template>
                         <template #right-area>
                             <button class="search-btn" @click="startSearch">搜索</button>
@@ -75,7 +75,7 @@
 <script lang="ts" setup>
 import { onMounted, ref, watch } from 'vue';
 import { ImTypes } from '@shared/types';
-import SearchIcon from '@/src/assets/input/search.svg?url';
+import { Magnifier } from 'reicon-vue';
 import UserCard from './components/UserCard.vue';
 import GroupCard from './components/GroupCard.vue';
 import ApplyRelationModal from '@/src/components/ApplyRelationModal.vue';

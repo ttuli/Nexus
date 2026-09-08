@@ -1,12 +1,15 @@
 /**
  * db.worker.ts
  *
- * Worker Thread 主体：在独立线程中持有 better-sqlite3 数据库连接。
+ * Worker Thread 主体：在独立线程中持有 better-sqlite3-multiple-ciphers 数据库连接。
  * 主进程通过 postMessage / on('message') 与此 Worker 通信。
  *
+ * 数据库为 SQLCipher 整库加密（better-sqlite3-multiple-ciphers），
+ * 密钥由主进程通过 open_shared / open_user 消息传入，Worker 不接触密钥的存取。
+ *
  * 消息协议（接收）：
- *   { id, type: 'open_shared', dbDir, sharedSql }
- *   { id, type: 'open_user',   dbDir, userId, userSql }
+ *   { id, type: 'open_shared', dbDir, sharedSql, key }
+ *   { id, type: 'open_user',   dbDir, userId, userSql, key }
  *   { id, type: 'close_user' }
  *   { id, type: 'close_all' }
  *   { id, type: 'query',       db: 'shared'|'user', sql, params }
@@ -20,7 +23,7 @@
  */
 
 import { parentPort } from 'worker_threads';
-import Database from 'better-sqlite3';
+import Database from 'better-sqlite3-multiple-ciphers';
 import path from 'path';
 import fs from 'fs';
 
@@ -53,6 +56,70 @@ function replyError(id: number, err: unknown): void {
     parentPort!.postMessage({ id, error: msg });
 }
 
+/**
+ * 挂载 SQLCipher 密钥。
+ *
+ * PRAGMA 顺序有硬性要求：cipher / key 必须是连接建立后的第一批语句，
+ * 排在 journal_mode 等其它 pragma 之前，否则 SQLCipher 无法正确接管文件。
+ * 密钥以 x'...' 裸密钥形式传入，跳过 SQLCipher v4 默认的 256000 轮 PBKDF2，
+ * 否则每次开库都要重跑一遍，冷启动会明显变慢。
+ */
+function applyCipher(db: Database.Database, keyHex: string): void {
+    db.pragma(`cipher='sqlcipher'`);
+    db.pragma(`key="x'${keyHex}'"`);
+}
+
+/**
+ * 校验密钥能否解开该库。
+ *
+ * SQLCipher 在密钥错误时不会在 open 阶段报错，而是在第一次真正读页时
+ * 抛 "file is not a database"，所以必须主动读一次。
+ * 新建的空库（0 字节）此处会正常返回，密钥在首次写入时才真正落到文件头。
+ */
+function canDecrypt(db: Database.Database): boolean {
+    try {
+        db.prepare('SELECT count(*) FROM sqlite_master').get();
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * 打开一个加密数据库；密钥对不上时把旧文件改名让开，并重建空库。
+ *
+ * 解不开通常意味着换了系统账户或换了机器（safeStorage 的密钥跟着走不了），
+ * 也可能是文件损坏。这里不删数据——万一哪天原系统账户恢复了还能解开——
+ * 只改名归档，让应用能继续跑起来（消息可由服务端按 seq 重新拉取）。
+ */
+function openEncryptedDb(dbPath: string, keyHex: string, label: string): Database.Database {
+    let db = new Database(dbPath);
+    applyCipher(db, keyHex);
+
+    if (!canDecrypt(db)) {
+        db.close();
+        const orphan = `${dbPath}.orphan-${Date.now()}`;
+        try {
+            fs.renameSync(dbPath, orphan);
+            // WAL/SHM 一并归档，避免残留文件干扰新库
+            for (const suffix of ['-wal', '-shm']) {
+                if (fs.existsSync(dbPath + suffix)) fs.renameSync(dbPath + suffix, orphan + suffix);
+            }
+        } catch (err) {
+            throw new Error(`[db.worker] ${label} 无法解密，且归档失败: ${err instanceof Error ? err.message : String(err)}`);
+        }
+        console.error(
+            `[db.worker] ${label} 无法用当前密钥解开，已归档为 ${path.basename(orphan)} 并重建空库。`
+        );
+        db = new Database(dbPath);
+        applyCipher(db, keyHex);
+    }
+
+    db.pragma('journal_mode = WAL');
+    db.pragma('foreign_keys = ON');
+    return db;
+}
+
 /** 将参数列表中每个值强制转换为 better-sqlite3 接受的类型 */
 function safeParams(params: unknown[]): unknown[] {
     return params.map(p => {
@@ -75,12 +142,10 @@ parentPort.on('message', (msg: WorkerMessage) => {
 
             case 'open_shared': {
                 if (sharedDb) { reply(id, null); break; }
-                const { dbDir, sharedSql } = msg as OpenSharedMsg;
+                const { dbDir, sharedSql, key } = msg as OpenSharedMsg;
                 if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
                 const dbPath = path.join(dbDir, 'shared.db');
-                sharedDb = new Database(dbPath);
-                sharedDb.pragma('journal_mode = WAL');
-                sharedDb.pragma('foreign_keys = ON');
+                sharedDb = openEncryptedDb(dbPath, key, 'shared.db');
                 sharedDb.exec(sharedSql);
                 console.log(`[db.worker] Opened shared database: ${dbPath}`);
                 reply(id, null);
@@ -88,15 +153,13 @@ parentPort.on('message', (msg: WorkerMessage) => {
             }
 
             case 'open_user': {
-                const { dbDir, userId, userSql } = msg as OpenUserMsg;
+                const { dbDir, userId, userSql, key } = msg as OpenUserMsg;
                 // 切换账号时关闭旧连接
                 if (userDb) { userDb.close(); userDb = null; }
                 const userDbDir = path.join(dbDir, String(userId));
                 if (!fs.existsSync(userDbDir)) fs.mkdirSync(userDbDir, { recursive: true });
                 const dbPath = path.join(userDbDir, `${userId}.db`);
-                userDb = new Database(dbPath);
-                userDb.pragma('journal_mode = WAL');
-                userDb.pragma('foreign_keys = ON');
+                userDb = openEncryptedDb(dbPath, key, `user ${userId} database`);
                 userDb.exec(userSql);
 
                 console.log(`[db.worker] Opened user database for user ${userId}: ${dbPath}`);
@@ -183,6 +246,8 @@ interface OpenSharedMsg extends BaseMsg {
     type: 'open_shared';
     dbDir: string;
     sharedSql: string;
+    /** SQLCipher 密钥（32 字节 hex），由主进程从 dbKeyManager 取得 */
+    key: string;
 }
 
 interface OpenUserMsg extends BaseMsg {
@@ -190,6 +255,8 @@ interface OpenUserMsg extends BaseMsg {
     dbDir: string;
     userId: number;
     userSql: string;
+    /** SQLCipher 密钥（32 字节 hex），每个账号一把 */
+    key: string;
 }
 
 interface QueryMsg extends BaseMsg {

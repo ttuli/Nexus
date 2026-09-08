@@ -1,6 +1,7 @@
 import { ipcMain, BrowserWindow } from 'electron';
 import { IpcChannels } from '@shared/types';
 import { settingManager } from '@/electron/resource/settingManager';
+import { fileCacheManager } from '@/electron/resource/fileCacheManager';
 
 export function setupSettingsHandlers(): void {
     // 获取当前存储路径
@@ -15,7 +16,7 @@ export function setupSettingsHandlers(): void {
     // 保存二进制图片到本地缓存
     ipcMain.handle(IpcChannels.SYSTEM_SAVE_IMAGE_BUFFER, (_event, { buffer, fileName }: { buffer: Uint8Array, fileName?: string }) => {
         try {
-            return { success: true, data: settingManager.saveImageBuffer(buffer, fileName) };
+            return { success: true, data: fileCacheManager.saveImageBuffer(buffer, fileName) };
         } catch (error: any) {
             console.error('[SettingsHandler] Save image buffer error:', error);
             return { success: false, error: error.message };

@@ -145,7 +145,13 @@ export const StorageKeys = {
     LOGIN_HISTORY: 'loginHistory',  // 登录历史记录
     MACHINE_UID: 'machineUid',
     CUSTOM_RESOURCE_PATH: 'customResourcePath', // 用户自定义的大文件存储根目录
+    DB_KEY_SHARED: 'dbKey.shared',  // shared.db 的加密密钥（设备级，跨账号共享）
 } as const;
+
+/** 用户私有库 {userId}.db 的密钥存储键（每个账号一把独立密钥） */
+export function dbKeyForUser(userId: number): string {
+    return `dbKey.user.${userId}`;
+}
 
 export const storage = new Storage();
 export default Storage;

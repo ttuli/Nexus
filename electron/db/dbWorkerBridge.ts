@@ -17,6 +17,7 @@ import { Worker } from 'worker_threads';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { settingManager } from '@/electron/resource/settingManager';
+import { dbKeyManager } from './dbKeyManager';
 
 // ── 消息类型（与 db.worker.ts 中的定义镜像） ─────────────────────────────────
 
@@ -113,6 +114,7 @@ class DbWorkerBridge {
             type: 'open_shared',
             dbDir: settingManager.getStoragePath(),
             sharedSql: this.sharedSql,
+            key: dbKeyManager.getSharedKey(),
         });
     }
 
@@ -123,6 +125,7 @@ class DbWorkerBridge {
             dbDir: settingManager.getStoragePath(),
             userId,
             userSql: this.userSql,
+            key: dbKeyManager.getUserKey(userId),
         });
     }
 
