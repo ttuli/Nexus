@@ -76,6 +76,31 @@ export function setupMessageHandlers(): void {
         }
     );
 
+    /** 删除单条消息（本地删除并记墓碑） */
+    ipcMain.handle(
+        IpcChannels.MSG_DELETE,
+        async (_event, sessionKey: string, msgId: string, clientId: string) => {
+            try {
+                const data = await messageStore.deleteMessage(sessionKey, msgId, clientId);
+                return { success: true, data };
+            } catch (err: any) {
+                console.error('[messageHandler] MSG_DELETE error:', err);
+                return { success: false, error: String(err?.message ?? err) };
+            }
+        }
+    );
+
+    /** 获取会话最新一条消息 */
+    ipcMain.handle(IpcChannels.MSG_GET_LATEST, async (_event, sessionKey: string) => {
+        try {
+            const data = await messageStore.getLatestMessage(sessionKey);
+            return { success: true, data };
+        } catch (err: any) {
+            console.error('[messageHandler] MSG_GET_LATEST error:', err);
+            return { success: false, error: String(err?.message ?? err) };
+        }
+    });
+
     /** 清空会话消息 */
     ipcMain.handle(IpcChannels.MSG_CLEAR_SESSION, async (_event, sessionKey: string) => {
         try {

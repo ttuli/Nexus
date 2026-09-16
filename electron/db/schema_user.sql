@@ -93,3 +93,21 @@ CREATE TABLE IF NOT EXISTS sessions (
 CREATE INDEX IF NOT EXISTS idx_sessions_sessionid 
     ON sessions(session_id) 
     WHERE session_id != '';
+
+
+-- ============================================================
+-- 已删除消息墓碑表
+--
+-- 「删除」是纯本地操作（服务端无删除接口），但删掉行之后本地这一页会变短，
+-- chatService.getHistoryMessages 会判定窗口不完整而回源 API 重新落库，
+-- 被删的消息就又回来了。故记下已删除的 msg_id，在写入侧拦掉。
+--
+-- 只记录拿到过服务端 msg_id 的消息：未确认的本地消息（仅有 client_id）
+-- 服务端没有副本，删掉就不会再回来，无需墓碑。
+-- ============================================================
+CREATE TABLE IF NOT EXISTS deleted_messages (
+    session_key TEXT    NOT NULL,
+    msg_id      TEXT    NOT NULL,
+    deleted_at  INTEGER NOT NULL,
+    PRIMARY KEY (session_key, msg_id)
+);

@@ -383,6 +383,53 @@ export function useChatPage() {
         }
     }
 
+    /**
+     * 删除消息后重算会话预览。
+     *
+     * 不传 last_message_time：新的「最后一条」必然早于被删的那条，而内存层
+     * updateSessionSummary 与 sessions 表的 SQL 都对 last_message_time 做单调门控，
+     * 传更小的值会被挡掉、连带 last_content 一起写不进去。保持原值可让门控以
+     * 「相等」放行，同时会话在列表中的位置不跳动。
+     */
+    async function refreshSummaryAfterDelete(sessionKey: string) {
+        const latest = await messageService.getLatestMessage(sessionKey);
+        const isRecalled = latest?.status === ImTypes.MessageStatus.MESSAGE_STATUS_RECALLED;
+        const updatedSession = sessionStore.updateSessionSummary(sessionKey, {
+            last_content: latest
+                ? getLastContent(latest, userStore.userID, (id) => userStore.getDisplayName(id))
+                : '',
+            // 撤回预览文案已含操作者语义（"你撤回了…"），置 0 避免会话卡片再加 "xx:" 前缀；
+            // 会话已无消息时同样置 0
+            last_sender: latest && !isRecalled ? latest.fromUserId : 0,
+        });
+        if (updatedSession) {
+            void sessionService.saveMany([toRaw(updatedSession)]);
+        }
+    }
+
+    /**
+     * 删除消息（纯本地，服务端无删除接口）。
+     *
+     * DB 侧在删行的同时记墓碑，避免翻页回源时被服务端重新下发。
+     */
+    async function deleteMessage(msg: IChatMessage): Promise<boolean> {
+        const sessionKey = msg.sessionKey || sessionStore.currentSessionKey;
+        const msgId = msg.msgId || '';
+        const clientId = msg.clientId || '';
+        if (!sessionKey || (!msgId && !clientId)) return false;
+
+        // 删正在上传的消息：先掐断在途上传，否则上传完成后的回填会去更新一条已不存在的消息
+        if (clientId) cancelUpload(clientId);
+
+        const removedFromDb = await messageService.deleteMessage(sessionKey, msgId, clientId);
+        // 即便 DB 未命中（如尚未落库的乐观消息）也要清内存，否则 UI 上残留
+        const removedFromMemory = messageStore.removeMessage(msgId, clientId);
+        if (!removedFromDb && !removedFromMemory) return false;
+
+        await refreshSummaryAfterDelete(sessionKey);
+        return true;
+    }
+
     function isRecalling(msgId?: string): boolean {
         if (!msgId) return false;
         return recallingMsgIds.has(msgId);
@@ -397,6 +444,7 @@ export function useChatPage() {
         sendVideoMessage,
         loadMore,
         recallMessage,
+        deleteMessage,
         recallingMsgIds,
         isRecalling,
     };

@@ -99,6 +99,8 @@ import ChatSidebar from './components/Sidebar/index.vue';
 import AiSuggestions from './components/AiSuggestions.vue';
 import type { MenuOption } from '@/src/components/ContextMenu.vue';
 import { ElMessage } from 'element-plus';
+import CusDialog from '@/src/components/CusDialog';
+import { DialogResult } from '@/src/components/CusDialog/types';
 import { CallCalling, Video, Copy, Trash, Undo } from 'reicon-vue';
 import { windowService } from '@/src/services';
 import { WindowKey } from '@shared/config/windowKeys';
@@ -113,7 +115,7 @@ const groupStore = useGroupStore();
 
 const { currentSession, currentSessionKey } = storeToRefs(sessionStore);
 const { messages, isLoading, hasMore } = storeToRefs(messageStore);
-const { loadMore, sendTextMessage, sendImageMessage, sendVideoMessage, sendFileMessage, recallMessage } = useChatPage();
+const { loadMore, sendTextMessage, sendImageMessage, sendVideoMessage, sendFileMessage, recallMessage, deleteMessage } = useChatPage();
 
 // Sidebar Logic
 const sidebarVisible = ref(false);
@@ -219,6 +221,24 @@ const handleMenuSelect = async (option: MenuOption) => {
         // 失败文案由请求拦截器统一 toast（如"超过撤回时间限制"）
         const ok = await recallMessage(target);
         if (ok) ElMessage.success('已撤回');
+    } else if (option.key === 'remove') {
+        const target = contextMenuTarget.value;
+        // 删除仅作用于本机，且会记墓碑（翻页回源也不会再拉回来），故不可恢复
+        const res = await CusDialog.open({
+            title: '删除消息',
+            content: '该消息将从本设备永久删除，确定删除吗？',
+            showCancel: true,
+            confirmText: '确定删除',
+            cancelText: '取消',
+        });
+        if (res !== DialogResult.Confirm) return;
+
+        const ok = await deleteMessage(target);
+        if (ok) {
+            ElMessage.success('已删除');
+        } else {
+            ElMessage.error('删除失败');
+        }
     }
 };
 

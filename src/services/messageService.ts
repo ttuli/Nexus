@@ -61,6 +61,31 @@ class MessageService {
     }
 
     /**
+     * 删除单条本地消息（并记墓碑，防止历史回源把它拉回来）
+     * @returns 是否真的删掉了一行
+     */
+    async deleteMessage(sessionKey: string, msgId: string, clientId: string): Promise<boolean> {
+        const res = await ipcService.invoke<boolean>(IpcChannels.MSG_DELETE, sessionKey, msgId, clientId);
+        if (!res.success) {
+            console.error('[MessageService] deleteMessage failed:', res.error);
+            return false;
+        }
+        return res.data === true;
+    }
+
+    /**
+     * 读取会话最新一条本地消息（删除后重算会话预览用）
+     */
+    async getLatestMessage(sessionKey: string): Promise<IChatMessage | null> {
+        const res = await ipcService.invoke<IChatMessage | null>(IpcChannels.MSG_GET_LATEST, sessionKey);
+        if (!res.success) {
+            console.error('[MessageService] getLatestMessage failed:', res.error);
+            return null;
+        }
+        return res.data ?? null;
+    }
+
+    /**
      * 清除指定会话的全部本地消息记录
      */
     async clearMessagesBySessionId(sessionId: string): Promise<void> {

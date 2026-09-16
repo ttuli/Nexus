@@ -139,6 +139,8 @@ export const IpcChannels = {
     MSG_UPDATE_LOCAL_PATH: 'msg:update-local-path',
     MSG_GET_HISTORY: 'msg:get-history',
     MSG_CLEAR_SESSION: 'msg:clear-session',
+    MSG_DELETE: 'msg:delete',
+    MSG_GET_LATEST: 'msg:get-latest',
 
     // 会话列表存储相关
     SESSION_GET: 'session:get',

@@ -157,6 +157,40 @@ export const useMessageStore = defineStore('message', {
         },
 
         /**
+         * 从内存中移除一条消息（本地删除）
+         *
+         * 当前列表与会话缓存都要清：二者在「从缓存恢复」后可能指向同一数组，
+         * 但在用户已切走的场景下是两份独立引用，只清一处会导致切回时消息复活。
+         *
+         * @returns 是否命中并移除
+         */
+        removeMessage(msgId?: string, clientId?: string): boolean {
+            if (!msgId && !clientId) return false;
+            const match = (m: IChatMessage) =>
+                (clientId && m.clientId === clientId) ||
+                (msgId && m.msgId === msgId);
+
+            let removed = false;
+
+            const idx = this.messages.findIndex(match);
+            if (idx !== -1) {
+                this.messages.splice(idx, 1);
+                removed = true;
+            }
+
+            for (const cached of this.sessionMessageCache.values()) {
+                // 与 this.messages 同引用时上面已删干净，findIndex 自然落空
+                const cachedIdx = cached.messages.findIndex(match);
+                if (cachedIdx !== -1) {
+                    cached.messages.splice(cachedIdx, 1);
+                    removed = true;
+                }
+            }
+
+            return removed;
+        },
+
+        /**
          * 添加或更新消息，返回 store 内的消息引用（响应式）
          *
          * messages 数组只承载当前会话：携带 sessionKey 且不属于当前会话的新消息

@@ -65,6 +65,38 @@ class MessageStore {
         return null;
     }
 
+    /**
+     * 过滤掉已被用户删除的消息（墓碑命中）
+     *
+     * 删除是纯本地行为，服务端仍持有副本，历史回源时会再次下发。写入侧统一在此拦截，
+     * 覆盖所有重新入库的路径（翻页补齐、离线同步等）。
+     * 只有带 msgId 的消息需要检查——本地未确认消息不会从服务端回来。
+     */
+    private async filterDeleted<T extends { sessionKey?: string; msgId?: string }>(items: T[]): Promise<T[]> {
+        const withMsgId = items.filter(m => m.msgId);
+        if (!withMsgId.length) return items;
+
+        const tombstoned = new Set<string>();
+        const chunkSize = 900; // SQLite 一次 IN 查询变量安全上限
+        const msgIds = Array.from(new Set(withMsgId.map(m => m.msgId as string)));
+
+        for (let i = 0; i < msgIds.length; i += chunkSize) {
+            const chunk = msgIds.slice(i, i + chunkSize);
+            const placeholders = chunk.map(() => '?').join(',');
+            const rows = await dbBridge.query<{ session_key: string; msg_id: string }>(
+                'user',
+                `SELECT session_key, msg_id FROM deleted_messages WHERE msg_id IN (${placeholders})`,
+                chunk
+            );
+            for (const row of rows) {
+                tombstoned.add(`${row.session_key}:${row.msg_id}`);
+            }
+        }
+
+        if (!tombstoned.size) return items;
+        return items.filter(m => !(m.msgId && tombstoned.has(`${m.sessionKey}:${m.msgId}`)));
+    }
+
     // ── 公开 API ──────────────────────────────────────────────────────────────
 
     /**
@@ -75,6 +107,8 @@ class MessageStore {
         // 使用本地明确的 sessionKey
         const sessionKey = message?.sessionKey;
         if (!sessionKey) return;
+        // 用户已删除的消息不再写回（服务端回源会重新下发同一条）
+        if ((await this.filterDeleted([message])).length === 0) return;
         // session_id 优先用消息里的值，若无则与 session_key 相同
         const sessionId = message.sessionId || '';
         const msgId = message.msgId || '';
@@ -110,6 +144,10 @@ class MessageStore {
      * 批量保存消息（原子事务，保证原子性）
      */
     async saveMessages(messages: IChatMessage[]): Promise<void> {
+        if (!messages.length) return;
+
+        // 剔除已被用户删除的消息，避免历史回源把它们重新写回来
+        messages = await this.filterDeleted(messages);
         if (!messages.length) return;
 
         // 直接使用消息自带的 sessionKey
@@ -345,6 +383,46 @@ class MessageStore {
 
         // DESC 查出最新→最旧，翻转为升序返回给前端
         return rows.reverse().map(rowToMessage);
+    }
+
+    /**
+     * 删除单条消息（本地删除，服务端无对应接口）
+     *
+     * 同一事务内删行 + 记墓碑，避免删成功但墓碑没落下导致消息被回源拉回。
+     *
+     * @returns 是否真的删掉了一行（未找到返回 false）
+     */
+    async deleteMessage(sessionKey: string, msgId: string, clientId: string): Promise<boolean> {
+        if (!sessionKey || (!msgId && !clientId)) return false;
+
+        const pk = await this.findExistingPk(sessionKey, msgId || '', clientId || '');
+        if (!pk) return false;
+
+        const ops: Array<{ sql: string; params: unknown[] }> = [
+            { sql: 'DELETE FROM chat_messages WHERE pk = ?', params: [pk] },
+        ];
+        // 仅对已确认消息记墓碑：未确认消息服务端没有副本，删了不会回来
+        if (msgId) {
+            ops.push({
+                sql: 'INSERT OR IGNORE INTO deleted_messages (session_key, msg_id, deleted_at) VALUES (?, ?, ?)',
+                params: [sessionKey, msgId, Date.now()],
+            });
+        }
+        await dbBridge.transaction('user', ops);
+        return true;
+    }
+
+    /**
+     * 读取某会话最新一条消息（删除后重算会话预览用）
+     */
+    async getLatestMessage(sessionKey: string): Promise<IChatMessage | null> {
+        if (!sessionKey) return null;
+        const row = await dbBridge.get<MessageRow>(
+            'user',
+            `SELECT * FROM chat_messages WHERE session_key = ? ORDER BY send_time DESC LIMIT 1`,
+            [sessionKey]
+        );
+        return row ? rowToMessage(row) : null;
     }
 
     /**
