@@ -7,11 +7,11 @@
  * 几条来自后端契约、写代码时必须守住的规则（详见 CALL_TODO.md §0 / §5.1）：
  *
  * 1. **late offer**：主叫收到 CALL_ACCEPT 之后才 createOffer，不在发起时产生 SDP。
- * 2. **不重协商**：video m-line 在建连时就协商好，中途开关摄像头用 replaceTrack，
- *    不触发 SDP 变更，因此无需 onnegotiationneeded 处理、无需 glare 防护。
- * 3. **关摄像头要 stop() 原 track**，只置 enabled=false 会让摄像头指示灯常亮，
- *    用户会以为在被偷拍。
- * 4. **对端媒体状态靠 CALL_MEDIA_UPDATE 驱动**，不要试图从 WebRTC 事件推断。
+ * 2. **当前仅支持语音**：视频通话已下线（服务器出向带宽仅 2 Mbps，一路 TURN 中转
+ *    视频就要 ~3 Mbps，而语音只需 0.08 Mbps）。SDP 里只有 audio m-line 且建连后
+ *    不变，因此无需 onnegotiationneeded 处理、无需 glare 防护。
+ *    协议层的 CALL_MEDIA_TYPE_VIDEO 未删（后端无需改动），但客户端一律按语音处理。
+ * 3. **对端媒体状态靠 CALL_MEDIA_UPDATE 驱动**，不要试图从 WebRTC 事件推断。
  */
 import { ref, computed, onUnmounted } from 'vue';
 import { ImTypes, IpcChannels } from '@shared/types';
@@ -34,13 +34,10 @@ export function useCallState(opts: CallOptions) {
     const callId = ref(opts.callId ?? '');
     const phase = ref<CallPhase>(opts.isIncoming ? 'ringing' : 'calling');
     const endReason = ref<ImTypes.CallEndReason | null>(null);
-    const isVideoCall = opts.mediaType === ImTypes.CallMediaType.CALL_MEDIA_TYPE_VIDEO;
 
     const isConnected = computed(() => phase.value === 'connected');
     const isMuted = ref(false);
-    const isVideoEnabled = ref(isVideoCall);
-    /** 对端媒体开关（由 CALL_MEDIA_UPDATE 驱动，不从 WebRTC 事件推断） */
-    const peerCameraOn = ref(isVideoCall);
+    /** 对端麦克风开关（由 CALL_MEDIA_UPDATE 驱动，不从 WebRTC 事件推断） */
     const peerMicOn = ref(true);
 
     const localStream = ref<MediaStream | null>(null);
@@ -104,30 +101,33 @@ export function useCallState(opts: CallOptions) {
     async function ensureLocalStream(): Promise<MediaStream> {
         if (localStream.value) return localStream.value;
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                audio: true,
-                video: isVideoCall ? CALL_CONFIG.videoConstraints : false,
-            });
+            // 仅采集音频：即便对端发来的是视频邀请（旧版本客户端），本端也只按语音接听
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             localStream.value = stream;
             return stream;
         } catch (e) {
             // 区分错误类型：三种原因用户的处理动作完全不同，笼统一句话会让人无从下手
             const name = (e as DOMException)?.name;
             if (name === 'NotAllowedError') {
-                errorText.value = '麦克风/摄像头被拒绝，请在系统隐私设置中允许本应用访问';
+                errorText.value = '麦克风被拒绝，请在系统隐私设置中允许本应用访问';
             } else if (name === 'NotReadableError' || name === 'TrackStartError') {
-                errorText.value = '麦克风/摄像头被其他程序占用，请关闭后重试';
+                errorText.value = '麦克风被其他程序占用，请关闭后重试';
             } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
-                errorText.value = isVideoCall ? '未检测到摄像头或麦克风' : '未检测到麦克风';
+                errorText.value = '未检测到麦克风';
             } else {
-                errorText.value = '无法访问麦克风或摄像头';
+                errorText.value = '无法访问麦克风';
             }
             throw e;
         }
     }
 
-    function createPeerConnection(): RTCPeerConnection {
-        const conn = new RTCPeerConnection({ iceServers: CALL_CONFIG.iceServers });
+    /**
+     * ICE 配置要向后端拉短时凭证，故本函数是异步的。
+     * 拉取失败时降级为仅 STUN——见 callService.getIceServers 的说明。
+     */
+    async function createPeerConnection(): Promise<RTCPeerConnection> {
+        const iceServers = (await callService.getIceServers()) ?? CALL_CONFIG.fallbackIceServers;
+        const conn = new RTCPeerConnection({ iceServers });
 
         conn.onicecandidate = (e) => {
             if (e.candidate && callId.value) {
@@ -150,11 +150,11 @@ export function useCallState(opts: CallOptions) {
         return conn;
     }
 
-    /** 建立 PC 并挂上本地轨道。视频通话在此自然协商出 video m-line。 */
+    /** 建立 PC 并挂上本地轨道。只有音频轨，SDP 中不会出现 video m-line。 */
     async function setupPeer(): Promise<RTCPeerConnection> {
         if (pc) return pc;
         const stream = await ensureLocalStream();
-        pc = createPeerConnection();
+        pc = await createPeerConnection();
         stream.getTracks().forEach((track) => pc!.addTrack(track, stream));
         void startFollowingDefaultMic();
         return pc;
@@ -343,7 +343,7 @@ export function useCallState(opts: CallOptions) {
             case ImTypes.MessageType.CALL_MEDIA_UPDATE: {
                 const upd = ImTypes.CallMediaUpdate.decode(payload);
                 if (upd.call_id !== callId.value) return;
-                peerCameraOn.value = upd.camera_on;
+                // camera_on 忽略：视频已下线，本端不展示对端画面
                 peerMicOn.value = upd.mic_on;
                 break;
             }
@@ -412,39 +412,9 @@ export function useCallState(opts: CallOptions) {
     function toggleMute() {
         isMuted.value = !isMuted.value;
         localStream.value?.getAudioTracks().forEach((t) => (t.enabled = !isMuted.value));
+        // camera_on 恒为 false：本端不再采集视频
         if (callId.value) {
-            void callService.sendMediaUpdate(callId.value, isVideoEnabled.value, !isMuted.value);
-        }
-    }
-
-    /**
-     * 开关摄像头。**不触发重协商**：video m-line 建连时已协商，
-     * replaceTrack 按规范就是为「不改 SDP 地换轨」设计的。
-     */
-    async function toggleVideo() {
-        if (!isVideoCall || !pc) return;
-        const sender = pc.getSenders().find((s) => s.track?.kind === 'video')
-            ?? pc.getSenders().find((s) => s.track === null);
-        if (!sender) return;
-
-        if (isVideoEnabled.value) {
-            // 关：replaceTrack(null) + stop 原 track。
-            // 只置 enabled=false 会让摄像头指示灯常亮 —— 用户会认为仍在被拍摄。
-            const track = sender.track;
-            await sender.replaceTrack(null);
-            track?.stop();
-            localStream.value?.getVideoTracks().forEach((t) => localStream.value!.removeTrack(t));
-            isVideoEnabled.value = false;
-        } else {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: CALL_CONFIG.videoConstraints });
-            const track = stream.getVideoTracks()[0];
-            await sender.replaceTrack(track);
-            localStream.value?.addTrack(track);
-            isVideoEnabled.value = true;
-        }
-
-        if (callId.value) {
-            void callService.sendMediaUpdate(callId.value, isVideoEnabled.value, !isMuted.value);
+            void callService.sendMediaUpdate(callId.value, false, !isMuted.value);
         }
     }
 
@@ -454,7 +424,6 @@ export function useCallState(opts: CallOptions) {
         stopRinging();
         stopDurationTimer();
         stopFollowingDefaultMic();
-        // 摄像头必须显式 stop，否则指示灯不灭
         localStream.value?.getTracks().forEach((t) => t.stop());
         localStream.value = null;
         remoteStream.value = null;
@@ -506,9 +475,6 @@ export function useCallState(opts: CallOptions) {
         endReason,
         isConnected,
         isMuted,
-        isVideoEnabled,
-        isVideoCall,
-        peerCameraOn,
         peerMicOn,
         localStream,
         remoteStream,
@@ -518,7 +484,6 @@ export function useCallState(opts: CallOptions) {
         acceptCall,
         hangup,
         toggleMute,
-        toggleVideo,
         stopDurationTimer,
     };
 }

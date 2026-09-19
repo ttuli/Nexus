@@ -5,9 +5,6 @@
         <button class="action-btn" :class="{ 'is-active': !isMuted }" @click="emit('toggle-mute')" :title="isMuted ? '打开麦克风' : '关闭麦克风'">
           <Microphone class="app-icon app-icon--md" />
         </button>
-        <button class="action-btn" :class="{ 'is-active': isVideoEnabled }" @click="emit('toggle-video')" :title="isVideoEnabled ? '关闭摄像头' : '开启摄像头'">
-          <Video class="app-icon app-icon--md" />
-        </button>
         <button v-if="showScreenShare" class="action-btn" @click="emit('toggle-screen-share')" title="共享屏幕">
           <Monitor class="app-icon app-icon--md" />
         </button>
@@ -25,11 +22,10 @@
 </template>
 
 <script setup lang="ts">
-import { Microphone, Video, Phone, Monitor } from 'reicon-vue';
+import { Microphone, Phone, Monitor } from 'reicon-vue';
 
 defineProps<{
   isMuted: boolean;
-  isVideoEnabled: boolean;
   isIncoming: boolean;
   isConnected: boolean;
   showScreenShare?: boolean;
@@ -37,7 +33,6 @@ defineProps<{
 
 const emit = defineEmits<{
   (e: 'toggle-mute'): void;
-  (e: 'toggle-video'): void;
   (e: 'hangup'): void;
   (e: 'accept'): void;
   (e: 'toggle-screen-share'): void;

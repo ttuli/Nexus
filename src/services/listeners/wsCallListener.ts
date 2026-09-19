@@ -14,7 +14,6 @@ import { ipcService } from '../ipcService'
 import { windowService } from '../windowService'
 import { IpcChannels, ImTypes } from '@shared/types'
 import { WindowKey } from '@shared/config/windowKeys'
-import { CALL_CONFIG } from '@shared/config/constants'
 import { useUserStore } from '@/src/store/user'
 
 interface CallSignalEvent {
@@ -38,7 +37,7 @@ function openIncomingCall(invite: ImTypes.CallInvite): void {
     if (!invite.call_id || handledCalls.has(invite.call_id)) return
     handledCalls.add(invite.call_id)
 
-    const isVideo = invite.media_type === ImTypes.CallMediaType.CALL_MEDIA_TYPE_VIDEO
+    // 视频通话已下线，一律按语音窗口尺寸拉起
     windowService.createWindow(
         WindowKey.Call,
         {
@@ -49,7 +48,6 @@ function openIncomingCall(invite: ImTypes.CallInvite): void {
             isIncoming: 1,
             targetType: 'private',
         },
-        isVideo ? CALL_CONFIG.videoWindowSize : undefined
     )
 }
 

@@ -74,34 +74,27 @@ export interface IceServerConfig {
 /** WebRTC 通话相关配置 */
 export const CALL_CONFIG = {
     /**
-     * ICE 服务器。
+     * ICE 服务器兜底配置：**只有 STUN，没有 TURN**。
      *
-     * **当前只有 STUN，双方都在对称 NAT 后面时通话建不起来** ——
-     * TURN 部署是后端待办（见 IMChat/CALL_TODO.md §1）。
+     * 正常路径是 `callService.getIceServers()` 向后端拉取含 TURN 短时凭证的配置
+     * （`GET /message/turnCredential`）。这里仅用于拉取失败时降级。
      *
-     * 环境变量里的 TURN 凭证只是开发期兜底：生产必须由后端下发**短时凭证**
-     * （HMAC 生成的临时用户名/密码），静态密码放在客户端等于公开。
-     * 后端接口就绪后把本 getter 换成拉取结果即可，调用方无需改动。
+     * 降级意味着双方都在对称 NAT 后面时通话建不起来（约占 10~20%），
+     * 但好过让 TURN 的一次抖动把所有通话都打死。
+     *
+     * 不要在这里放静态 TURN 账号密码：TURN 是通用流量中继，
+     * 密码进了客户端就等于公开，会被拿去白嫖带宽。
      */
-    get iceServers(): IceServerConfig[] {
-        const servers: IceServerConfig[] = [
-            { urls: getEnv('VITE_STUN_SERVER') || 'stun:stun.l.google.com:19302' },
-        ];
-        const turnUrl = getEnv('VITE_TURN_SERVER');
-        if (turnUrl) {
-            servers.push({
-                urls: turnUrl,
-                username: getEnv('VITE_TURN_USERNAME'),
-                credential: getEnv('VITE_TURN_CREDENTIAL'),
-            });
-        }
-        return servers;
-    },
+    fallbackIceServers: [
+        { urls: getEnv('VITE_STUN_SERVER') || 'stun:stun.l.google.com:19302' },
+    ] as IceServerConfig[],
 
     /**
      * 视频通话窗口尺寸。
      * call 窗默认 400×600 是竖屏语音尺寸（windowAttribute.ts），视频会被挤变形，
      * 创建时用 CreateWindowRequest.windowSize 覆盖。
+     *
+     * **当前未被引用**：视频通话已下线，保留以便恢复时直接复用。见下方 videoConstraints。
      */
     videoWindowSize: { width: 800, height: 600 },
 
@@ -119,8 +112,20 @@ export const CALL_CONFIG = {
     },
 
     /**
-     * 视频采集约束。分辨率与码率直接决定 TURN 中继带宽成本
-     * （720p 每路 1-2Mbps，是语音的 20-40 倍），与后端容量规划同一条待定决策。
+     * 视频采集约束。
+     *
+     * **当前未被引用：视频通话已下线，客户端只发起/接听语音通话。**
+     *
+     * 下线原因是带宽——服务器出向带宽 2 Mbps，实测业务基线占 0.37 Mbps，
+     * 余量约 1.6 Mbps。而一路经 TURN 中转的 720p 视频通话需要约 3 Mbps 出向
+     * （双方上行各 1.5 Mbps，服务器收两份再转两份），连一路都跑不起来；
+     * 语音每路仅 0.08 Mbps，同样的余量能跑约 20 路中转。
+     *
+     * 取舍是「用视频换通话可达性」：只做语音才付得起 TURN，而没有 TURN，
+     * 双方都在对称 NAT 后面时通话根本建不起来（约占 10~20%）。
+     *
+     * 恢复条件：服务器出向带宽升到 30 Mbps 以上，或视频中转改用托管 TURN 服务。
+     * 协议层的 CALL_MEDIA_TYPE_VIDEO 未删、后端无需改动，恢复时只需还原客户端改动。
      */
     videoConstraints: {
         width: { ideal: 1280 },

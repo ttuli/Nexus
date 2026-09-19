@@ -95,6 +95,21 @@ export async function getHistory(params: PartialExcept<ApiTypes.message.GetHisto
     return decodeResponse(res.data, ApiTypes.message.GetHistoryResp.decode)
 }
 
+/**
+ * 获取 TURN 短时凭证
+ * GET /message/turnCredential
+ *
+ * 用户身份由服务端从 JWT 解析，无需传参。返回的凭证带 expires_at，
+ * 不要缓存超过该时间——过期后 coturn 会拒绝分配中继，通话中途续期也会失败。
+ */
+export async function getTurnCredential() {
+    const res = await instance<ApiResponse<ApiTypes.message.GetTurnCredentialResp>>({
+        method: 'get',
+        url: config.messageServer + '/message/turnCredential',
+    })
+    return decodeResponse(res.data, ApiTypes.message.GetTurnCredentialResp.decode)
+}
+
 // 获取离线后的活跃列表
 export async function getUserActiveSessions(params: ApiTypes.message.GetUserActiveSessionsReq) {
     const res = await instance<ApiResponse<ApiTypes.message.GetUserActiveSessionsResp>>({

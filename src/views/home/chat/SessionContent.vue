@@ -4,17 +4,12 @@
         <div class="header">
             <span class="title">{{ title }}</span>
             <div class="actions">
-                <!-- 语音 / 视频分两个入口：media_type 发起时确定、通话期间不变。
-                     语音通话中不出现开摄像头入口——音频 SDP 没有 video m-line，
-                     中途加视频轨必然触发重协商，双按钮设计正是为规避这条 -->
+                <!-- 仅语音通话：视频入口已下线（服务器出向带宽不足以做 TURN 中转视频，
+                     详见 CALL_CONFIG.videoConstraints 注释）。
+                     音频 SDP 没有 video m-line，通话中也不提供开摄像头入口 -->
                 <template v-if="currentSession.type === ImTypes.SessionType.SESSION_TYPE_PRIVATE">
-                    <div class="icon-btn" title="语音通话"
-                        @click="startCall(ImTypes.CallMediaType.CALL_MEDIA_TYPE_AUDIO)">
+                    <div class="icon-btn" title="语音通话" @click="startCall()">
                         <CallCalling class="app-icon app-icon--sm" />
-                    </div>
-                    <div class="icon-btn" title="视频通话"
-                        @click="startCall(ImTypes.CallMediaType.CALL_MEDIA_TYPE_VIDEO)">
-                        <Video class="app-icon app-icon--sm" />
                     </div>
                 </template>
                 <div class="icon-btn" :class="{ disabled: !canOpenSidebar }" title="聊天信息" @click="toggleSidebar">⋮</div>
@@ -101,10 +96,9 @@ import type { MenuOption } from '@/src/components/ContextMenu.vue';
 import { ElMessage } from 'element-plus';
 import CusDialog from '@/src/components/CusDialog';
 import { DialogResult } from '@/src/components/CusDialog/types';
-import { CallCalling, Video, Copy, Trash, Undo } from 'reicon-vue';
+import { CallCalling, Copy, Trash, Undo } from 'reicon-vue';
 import { windowService } from '@/src/services';
 import { WindowKey } from '@shared/config/windowKeys';
-import { CALL_CONFIG } from '@shared/config/constants';
 import { useChatPage } from '@/src/composables/useChatPage';
 
 
@@ -466,23 +460,21 @@ const handleSelectSuggestion = (text: string) => {
     aiSuggestionsVisible.value = false;
 };
 
-const startCall = (mediaType: ImTypes.CallMediaType) => {
+const startCall = () => {
     if (!currentSession.value) return;
     // session_key 才是可解析的派生格式，session_id 为服务端分配 ID
     const targetId = extractTargetIdFromSessionId(currentSessionKey.value, userStore.getUserID());
     if (!targetId) return;
 
-    const isVideo = mediaType === ImTypes.CallMediaType.CALL_MEDIA_TYPE_VIDEO;
     windowService.createWindow(
         WindowKey.Call,
         {
             peerId: targetId,
             sessionKey: currentSessionKey.value,
-            mediaType,
+            mediaType: ImTypes.CallMediaType.CALL_MEDIA_TYPE_AUDIO,
             isIncoming: 0,
             targetType: 'private',
         },
-        isVideo ? CALL_CONFIG.videoWindowSize : undefined
     );
 }
 

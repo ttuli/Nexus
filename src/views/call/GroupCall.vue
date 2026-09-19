@@ -30,12 +30,10 @@
 
     <CallControlBar
       :is-muted="isMuted"
-      :is-video-enabled="isVideoEnabled"
       :is-incoming="isIncoming"
       :is-connected="isConnected"
       :show-screen-share="true"
       @toggle-mute="toggleMute"
-      @toggle-video="toggleVideo"
       @hangup="hangup"
       @accept="acceptCall"
       @toggle-screen-share="toggleScreenShare"
@@ -59,10 +57,8 @@ interface Participant {
 // 此处为纯 UI 占位，不复用 useCallState（那是私聊单对端的 PeerConnection 控制器）。
 const isConnected = ref(false);
 const isMuted = ref(false);
-const isVideoEnabled = ref(false);
 const formattedDuration = ref('00:00');
 const toggleMute = () => { isMuted.value = !isMuted.value; };
-const toggleVideo = () => { isVideoEnabled.value = !isVideoEnabled.value; };
 const hangup = () => window.close();
 const acceptCall = () => { isConnected.value = true; };
 const stopDurationTimer = () => { };

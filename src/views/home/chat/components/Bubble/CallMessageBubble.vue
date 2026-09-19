@@ -15,7 +15,6 @@ import { useUserStore } from '@/src/store/user';
 import { useSessionStore } from '@/src/store/session';
 import { windowService } from '@/src/services';
 import { WindowKey } from '@shared/config/windowKeys';
-import { CALL_CONFIG } from '@shared/config/constants';
 import { extractTargetIdFromSessionId } from '@/src/utils/sessionUtils';
 
 const props = defineProps<{ message: ILocalCallMessage }>();
@@ -40,9 +39,12 @@ const isMissed = computed(() => {
   ].includes(props.message.endReason);
 });
 
-const redialTitle = computed(() => (isVideo.value ? '重拨视频通话' : '重拨语音通话'));
+const redialTitle = '重拨语音通话';
 
-/** 回拨：类型跟随原通话的 media_type */
+/**
+ * 回拨：恒为语音。
+ * 视频通话已下线，历史记录里的视频通话（气泡图标仍如实显示为视频）也只能回拨语音。
+ */
 const redial = () => {
   const sessionKey = props.message.sessionKey || sessionStore.currentSessionKey;
   const peerId = extractTargetIdFromSessionId(sessionKey, userStore.getUserID());
@@ -53,11 +55,10 @@ const redial = () => {
     {
       peerId,
       sessionKey,
-      mediaType: props.message.mediaType,
+      mediaType: ImTypes.CallMediaType.CALL_MEDIA_TYPE_AUDIO,
       isIncoming: 0,
       targetType: 'private',
     },
-    isVideo.value ? CALL_CONFIG.videoWindowSize : undefined
   );
 };
 </script>

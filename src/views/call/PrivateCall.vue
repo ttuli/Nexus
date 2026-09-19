@@ -2,16 +2,9 @@
   <div class="private-call-container">
     <div class="video-grid">
       <div class="remote-video-container">
-        <!-- 对端画面：仅在视频通话且对方摄像头开启时显示，否则显示头像占位。
-             占位与否由 CALL_MEDIA_UPDATE 驱动，不从 WebRTC 事件推断 -->
-        <video
-          v-show="isVideoCall && peerCameraOn && isConnected"
-          ref="remoteVideoRef"
-          class="video-element"
-          autoplay
-          playsinline
-        ></video>
-        <div v-if="!(isVideoCall && peerCameraOn && isConnected)" class="video-placeholder">
+        <!-- 仅语音通话：远端音频由隐藏的 <audio> 播放，界面恒为头像占位 -->
+        <audio ref="remoteAudioRef" autoplay></audio>
+        <div class="video-placeholder">
           <Avatar :uid="peerId" :width="'120px'" :height="'120px'" />
           <span class="name">{{ userName }}</span>
           <div class="call-info">
@@ -20,22 +13,15 @@
           </div>
         </div>
       </div>
-
-      <!-- 本端画面小窗 -->
-      <div class="local-video-container" v-show="isVideoCall && isVideoEnabled">
-        <video ref="localVideoRef" class="video-element" autoplay playsinline muted></video>
-      </div>
     </div>
 
     <div class="error-tip" v-if="errorText">{{ errorText }}</div>
 
     <CallControlBar
       :is-muted="isMuted"
-      :is-video-enabled="isVideoEnabled"
       :is-incoming="isIncoming && !isConnected"
       :is-connected="isConnected"
       @toggle-mute="toggleMute"
-      @toggle-video="toggleVideo"
       @hangup="hangup"
       @accept="acceptCall"
     />
@@ -65,10 +51,6 @@ const {
   callId,
   isConnected,
   isMuted,
-  isVideoEnabled,
-  isVideoCall,
-  peerCameraOn,
-  localStream,
   remoteStream,
   errorText,
   formattedDuration,
@@ -77,7 +59,6 @@ const {
   acceptCall,
   hangup,
   toggleMute,
-  toggleVideo,
 } = useCallState({
   callId: props.callId,
   peerId: props.peerId,
@@ -86,8 +67,7 @@ const {
   isIncoming: props.isIncoming,
 });
 
-const localVideoRef = ref<HTMLVideoElement | null>(null);
-const remoteVideoRef = ref<HTMLVideoElement | null>(null);
+const remoteAudioRef = ref<HTMLAudioElement | null>(null);
 
 const userName = computed(() => userStore.getUser(props.peerId)?.user_name ?? props.peerId);
 
@@ -104,16 +84,13 @@ const END_REASON_TEXT: Record<number, string> = {
 const callStatusText = computed(() => {
   if (endReason.value !== null) return END_REASON_TEXT[endReason.value] ?? '通话已结束';
   if (isConnected.value) return '通话中';
-  if (props.isIncoming) return isVideoCall ? '邀请你视频通话' : '邀请你语音通话';
+  if (props.isIncoming) return '邀请你语音通话';
   return '正在呼叫...';
 });
 
-// 媒体流就绪后绑定到 video 元素（v-show 不销毁元素，ref 稳定）
-watch(localStream, (s) => {
-  if (localVideoRef.value) localVideoRef.value.srcObject = s;
-});
+// 远端流就绪后绑定到 audio 元素播放（元素恒在 DOM 中，ref 稳定）
 watch(remoteStream, (s) => {
-  if (remoteVideoRef.value) remoteVideoRef.value.srcObject = s;
+  if (remoteAudioRef.value) remoteAudioRef.value.srcObject = s;
 });
 
 onMounted(async () => {

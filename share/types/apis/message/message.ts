@@ -157,6 +157,34 @@ export interface GetSessionResp {
   session: Session | undefined;
 }
 
+/** GetTurnCredentialReq 获取 TURN 凭证（用户身份由服务端从 JWT 解析，请求体为空） */
+export interface GetTurnCredentialReq {
+}
+
+/** IceServer 与 WebRTC 的 RTCIceServer 字段一一对应，客户端可直接使用 */
+export interface IceServer {
+  /** @gotags: json:"urls" */
+  urls: string[];
+  /**
+   * STUN 条目不需要凭证，这两个字段为空
+   * @gotags: json:"username"
+   */
+  username: string;
+  /** @gotags: json:"credential" */
+  credential: string;
+}
+
+export interface GetTurnCredentialResp {
+  /** @gotags: json:"ice_servers" */
+  ice_servers: IceServer[];
+  /**
+   * 凭证过期时间（Unix 秒）。客户端据此在发起通话前判断是否需要重新拉取，
+   * 不要缓存超过该时间，否则 coturn 会拒绝分配中继。
+   * @gotags: json:"expires_at"
+   */
+  expires_at: string;
+}
+
 function createBaseMessage(): Message {
   return {
     msg_id: "",
@@ -1713,6 +1741,225 @@ export const GetSessionResp: MessageFns<GetSessionResp> = {
     message.session = (object.session !== undefined && object.session !== null)
       ? Session.fromPartial(object.session)
       : undefined;
+    return message;
+  },
+};
+
+function createBaseGetTurnCredentialReq(): GetTurnCredentialReq {
+  return {};
+}
+
+export const GetTurnCredentialReq: MessageFns<GetTurnCredentialReq> = {
+  encode(_: GetTurnCredentialReq, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetTurnCredentialReq {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetTurnCredentialReq();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(_: any): GetTurnCredentialReq {
+    return {};
+  },
+
+  toJSON(_: GetTurnCredentialReq): unknown {
+    const obj: any = {};
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetTurnCredentialReq>, I>>(base?: I): GetTurnCredentialReq {
+    return GetTurnCredentialReq.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetTurnCredentialReq>, I>>(_: I): GetTurnCredentialReq {
+    const message = createBaseGetTurnCredentialReq();
+    return message;
+  },
+};
+
+function createBaseIceServer(): IceServer {
+  return { urls: [], username: "", credential: "" };
+}
+
+export const IceServer: MessageFns<IceServer> = {
+  encode(message: IceServer, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.urls) {
+      writer.uint32(10).string(v!);
+    }
+    if (message.username !== "") {
+      writer.uint32(18).string(message.username);
+    }
+    if (message.credential !== "") {
+      writer.uint32(26).string(message.credential);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): IceServer {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseIceServer();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.urls.push(reader.string());
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.username = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.credential = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): IceServer {
+    return {
+      urls: globalThis.Array.isArray(object?.urls) ? object.urls.map((e: any) => globalThis.String(e)) : [],
+      username: isSet(object.username) ? globalThis.String(object.username) : "",
+      credential: isSet(object.credential) ? globalThis.String(object.credential) : "",
+    };
+  },
+
+  toJSON(message: IceServer): unknown {
+    const obj: any = {};
+    if (message.urls?.length) {
+      obj.urls = message.urls;
+    }
+    if (message.username !== "") {
+      obj.username = message.username;
+    }
+    if (message.credential !== "") {
+      obj.credential = message.credential;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<IceServer>, I>>(base?: I): IceServer {
+    return IceServer.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<IceServer>, I>>(object: I): IceServer {
+    const message = createBaseIceServer();
+    message.urls = object.urls?.map((e) => e) || [];
+    message.username = object.username ?? "";
+    message.credential = object.credential ?? "";
+    return message;
+  },
+};
+
+function createBaseGetTurnCredentialResp(): GetTurnCredentialResp {
+  return { ice_servers: [], expires_at: "0" };
+}
+
+export const GetTurnCredentialResp: MessageFns<GetTurnCredentialResp> = {
+  encode(message: GetTurnCredentialResp, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.ice_servers) {
+      IceServer.encode(v!, writer.uint32(10).fork()).join();
+    }
+    if (message.expires_at !== "0") {
+      writer.uint32(16).int64(message.expires_at);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetTurnCredentialResp {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetTurnCredentialResp();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.ice_servers.push(IceServer.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.expires_at = reader.int64().toString();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetTurnCredentialResp {
+    return {
+      ice_servers: globalThis.Array.isArray(object?.iceServers)
+        ? object.iceServers.map((e: any) => IceServer.fromJSON(e))
+        : globalThis.Array.isArray(object?.ice_servers)
+        ? object.ice_servers.map((e: any) => IceServer.fromJSON(e))
+        : [],
+      expires_at: isSet(object.expiresAt)
+        ? globalThis.String(object.expiresAt)
+        : isSet(object.expires_at)
+        ? globalThis.String(object.expires_at)
+        : "0",
+    };
+  },
+
+  toJSON(message: GetTurnCredentialResp): unknown {
+    const obj: any = {};
+    if (message.ice_servers?.length) {
+      obj.iceServers = message.ice_servers.map((e) => IceServer.toJSON(e));
+    }
+    if (message.expires_at !== "0") {
+      obj.expiresAt = globalThis.String(message.expires_at);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetTurnCredentialResp>, I>>(base?: I): GetTurnCredentialResp {
+    return GetTurnCredentialResp.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetTurnCredentialResp>, I>>(object: I): GetTurnCredentialResp {
+    const message = createBaseGetTurnCredentialResp();
+    message.ice_servers = object.ice_servers?.map((e) => IceServer.fromPartial(e)) || [];
+    message.expires_at = object.expires_at ?? "0";
     return message;
   },
 };
