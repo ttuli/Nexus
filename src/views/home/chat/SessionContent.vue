@@ -5,7 +5,7 @@
             <span class="title">{{ title }}</span>
             <div class="actions">
                 <!-- 仅语音通话：视频入口已下线（服务器出向带宽不足以做 TURN 中转视频，
-                     详见 CALL_CONFIG.videoConstraints 注释）。
+                     详见 useCallState 头注释）。
                      音频 SDP 没有 video m-line，通话中也不提供开摄像头入口 -->
                 <template v-if="currentSession.type === ImTypes.SessionType.SESSION_TYPE_PRIVATE">
                     <div class="icon-btn" title="语音通话" @click="startCall()">

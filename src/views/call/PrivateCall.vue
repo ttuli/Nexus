@@ -1,17 +1,14 @@
 <template>
   <div class="private-call-container">
-    <div class="video-grid">
-      <div class="remote-video-container">
-        <!-- 仅语音通话：远端音频由隐藏的 <audio> 播放，界面恒为头像占位 -->
-        <audio ref="remoteAudioRef" autoplay></audio>
-        <div class="video-placeholder">
-          <Avatar :uid="peerId" :width="'120px'" :height="'120px'" />
-          <span class="name">{{ userName }}</span>
-          <div class="call-info">
-            <span class="status">{{ callStatusText }}</span>
-            <span class="duration" v-if="isConnected">{{ formattedDuration }}</span>
-          </div>
-        </div>
+    <div class="call-stage">
+      <!-- 仅语音通话：远端音频由隐藏的 <audio> 播放，界面恒为头像 -->
+      <audio ref="remoteAudioRef" autoplay></audio>
+      <Avatar :uid="peerId" :width="'120px'" :height="'120px'" />
+      <span class="name">{{ userName }}</span>
+      <div class="call-info">
+        <span class="status">{{ callStatusText }}</span>
+        <span class="duration" v-if="phase === 'connected'">{{ formattedDuration }}</span>
+        <span class="hint" v-if="hintText">{{ hintText }}</span>
       </div>
     </div>
 
@@ -19,8 +16,9 @@
 
     <CallControlBar
       :is-muted="isMuted"
-      :is-incoming="isIncoming && !isConnected"
-      :is-connected="isConnected"
+      :show-mic="inCall"
+      :show-accept="isIncoming && phase === 'ringing'"
+      :hangup-label="hangupLabel"
       @toggle-mute="toggleMute"
       @hangup="hangup"
       @accept="acceptCall"
@@ -34,7 +32,6 @@ import CallControlBar from './components/CallControlBar.vue';
 import Avatar from '@/src/components/Avatar.vue';
 import { useCallState } from '@/src/composables/useCallState';
 import { useUserStore } from '@/src/store/user';
-import { userService } from '@/src/services';
 import { ImTypes } from '@shared/types';
 
 const props = defineProps<{
@@ -48,13 +45,14 @@ const props = defineProps<{
 const userStore = useUserStore();
 
 const {
-  callId,
-  isConnected,
+  phase,
+  endReason,
   isMuted,
+  peerMicOn,
+  networkWeak,
   remoteStream,
   errorText,
   formattedDuration,
-  endReason,
   startCall,
   acceptCall,
   hangup,
@@ -71,6 +69,9 @@ const remoteAudioRef = ref<HTMLAudioElement | null>(null);
 
 const userName = computed(() => userStore.getUser(props.peerId)?.user_name ?? props.peerId);
 
+/** 已接听（含连接中）：麦克风开关此时才有意义 */
+const inCall = computed(() => phase.value === 'connecting' || phase.value === 'connected');
+
 const END_REASON_TEXT: Record<number, string> = {
   [ImTypes.CallEndReason.CALL_END_REASON_CANCELED]: '通话已取消',
   [ImTypes.CallEndReason.CALL_END_REASON_REJECTED]: '对方已拒绝',
@@ -82,31 +83,53 @@ const END_REASON_TEXT: Record<number, string> = {
 };
 
 const callStatusText = computed(() => {
-  if (endReason.value !== null) return END_REASON_TEXT[endReason.value] ?? '通话已结束';
-  if (isConnected.value) return '通话中';
-  if (props.isIncoming) return '邀请你语音通话';
-  return '正在呼叫...';
+  switch (phase.value) {
+    case 'ended':
+      return endReason.value !== null ? (END_REASON_TEXT[endReason.value] ?? '通话已结束') : '通话已结束';
+    case 'connected':
+      return '通话中';
+    case 'connecting':
+      return '正在连接…';
+    case 'ringing':
+      return '邀请你语音通话';
+    default:
+      return '正在呼叫…';
+  }
+});
+
+/** 通话中的补充提示：自己静音优先，其次对方静音、网络抖动 */
+const hintText = computed(() => {
+  if (!inCall.value) return '';
+  if (isMuted.value) return '你的麦克风已关闭，对方听不到你的声音';
+  if (!peerMicOn.value) return '对方已关闭麦克风';
+  if (networkWeak.value) return '网络不稳定，正在重连…';
+  return '';
+});
+
+const hangupLabel = computed(() => {
+  if (phase.value === 'ringing') return '拒绝';
+  if (phase.value === 'calling') return '取消';
+  return '挂断';
 });
 
 // 远端流就绪后绑定到 audio 元素播放（元素恒在 DOM 中，ref 稳定）
-watch(remoteStream, (s) => {
-  if (remoteAudioRef.value) remoteAudioRef.value.srcObject = s;
+watch(remoteStream, (stream) => {
+  const el = remoteAudioRef.value;
+  if (!el) return;
+  el.srcObject = stream;
+  // autoplay 只在赋值时尝试一次，显式 play 以便播放失败时留下原因
+  if (stream) el.play().catch((e) => console.warn('[Call] remote audio play failed:', e));
 });
 
-onMounted(async () => {
-  if (userStore.getUser(props.peerId) === undefined) {
-    let res = await userService.fetchByIds([props.peerId]);
-    res.map((user: ImTypes.UserInfo) => userStore.setUser(user));
-  }
+onMounted(() => {
   // 呼出方在挂载后立即发起；来电方等用户点接听
   if (!props.isIncoming) void startCall();
 });
-
-defineExpose({ callId });
 </script>
 
 <style scoped lang="scss">
 .private-call-container {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -114,36 +137,15 @@ defineExpose({ callId });
   color: #fff;
 }
 
-.video-grid {
-  position: relative;
+.call-stage {
   flex: 1;
-  overflow: hidden;
-}
-
-.remote-video-container {
-  width: 100%;
-  height: 100%;
-}
-
-.video-element {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  background: #000;
-  pointer-events: none;
-
-  &::-webkit-media-controls {
-    display: none !important;
-  }
-}
-
-.video-placeholder {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 12px;
-  height: 100%;
+  // 给底部控制栏留出空间，头像区域视觉居中
+  padding-bottom: 120px;
 
   .name {
     font-size: 18px;
@@ -157,21 +159,22 @@ defineExpose({ callId });
     gap: 4px;
     color: rgba(255, 255, 255, 0.7);
     font-size: 14px;
+
+    .hint {
+      margin-top: 6px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.1);
+      font-size: 12px;
+    }
   }
 }
 
-.local-video-container {
-  position: absolute;
-  right: 16px;
-  bottom: 16px;
-  width: 140px;
-  height: 105px;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
-}
-
 .error-tip {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 150px;
   padding: 8px 16px;
   text-align: center;
   color: #ff7875;

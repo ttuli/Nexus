@@ -89,17 +89,18 @@ export const CALL_CONFIG = {
         { urls: getEnv('VITE_STUN_SERVER') || 'stun:stun.l.google.com:19302' },
     ] as IceServerConfig[],
 
-    /**
-     * 视频通话窗口尺寸。
-     * call 窗默认 400×600 是竖屏语音尺寸（windowAttribute.ts），视频会被挤变形，
-     * 创建时用 CreateWindowRequest.windowSize 覆盖。
-     *
-     * **当前未被引用**：视频通话已下线，保留以便恢复时直接复用。见下方 videoConstraints。
-     */
-    videoWindowSize: { width: 800, height: 600 },
-
     /** 通话结束后停留多久再关窗，留时间让用户看清结束原因 */
     endedCloseDelayMs: 1200,
+
+    /** 本端失败（麦克风不可用、连接不上）时停留更久，失败原因比结束原因长 */
+    errorCloseDelayMs: 3000,
+
+    /**
+     * 接听后等待媒体连通的上限。
+     * 两端候选都没交换成功时 ICE 会一直停在 checking、永远不报 failed，没有这个上限界面会无限「正在连接」。
+     * 走 TURN 中继正常 1~3 秒可通，20 秒已足够宽松。
+     */
+    connectTimeoutMs: 20_000,
 
     /** 铃声资源（public/ 下，打包后位于应用根） */
     ringtone: {
@@ -109,28 +110,6 @@ export const CALL_CONFIG = {
         incomingVolume: 0.8,
         /** 主叫回铃音量：自己拨出的不需要那么响 */
         outgoingVolume: 0.4,
-    },
-
-    /**
-     * 视频采集约束。
-     *
-     * **当前未被引用：视频通话已下线，客户端只发起/接听语音通话。**
-     *
-     * 下线原因是带宽——服务器出向带宽 2 Mbps，实测业务基线占 0.37 Mbps，
-     * 余量约 1.6 Mbps。而一路经 TURN 中转的 720p 视频通话需要约 3 Mbps 出向
-     * （双方上行各 1.5 Mbps，服务器收两份再转两份），连一路都跑不起来；
-     * 语音每路仅 0.08 Mbps，同样的余量能跑约 20 路中转。
-     *
-     * 取舍是「用视频换通话可达性」：只做语音才付得起 TURN，而没有 TURN，
-     * 双方都在对称 NAT 后面时通话根本建不起来（约占 10~20%）。
-     *
-     * 恢复条件：服务器出向带宽升到 30 Mbps 以上，或视频中转改用托管 TURN 服务。
-     * 协议层的 CALL_MEDIA_TYPE_VIDEO 未删、后端无需改动，恢复时只需还原客户端改动。
-     */
-    videoConstraints: {
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
-        frameRate: { ideal: 24, max: 30 },
     },
 };
 

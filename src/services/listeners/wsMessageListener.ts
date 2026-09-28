@@ -43,6 +43,14 @@ export function initWsMessageListener(): void {
     // 注：seq 已改为 Lamport 序号（不连续），无法再用 last+1 做在线断层检测；
     // 漏投由服务端持久化兜底，重连/上线时通过活跃会话 seq 对比增量补拉（syncOfflineActiveSessions）。
     ipcService.on(IpcChannels.WS_MESSAGE, async (_event, data: { type: ImTypes.MessageType; payload: any }) => {
+        // 服务端错误复用了 WS_MESSAGE 通道，但载荷是已解码的 ErrorMessage 而非 WSMessage，
+        // 必须在转换聊天消息之前分流，否则会被当成无法解析的消息丢弃
+        if (data.type === ImTypes.MessageType.ERROR) {
+            const errorMsg = data.payload as ImTypes.ErrorMessage;
+            ElMessage.error(errorMsg.error_msg || '未知错误');
+            return;
+        }
+
         const chatMsg = convertWSMessageToIChatMessage(data.payload as ImTypes.WSMessage);
         if (!chatMsg) {
             console.error('[WsMessageListener] Failed to convert WSMessage to IChatMessage');
@@ -87,9 +95,12 @@ export function initWsMessageListener(): void {
             forgetCall((chatMsg as any).callId);
         }
 
-        // 2. 副作用：提示音 + 任务栏闪烁（仅对方消息；正在查看的会话与免打扰会话静默，is_disturb: 2=开启）
+        // 2. 副作用：提示音 + 任务栏闪烁（仅对方消息；正在查看的会话与免打扰会话静默，is_disturb: 2=开启）。
+        // 通话记录一律静默：双方刚经历过这通电话（来电铃声已经响过），挂断后再响一次新消息提示只是打扰；
+        // 未接来电靠未读红点提示
         const isDisturbMuted = sessionStore.getSession(chatMsg.sessionKey as string)?.is_disturb === 2;
-        if (!isFromSelf && !isCurrentSession && !isDisturbMuted) {
+        const isCallRecord = chatMsg.type === ImTypes.MessageType.CHAT_CALL;
+        if (!isFromSelf && !isCurrentSession && !isDisturbMuted && !isCallRecord) {
             windowService.playNotificationSound();
         }
 
@@ -104,19 +115,11 @@ export function initWsMessageListener(): void {
         if (updatedSession) {
             void sessionService.saveMany([toRaw(updatedSession)]);
         }
-
-        // 5. 处理错误类型消息
-        if (data.type === ImTypes.MessageType.ERROR) {
-            const errorMsg = data.payload as ImTypes.ErrorMessage;
-            ElMessage.error(errorMsg.error_msg || '未知错误');
-        }
     });
 
     // ── 消息送达 ACK（仅需更新状态并重新落库，不触发未读/提示音）─────────────
     ipcService.on(IpcChannels.WS_MESSAGE_ACK, async (_event, data: { ack: ImTypes.MessageAck; timestamp: number }) => {
         const messageStore = useMessageStore();
-        console.log('[WsMessageListener] Received MessageAck:', data);
-
         const ackStatus = data.ack.status ?? (data.ack as any).ack_status;
         let newStatus: number | undefined;
 
@@ -133,7 +136,6 @@ export function initWsMessageListener(): void {
             newStatus!,
             data.timestamp
         );
-        console.log('MessageAck 处理后消息: ', msg);
 
         // 只需把状态变更持久化，不走 receiveMessage（避免重复未读/摘要更新）
         if (msg) {
@@ -149,8 +151,6 @@ export function initWsMessageListener(): void {
     // 注：成功 ACK 不再携带 session_key，消息定位依赖 client_id
     ipcService.on(IpcChannels.WS_MESSAGE_PERSIST_ACK, async (_event, data: { ack: ImTypes.PersistAck; timestamp: number }) => {
         const messageStore = useMessageStore();
-        console.log('[WsMessageListener] Received PersistAck:', data);
-
         let msg: IChatMessage | undefined;
         if (data.ack.ack_status === ImTypes.AckStatus.ACK_STATUS_FAILED) {
             msg = messageStore.updateMessageStatus(data.ack.session_id, '', data.ack.client_id, ImTypes.MessageStatus.MESSAGE_STATUS_FAILED, data.timestamp);

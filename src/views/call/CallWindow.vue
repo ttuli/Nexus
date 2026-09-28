@@ -3,7 +3,7 @@
     <!-- 动态根据当前通话类型渲染界面 -->
     <TitleBar theme="dark" :needMax="true"></TitleBar>
     <PrivateCall
-      v-if="callType === 'private' && ready"
+      v-if="callType === 'private'"
       class="main-content"
       :call-id="callId"
       :peer-id="peerId"
@@ -16,29 +16,25 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted } from 'vue';
 import PrivateCall from './PrivateCall.vue';
 import GroupCall from './GroupCall.vue';
 import { useRoute } from 'vue-router';
 import { signalWindowReady } from '@/src/utils/window';
 import { ImTypes } from '@shared/types';
 
-// 窗口参数由主进程以 query 传入（windowManager.loadWindowContent 把 data 序列化为 query）。
-// useRoute 必须在 setup 同步阶段调用，不能放进 onMounted。
+// 窗口参数由主进程以 query 传入（windowManager.loadWindowContent 把 data 序列化为 query），
+// 窗口生命周期内不变，读一次即可。useRoute 必须在 setup 同步阶段调用，不能放进 onMounted。
 const route = useRoute();
 
-const callType = ref<'private' | 'group'>((route.query.targetType as any) || 'private');
+const callType: 'private' | 'group' = (route.query.targetType as any) || 'private';
 /** 来电时服务端已下发；呼出时为空，由 CALL_INVITE 回执带回 */
-const callId = ref<string>((route.query.callId as string) || '');
-const peerId = ref<number>(Number(route.query.peerId ?? route.query.targetId ?? 0));
-const sessionKey = ref<string>((route.query.sessionKey as string) || '');
-const mediaType = ref<ImTypes.CallMediaType>(
-    Number(route.query.mediaType ?? ImTypes.CallMediaType.CALL_MEDIA_TYPE_AUDIO)
-);
+const callId = (route.query.callId as string) || '';
+const peerId = Number(route.query.peerId ?? route.query.targetId ?? 0);
+const sessionKey = (route.query.sessionKey as string) || '';
+const mediaType: ImTypes.CallMediaType = Number(route.query.mediaType ?? ImTypes.CallMediaType.CALL_MEDIA_TYPE_AUDIO);
 // query 全是字符串，'0' 也是真值，必须显式比较
-const isIncoming = ref<boolean>(String(route.query.isIncoming) === '1');
-
-const ready = ref(true);
+const isIncoming = String(route.query.isIncoming) === '1';
 
 onMounted(signalWindowReady);
 </script>

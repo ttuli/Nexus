@@ -30,8 +30,8 @@
 
     <CallControlBar
       :is-muted="isMuted"
-      :is-incoming="isIncoming"
-      :is-connected="isConnected"
+      :show-mic="isConnected"
+      :show-accept="isIncoming && !isConnected"
       :show-screen-share="true"
       @toggle-mute="toggleMute"
       @hangup="hangup"
@@ -42,7 +42,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onUnmounted } from 'vue';
+import { ref, computed } from 'vue';
 import CallControlBar from './components/CallControlBar.vue';
 
 interface Participant {
@@ -61,7 +61,6 @@ const formattedDuration = ref('00:00');
 const toggleMute = () => { isMuted.value = !isMuted.value; };
 const hangup = () => window.close();
 const acceptCall = () => { isConnected.value = true; };
-const stopDurationTimer = () => { };
 
 const isIncoming = ref(false); // 是否是被叫方
 
@@ -84,10 +83,6 @@ const gridClass = computed(() => {
 const toggleScreenShare = () => {
   // TODO: callService.toggleScreenShare()
 };
-
-onUnmounted(() => {
-  stopDurationTimer();
-});
 </script>
 
 <style scoped lang="scss">

@@ -1,35 +1,53 @@
 <template>
   <div class="control-bar">
-    <div class="actions">
-      <template v-if="isConnected">
-        <button class="action-btn" :class="{ 'is-active': !isMuted }" @click="emit('toggle-mute')" :title="isMuted ? '打开麦克风' : '关闭麦克风'">
-          <Microphone class="app-icon app-icon--md" />
-        </button>
-        <button v-if="showScreenShare" class="action-btn" @click="emit('toggle-screen-share')" title="共享屏幕">
-          <Monitor class="app-icon app-icon--md" />
-        </button>
-      </template>
-      <!-- 拒绝/挂断 -->
-      <button class="action-btn hangup-btn" @click="emit('hangup')" :title="isIncoming && !isConnected ? '拒绝' : '挂断'">
+    <!-- 麦克风：关闭时高亮并换成划线图标，外加文字，开关状态一眼可辨 -->
+    <div v-if="showMic" class="action">
+      <button class="action-btn" :class="{ 'is-off': isMuted }" @click="emit('toggle-mute')">
+        <MicrophoneSlash v-if="isMuted" class="app-icon app-icon--md" />
+        <Microphone v-else class="app-icon app-icon--md" />
+      </button>
+      <span class="label">{{ isMuted ? '麦克风已关' : '麦克风已开' }}</span>
+    </div>
+
+    <div v-if="showScreenShare" class="action">
+      <button class="action-btn" @click="emit('toggle-screen-share')">
+        <Monitor class="app-icon app-icon--md" />
+      </button>
+      <span class="label">共享屏幕</span>
+    </div>
+
+    <div class="action">
+      <button class="action-btn hangup-btn" @click="emit('hangup')">
         <Phone class="app-icon app-icon--md" />
       </button>
-      <!-- 接听 (被叫方且未接听时显示) -->
-      <button class="action-btn accept-btn" v-if="isIncoming && !isConnected" @click="emit('accept')" title="接听">
+      <span class="label">{{ hangupLabel }}</span>
+    </div>
+
+    <div v-if="showAccept" class="action">
+      <button class="action-btn accept-btn" @click="emit('accept')">
         <Phone class="app-icon app-icon--md" />
       </button>
+      <span class="label">接听</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { Microphone, Phone, Monitor } from 'reicon-vue';
+import { Microphone, MicrophoneSlash, Phone, Monitor } from 'reicon-vue';
 
-defineProps<{
+withDefaults(defineProps<{
   isMuted: boolean;
-  isIncoming: boolean;
-  isConnected: boolean;
+  /** 是否显示麦克风开关（接听后才有意义） */
+  showMic: boolean;
+  /** 是否显示接听按钮（被叫振铃中） */
+  showAccept: boolean;
+  /** 挂断按钮文案：振铃中是「拒绝」/「取消」，接听后是「挂断」 */
+  hangupLabel?: string;
   showScreenShare?: boolean;
-}>();
+}>(), {
+  hangupLabel: '挂断',
+  showScreenShare: false,
+});
 
 const emit = defineEmits<{
   (e: 'toggle-mute'): void;
@@ -46,69 +64,68 @@ const emit = defineEmits<{
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 15px;
-  background: transparent;
-  padding: 20px 40px;
-  border-radius: 20px;
-  backdrop-filter: blur(10px);
+  gap: 28px;
 
-  .actions {
+  .action {
     display: flex;
-    gap: 20px;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
 
-    .action-btn {
-      width: 65px;
-      height: 65px;
-      border-radius: 50%;
-      border: none;
-      background-color: rgba(255, 255, 255, 0.2);
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      cursor: pointer;
-      transition: all 0.3s;
-      -webkit-app-region: no-drag;
+    .label {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.7);
+      white-space: nowrap;
+      user-select: none;
+    }
+  }
 
-      .icon {
-        filter: invert(90%);
-        width: 32px;
-        height: 32px;
-        user-select: none;
-        -webkit-user-drag: none;
-        pointer-events: none;
+  .action-btn {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: none;
+    background-color: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+    -webkit-app-region: no-drag;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.25);
+    }
+
+    // 麦克风已关：白底深色划线图标，与「开着」的半透明态明显区分
+    &.is-off {
+      background-color: rgba(255, 255, 255, 0.92);
+      color: #1a1a1a;
+
+      &:hover {
+        background-color: #fff;
+      }
+    }
+
+    &.hangup-btn {
+      background-color: #ff4d4f;
+
+      // 听筒图标朝下即「挂断」
+      .app-icon {
+        transform: rotate(135deg);
       }
 
       &:hover {
-        background-color: rgba(255, 255, 255, 0.3);
+        background-color: #ff7875;
       }
+    }
 
-      &.is-active {
-        background-color: rgba(235, 235, 235, 0.9);
-        
-        .icon {
-          filter: none;
-        }
-      }
+    &.accept-btn {
+      background-color: #52c41a;
 
-      &.hangup-btn {
-        background-color: #ff4d4f;
-        transform: rotate(135deg);
-
-        &:hover {
-          background-color: #ff7875;
-        }
-      }
-
-      &.accept-btn {
-        background-color: #52c41a;
-
-        &:hover {
-          background-color: #73d13d;
-        }
+      &:hover {
+        background-color: #73d13d;
       }
     }
   }

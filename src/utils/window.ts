@@ -80,6 +80,17 @@ export function openVideoViewer(url: string, width?: number, height?: number): v
 }
 
 
+/**
+ * 当前渲染进程是否为主窗口（WindowKey.Home，固定加载 /home 路由）。
+ *
+ * 主进程把 WS 消息广播给所有窗口，而会话状态、未读、提示音、本地落库只该处理一次：
+ * 其他窗口的会话 store 是空的，照跑同一套逻辑会重复响提示音，还会把默认值
+ * （未置顶、未免打扰）写回 SQLite 覆盖真实会话。按窗口加载时的 hash 判断，setup 阶段即可用。
+ */
+export function isMainWindow(): boolean {
+    return window.location.hash.startsWith('#/home');
+}
+
 let signalSent = false;
 
 /**

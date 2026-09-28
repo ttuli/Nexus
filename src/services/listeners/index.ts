@@ -7,6 +7,7 @@ import { initWsMessageListener } from './wsMessageListener'
 import { initWsNotificationListener } from './wsNotificationListener'
 import { initWsCallListener } from './wsCallListener'
 import { initWindowListener } from './windowListener'
+import { isMainWindow } from '@/src/utils/window'
 
 class ListenerService {
     private initialized = false
@@ -15,11 +16,17 @@ class ListenerService {
         if (this.initialized) return
         this.initialized = true
 
+        // 所有窗口都要：用户信息 / token 缓存同步，窗口状态与主题同步
         initResourceListener()
-        initWsMessageListener()
-        initWsNotificationListener()
-        initWsCallListener()
         initWindowListener()
+
+        // 仅主窗口：WS 消息、通知、来电由主窗口统一处理一次（原因见 isMainWindow）。
+        // 通话窗自己的信令由 useCallState 直接监听，不依赖这里
+        if (isMainWindow()) {
+            initWsMessageListener()
+            initWsNotificationListener()
+            initWsCallListener()
+        }
     }
 
     /**
