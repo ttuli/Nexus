@@ -3,6 +3,13 @@ import { tokenManager } from './tokenManager';
 import { ImTypes, IpcChannels, LogoutType } from '@shared/types';
 import { windowManager } from '@/electron/windows/windowManager';
 import { APP_CONSTANTS } from '@shared/config/constants';
+import {
+    APP_VERSION_HEADER,
+    HTTP_UPGRADE_REQUIRED,
+    getAppVersion,
+    parseUpgradeRequired,
+    reportUpgradeRequired,
+} from '@/electron/update/updateSignals';
 
 /**
  * 主进程 HTTP 请求配置
@@ -91,6 +98,8 @@ function executeRequest<T>(options: MainRequestOptions, token?: string): Promise
             request.setHeader('Content-Type', 'application/json');
         }
         request.setHeader('Accept', 'application/x-protobuf');
+        // 版本号供 Auth 的版本中间件判断是否强制更新；主进程请求不经浏览器 CORS，自定义头无需网关放行
+        request.setHeader(APP_VERSION_HEADER, getAppVersion());
 
         if (token && !options.skipAuth) {
             request.setHeader('Authorization', `Bearer ${token}`);
@@ -118,6 +127,14 @@ function executeRequest<T>(options: MainRequestOptions, token?: string): Promise
                 if (timeoutId) clearTimeout(timeoutId);
 
                 const buffer = Buffer.concat(chunks);
+
+                // 版本过低：交给更新模块接管（关窗、打开更新窗口），请求本身按失败处理
+                if (statusCode === HTTP_UPGRADE_REQUIRED) {
+                    const info = parseUpgradeRequired(buffer, contentType);
+                    reportUpgradeRequired(info);
+                    reject(new MainRequestError(info.message, HTTP_UPGRADE_REQUIRED, statusCode));
+                    return;
+                }
 
                 try {
                     // 空 body（如 logout 返回 200 无内容）：直接视为成功
@@ -219,7 +236,10 @@ export async function mainRequest<T = any>(options: MainRequestOptions): Promise
                 return retryResponse;
             } else {
                 console.error('[MainRequest] Token refresh failed:', refreshResult.error);
-                throw new MainRequestError(refreshResult.error || 'Token refresh failed', ImTypes.ErrorCode.ERR_UNAUTHORIZED);
+                throw new MainRequestError(
+                    refreshResult.error || 'Token refresh failed',
+                    refreshResult.upgradeRequired ? HTTP_UPGRADE_REQUIRED : ImTypes.ErrorCode.ERR_UNAUTHORIZED
+                );
             }
         } else if (response.code === ImTypes.ErrorCode.ERR_KICKED_OUT) {
             console.error('[MainRequest] Kicked out');

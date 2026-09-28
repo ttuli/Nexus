@@ -1,5 +1,6 @@
 import { BrowserWindow, app } from 'electron'
 import { WindowKey } from '@shared/config/windowKeys'
+import { notifyUpdateWindowClosed } from '@/electron/update/updateSignals'
 
 // 窗口状态接口（用于持久化）
 export interface WindowState {
@@ -233,6 +234,23 @@ let configs: Map<WindowKey, WindowConfig> = new Map([
                 onBlur: (window: BrowserWindow) => {
                     if (window.isVisible()) window.hide();
                 }
+            }
+        }
+    ],
+    [
+        WindowKey.Update,
+        {
+            key: WindowKey.Update,
+            url: '/update',
+            modal: false,
+            frame: false,
+            resizable: false,
+            maximizable: false,
+            width: 440,
+            height: 560,
+            hooks: {
+                // 用户关窗的后续（放弃下载 / 退出应用）由 updateManager 按更新模式决定
+                onClosed: () => notifyUpdateWindowClosed()
             }
         }
     ]

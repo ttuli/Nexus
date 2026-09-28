@@ -62,6 +62,9 @@ import { ref } from 'vue'
 import AnimatedLoginForm from './components/AnimatedLoginForm.vue';
 import AnimatedRegisterForm from './components/AnimatedRegisterForm.vue';
 import { APP_CONSTANTS } from '@shared/config/constants';
+import { useUpdatePrompt } from '@/src/composables/useUpdatePrompt';
+
+useUpdatePrompt()
 
 const icon = '/icon/icon_' + import.meta.env.VITE_ICON_VERSION + '.png'
 const currentView = ref<'login' | 'register'>('login')

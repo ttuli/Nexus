@@ -319,7 +319,10 @@ export class WebSocketManager extends EventEmitter {
                 console.error('[WebSocketManager] Token refresh failed:', result.error);
                 this.isRecovering401 = false;
                 this.closeWs();
-                windowManager.broadcastMessage(IpcChannels.LOGOUT_REMIND, { type: LogoutType.LOGOUT });
+                // 版本过低由更新模块接管，发登出提醒会把更新窗口一并拆掉
+                if (!result.upgradeRequired) {
+                    windowManager.broadcastMessage(IpcChannels.LOGOUT_REMIND, { type: LogoutType.LOGOUT });
+                }
             }
         } else {
             this.handleDisconnect();

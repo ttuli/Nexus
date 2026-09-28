@@ -150,6 +150,28 @@ export const IpcChannels = {
 
     // 主题相关
     THEME_SYNC: 'theme:sync',
+
+    // 应用更新相关
+    /** 拉取待提示的可选更新（窗口挂载晚于启动检查完成时，靠它补上错过的推送） */
+    UPDATE_GET_PROMPT: 'update:get-prompt',
+    /** 主进程推送：发现可选更新，由登录窗 / 主窗口弹提示框 */
+    UPDATE_PROMPT: 'update:prompt',
+    /** 用户对更新提示框的选择，携带 UpdatePromptAction */
+    UPDATE_PROMPT_RESPOND: 'update:prompt-respond',
+    /** 更新窗口拉取当前状态 */
+    UPDATE_GET_STATE: 'update:get-state',
+    /** 主进程推送：更新状态变化（含下载进度），只发给更新窗口 */
+    UPDATE_STATE: 'update:state',
+    /** 重新检查并下载 */
+    UPDATE_RETRY: 'update:retry',
+    /** 退出并安装已下载的新版本 */
+    UPDATE_INSTALL: 'update:install',
+    /** 关闭更新窗口：可选更新即放弃本次下载，强制更新即退出应用 */
+    UPDATE_CLOSE: 'update:close',
+    /** 用系统浏览器打开官网下载页 */
+    UPDATE_OPEN_DOWNLOAD_PAGE: 'update:open-download-page',
+    /** 在资源管理器中定位已下载的安装包（自动安装失败时让用户手动运行） */
+    UPDATE_SHOW_INSTALLER: 'update:show-installer',
 } as const
 
 export type IpcChannel = typeof IpcChannels[keyof typeof IpcChannels]

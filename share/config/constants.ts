@@ -174,6 +174,13 @@ export const APP_CONSTANTS = {
     /** File 服务器地址 */
     get fileServer() { return getEnv('VITE_FILE_SERVER') || 'http://localhost:8023'; },
 
+    /**
+     * 官网下载页。自动更新走不通（更新源不可达、自动安装失败）时给用户的兜底出口；
+     * 未配置则不显示「前往官网下载」。
+     * 注：更新源（latest.yml 所在目录）不在这里配，见 electron-builder.json5 的 publish。
+     */
+    get downloadPageUrl() { return getEnv('VITE_DOWNLOAD_PAGE_URL') || ''; },
+
     /** 最大图片宽度 */
     maxImageWidth: 280,
     maxImageHeight: 380,

@@ -5,6 +5,22 @@ import { secureStore } from '@/electron/utils/secureStore';
 import { RefreshTokenPayload, TokenPayload, ResourceType, ImTypes, ApiTypes } from '@shared/types';
 import { cacheManager } from './cacheManager';
 import { APP_CONSTANTS as config } from '@shared/config/constants';
+import {
+    APP_VERSION_HEADER,
+    HTTP_UPGRADE_REQUIRED,
+    getAppVersion,
+    parseUpgradeRequired,
+    reportUpgradeRequired,
+} from '@/electron/update/updateSignals';
+
+export interface TokenRefreshResult {
+    success: boolean;
+    token?: string;
+    refreshToken?: string;
+    error?: string;
+    /** 服务端判定版本过低（426），见 requestTokenRefresh */
+    upgradeRequired?: boolean;
+}
 
 /**
  * Token 管理器
@@ -93,8 +109,12 @@ class TokenManager {
 
     /**
      * 请求刷新 Token（带去重）
+     *
+     * upgradeRequired 为 true 表示服务端判定客户端版本过低（426），更新模块已接管。
+     * 调用方此时不能按「身份失效」处理：既不能删本地 refresh token（更新完要靠它自动登录），
+     * 也不能广播登出提醒（登出链路会把更新窗口一并拆掉）。
      */
-    public async requestTokenRefresh(): Promise<{ success: boolean; token?: string; refreshToken?: string; error?: string }> {
+    public async requestTokenRefresh(): Promise<TokenRefreshResult> {
         // 如果正在刷新，加入等待队列
         if (this.isRefreshing) {
             return new Promise((resolve, reject) => {
@@ -111,7 +131,12 @@ class TokenManager {
             this.pendingRefreshPromises.forEach((p) => p.resolve(result));
             // 广播形状须为 { token }：渲染进程 resourceListener 按 item.token 读取并写入 userStore
             cacheManager.broadcastUpdate(ResourceType.AUTH, [{ token: result.token }]);
-            return { success: result.success, token: result.token };
+            return {
+                success: result.success,
+                token: result.token,
+                error: result.error,
+                upgradeRequired: result.upgradeRequired,
+            };
         } catch (error) {
             const errorResult = { success: false, error: (error as Error).message };
             this.pendingRefreshPromises.forEach((p) => p.reject(error));
@@ -125,7 +150,7 @@ class TokenManager {
     /**
      * 使用 Electron net 模块调用刷新 Token API
      */
-    private async doRefreshToken(): Promise<{ success: boolean; token?: string; refreshToken?: string; error?: string }> {
+    private async doRefreshToken(): Promise<TokenRefreshResult> {
         if (!this.refreshToken) {
             return { success: false, error: 'No refresh token available' };
         }
@@ -144,18 +169,29 @@ class TokenManager {
             request.setHeader('Content-Type', 'application/x-protobuf');
             request.setHeader('Accept', 'application/x-protobuf');
             request.setHeader('Authorization', `Bearer ${this.refreshToken}`);
+            request.setHeader(APP_VERSION_HEADER, getAppVersion());
 
             const chunks: Buffer[] = [];
             let contentType = '';
+            let statusCode = 0;
 
             request.on('response', (response) => {
                 contentType = (response.headers['content-type'] as string) || '';
+                statusCode = response.statusCode;
 
                 response.on('data', (chunk: Buffer) => {
                     chunks.push(chunk);
                 });
 
                 response.on('end', () => {
+                    // 版本过低：交给更新模块接管，refresh token 原样保留
+                    if (statusCode === HTTP_UPGRADE_REQUIRED) {
+                        const info = parseUpgradeRequired(Buffer.concat(chunks), contentType);
+                        reportUpgradeRequired(info);
+                        resolve({ success: false, error: info.message, upgradeRequired: true });
+                        return;
+                    }
+
                     try {
                         const buffer = Buffer.concat(chunks);
                         let token: string;

@@ -8,6 +8,7 @@ import settingManager from './settingManager';
 import { fileCacheManager } from './fileCacheManager';
 import { windowManager } from '@/electron/windows/windowManager'
 import { WindowKey } from '@shared/config/windowKeys';
+import { isUpgradeRequired } from '@/electron/update/updateSignals';
 import { app } from 'electron';
 
 /**
@@ -36,13 +37,20 @@ class ResourceManager {
 
         // 设置 IPC 处理器
         setupIpcHandlers();
+        // 首个窗口不在这里打开：要先等版本检查决定是登录窗还是更新窗口，见 main.ts
+    }
 
+    /** 打开登录窗（启动时版本检查通过后调用） */
+    public showLogin(): void {
         windowManager.CreateWindow({
             key: WindowKey.Login,
         });
     }
 
     public kickout(): void {
+        // 强制更新接管期间，迟到的登出链路（刷新失败、身份失效提醒）不能再拆窗口、清 token
+        if (isUpgradeRequired()) return;
+
         tokenManager.cleanout();
         // 清理纯内存缓存，保留磁盘缓存供下次加速
         cacheManager.clearMemory();
@@ -62,15 +70,17 @@ class ResourceManager {
 
     // ==================== App Lifecycle ====================
 
-    public destroy(): void {
+    /**
+     * @param onQuit 收尾完成后的退出动作，默认 app.quit()。
+     *               更新安装传入 autoUpdater.quitAndInstall，保证落盘、断 WS、关库之后才交给安装程序
+     */
+    public destroy(onQuit: () => void = () => app.quit()): void {
         console.log('[ResourceManager] Destroying all resources...');
         // 先关闭所有窗口（等待退出清理及会话保存操作完成）
         windowManager.closeAllWindows().finally(() => {
             wsManager.closeWs();
             // 确保窗口全部销毁后，再安全关闭所有数据库连接
-            closeAllDb().finally(() => {
-                app.quit();
-            });
+            closeAllDb().finally(onQuit);
         });
     }
 }

@@ -25,6 +25,7 @@ const CusDialog = {
             showClose: config.showClose,
             confirmText: config.confirmText,
             cancelText: config.cancelText,
+            extraText: config.extraText,
             status: config.status,
         }, {
             default: () => {

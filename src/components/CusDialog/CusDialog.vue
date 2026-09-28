@@ -17,6 +17,9 @@
                 <slot></slot>
             </div>
             <div class="cus-dialog-footer">
+                <button v-if="extraText" class="btn text" @click="handleExtra">
+                    {{ extraText }}
+                </button>
                 <div class="button-group">
                     <button v-if="showCancel" class="btn secondary" @click="handleCancel">
                         {{ cancelText }}
@@ -41,6 +44,7 @@ interface Props {
     showClose?: boolean;
     confirmText?: string;
     cancelText?: string;
+    extraText?: string;
     status?: DialogStatus;
 }
 
@@ -50,6 +54,7 @@ withDefaults(defineProps<Props>(), {
     showClose: true,
     confirmText: '确定',
     cancelText: '取消',
+    extraText: '',
     status: undefined
 });
 
@@ -76,6 +81,11 @@ const handleCancel = () => {
 const handleClose = () => {
     visible.value = false;
     resolvePromise(DialogResult.Close);
+};
+
+const handleExtra = () => {
+    visible.value = false;
+    resolvePromise(DialogResult.Extra);
 };
 
 const handleBackdropClick = () => {
@@ -197,10 +207,16 @@ defineExpose({ open });
 .cus-dialog-footer {
     display: flex;
     justify-content: flex-end;
+    align-items: center;
 
     .button-group {
         display: flex;
         gap: 12px;
+    }
+
+    // 附加操作靠左，把主按钮组推到右侧
+    .btn.text {
+        margin-right: auto;
     }
 }
 
@@ -232,6 +248,17 @@ defineExpose({ open });
         @include primary-button;
         height: 36px; // Ensure height consistency
         border-radius: var(--radius-md, 8px);
+    }
+
+    &.text {
+        padding: 0 4px;
+        background: transparent;
+        color: $color-text-secondary;
+        font-weight: 400;
+
+        &:hover {
+            color: $color-primary;
+        }
     }
 }
 </style>

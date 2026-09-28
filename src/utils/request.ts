@@ -166,6 +166,10 @@ instance.interceptors.response.use(
 
           // 重试原请求
           return instance(originalRequest)
+        } else if (result.upgradeRequired) {
+          // 版本过低：更新窗口正在接管，不能走登出（会把更新窗口一并拆掉），静默失败即可
+          pendingRequests = []
+          return Promise.reject(new Error(result.error || 'Upgrade required'))
         } else {
           throw new Error(result.error || 'Refresh token failed')
         }

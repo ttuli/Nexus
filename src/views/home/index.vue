@@ -62,11 +62,13 @@ import { useChatNavigation } from '@/src/composables/useChatNavigation';
 import { generateGroupSessionId } from '@/src/utils/sessionUtils';
 import { sessionService } from '@/src/services/sessionService';
 import { syncOfflineActiveSessions, cancelOfflineSync } from '@/src/composables/offlineSync';
+import { useUpdatePrompt } from '@/src/composables/useUpdatePrompt';
 
 const router = useRouter();
 const sessionStore = useSessionStore()
 const messageStore = useMessageStore()
 const { navigateToChat } = useChatNavigation();
+useUpdatePrompt();
 
 const leftWidth = ref(250);
 const isResizing = ref(false);

@@ -104,6 +104,11 @@ const router = createRouter({
             path: '/trayMenu',
             name: '托盘菜单',
             component: () => import('@/src/views/tray/TrayMenu.vue')
+        },
+        {
+            path: '/update',
+            name: '软件更新',
+            component: () => import('@/src/views/update/UpdateWindow.vue')
         }
     ]
 })

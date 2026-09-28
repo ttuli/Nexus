@@ -13,4 +13,6 @@ export enum WindowKey {
     Call = 'call',
     /** 托盘右键菜单弹层：无边框透明小窗，由 TrayManager 按托盘图标锚点定位，失焦即隐藏 */
     TrayMenu = 'trayMenu',
+    /** 更新窗口：下载与安装新版本。强制更新时是唯一的窗口，可选更新时与主窗口并存 */
+    Update = 'update',
 }

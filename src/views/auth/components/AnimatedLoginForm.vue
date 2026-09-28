@@ -180,6 +180,9 @@ const handleAutoLogin = async () => {
         if (res.success === true) {
             windowService.createWindow(WindowKey.Home)
             window.close()
+        } else if (res.upgradeRequired) {
+            // 版本过低：登录窗即将被更新窗口替换，保留自动登录，更新完直接可用
+            return
         } else {
             ElMessage.error("登录失败")
             autologin.value = false

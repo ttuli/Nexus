@@ -5,6 +5,7 @@ import { app, ipcMain } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { resourceManager } from './resource'
+import { updateManager } from './update/updateManager'
 import { setupMediaPermission } from './windows/mediaPermission'
 import { IpcChannels } from '@shared/types/ipc'
 import { APP_CONSTANTS } from '@shared/config/constants'
@@ -32,12 +33,15 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 
 // 设置全局应用名，影响窗口默认标题、任务栏和托盘等展示
 app.setName(APP_CONSTANTS.ApplicationName)
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   // 通话需要麦克风/摄像头：显式放行，避免 getUserMedia 被静默拒绝
   setupMediaPermission();
 
   // 初始化资源管理器
   resourceManager.init();
+
+  // 更新安装同样走优雅退出链，只把最后的 app.quit 换成安装
+  updateManager.init((onQuit) => resourceManager.destroy(onQuit));
 
   // 直接关闭登录窗口触发
   ipcMain.on(IpcChannels.QUIT, () => {
@@ -47,6 +51,12 @@ app.whenReady().then(() => {
   ipcMain.on(IpcChannels.LOGOUT, () => {
     resourceManager.kickout();
   })
+
+  // 版本检查先于登录窗：版本过低直接进更新窗口，不先弹出登录窗再关掉
+  const forced = await updateManager.checkOnStartup();
+  if (!forced) {
+    resourceManager.showLogin();
+  }
 })
 
 app.on('window-all-closed', () => {

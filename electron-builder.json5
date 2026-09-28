@@ -20,6 +20,17 @@
   // Electron 版本稳定，不需要重编。放着不关的话 electron-builder 会调 node-gyp
   // 从源码重编一遍，在没有完整 C++/Python 工具链的机器上直接失败。
   "npmRebuild": false,
+  // 自动更新源：electron-updater 从 <url>/latest.yml 查询新版本。
+  // 配了 publish，打包时才会在 release/<version>/ 下生成 latest.yml 与 .exe.blockmap。
+  // 发版时把 Setup.exe、.blockmap、latest.yml 上传到该目录：latest.yml 必须最后传，
+  // 且设置 Cache-Control: no-cache，否则客户端会读到指向未传完安装包的新 yml，或一直读到缓存的旧 yml。
+  // TODO: 换成实际的 OSS 地址（目录需公共读）
+  "publish": [
+    {
+      "provider": "generic",
+      "url": "https://update.example.com/nexus/win"
+    }
+  ],
   "mac": {
     "target": [
       "dmg"

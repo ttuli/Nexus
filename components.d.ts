@@ -33,6 +33,7 @@ declare module 'vue' {
     Logo: typeof import('./src/components/Logo.vue')['default']
     ModalBackground: typeof import('./src/components/ModalBackground/ModalBackground.vue')['default']
     PasswordStrength: typeof import('./src/components/PasswordStrength.vue')['default']
+    ReleaseNotes: typeof import('./src/components/ReleaseNotes.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     ThemeToggle: typeof import('./src/components/ThemeToggle.vue')['default']

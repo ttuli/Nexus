@@ -28,7 +28,9 @@ export default defineConfig(({ mode }) => {
                   main: 'electron/main.ts',
                   'db.worker': 'electron/db/db.worker.ts',
                 },
-                external: ['dotenv', 'koffi', 'better-sqlite3-multiple-ciphers'],
+                // electron-updater 运行时按平台动态 require 各 Updater 实现，保持外部依赖，
+                // 由 electron-builder 随 dependencies 一起打进安装包
+                external: ['dotenv', 'koffi', 'better-sqlite3-multiple-ciphers', 'electron-updater'],
               },
             },
             resolve: {

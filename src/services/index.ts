@@ -30,6 +30,7 @@ export { chatService } from './chatService'
 export { callService } from './callService'
 export { messageService } from './messageService'
 export { settingService } from './settingService'
+export { updateService } from './updateService'
 
 export { sessionService } from './sessionService'
  

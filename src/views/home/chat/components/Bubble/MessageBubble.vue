@@ -12,7 +12,7 @@
 
             <!-- New wrapper for bubble and status -->
             <div class="bubble-row" :class="{ 'is-self': isSelf }">
-                <div class="bubble" :class="{ 'is-image': isImageMessage, 'is-video': isVideoMessage, 'is-file': isFileMessage, 'is-recalling': recalling }"
+                <div class="bubble" :class="{ 'is-image': isImageMessage, 'is-video': isVideoMessage, 'is-file': isFileMessage, 'is-call': isCallMessage, 'is-recalling': recalling }"
                     @contextmenu.prevent="handleContextMenu">
                     <!-- Image Messages -->
                     <ImageMessageBubble v-if="isImageMessage" :message="(message as ILocalImageMessage)" />
@@ -25,7 +25,8 @@
                         :isSelf="isSelf" />
 
                     <!-- 通话记录 -->
-                    <CallMessageBubble v-else-if="isCallMessage" :message="(message as ILocalCallMessage)" />
+                    <CallMessageBubble v-else-if="isCallMessage" :message="(message as ILocalCallMessage)"
+                        :isSelf="isSelf" />
 
                     <!-- Text & Fallback Messages -->
                     <div class="text" v-else>{{ messageContent }}</div>
@@ -309,16 +310,17 @@ const formatTime = (timestamp: number) => {
 
             &.is-image,
             &.is-video,
-            &.is-file {
-                padding: 0; // 图片、视频或文件气泡不需要外层 padding
-                background-color: transparent !important; // 图片、视频或文件气泡不需要外层背景色
-                box-shadow: none; // 阴影移交到内层
+            &.is-file,
+            &.is-call {
+                padding: 0; // 图片、视频、文件或通话气泡不需要外层 padding
+                background-color: transparent !important; // 不需要外层背景色
+                box-shadow: none !important; // 阴影移交到内层
             }
 
             &:hover {
                 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 
-                &:not(.is-image):not(.is-video):not(.is-file) {
+                &:not(.is-image):not(.is-video):not(.is-file):not(.is-call) {
                     filter: brightness(0.93);
                 }
             }

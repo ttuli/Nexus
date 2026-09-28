@@ -10,6 +10,8 @@ export interface TokenRefreshResult {
     success: boolean
     error?: string
     token?: string
+    /** 服务端判定版本过低，更新窗口已接管：调用方不要再按身份失效去登出 */
+    upgradeRequired?: boolean
 }
 
 class TokenService {
@@ -31,6 +33,7 @@ class TokenService {
             error: result.error,
             // 主进程 handler 在响应顶层携带新 token（非 data 包装），透传给调用方重放请求
             token: (result as any).token,
+            upgradeRequired: (result as any).upgradeRequired === true,
         }
     }
 
