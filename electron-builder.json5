@@ -46,7 +46,11 @@
         ]
       }
     ],
-    "artifactName": "${productName}-Windows-${version}-Setup.${ext}"
+    "artifactName": "${productName}-Windows-${version}-Setup.${ext}",
+    // 应用图标：写进 Nexus.exe，桌面/开始菜单快捷方式、「已安装的应用」列表都取它；
+    // 安装包、卸载程序的图标没单独配置时也沿用它。不配的话 exe 是 Electron 默认图标、安装包是 NSIS 默认图标。
+    // PNG 由 electron-builder 转成 .ico，边长至少 256。须与运行时用的图标一致（share/config/constants.ts 的 APP_ICON）
+    "icon": "public/icon/icon.png"
   },
   "nsis": {
     "oneClick": false,

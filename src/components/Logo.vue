@@ -6,7 +6,10 @@
 </template>
 
 <script setup lang="ts">
-const icon = '/icon/icon_' + import.meta.env.VITE_ICON_VERSION + '.png'
+import { APP_ICON } from '@shared/config/constants'
+import { publicUrl } from '@/src/utils/resourceUrl'
+
+const icon = publicUrl(APP_ICON.normal)
 </script>
 
 <style scoped lang="scss">

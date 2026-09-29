@@ -117,13 +117,15 @@ import { signalWindowReady } from '@/src/utils/window';
 import { ipcService } from '@/src/services/ipcService';
 import { IpcChannels } from '@shared/types';
 import { settingService } from '@/src/services';
+import { publicUrl } from '@/src/utils/resourceUrl';
+import { APP_ICON } from '@shared/config/constants';
 
 const isDark = computed(() => theme.value === 'dark');
-const currentStoragePath = ref<string>('加载�?..');
+const currentStoragePath = ref<string>('加载中...');
 const activeTab = ref<'general' | 'about'>('general');
 
 // App Logo path resolving, fallback to a local app logo fallback if error
-const icon = ref('/icon/icon_' + (import.meta.env.VITE_ICON_VERSION || '1') + '.png');
+const icon = ref(publicUrl(APP_ICON.normal));
 
 const handleLogoError = () => {
     // Fallback if logo file doesn't exist
@@ -157,7 +159,7 @@ const handleChangeStoragePath = async () => {
 };
 
 const copyPath = (path: string) => {
-    if (!path || path === '加载�?..' || path === '获取失败') return;
+    if (!path || path === '加载中...' || path === '获取失败') return;
     navigator.clipboard.writeText(path)
         .then(() => {
             ElMessage.success('路径已成功复制');

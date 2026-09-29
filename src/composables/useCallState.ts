@@ -22,6 +22,7 @@ import { ImTypes, IpcChannels } from '@shared/types';
 import { CALL_CONFIG } from '@shared/config/constants';
 import { callService, ipcService, userService } from '@/src/services';
 import { useUserStore } from '@/src/store/user';
+import { publicUrl } from '@/src/utils/resourceUrl';
 
 export interface CallOptions {
     /** 来电时由服务端下发；呼出时为空，等 CALL_INVITE 回执带回 */
@@ -87,8 +88,8 @@ export function useCallState(opts: CallOptions) {
 
     function startRinging() {
         if (ringAudio) return;
-        const { url, incomingVolume, outgoingVolume } = CALL_CONFIG.ringtone;
-        ringAudio = new Audio(url);
+        const { path, incomingVolume, outgoingVolume } = CALL_CONFIG.ringtone;
+        ringAudio = new Audio(publicUrl(path));
         ringAudio.loop = true;
         ringAudio.volume = opts.isIncoming ? incomingVolume : outgoingVolume;
         // 自动播放被拦截不影响通话本身，不要抛给上层

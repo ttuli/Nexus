@@ -7,7 +7,7 @@ import { TrayManager } from './trayManager';
 import { TrayMenuWindow } from './trayMenuWindow';
 import { setupWindowIpcHandlers } from './ipcHandlers';
 import { IpcChannels, TrayMenuAction, TrayMenuSize } from '@shared/types';
-import { Main_Config as config } from '@shared/config/constants';
+import { APP_ICON, Main_Config as config } from '@shared/config/constants';
 import { WindowKey } from '@shared/config/windowKeys';
 import { closeAllDb } from '@/electron/db';
 
@@ -183,7 +183,7 @@ class WindowManager {
         alwaysOnTop,
         hasShadow,
         opacity: 1,
-        icon: path.join(process.env.VITE_PUBLIC || __dirname, 'icon/icon_' + process.env.VITE_ICON_VERSION + '.png'),
+        icon: path.join(process.env.VITE_PUBLIC || __dirname, APP_ICON.normal),
         modal,
         title: app.getName(),
         parent: parent,
@@ -403,9 +403,11 @@ class WindowManager {
    */
   private loadWindowContent(window: BrowserWindow, url: string, data?: Record<string, any>): void {
     try {
+      // 生产环境加载构建产物 dist/index.html（与 dist-electron 同级，打包进 asar 的也只有这两个目录）；
+      // 仓库根目录的 index.html 是 Vite 开发入口，经 file:// 加载会白屏
       const baseUrl = process.env['VITE_DEV_SERVER_URL']
         ? process.env['VITE_DEV_SERVER_URL']
-        : path.join(__dirname, '../index.html');
+        : path.join(__dirname, '../dist/index.html');
 
       // Build query string from data
       let queryString = '';
@@ -552,17 +554,19 @@ class WindowManager {
   }
 
   /**
-   * 显示窗口
+   * 显示窗口（含隐藏到托盘的）：show → 最小化则还原 → 聚焦
    */
   public showWindow(key: WindowKey): boolean {
     const window = this.getWindow(key);
     if (window) {
       try {
+        // 还在等渲染层 ready 的窗口就绪后会自行显示，提前 show 会露出还没渲染好的空白窗口
+        if (this.pendingReadyWindows.has(window.webContents.id)) return true;
         window.show();
-        window.focus();
         if (window.isMinimized()) {
           window.restore();
         }
+        window.focus();
         return true;
       } catch (error) {
         console.error(`Failed to show window "${key}":`, error);

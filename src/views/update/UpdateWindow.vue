@@ -77,7 +77,8 @@ import CusButton from '@/src/components/CusButton.vue'
 import ReleaseNotes from '@/src/components/ReleaseNotes.vue'
 import { updateService } from '@/src/services'
 import { signalWindowReady } from '@/src/utils/window'
-import { APP_CONSTANTS } from '@shared/config/constants'
+import { publicUrl } from '@/src/utils/resourceUrl'
+import { APP_CONSTANTS, APP_ICON } from '@shared/config/constants'
 import type { UpdatePhase, UpdateState } from '@shared/types'
 
 interface Action {
@@ -86,7 +87,7 @@ interface Action {
     run: () => void
 }
 
-const icon = '/icon/icon_' + import.meta.env.VITE_ICON_VERSION + '.png'
+const icon = publicUrl(APP_ICON.normal)
 const state = ref<UpdateState | null>(null)
 
 // 状态还没拉到时按「检查中」展示

@@ -25,7 +25,8 @@
 import { markRaw, nextTick, onMounted, onUnmounted, ref, type Component } from 'vue';
 import { Home, Setting, PowerOff } from 'reicon-vue';
 import { trayService } from '@/src/services';
-import { APP_CONSTANTS, TRAY_MENU_CONFIG } from '@shared/config/constants';
+import { APP_CONSTANTS, APP_ICON, TRAY_MENU_CONFIG } from '@shared/config/constants';
+import { publicUrl } from '@/src/utils/resourceUrl';
 import { TrayMenuAction } from '@shared/types/window';
 
 interface TrayMenuItem {
@@ -42,7 +43,7 @@ const menuItems: TrayMenuItem[] = [
     { action: TrayMenuAction.Quit, label: `退出`, icon: markRaw(PowerOff), danger: true },
 ];
 
-const logo = ref('/icon/icon_' + (import.meta.env.VITE_ICON_VERSION || '1') + '.png');
+const logo = ref(publicUrl(APP_ICON.normal));
 const cardRef = ref<HTMLElement | null>(null);
 /**
  * 入场动画开关。窗口是复用的（只 hide 不销毁），所以卡片必须在收起时退回透明，

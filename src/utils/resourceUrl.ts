@@ -29,3 +29,15 @@ export function toResourceUrl(pathOrUrl: string, opts: CacheOption): string {
 
     return result;
 }
+
+/**
+ * public/ 目录下静态资源（图标、提示音等）的 URL
+ *
+ * 不能直接写 '/icon/xxx.png' 这样的根路径：打包后页面经 file:// 加载，根路径会解析到磁盘根目录
+ * （file:///C:/icon/xxx.png）导致加载失败，而开发时有 dev server 兜着，发现不了。
+ * BASE_URL 开发时是 '/'，打包后是 './'（vite-plugin-electron-renderer 设的相对 base），两种环境都能指到 public/。
+ * @param path 相对 public/ 的路径，如 'icon/icon.png'
+ */
+export function publicUrl(path: string): string {
+    return import.meta.env.BASE_URL + path;
+}

@@ -81,7 +81,7 @@ const handleMouseDown = () => {
 const handleMouseMove = (e: MouseEvent) => {
     if (!isResizing.value) return;
 
-    // 榧犳爣鍦?context-menu 涓婃椂涓嶅鐞?resize锛岄伩鍏嶅啿绐?
+    // 鼠标在 context-menu 上时不处理 resize，避免冲突
     const target = e.target as HTMLElement;
     if (target.closest('.context-menu')) return;
 

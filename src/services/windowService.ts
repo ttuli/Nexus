@@ -5,6 +5,7 @@
 import { ipcService } from './ipcService'
 import { IpcChannels, IpcChannel, LogoutType } from '@shared/types'
 import { WindowKey } from '@shared/config/windowKeys'
+import { publicUrl } from '@/src/utils/resourceUrl'
 export { LogoutType }
 
 export enum NotifySoundType {
@@ -116,7 +117,7 @@ class WindowService {
             this.notifyAudio.pause()
             this.notifyAudio.currentTime = 0
         }
-        this.notifyAudio = new Audio(`/audio/notify_${type}.wav`)
+        this.notifyAudio = new Audio(publicUrl(`audio/notify_${type}.wav`))
         this.notifyAudio.play().catch(e => console.error('Failed to play notification sound:', e))
         ipcService.send(IpcChannels.WINDOW_FLASH_FRAME)
     }

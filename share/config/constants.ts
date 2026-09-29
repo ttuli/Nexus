@@ -102,10 +102,10 @@ export const CALL_CONFIG = {
      */
     connectTimeoutMs: 20_000,
 
-    /** 铃声资源（public/ 下，打包后位于应用根） */
+    /** 铃声资源 */
     ringtone: {
-        /** 主叫侧回铃音 + 被叫侧来电铃声共用一段音频，靠音量区分 */
-        url: '/audio/phonering.wav',
+        /** 主叫侧回铃音 + 被叫侧来电铃声共用一段音频，靠音量区分。路径相对 public/，渲染层经 publicUrl() 取 URL */
+        path: 'audio/phonering.wav',
         /** 被叫来电音量 */
         incomingVolume: 0.8,
         /** 主叫回铃音量：自己拨出的不需要那么响 */
@@ -127,6 +127,19 @@ export const TRAY_MENU_CONFIG = {
     /** 右键时若渲染层尺寸还没上报，等这么久就按占位尺寸先弹出，保证右键必有反馈 */
     readyFallbackMs: 800,
 };
+
+/**
+ * 应用图标，路径相对 public/ 目录。
+ * 主进程拼 VITE_PUBLIC 得到文件路径，渲染层经 publicUrl() 得到 URL。
+ * 旧版图标（icon_1）存档在仓库根目录的 archive/icon/ 下：不放 public/，免得被打进安装包。
+ * index.html 的 favicon、electron-builder.json5 的 win.icon 读不到这里，换图标时要一起改。
+ */
+export const APP_ICON = {
+    /** 窗口、托盘、Logo 等处的常规图标 */
+    normal: 'icon/icon.png',
+    /** 去色版，空白页占位用 */
+    decolor: 'icon/icon-decolor.png',
+} as const;
 
 // 存放主进程和渲染进程通用的不变常量
 export const APP_CONSTANTS = {

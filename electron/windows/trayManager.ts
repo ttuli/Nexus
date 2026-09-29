@@ -2,6 +2,7 @@
 import { Tray, nativeImage, app, screen } from 'electron';
 import path from 'path';
 import { TrayMenuAction } from '@shared/types';
+import { APP_ICON } from '@shared/config/constants';
 
 /**
  * 托盘操作的回调接口
@@ -53,7 +54,7 @@ export class TrayManager {
             // 注意：windowManager 中使用的 __dirname 是编译后的位置
             // 我们这里也是在 electron/windows 下，所以 resource path 应该相似
 
-            let iconPath = path.join(publicPath, 'icon/icon_' + process.env.VITE_ICON_VERSION + '.png');
+            let iconPath = path.join(publicPath, APP_ICON.normal);
 
             // 如果是在开发环境，VITE_PUBLIC 可能指向 public 目录
             // 生产环境下，通常图标在用于打包的资源目录
@@ -64,7 +65,7 @@ export class TrayManager {
             if (icon.isEmpty()) {
                 // 尝试其他路径，或者记录错误
                 // 如果是 dev 环境，可能是 public/icon.png
-                iconPath = path.join(process.cwd(), 'public', 'icon/icon_' + process.env.VITE_ICON_VERSION + '.png');
+                iconPath = path.join(process.cwd(), 'public', APP_ICON.normal);
                 icon = nativeImage.createFromPath(iconPath);
             }
 

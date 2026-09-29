@@ -47,6 +47,21 @@ class ResourceManager {
         });
     }
 
+    /**
+     * 唤起当前界面（再次启动应用时由 second-instance 调用）。
+     * 强制更新期间只认更新窗口：旧窗口正在拆除，不能再翻出来；更新窗口还没建好就等它自己弹出。
+     * 否则主窗口优先（可能已关到托盘），没有主窗口说明还在登录阶段
+     */
+    public showCurrentWindow(): void {
+        if (isUpgradeRequired()) {
+            windowManager.showWindow(WindowKey.Update);
+            return;
+        }
+        if (!windowManager.showWindow(WindowKey.Home)) {
+            windowManager.showWindow(WindowKey.Login);
+        }
+    }
+
     public kickout(): void {
         // 强制更新接管期间，迟到的登出链路（刷新失败、身份失效提醒）不能再拆窗口、清 token
         if (isUpgradeRequired()) return;

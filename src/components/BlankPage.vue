@@ -5,7 +5,10 @@
 </template>
 
 <script lang="ts" setup>
-const BlankIcon = '/icon/icon_' + import.meta.env.VITE_ICON_VERSION + '-decolor.png'
+import { APP_ICON } from '@shared/config/constants'
+import { publicUrl } from '@/src/utils/resourceUrl'
+
+const BlankIcon = publicUrl(APP_ICON.decolor)
 
 defineOptions({ name: 'BlankPage' })
 </script>
