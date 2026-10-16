@@ -1,5 +1,5 @@
 <template>
-    <div v-if="visible" class="emoji-picker-overlay" @click.self="$emit('close')">
+    <div v-if="hasOpened" v-show="visible" class="emoji-picker-overlay" @click.self="$emit('close')">
         <div class="emoji-picker-container" :style="positionStyle">
             <div class="emoji-list">
                 <span v-for="(emoji, index) in emojiList" :key="index" class="emoji-item" @click="onSelect(emoji)">
@@ -11,7 +11,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 const props = defineProps<{
     visible: boolean;
@@ -19,6 +19,20 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits(['select', 'close']);
+
+// 首次打开前不挂载，打开过之后就常驻 DOM，仅靠 v-show 切换显隐。
+//
+// 原来用 v-if，每次开关都要重建 191 个节点、重算样式、并重新栅格化 191 个彩色
+// emoji 字形（Windows 上走 Segoe UI Emoji 的彩色字形，这步相当贵）——这是点开
+// 表情框卡顿的主因。改成只付一次代价，之后开关就只是改一个 display。
+const hasOpened = ref(false);
+watch(
+    () => props.visible,
+    (v) => {
+        if (v) hasOpened.value = true;
+    },
+    { immediate: true }
+);
 
 // A lightweight list of frequently used emojis
 const emojiList = [
@@ -109,8 +123,17 @@ const onSelect = (emoji: string) => {
             height: 32px;
             border-radius: 6px;
             cursor: pointer;
-            transition: all 0.15s ease-out;
             user-select: none;
+
+            /* 只过渡真正会变的两个属性。写 all 会让浏览器为这 191 个元素逐个跟踪
+               每一项可动画属性，鼠标划过网格时样式重算成本被成倍放大 */
+            transition: background-color 0.15s ease-out, transform 0.15s ease-out;
+
+            /* 容器高 260px，一次只露出约 6 行（48 个），其余 143 个在滚动区外。
+               加上这两行后，屏幕外的格子会跳过绘制与字形栅格化，滚动到才渲染。
+               尺寸与下面写死的 32×32 一致，不会产生滚动条跳动 */
+            content-visibility: auto;
+            contain-intrinsic-size: 32px 32px;
 
             &:hover {
                 background-color: $bg-hover;
