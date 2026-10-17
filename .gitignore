@@ -12,6 +12,8 @@ node_modules
 dist
 dist-ssr
 dist-electron
+coverage
+*.tsbuildinfo
 *.local
 
 # Editor directories and files
@@ -24,8 +26,9 @@ dist-electron
 *.njsproj
 *.sln
 *.sw?
+.claude/settings.local.json
 
 .env
 package-lock.json
-doc
-release
+/doc/
+/release/
