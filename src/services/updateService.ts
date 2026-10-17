@@ -2,12 +2,13 @@
  * 应用更新服务（纯 I/O）
  *
  * 检查、下载、安装全部在主进程 updateManager 里完成，这里只做 IPC 收发：
- * - 登录窗 / 主窗口：拉取与监听「可选更新提示」，回传用户的选择
+ * - 主窗口：拉取与监听「可选更新提示」，回传用户的选择
+ * - 设置页：手动检查更新，有新版本时打开更新窗口
  * - 更新窗口：拉取与监听更新状态，发送重试 / 安装 / 关闭等操作
  */
 import { ipcService } from './ipcService'
 import { IpcChannels } from '@shared/types'
-import type { UpdatePromptAction, UpdatePromptInfo, UpdateState } from '@shared/types'
+import type { UpdateCheckResult, UpdatePromptAction, UpdatePromptInfo, UpdateState } from '@shared/types'
 
 class UpdateService {
     // ==================== 可选更新提示 ====================
@@ -28,6 +29,24 @@ class UpdateService {
 
     respondPrompt(action: UpdatePromptAction): void {
         ipcService.send(IpcChannels.UPDATE_PROMPT_RESPOND, action)
+    }
+
+    // ==================== 设置页 ====================
+
+    /** 手动检查更新（只查询不下载） */
+    async check(): Promise<UpdateCheckResult> {
+        const res = await ipcService.invoke<UpdateCheckResult>(IpcChannels.UPDATE_CHECK)
+        return res.success && res.data ? res.data : { status: 'error', error: res.error || '检查更新失败' }
+    }
+
+    /** 打开更新窗口，下载最近一次检查发现的新版本 */
+    start(): void {
+        ipcService.send(IpcChannels.UPDATE_START)
+    }
+
+    async getVersion(): Promise<string> {
+        const res = await ipcService.invoke<string>(IpcChannels.UPDATE_GET_VERSION)
+        return res.success ? res.data ?? '' : ''
     }
 
     // ==================== 更新窗口 ====================

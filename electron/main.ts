@@ -44,6 +44,8 @@ if (!app.requestSingleInstanceLock()) {
   app.quit()
 } else {
   app.on('second-instance', () => {
+    // 退出时正在后台等更新下载完（界面已全部收掉），由 updateManager 重新启动应用
+    if (updateManager.handleSecondInstance()) return;
     resourceManager.showCurrentWindow();
   })
 

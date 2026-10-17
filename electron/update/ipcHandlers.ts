@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron';
 import { IpcChannels, UpdatePromptAction } from '@shared/types';
 import type { UpdateManager } from './updateManager';
+import { getAppVersion } from './updateSignals';
 
 const PROMPT_ACTIONS: readonly UpdatePromptAction[] = ['update', 'later', 'skip'];
 
@@ -31,4 +32,10 @@ export function setupUpdateIpcHandlers(manager: UpdateManager): void {
     ipcMain.on(IpcChannels.UPDATE_OPEN_DOWNLOAD_PAGE, () => manager.openDownloadPage());
 
     ipcMain.on(IpcChannels.UPDATE_SHOW_INSTALLER, () => manager.showInstaller());
+
+    ipcMain.handle(IpcChannels.UPDATE_CHECK, async () => ({ success: true, data: await manager.checkManually() }));
+
+    ipcMain.on(IpcChannels.UPDATE_START, () => manager.startUpdate());
+
+    ipcMain.handle(IpcChannels.UPDATE_GET_VERSION, () => ({ success: true, data: getAppVersion() }));
 }

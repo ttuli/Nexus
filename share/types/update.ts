@@ -5,7 +5,7 @@
 /**
  * 更新模式
  * - forced：服务端判定当前版本过低（HTTP 426），不更新不能用，其他窗口已全部关闭
- * - optional：启动时发现新版本、用户在提示框里选了「立即更新」，主窗口照常可用
+ * - optional：用户在更新提示框或设置页选了「立即更新」，主窗口照常可用
  */
 export type UpdateMode = 'forced' | 'optional';
 
@@ -56,7 +56,7 @@ export interface UpdateState {
     hasInstaller: boolean;
 }
 
-/** 启动检查发现的可选更新，由主窗口 / 登录窗弹框提示 */
+/** 启动检查发现的可选更新，登录成功后由主窗口弹框提示 */
 export interface UpdatePromptInfo {
     version: string;
     currentVersion: string;
@@ -70,3 +70,14 @@ export interface UpdatePromptInfo {
  * - skip：跳过此版本（该版本不再提示，更新的版本发布后照常提示）
  */
 export type UpdatePromptAction = 'update' | 'later' | 'skip';
+
+/**
+ * 设置页手动检查更新的结果
+ * - latest：已是最新版本
+ * - available：有新版本，设置页显示「立即更新」
+ * - error：检查失败（更新源不可达、开发环境等）
+ */
+export type UpdateCheckResult =
+    | { status: 'latest' }
+    | { status: 'available'; version: string }
+    | { status: 'error'; error: string };

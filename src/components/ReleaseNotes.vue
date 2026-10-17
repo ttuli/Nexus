@@ -5,7 +5,7 @@
             <span v-if="currentVersion" class="current-version">当前版本 v{{ currentVersion }}</span>
         </div>
         <!-- 按纯文本展示（主进程已剥掉 HTML），不走 v-html -->
-        <div class="notes" :style="{ maxHeight }">{{ notes || '本次更新包含问题修复与体验优化。' }}</div>
+        <div class="notes scroll-bar-normal" :style="{ maxHeight }">{{ notes || '本次更新包含问题修复与体验优化。' }}</div>
     </div>
 </template>
 

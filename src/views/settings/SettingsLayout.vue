@@ -79,7 +79,7 @@
                             <img :src="icon" alt="Nexus" @error="handleLogoError" />
                         </div>
                         <h1 class="app-name">Nexus</h1>
-                        <p class="app-version">Version 1.0.0 (Build 260616)</p>
+                        <p v-if="currentVersion" class="app-version">Version {{ currentVersion }}</p>
                     </div>
 
                     <div class="about-details">
@@ -98,7 +98,13 @@
                     </div>
 
                     <div class="about-actions">
-                        <button class="text-action-btn" @click="checkUpdates">检查更新</button>
+                        <template v-if="newVersion">
+                            <span class="update-hint">发现新版本 v{{ newVersion }}</span>
+                            <button class="text-action-btn" @click="startUpdate">立即更新</button>
+                        </template>
+                        <button v-else class="text-action-btn" :disabled="checking" @click="checkUpdate">
+                            {{ checking ? '正在检查…' : '检查更新' }}
+                        </button>
                         <span class="divider">|</span>
                         <button class="text-action-btn" @click="viewLicense">服务条款</button>
                     </div>
@@ -119,10 +125,12 @@ import { IpcChannels } from '@shared/types';
 import { settingService } from '@/src/services';
 import { publicUrl } from '@/src/utils/resourceUrl';
 import { APP_ICON } from '@shared/config/constants';
+import { useUpdateCheck } from '@/src/composables/useUpdateCheck';
 
 const isDark = computed(() => theme.value === 'dark');
 const currentStoragePath = ref<string>('加载中...');
 const activeTab = ref<'general' | 'about'>('general');
+const { currentVersion, checking, newVersion, checkUpdate, startUpdate } = useUpdateCheck();
 
 // App Logo path resolving, fallback to a local app logo fallback if error
 const icon = ref(publicUrl(APP_ICON.normal));
@@ -167,10 +175,6 @@ const copyPath = (path: string) => {
         .catch(() => {
             ElMessage.error('复制失败');
         });
-};
-
-const checkUpdates = () => {
-    ElMessage.success('当前已是最新版本');
 };
 
 const viewLicense = () => {
@@ -527,10 +531,20 @@ onMounted(() => {
             padding: 4px 8px;
             transition: color 0.2s ease;
 
-            &:hover {
+            &:hover:not(:disabled) {
                 text-decoration: underline;
                 color: var(--color-primary-dark);
             }
+
+            &:disabled {
+                color: $color-text-disabled;
+                cursor: default;
+            }
+        }
+
+        .update-hint {
+            font-size: 12px;
+            color: $color-text-secondary;
         }
 
         .divider {

@@ -154,7 +154,7 @@ export const IpcChannels = {
     // 应用更新相关
     /** 拉取待提示的可选更新（窗口挂载晚于启动检查完成时，靠它补上错过的推送） */
     UPDATE_GET_PROMPT: 'update:get-prompt',
-    /** 主进程推送：发现可选更新，由登录窗 / 主窗口弹提示框 */
+    /** 主进程推送：发现可选更新，由主窗口弹提示框（登录成功后才提示） */
     UPDATE_PROMPT: 'update:prompt',
     /** 用户对更新提示框的选择，携带 UpdatePromptAction */
     UPDATE_PROMPT_RESPOND: 'update:prompt-respond',
@@ -172,6 +172,12 @@ export const IpcChannels = {
     UPDATE_OPEN_DOWNLOAD_PAGE: 'update:open-download-page',
     /** 在资源管理器中定位已下载的安装包（自动安装失败时让用户手动运行） */
     UPDATE_SHOW_INSTALLER: 'update:show-installer',
+    /** 设置页手动检查更新，返回 UpdateCheckResult；不受「跳过此版本」影响 */
+    UPDATE_CHECK: 'update:check',
+    /** 设置页「立即更新」：打开更新窗口下载最近一次检查发现的新版本 */
+    UPDATE_START: 'update:start',
+    /** 当前应用版本号（设置页「关于」展示） */
+    UPDATE_GET_VERSION: 'update:get-version',
 } as const
 
 export type IpcChannel = typeof IpcChannels[keyof typeof IpcChannels]
