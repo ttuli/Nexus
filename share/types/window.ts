@@ -16,6 +16,8 @@ export enum TrayMenuAction {
     ShowHome = 'showHome',
     /** 打开设置窗口 */
     OpenSettings = 'openSettings',
+    /** 退出登录：先由主窗口弹框确认，确认后才真正登出 */
+    Logout = 'logout',
     /** 退出应用 */
     Quit = 'quit',
 }

@@ -15,7 +15,7 @@ class TrayService {
     }
 
     /**
-     * 执行菜单项（打开主界面 / 设置 / 退出），动作实现在主进程 TrayManager
+     * 执行菜单项（打开主界面 / 设置 / 退出登录 / 退出），动作实现在主进程 TrayManager
      */
     runAction(action: TrayMenuAction): void {
         ipcService.send(IpcChannels.TRAY_MENU_ACTION, action)

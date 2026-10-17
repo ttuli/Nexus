@@ -10,6 +10,8 @@ import { APP_ICON } from '@shared/config/constants';
 export interface TrayCallbacks {
     onShowHome: () => void;
     onOpenSettings: () => void;
+    /** 退出登录：只负责发起，确认框在主窗口里弹 */
+    onLogout: () => void;
     onQuit: () => void;
     /** 右键托盘：在锚点矩形（托盘图标屏幕位置，DIP）附近弹出自定义菜单窗口 */
     onOpenMenu: (anchor: Electron.Rectangle) => void;
@@ -107,6 +109,9 @@ export class TrayManager {
                 break;
             case TrayMenuAction.OpenSettings:
                 this.callbacks.onOpenSettings();
+                break;
+            case TrayMenuAction.Logout:
+                this.callbacks.onLogout();
                 break;
             case TrayMenuAction.Quit:
                 this.callbacks.onQuit();

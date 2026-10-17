@@ -23,7 +23,7 @@
 
 <script setup lang="ts">
 import { markRaw, nextTick, onMounted, onUnmounted, ref, type Component } from 'vue';
-import { Home, Setting, PowerOff } from 'reicon-vue';
+import { Home, Setting, Logout, PowerOff } from 'reicon-vue';
 import { trayService } from '@/src/services';
 import { APP_CONSTANTS, APP_ICON, TRAY_MENU_CONFIG } from '@shared/config/constants';
 import { publicUrl } from '@/src/utils/resourceUrl';
@@ -40,6 +40,7 @@ interface TrayMenuItem {
 const menuItems: TrayMenuItem[] = [
     { action: TrayMenuAction.ShowHome, label: '打开主界面', icon: markRaw(Home) },
     { action: TrayMenuAction.OpenSettings, label: '设置', icon: markRaw(Setting) },
+    { action: TrayMenuAction.Logout, label: '退出登录', icon: markRaw(Logout) },
     { action: TrayMenuAction.Quit, label: `退出`, icon: markRaw(PowerOff), danger: true },
 ];
 

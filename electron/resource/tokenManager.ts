@@ -58,17 +58,20 @@ class TokenManager {
         this.deviceId = deviceId;
         this.platform = platform;
 
-        // 从本地读取 refreshToken（经 safeStorage 保护，换机器/换系统账户后会解不开，返回 null）
+        this.restoreSavedRefreshToken();
+    }
+
+    /**
+     * 按本地保存的 refreshToken（勾选「记住我」才有）重置内存凭证，登录窗据此决定是否提供一键登录。
+     * 启动与主动登出共用这一套规则，保证登出后的登录窗与冷启动时一致。
+     */
+    private restoreSavedRefreshToken(): void {
+        // 经 safeStorage 保护，换机器/换系统账户后会解不开，返回 null
         const savedRefreshToken = secureStore.get(StorageKeys.REFRESH_TOKEN);
-        if (savedRefreshToken) {
-            const decodedToken = jwt.decode(savedRefreshToken) as RefreshTokenPayload;
-            if (decodedToken?.device_id !== this.deviceId) {
-                this.refreshToken = '';
-            } else {
-                this.storeRefreshToken = true;
-                this.refreshToken = savedRefreshToken;
-            }
-        }
+        const decodedToken = savedRefreshToken ? jwt.decode(savedRefreshToken) as RefreshTokenPayload : null;
+        const usable = !!savedRefreshToken && decodedToken?.device_id === this.deviceId;
+        this.refreshToken = usable ? savedRefreshToken! : '';
+        this.storeRefreshToken = usable;
     }
 
     // ==================== Getters ====================
@@ -248,12 +251,20 @@ class TokenManager {
     // ==================== 清理 ====================
 
     /**
-     * 退出登录时清理 Token 状态
+     * 被踢 / 身份失效时清理 Token 状态：连本地记住的凭证一起删，登录窗不再提供一键登录
      */
     public cleanout(): void {
         secureStore.delete(StorageKeys.REFRESH_TOKEN);
         this.token = '';
         this.refreshToken = '';
+    }
+
+    /**
+     * 主动登出时结束本次会话：本地记住的凭证不动，内存凭证按启动时的规则重新载入
+     */
+    public endSession(): void {
+        this.token = '';
+        this.restoreSavedRefreshToken();
     }
 }
 

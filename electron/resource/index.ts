@@ -83,6 +83,25 @@ class ResourceManager {
         });
     }
 
+    /**
+     * 主动登出（托盘「退出登录」经主窗口确认后）。与 kickout 的区别：
+     * - 本地记住的登录凭证保留，回到的登录窗与启动时一致（勾过「记住我」就能一键登录）；
+     * - 窗口先关、WS 后断（同 destroy）：此时连接还是好的，通话窗收到 APP_QUIT 时还能把挂断信令发出去
+     */
+    public logout(): void {
+        if (isUpgradeRequired()) return;
+
+        windowManager.closeAllWindows().finally(() => {
+            wsManager.closeWs();
+            // 窗口都关完再重置凭证：关窗期间渲染层迟到的请求若触发刷新，不会把凭证又写回内存
+            tokenManager.endSession();
+            cacheManager.clearMemory();
+            closePrivateDB()
+                .catch(err => console.error('[ResourceManager] closePrivateDB error:', err))
+                .finally(() => this.showLogin());
+        });
+    }
+
     // ==================== App Lifecycle ====================
 
     /**

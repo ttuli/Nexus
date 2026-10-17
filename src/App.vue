@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { nextTick, ref } from 'vue'
-import CusDialog from './components/CusDialog'
+import CusDialog, { DialogResult } from './components/CusDialog'
 import { useUserStore } from './store/user'
 import { ipcService, windowService, tokenService, listenerService, LogoutType } from '@/src/services'
 import { cancelOfflineSync } from '@/src/composables/offlineSync'
@@ -43,6 +43,27 @@ try {
             })
         }
         windowService.sendLogout()
+    })
+    // 托盘「退出登录」：主进程只发给主窗口。只有点「确定」才登出，取消 / 关闭弹框都不动
+    let logoutConfirming = false
+    ipcService.on(IpcChannels.LOGOUT_CONFIRM, async () => {
+        // 弹框还开着时又点了一次托盘菜单：不叠第二个
+        if (logoutConfirming) return
+        logoutConfirming = true
+        try {
+            const result = await CusDialog.open({
+                title: '退出登录',
+                content: '确定要退出登录吗？',
+                showCancel: true,
+                confirmText: '确定',
+                cancelText: '取消',
+            })
+            if (result === DialogResult.Confirm) {
+                windowService.sendUserLogout()
+            }
+        } finally {
+            logoutConfirming = false
+        }
     })
     tokenService.getAllInfo().then((data) => {
         if (data.success && data.token) {

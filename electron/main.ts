@@ -74,6 +74,11 @@ if (!app.requestSingleInstanceLock()) {
       resourceManager.kickout();
     })
 
+    // 托盘「退出登录」经主窗口确认后触发
+    ipcMain.on(IpcChannels.USER_LOGOUT, () => {
+      resourceManager.logout();
+    })
+
     // 版本检查先于登录窗：版本过低直接进更新窗口，不先弹出登录窗再关掉
     const forced = await updateManager.checkOnStartup();
     if (!forced) {

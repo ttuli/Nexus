@@ -95,6 +95,14 @@ class WindowService {
     }
 
     /**
+     * 主动登出（托盘「退出登录」确认后）：与 sendLogout 不同，保留「记住我」的登录凭证，
+     * 回到的登录窗与启动时一致
+     */
+    sendUserLogout(): void {
+        ipcService.send(IpcChannels.USER_LOGOUT)
+    }
+
+    /**
      * 监听窗口状态变化
      */
     onWindowState(callback: (state: 'maximized' | 'normal') => void): void {

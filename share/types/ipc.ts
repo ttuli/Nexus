@@ -115,6 +115,10 @@ export const IpcChannels = {
     APP_QUIT: 'app-quit',
     LOGOUT: 'logout',
     LOGOUT_REMIND: 'logout-remind',
+    /** 主进程 → 主窗口：托盘点了「退出登录」，弹框让用户确认 */
+    LOGOUT_CONFIRM: 'logout-confirm',
+    /** 主窗口 → 主进程：用户确认主动登出（保留「记住我」的登录凭证，区别于被踢的 LOGOUT） */
+    USER_LOGOUT: 'user-logout',
     QUIT: 'quit',
 
 

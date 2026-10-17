@@ -46,6 +46,12 @@ class WindowManager {
               this.CreateWindow({ key: WindowKey.Settings });
             },
             onOpenMenu: (anchor) => this.trayMenu.show(anchor),
+            onLogout: () => {
+              // 主窗口可能已关到托盘或最小化：先唤起，确认框弹在它上面，用户点「确定」后由它发 USER_LOGOUT
+              if (this.showWindow(WindowKey.Home)) {
+                this.sendMessage(WindowKey.Home, IpcChannels.LOGOUT_CONFIRM);
+              }
+            },
             onQuit: () => {
               this.closeAllWindows().finally(() => {
                 // 等 DB Worker 队列中的写入（含退出前的会话保存）落盘后再退出
