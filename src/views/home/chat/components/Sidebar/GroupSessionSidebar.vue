@@ -4,16 +4,15 @@
 
             <!-- 群信息卡片 -->
             <div class="group-info-card">
-                <div class="group-info-main">
-                    <Avatar type="group" :uid="targetIdVal" width="50px" height="50px" class="group-avatar" />
-                    <div class="group-meta">
-                        <div class="group-name" :title="groupInfo.name">{{ groupInfo.name }}</div>
-                        <div class="group-id-badge">
-                            <el-tooltip content="点击复制群号" placement="top" :show-after="500">
-                                <span class="group-id" @click="copyGroupId">{{ groupInfo.id }}</span>
-                            </el-tooltip>
-                        </div>
-                    </div>
+                <Avatar type="group" :uid="targetIdVal" width="50px" height="50px" class="group-avatar" />
+                <div class="group-name" :title="groupInfo.name">{{ groupInfo.name }}</div>
+                <div class="group-id-row">
+                    <span>群号: {{ groupInfo.id }}</span>
+                    <el-tooltip content="复制群号" placement="top" :show-after="500">
+                        <el-icon class="copy-icon" @click="copyGroupId">
+                            <CopyDocument />
+                        </el-icon>
+                    </el-tooltip>
                 </div>
                 <CusButton class="group-action-btn" type="normal" :show-icon="false" v-if="isOwnerOrAdmin" @click="openGroupSettings" style="width: auto; height: 32px;">
                     <svg viewBox="0 0 1024 1024" class="btn-icon">
@@ -139,7 +138,7 @@
 </template>
 
 <script setup lang="ts">
-import { Edit } from '@element-plus/icons-vue';
+import { CopyDocument, Edit } from '@element-plus/icons-vue';
 import { ImTypes } from '@shared/types';
 import { useGroupActions } from '@/src/composables/useGroupActions';
 import { useGroupSessionSidebar } from '@/src/composables/useGroupSessionSidebar';
@@ -230,70 +229,58 @@ const confirmQuitGroup = async () => {
             border-radius: var(--radius-lg, 12px);
             padding: 15px;
             margin-bottom: 20px;
-            display: flex;
-            justify-content: space-between;
+            // 群号独占第二行并延伸到「设置」按钮下方：与按钮同排时可用宽度不足，"群号 + 8 位数字 + 复制按钮" 会被挤成两行
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            grid-template-areas:
+                "avatar name action"
+                "avatar id   id";
+            row-gap: 4px;
             align-items: center;
 
-            .group-info-main {
+            .group-avatar {
+                grid-area: avatar;
+                margin-right: 12px;
+                width: 50px;
+                height: 50px;
+                border-radius: 50%;
+                object-fit: cover;
+                background-color: #e2e8f0;
+            }
+
+            .group-name {
+                grid-area: name;
+                font-size: 15px;
+                font-weight: 600;
+                color: $color-text-primary;
+                @include ellipsis;
+            }
+
+            .group-id-row {
+                grid-area: id;
                 display: flex;
                 align-items: center;
-                gap: 12px;
-                flex: 1;
-                min-width: 0;
+                gap: 4px;
+                white-space: nowrap;
+                font-size: 12px;
+                color: $color-text-secondary;
 
-                .group-avatar {
-                    width: 50px;
-                    height: 50px;
-                    border-radius: 50%;
-                    object-fit: cover;
-                    flex-shrink: 0;
-                    background-color: #e2e8f0;
-                }
+                .copy-icon {
+                    cursor: pointer;
+                    font-size: 13px;
+                    transition: color 0.2s;
 
-                .group-meta {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 4px;
-                    min-width: 0;
-                    align-items: flex-start;
-
-                    .group-name {
-                        font-size: 15px;
-                        font-weight: 600;
-                        color: $color-text-primary;
-                        width: 100%;
-                        @include ellipsis;
-                    }
-
-                    .group-id-badge {
-                        display: flex;
-                        align-items: flex-start;
-
-                        .group-id {
-                            font-size: 12px;
-                            color: $color-text-secondary;
-                            background-color: var(--bg-hover, #f3f4f6);
-                            padding: 2px 4px;
-                            border-radius: 4px;
-                            font-family: monospace;
-                            font-weight: bold;
-                            cursor: pointer;
-                            transition: all 0.2s;
-
-                            &:hover {
-                                background-color: var(--bg-active, #e2e8f0);
-                                color: var(--color-primary);
-                            }
-                        }
+                    &:hover {
+                        color: var(--color-primary);
                     }
                 }
             }
 
             .group-action-btn {
+                grid-area: action;
                 width: auto;
                 height: 30px;
                 padding: 0 10px;
-                flex-shrink: 0;
 
                 .btn-icon {
                     width: 14px;

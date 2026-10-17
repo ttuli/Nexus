@@ -11,6 +11,14 @@
                 <div class="profile-id" v-if="friendInfo?.remark && userInfo?.user_name">
                     <span>用户名: {{ userInfo.user_name }}</span>
                 </div>
+                <div class="profile-id profile-account" v-if="targetId">
+                    <span>账号: {{ targetId }}</span>
+                    <el-tooltip content="复制账号" placement="top" :show-after="500">
+                        <el-icon class="copy-icon" @click="copyAccount">
+                            <CopyDocument />
+                        </el-icon>
+                    </el-tooltip>
+                </div>
                 <div class="profile-signature" v-if="userInfo?.personal_signature" :title="userInfo.personal_signature">
                     “{{ userInfo.personal_signature }}”
                 </div>
@@ -68,7 +76,7 @@ import { useUserStore } from '@/src/store/user';
 import { ImTypes } from '@shared/types';
 import { ElMessage } from 'element-plus';
 import { extractTargetIdFromSessionId } from '@/src/utils/sessionUtils';
-import { Edit } from '@element-plus/icons-vue';
+import { CopyDocument, Edit } from '@element-plus/icons-vue';
 import { friendService } from '@/src/services';
 import { updateSessionOptions, clearSessionMessages } from '@/src/composables/sessionActions';
 
@@ -83,6 +91,15 @@ const userStore = useUserStore();
 const targetId = computed(() => extractTargetIdFromSessionId(props.chat.session_key, userStore.getUserID()) || 0);
 const friendInfo = computed(() => userStore.getFriend(targetId.value));
 const userInfo = computed(() => userStore.getUser(targetId.value));
+
+const copyAccount = async () => {
+    try {
+        await navigator.clipboard.writeText(String(targetId.value));
+        ElMessage.success('已复制');
+    } catch {
+        ElMessage.error('复制失败，请手动复制');
+    }
+};
 
 // Remark Editing Logic
 const isEditingRemark = ref(false);
@@ -235,6 +252,22 @@ const confirmDeleteFriend = async () => {
                 font-size: 12px;
                 color: var(--text-secondary);
                 margin-top: 4px;
+            }
+
+            .profile-account {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+
+                .copy-icon {
+                    cursor: pointer;
+                    font-size: 13px;
+                    transition: color 0.2s;
+
+                    &:hover {
+                        color: var(--color-primary);
+                    }
+                }
             }
 
             .profile-signature {
