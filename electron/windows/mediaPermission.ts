@@ -9,9 +9,11 @@ import { session } from 'electron'
  * 排查时极易误判成系统问题。显式声明后行为确定，也便于将来收紧。
  *
  * 只放行通话真正需要的 `media`（含 mic/camera）与 `audioCapture`/`videoCapture`，
+ * 外加剪贴板写入 `clipboard-sanitized-write`：注册 handler 后 `navigator.clipboard.writeText`
+ * 也要过这里，不放行则全应用的「复制」都报 `Write permission denied`。
  * 其余（通知、地理位置、剪贴板读取等）一律拒绝，不做无条件 `callback(true)`。
  */
-const ALLOWED_PERMISSIONS = new Set(['media', 'audioCapture', 'videoCapture'])
+const ALLOWED_PERMISSIONS = new Set(['media', 'audioCapture', 'videoCapture', 'clipboard-sanitized-write'])
 
 /** 仅信任应用自身页面：dev 为 vite server，生产为 file:// 加载的本地页面 */
 function isAppOrigin(url: string): boolean {
