@@ -4,17 +4,14 @@ import { storage } from './storage';
 /**
  * 敏感字符串的持久化封装
  *
- * 在 storage.json 的基础上套一层 Electron safeStorage：
- *   Windows → DPAPI（绑定当前 Windows 账户）
- *   macOS   → Keychain
- *   Linux   → libsecret / kwallet
+ * 在 storage.json 的基础上套一层 Electron safeStorage，由 Windows DPAPI 加密（绑定当前 Windows 账户），
  * 因此把 storage.json 拷到另一台机器或另一个系统账户下都解不开。
  *
- * safeStorage 在部分平台（如未安装 keyring 的 Linux）不可用。此时降级为明文存储，
- * 并在 envelope 里记录 protected=false —— 环境恢复后写入会自动升级回加密形式，
- * 不需要迁移代码。
+ * safeStorage 不可用时降级为明文存储，并在 envelope 里记录 protected=false ——
+ * 环境恢复后写入会自动升级回加密形式，不需要迁移代码。
  *
- * 注意：必须在 app.whenReady() 之后调用，否则 safeStorage 在部分平台会抛异常。
+ * 注意：必须在 app.whenReady() 之后调用。Windows 上 safeStorage 要到 ready 之后才可用，
+ * 提前调用会被当成不可用而以明文写入。
  */
 
 /** 落盘信封格式，用 __sec 标记以便与历史明文值区分 */
@@ -60,10 +57,7 @@ class SecureStore {
 
         if (!this.warned) {
             this.warned = true;
-            console.warn(
-                '[SecureStore] safeStorage 不可用，敏感数据将以明文写入 storage.json。' +
-                '若这是 Linux，安装 gnome-keyring / kwallet 后重启即可自动恢复加密。'
-            );
+            console.warn('[SecureStore] safeStorage 不可用，敏感数据将以明文写入 storage.json。');
         }
         storage.set<SecureEnvelope>(key, { __sec: 1, v: value, protected: false });
     }
@@ -89,7 +83,7 @@ class SecureStore {
         try {
             return safeStorage.decryptString(Buffer.from(raw.v, 'base64'));
         } catch (err) {
-            // 换了机器或系统账户后 DPAPI/Keychain 无法解密，属预期情形
+            // 换了机器或系统账户后 DPAPI 无法解密，属预期情形
             console.error(`[SecureStore] Failed to decrypt "${key}" (机器或系统账户已变更?):`, err);
             return null;
         }

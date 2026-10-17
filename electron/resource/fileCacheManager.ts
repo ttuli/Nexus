@@ -318,35 +318,23 @@ class FileCacheManager {
         }
 
         // 2. 如果在缓存目录外，禁止访问关键系统目录
-        if (process.platform === 'win32') {
-            const systemRoot = (process.env.SystemRoot || 'C:\\Windows').toLowerCase();
-            const winDir = (process.env.windir || 'C:\\Windows').toLowerCase();
-            const programFiles = (process.env.ProgramFiles || 'C:\\Program Files').toLowerCase();
-            const programFilesX86 = (process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)').toLowerCase();
+        const systemRoot = (process.env.SystemRoot || 'C:\\Windows').toLowerCase();
+        const winDir = (process.env.windir || 'C:\\Windows').toLowerCase();
+        const programFiles = (process.env.ProgramFiles || 'C:\\Program Files').toLowerCase();
+        const programFilesX86 = (process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)').toLowerCase();
 
-            if (resolvedPath.startsWith(systemRoot) || 
-                resolvedPath.startsWith(winDir) || 
-                resolvedPath.startsWith(programFiles) || 
-                resolvedPath.startsWith(programFilesX86)) {
-                return false;
-            }
+        if (resolvedPath.startsWith(systemRoot) ||
+            resolvedPath.startsWith(winDir) ||
+            resolvedPath.startsWith(programFiles) ||
+            resolvedPath.startsWith(programFilesX86)) {
+            return false;
+        }
 
-            // 禁止访问其他 App 的 AppData（排除自身）
-            const selfUserData = app.getPath('userData').toLowerCase();
-            if ((resolvedPath.includes('\\appdata\\roaming\\') || resolvedPath.includes('\\appdata\\local\\')) && 
-                !resolvedPath.startsWith(selfUserData)) {
-                return false;
-            }
-        } else {
-            // macOS / Linux 平台
-            const forbiddenPrefixes = [
-                '/etc/', '/var/', '/usr/', '/bin/', '/sbin/', '/lib/', '/sys/', '/proc/', '/dev/', '/root/'
-            ];
-            for (const prefix of forbiddenPrefixes) {
-                if (resolvedPath.startsWith(prefix)) {
-                    return false;
-                }
-            }
+        // 禁止访问其他 App 的 AppData（排除自身）
+        const selfUserData = app.getPath('userData').toLowerCase();
+        if ((resolvedPath.includes('\\appdata\\roaming\\') || resolvedPath.includes('\\appdata\\local\\')) &&
+            !resolvedPath.startsWith(selfUserData)) {
+            return false;
         }
 
         return true;

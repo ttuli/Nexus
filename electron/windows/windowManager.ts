@@ -182,7 +182,7 @@ class WindowManager {
         skipTaskbar,
         alwaysOnTop,
         hasShadow,
-        opacity: 1,
+        // 不要设置 opacity（哪怕是 1）：Windows 下会把窗口变成分层窗口（WS_EX_LAYERED），系统就不再播放窗口的关闭动画
         icon: path.join(process.env.VITE_PUBLIC || __dirname, APP_ICON.normal),
         modal,
         title: app.getName(),
@@ -190,6 +190,8 @@ class WindowManager {
         show: false,
         webPreferences: {
           ...webPreferences,
+          // 打包后一律关闭调试工具：Ctrl+Shift+I 等入口全部失效，openDevTools() 也打不开；开发时沿用窗口自己的配置
+          devTools: !app.isPackaged && webPreferences.devTools !== false,
           contextIsolation: true,
           nodeIntegration: false,
           preload: path.join(__dirname, 'preload.mjs'),

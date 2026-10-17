@@ -29,8 +29,11 @@ export default defineConfig(({ mode }) => {
                   'db.worker': 'electron/db/db.worker.ts',
                 },
                 // electron-updater 运行时按平台动态 require 各 Updater 实现，保持外部依赖，
-                // 由 electron-builder 随 dependencies 一起打进安装包
-                external: ['dotenv', 'koffi', 'better-sqlite3-multiple-ciphers', 'electron-updater'],
+                // 由 electron-builder 随 dependencies 一起打进安装包。
+                // 只有这里列出的包会在运行时从 node_modules 加载，必须放在 package.json 的 dependencies；
+                // 其余依赖已被打进 dist / dist-electron，一律放 devDependencies，
+                // 否则 electron-builder 会把整个包再复制一份进安装包（element-plus 一个就 35 MB）
+                external: ['dotenv', 'better-sqlite3-multiple-ciphers', 'electron-updater'],
               },
             },
             resolve: {

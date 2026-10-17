@@ -1,7 +1,10 @@
-// 抹平主进程 (process.env) 和 渲染进程 (import.meta.env) 的读取差异
+// 抹平主进程 (process.env) 和 渲染进程 (import.meta.env) 的读取差异。
+// 优先取运行时环境变量（开发时主进程由 dotenv 从 .env 注入，也便于临时覆盖），没有再取构建时写进包里的 import.meta.env。
+// 主进程里 process.env 总是存在，不能见它就直接返回：打包后没有 .env，会拿到 undefined 退回 localhost 默认值。
 export const getEnv = (key: string) => {
-    if (typeof process !== 'undefined' && process.env) {
-        return process.env[key];
+    const runtime = typeof process !== 'undefined' ? process.env?.[key] : undefined;
+    if (runtime !== undefined) {
+        return runtime;
     }
     // @ts-ignore
     if (typeof import.meta !== 'undefined' && import.meta.env) {
@@ -169,6 +172,7 @@ export const APP_CONSTANTS = {
     /**
      * 官网下载页。自动更新走不通（更新源不可达、自动安装失败）时给用户的兜底出口；
      * 未配置则不显示「前往官网下载」。
+     * 填服务端的下载入口 /auth/download（跳转到最新安装包）：这个值打包时写死，不能填带版本号的 OSS 直链。
      * 注：更新源（latest.yml 所在目录）不在这里配，见 electron-builder.json5 的 publish。
      */
     get downloadPageUrl() { return getEnv('VITE_DOWNLOAD_PAGE_URL') || ''; },

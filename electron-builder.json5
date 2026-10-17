@@ -9,34 +9,46 @@
   },
   "files": [
     "dist",
-    "dist-electron"
+    "dist-electron",
+    // SQLCipher 原生模块运行时只加载 prebuilds/win32-x64.node（见其 lib/binding.js），
+    // 其他平台的预编译文件、C/C++ 源码和编译用的头文件都用不上，约 30 MB
+    "!**/node_modules/better-sqlite3-multiple-ciphers/prebuilds/{darwin,linux,linuxmusl}-*.node",
+    "!**/node_modules/better-sqlite3-multiple-ciphers/prebuilds/win32-arm64.node",
+    "!**/node_modules/better-sqlite3-multiple-ciphers/{deps,src}${/*}",
+    "!**/node_modules/better-sqlite3-multiple-ciphers/node_modules/node-addon-api${/*}"
   ],
+  // Chromium 界面语言包只留简体中文和 en-US（找不到系统语言时的兜底，必须保留），其余 53 种约 45 MB。
+  // 语言包只管 Chromium 自带的文字（表单校验提示、右键菜单等）；系统语言不在其中时退回 en-US，不影响功能
+  "electronLanguages": ["zh-CN", "en-US"],
   // SQLCipher 的原生模块必须解包到 asar 之外才能被 dlopen 加载
   "asarUnpack": [
     "**/node_modules/better-sqlite3-multiple-ciphers/**"
   ],
-  // 本项目的原生依赖（better-sqlite3-multiple-ciphers / koffi / bufferutil /
-  // utf-8-validate）全部自带预编译产物，其中 SQLCipher 走的是 N-API，ABI 跨
+  // 本项目唯一的原生依赖 better-sqlite3-multiple-ciphers 自带预编译产物，且走的是 N-API，ABI 跨
   // Electron 版本稳定，不需要重编。放着不关的话 electron-builder 会调 node-gyp
   // 从源码重编一遍，在没有完整 C++/Python 工具链的机器上直接失败。
   "npmRebuild": false,
-  // 自动更新源：electron-updater 从 <url>/latest.yml 查询新版本。
+  // 自动更新源：electron-updater 从 <url>/latest.yml 查询新版本，安装包和 .blockmap 也从这里下载。
+  // url 打包时写进安装包（resources/app-update.yml），发出去就改不了，所以不填 OSS 直链，
+  // 而是指向服务端 /auth/update，由它 302 到真实存储（Auth 服务配置 AppVersion.UpdateFeedURL）；换存储只改服务端配置。
+  // url 取自环境变量 PUBLISH_URL：npm run build（scripts/build.mjs）会从 .env 读取；
+  // 直接运行 electron-builder 需自行设置，未设置时打包直接报错，不会带着错误地址出包。
   // 配了 publish，打包时才会在 release/<version>/ 下生成 latest.yml 与 .exe.blockmap。
-  // 发版时把 Setup.exe、.blockmap、latest.yml 上传到该目录：latest.yml 必须最后传，
+  // 发版时把 Setup.exe、.blockmap、latest.yml 上传到 UpdateFeedURL 指向的目录（需公共读）：latest.yml 必须最后传，
   // 且设置 Cache-Control: no-cache，否则客户端会读到指向未传完安装包的新 yml，或一直读到缓存的旧 yml。
-  // TODO: 换成实际的 OSS 地址（目录需公共读）
+  // 旧版本的 .blockmap 不要删：增量下载要拿它和新版本的对比。
+  // latest.yml 里的更新说明（releaseNotes）取自 release-notes/<版本号>.md，更新方式（vendor.updateMode）取自 --update-mode，
+  // 都由 scripts/build.mjs 传给 electron-builder。
   "publish": [
     {
       "provider": "generic",
-      "url": "https://update.example.com/nexus/win"
+      "url": "${env.PUBLISH_URL}",
+      // 增量下载按段请求安装包。阿里云 OSS 默认不支持一次请求多个区段，开着会让增量下载每次都失败、退回完整下载；
+      // 改为逐段请求后增量下载才生效，下载进度也只有这种模式才会上报
+      "useMultipleRangeRequest": false
     }
   ],
-  "mac": {
-    "target": [
-      "dmg"
-    ],
-    "artifactName": "${productName}-Mac-${version}-Installer.${ext}"
-  },
+  // 只面向 Windows，不配置 mac / linux 目标
   "win": {
     "target": [
       {
@@ -56,12 +68,9 @@
     "oneClick": false,
     "perMachine": false,
     "allowToChangeInstallationDirectory": true,
-    "deleteAppDataOnUninstall": false
-  },
-  "linux": {
-    "target": [
-      "AppImage"
-    ],
-    "artifactName": "${productName}-Linux-${version}.${ext}"
+    // 卸载时保留 %APPDATA%\Nexus（聊天记录、本地数据库等），重装后还能用
+    "deleteAppDataOnUninstall": false,
+    // 自定义安装 / 卸载步骤：卸载时删除自动更新缓存 %LOCALAPPDATA%\nexus-updater
+    "include": "build/installer.nsh"
   }
 }

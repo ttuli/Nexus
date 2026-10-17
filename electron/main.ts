@@ -1,7 +1,11 @@
 import * as dotenv from 'dotenv';
-dotenv.config();
+// 开发时从项目根目录的 .env 读配置。打包后只用构建时写进包里的值，不读运行目录下的 .env，
+// 免得启动目录里恰好有个 .env 就把服务器地址改掉
+if (process.env.VITE_DEV_SERVER_URL) {
+  dotenv.config();
+}
 
-import { app, ipcMain } from 'electron'
+import { app, ipcMain, Menu } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { resourceManager } from './resource'
@@ -44,6 +48,12 @@ if (!app.requestSingleInstanceLock()) {
   })
 
   app.whenReady().then(async () => {
+    // 打包后去掉 Electron 默认菜单：窗口无边框看不到菜单栏，但它的快捷键照样生效
+    // （Ctrl+Shift+I 调试工具、Ctrl+R 刷新页面、F11 全屏、Ctrl+加减号缩放），刷新还会丢掉渲染层状态
+    if (app.isPackaged) {
+      Menu.setApplicationMenu(null);
+    }
+
     // 通话需要麦克风/摄像头：显式放行，避免 getUserMedia 被静默拒绝
     setupMediaPermission();
 

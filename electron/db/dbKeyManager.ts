@@ -24,7 +24,7 @@ import { StorageKeys, dbKeyForUser } from '@/electron/utils/storage';
 const KEY_BYTES = 32;
 
 class DbKeyManager {
-    /** 进程内缓存，避免每次开库都走一次 DPAPI/Keychain 解密 */
+    /** 进程内缓存，避免每次开库都走一次 DPAPI 解密 */
     private cache = new Map<string, string>();
 
     /**
