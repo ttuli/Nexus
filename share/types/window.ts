@@ -40,3 +40,16 @@ export interface CallWindowConfig {
     isIncoming: 0 | 1;
     targetType: 'private' | 'group';
 }
+
+/** 历史消息窗口参数：首次打开经 URL query 传入，窗口已打开时经 WINDOW_DATA 推送 */
+export interface HistoryWindowConfig {
+    sessionKey: string;
+}
+
+/** 让主窗口定位到某条消息（历史消息窗口双击时发出，经主进程转发给主窗口） */
+export interface MessageJumpTarget {
+    sessionKey: string;
+    msgId: string;
+    /** 消息的 Lamport seq：目标还没加载时，以它为锚点前后各加载一页 */
+    seq: string;
+}

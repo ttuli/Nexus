@@ -4,11 +4,11 @@
 
         <!-- Left Pane -->
         <div class="left-pane" :style="{ width: leftWidth + 'px' }">
-            <FilterColumn class="filter-column" @menu-select="handleMenuSelect" />
+            <FilterColumn v-model="searchKeyword" class="filter-column" @menu-select="handleMenuSelect" />
             <div class="sidebar-container">
                 <router-view name="list" v-slot="{ Component }">
                     <keep-alive include="SessionList,ContactSidebar">
-                        <component :is="Component" />
+                        <component :is="Component" :search-keyword="searchKeyword" @clear-search="searchKeyword = ''" />
                     </keep-alive>
                 </router-view>
             </div>
@@ -43,8 +43,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import SideBar from './components/SideBar.vue';
 import { ipcService, websocketService, windowService, callService } from '@/src/services';
 import { signalWindowReady } from '@/src/utils/window';
@@ -65,10 +65,20 @@ import { syncOfflineActiveSessions, cancelOfflineSync } from '@/src/composables/
 import { useUpdatePrompt } from '@/src/composables/useUpdatePrompt';
 
 const router = useRouter();
+const route = useRoute();
 const sessionStore = useSessionStore()
 const messageStore = useMessageStore()
 const { navigateToChat } = useChatNavigation();
 useUpdatePrompt();
+
+const searchKeyword = ref('');
+// 聊天列表与联系人列表切换时清空顶部搜索框；在联系人内点击具体好友/群聊查看详情时不清空
+const activeListSection = computed(() =>
+    route.path.startsWith('/home/contacts') ? 'contacts' : 'chat'
+);
+watch(activeListSection, () => {
+    searchKeyword.value = '';
+});
 
 const leftWidth = ref(250);
 const isResizing = ref(false);
@@ -198,8 +208,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
-@use "@/src/style/_constant.scss" as *;
-
 .main-container {
     position: fixed;
     display: flex;

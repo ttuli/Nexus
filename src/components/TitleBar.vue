@@ -184,16 +184,7 @@ onUnmounted(() => {
         }
     }
 
-    .max-btn {
-        &:hover {
-            background-color: rgba(163, 163, 163, 0.305);
-        }
-
-        &:hover:active {
-            background-color: rgba(140, 140, 140, 0.305); // 变暗 10%
-        }
-    }
-
+    .max-btn,
     .min-btn {
         &:hover {
             background-color: rgba(163, 163, 163, 0.305);
@@ -208,6 +199,16 @@ onUnmounted(() => {
 .main-container.dark {
     .title-content {
         color: #e2e8f0; // Force white/light text when theme is dark
+    }
+
+    button {
+        color: #e2e8f0;
+    }
+
+    .close-btn {
+        &:hover {
+            color: #ffffff;
+        }
     }
 
     .center-content {

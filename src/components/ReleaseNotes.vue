@@ -28,8 +28,6 @@ withDefaults(defineProps<{
 </script>
 
 <style scoped lang="scss">
-@use "@/src/style/_constant.scss" as *;
-
 .release-notes {
     display: flex;
     flex-direction: column;

@@ -9,8 +9,6 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import ModalBackground from '@/src/components/ModalBackground/ModalBackground.vue';
-import CusSpinner from '@/src/components/CusSpinner.vue';
 
 const visible = ref(false);
 const text = ref('');
@@ -18,9 +16,6 @@ const text = ref('');
 const open = (loadingText?: string) => {
     text.value = loadingText || '';
     visible.value = true;
-    return new Promise<void>((resolve) => {
-        resolve();
-    });
 };
 
 const close = () => {
@@ -31,8 +26,6 @@ defineExpose({ open, close });
 </script>
 
 <style lang="scss" scoped>
-@use "@/src/style/_constant.scss" as *;
-
 .loading-card {
     background: rgba(255, 255, 255, 0.85); // Glassish
     backdrop-filter: blur(12px);

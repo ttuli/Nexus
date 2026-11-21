@@ -7,12 +7,7 @@
  */
 import { app } from 'electron';
 import { ImTypes } from '@shared/types';
-
-/** 服务端判定客户端版本过低时返回的 HTTP 状态码（426 Upgrade Required） */
-export const HTTP_UPGRADE_REQUIRED = 426;
-
-/** 上报客户端版本的请求头，Auth 服务的版本中间件据此判断 */
-export const APP_VERSION_HEADER = 'X-App-Version';
+import { UPDATE_CONFIG } from '@shared/config/update';
 
 export function getAppVersion(): string {
     return app.getVersion();
@@ -28,15 +23,13 @@ export interface UpgradeRequiredInfo {
     minVersion: string;
 }
 
-const DEFAULT_UPGRADE_MESSAGE = '当前版本过低，请更新后再使用';
-
 /**
  * 解析 426 响应体。
  * 与其他错误一致走 ApiResponse 信封：protobuf 时 min_version 在 data 里（服务端把
  * xerr.Details 序列化成 JSON 放进 data），JSON 时在 details 里。解析失败只丢细节，不影响判定。
  */
 export function parseUpgradeRequired(body: Buffer, contentType: string): UpgradeRequiredInfo {
-    const info: UpgradeRequiredInfo = { message: DEFAULT_UPGRADE_MESSAGE, minVersion: '' };
+    const info: UpgradeRequiredInfo = { message: UPDATE_CONFIG.defaultUpgradeMessage, minVersion: '' };
     if (body.length === 0) return info;
     try {
         if (contentType.includes('application/x-protobuf')) {

@@ -1,13 +1,12 @@
 <template>
     <div class="message-bubble" :class="{ 'is-self': isSelf, 'is-recalling': recalling }">
         <div class="avatar-wrapper">
-            <Avatar :uid="message.fromUserId" type="user" :size="36" />
+            <Avatar :uid="message.fromUserId" type="user" />
         </div>
 
         <div class="content-wrapper">
             <div class="header" v-if="!isSelf">
                 <span class="name">{{ senderName }}</span>
-                <span class="time">{{ formatTime(message.sendTime) }}</span>
             </div>
 
             <!-- New wrapper for bubble and status -->
@@ -40,11 +39,9 @@
                     v-else-if="isSelf && (message.status === MessageStatus.MESSAGE_STATUS_SENDING ||
                      message.status === MessageStatus.MESSAGE_STATUS_SENT)"></div>
                 <div class="status-indicator failed"
-                    v-else-if="isSelf && message.status === MessageStatus.MESSAGE_STATUS_FAILED">!</div>
-            </div>
-
-            <div class="footer" v-if="isSelf">
-                <span class="time">{{ formatTime(message.sendTime) }}</span>
+                    v-else-if="isSelf && message.status === MessageStatus.MESSAGE_STATUS_FAILED"
+                    title="点击重新发送"
+                    @click.stop="emit('resend', message)">!</div>
             </div>
         </div>
     </div>
@@ -78,12 +75,9 @@ const { isRecalling } = useChatPage();
 
 const recalling = computed(() => isRecalling(props.message.msgId));
 
-const senderName = computed(() => {
-    if (props.isSelf) return '我';
-    const friend = userStore.getFriend(props.message.fromUserId);
-    const user = userStore.getUser(props.message.fromUserId);
-    return friend?.remark || user?.user_name || `用户${props.message.fromUserId}`;
-});
+const senderName = computed(() =>
+    userStore.getDisplayName(props.message.fromUserId) || `用户${props.message.fromUserId}`
+);
 
 const isImageMessage = computed(() => {
     return props.message.type === MessageType.CHAT_IMAGE || props.message.type === MessageType.GROUP_IMAGE;
@@ -99,18 +93,12 @@ const isFileMessage = computed(() => {
 
 const isCallMessage = computed(() => props.message.type === MessageType.CHAT_CALL);
 
-// Helper to get message content based on type (for non-image, non-file messages)
+// Helper to get message content based on type (for text & fallback messages)
 const messageContent = computed(() => {
     switch (props.message.type) {
         case MessageType.CHAT_TEXT:
         case MessageType.GROUP_TEXT:
             return (props.message as ILocalTextMessage).content;
-        case MessageType.CHAT_VIDEO:
-        case MessageType.GROUP_VIDEO:
-            return '[视频]';
-        case MessageType.CHAT_FILE:
-        case MessageType.GROUP_FILE:
-            return `[文件] ${(props.message as ILocalFileMessage).fileName}`;
         default:
             return '[未知消息]';
     }
@@ -118,44 +106,16 @@ const messageContent = computed(() => {
 
 const emit = defineEmits<{
     (e: 'contextmenu', event: MouseEvent, message: IChatMessage): void;
+    (e: 'resend', message: IChatMessage): void;
 }>();
 
 const handleContextMenu = (event: MouseEvent) => {
     emit('contextmenu', event, props.message);
 };
 
-const formatTime = (timestamp: number) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    const timeStr = `${hours}:${minutes}`;
-
-    const isToday = 
-        date.getFullYear() === now.getFullYear() &&
-        date.getMonth() === now.getMonth() &&
-        date.getDate() === now.getDate();
-
-    if (isToday) {
-        return timeStr;
-    }
-
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-
-    if (date.getFullYear() === now.getFullYear()) {
-        return `${month}-${day} ${timeStr}`;
-    }
-
-    return `${date.getFullYear()}-${month}-${day} ${timeStr}`;
-};
-
 </script>
 
 <style scoped lang="scss">
-@use "@/src/style/_constant.scss" as *;
-
 .message-bubble {
     display: flex;
     margin-bottom: 20px;
@@ -198,6 +158,14 @@ const formatTime = (timestamp: number) => {
         flex-shrink: 0;
         margin-right: 12px;
         margin-top: 2px; // Align with top of bubble or name
+
+        // 头像尺寸在这里写死（与 Avatar 默认的 40px 一致）：Avatar 的宽高靠 CSS v-bind，挂载后才生效，
+        // 虚拟列表在挂载那一刻测行高，默认头像图还是原图尺寸，整行会被量成近千像素。
+        // 行很快滚出视口被卸载的话，错误高度留在缓存里，跳转定位（scrollToIndex）会落到别处
+        :deep(.avatar) {
+            width: 40px;
+            height: 40px;
+        }
     }
 
     .content-wrapper {
@@ -214,12 +182,6 @@ const formatTime = (timestamp: number) => {
             .name {
                 font-size: 12px;
                 color: $color-text-secondary;
-                margin-right: 8px;
-            }
-
-            .time {
-                font-size: 10px;
-                color: $color-text-placeholder;
             }
         }
 
@@ -323,20 +285,6 @@ const formatTime = (timestamp: number) => {
                 &:not(.is-image):not(.is-video):not(.is-file):not(.is-call) {
                     filter: brightness(0.93);
                 }
-            }
-        }
-
-        .footer {
-            margin-top: 4px;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            justify-content: flex-end;
-            /* Align time to the right for self */
-
-            .time {
-                font-size: 10px;
-                color: $color-text-placeholder;
             }
         }
     }

@@ -10,52 +10,39 @@
     </div>
     <input ref="avatarInput" type="file" accept="image/*" @change="handleAvatarChange" style="display: none" />
 
-    <!-- 头像预览弹窗 - Teleport ensure it's on top of everything -->
-    <Teleport to="body">
-      <Transition name="fade">
-        <div v-if="previewVisible" class="modal-overlay" @click="handleOverlayClick">
-          <div class="modal-card avatar-preview-modal" @click.stop>
-            <div class="modal-header">
-              <span>修改头像</span>
-              <button class="close-btn" @click="closePreview">×</button>
-            </div>
-            <div class="modal-body">
-              <div class="avatar-crop-container" @mousedown="startDrag" @touchstart.prevent="startDrag"
-                @wheel.prevent="handleWheel">
-                <div class="crop-mask"></div>
-                <img ref="previewImage" :src="previewUrl" alt="头像预览" class="crop-image" :style="imageStyle"
-                  @load="onImageLoad" />
-              </div>
-              <div v-if="processing" class="processing-bar">
-                <div class="bar"></div>
-              </div>
-              <div class="preview-info">
-                <p class="preview-label">拖拽调整位置，滚轮缩放</p>
-                <p class="file-info">{{ selectedFile?.name }}</p>
-                <p class="file-size" v-if="selectedFile">{{ formatSize(selectedFile.size) }}</p>
-              </div>
-            </div>
-            <div class="modal-footer">
-              <CusButton class="footer-btn" type="normal" @click="closePreview" :disabled="uploading"
-                :show-icon="false">
-                取消</CusButton>
-              <CusButton class="footer-btn" type="primary" :disabled="uploading" :loading="uploading"
-                @click="confirmUpload" :show-icon="false">
-                {{ uploading ? '上传中...' : '确认更换' }}
-              </CusButton>
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
+    <!-- 头像预览弹窗 -->
+    <CusModal :visible="previewVisible" title="修改头像" width="360px" @close="handleOverlayClick">
+      <div class="avatar-crop-container" @mousedown="startDrag" @touchstart.prevent="startDrag"
+        @wheel.prevent="handleWheel">
+        <div class="crop-mask"></div>
+        <img ref="previewImage" :src="previewUrl" alt="头像预览" class="crop-image" :style="imageStyle"
+          @load="onImageLoad" />
+      </div>
+      <div v-if="processing" class="processing-bar">
+        <div class="bar"></div>
+      </div>
+      <div class="preview-info">
+        <p class="preview-label">拖拽调整位置，滚轮缩放</p>
+        <p class="file-info">{{ selectedFile?.name }}</p>
+        <p class="file-size" v-if="selectedFile">{{ formatSize(selectedFile.size) }}</p>
+      </div>
+      <template #footer>
+        <CusButton class="footer-btn" type="normal" @click="closePreview" :disabled="uploading" :show-icon="false">
+          取消
+        </CusButton>
+        <CusButton class="footer-btn" type="primary" :disabled="uploading" :loading="uploading" @click="confirmUpload"
+          :show-icon="false">
+          {{ uploading ? '上传中...' : '确认更换' }}
+        </CusButton>
+      </template>
+    </CusModal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onUnmounted, computed } from 'vue'
-import Avatar from '@/src/components/Avatar.vue'
-import CusButton from '@/src/components/CusButton.vue'
 import { fileService } from '@/src/services/fileService'
+import { formatFileSize as formatSize } from '@/src/utils/fileFormat'
 import { ElMessage } from 'element-plus'
 import { ApiTypes } from '@shared/types'
 
@@ -68,7 +55,6 @@ interface Props {
 
 interface Emits {
   (e: 'success', url: string): void
-  (e: 'error', error: any): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -113,15 +99,6 @@ const openAvatarUpload = () => {
 const onContainerClick = () => {
   if (previewVisible.value) return
   openAvatarUpload()
-}
-
-// 格式化文件大小
-const formatSize = (bytes: number) => {
-  if (bytes === 0) return '0 B'
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
 // 处理文件选择
@@ -378,8 +355,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
-@use "@/src/style/_constant.scss" as *;
-
 .avatar-upload {
   position: relative;
   display: flex;
@@ -393,13 +368,6 @@ onUnmounted(() => {
   transition: transform 0.2s ease;
   user-select: none;
   -webkit-user-drag: none;
-
-  .current-avatar {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 50%;
-  }
 
   &.is-preview-open {
     cursor: default;
@@ -437,68 +405,6 @@ onUnmounted(() => {
 }
 
 /* Modal Styles */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: $bg-overlay;
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 20;
-  -webkit-app-region: no-drag;
-}
-
-.modal-card {
-  background: $bg-card;
-  border-radius: 16px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-  width: 360px;
-  max-width: 90vw;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  animation: modal-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.modal-header {
-  padding: $spacing-md $spacing-lg;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid $color-border;
-  background-color: $bg-body;
-
-  span {
-    font-size: $font-size-lg;
-    font-weight: $font-weight-semibold;
-    color: $color-text-primary;
-  }
-
-  .close-btn {
-    border: none;
-    background: none;
-    font-size: 24px;
-    color: $color-text-placeholder;
-    cursor: pointer;
-    line-height: 1;
-    padding: 0;
-    transition: color $transition-base;
-
-    &:hover {
-      color: $color-text-secondary;
-    }
-  }
-}
-
-.modal-body {
-  padding: $spacing-lg;
-  background: $bg-card;
-}
-
 .avatar-crop-container {
   width: 280px;
   height: 280px;
@@ -581,20 +487,12 @@ onUnmounted(() => {
   }
 }
 
-.modal-footer {
-  padding: $spacing-md $spacing-lg;
-  display: flex;
-  justify-content: flex-end;
-  gap: $spacing-md;
-  border-top: 1px solid $color-border;
-  background-color: $bg-body;
-
-  .footer-btn {
-    min-width: 80px;
-    height: 36px !important;
-    border-radius: 8px !important;
-    font-size: 14px !important;
-  }
+.footer-btn {
+  min-width: 80px;
+  width: auto;
+  height: 36px !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
 }
 
 // Animations
@@ -609,37 +507,6 @@ onUnmounted(() => {
 
   100% {
     transform: translateX(100%);
-  }
-}
-
-@keyframes modal-in {
-  from {
-    opacity: 0;
-    transform: scale(0.95) translateY(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-// Vue Transition
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
-
-  .modal-card {
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  }
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-
-  .modal-card {
-    transform: scale(0.95);
   }
 }
 </style>

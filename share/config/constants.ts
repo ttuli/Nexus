@@ -1,59 +1,39 @@
-// 抹平主进程 (process.env) 和 渲染进程 (import.meta.env) 的读取差异。
-// 优先取运行时环境变量（开发时主进程由 dotenv 从 .env 注入，也便于临时覆盖），没有再取构建时写进包里的 import.meta.env。
-// 主进程里 process.env 总是存在，不能见它就直接返回：打包后没有 .env，会拿到 undefined 退回 localhost 默认值。
-export const getEnv = (key: string) => {
-    const runtime = typeof process !== 'undefined' ? process.env?.[key] : undefined;
-    if (runtime !== undefined) {
-        return runtime;
-    }
-    // @ts-ignore
-    if (typeof import.meta !== 'undefined' && import.meta.env) {
-        // @ts-ignore
-        return import.meta.env[key];
-    }
-    return undefined;
-};
+import { getEnv } from './env';
+import { TRAY_MENU_CONFIG, WINDOW_DEFAULTS } from './window';
+import { getWsConfig, MESSAGE_QUEUE_CONFIG } from './websocket';
+import { CACHE_CONFIG, FILE_CACHE_CONFIG } from './storage';
+
+export { getEnv, TRAY_MENU_CONFIG };
 
 export const LOCAL_CACHE_SCHEME = 'localcache';
 
 export const Main_Config = {
     get wsConfig() {
-        return {
-            url: getEnv('VITE_WS_SERVER') || 'ws://localhost:8022/ws',
-            reconnectIntervalMs: 1000,
-            maxReconnectIntervalMs: 30000,
-            heartbeatIntervalMs: 30000,
-            heartbeatTimeoutMs: 10000,
-        };
+        return getWsConfig();
     },
 
     FileCacheManagerConfig: {
-        maxWidth: 280,
-        quality: 85,
+        maxWidth: FILE_CACHE_CONFIG.maxWidth,
+        quality: FILE_CACHE_CONFIG.quality,
     },
 
     windowConfig: {
-        showTimeoutMs: 5000,
+        showTimeoutMs: WINDOW_DEFAULTS.showTimeoutMs,
+        closeTimeoutMs: WINDOW_DEFAULTS.closeTimeoutMs,
     },
 
-    messageQueue: {
-        dedupWindowMs: 5 * 60 * 1000, // 消息去重时间
-        dedupMaxEntries: 10000, // 去重缓存条目上限（LRU 淘汰）
-        maxRetries: 2, // 最大重试次数
-        checkIntervalMs: 1000, // 检查间隔
-        msgTimeoutMs: 30000, // 消息超时时间
-    },
+    messageQueue: MESSAGE_QUEUE_CONFIG,
 
     /** 缓存过期时间（毫秒），默认 3 天 */
-    cacheExpirationMs: 3 * 24 * 60 * 60 * 1000,
+    cacheExpirationMs: CACHE_CONFIG.expirationMs,
 
     /** 每个类型的资源最大缓存数量 */
-    maxCacheItems: 5000,
+    maxCacheItems: CACHE_CONFIG.maxItems,
 };
 
 export const Renderer_Config = {
     /** WS消息版本 */
-    get wsMessageVersion() { return getEnv('VITE_WS_VERSION') },
+    get wsMessageVersion(): number { return Number(getEnv('VITE_WS_VERSION')) || 1; },
 
     maxSessionListCount: 40,
 
@@ -61,6 +41,9 @@ export const Renderer_Config = {
     maxCachedMessageSessions: 8,
 
     imageCompressQuality: 80,
+
+    /** 聊天窗口里相邻两条消息的发送时间相差超过这么久，就另起一个时间分组（组首那条的上方显示时间戳） */
+    messageTimeGroupGapMs: 5 * 60 * 1000,
 };
 
 /**
@@ -117,21 +100,6 @@ export const CALL_CONFIG = {
 };
 
 /**
- * 托盘右键菜单弹层布局。
- * 主进程按锚点定位窗口、渲染层绘制卡片与投影，两侧共用同一组数值。
- */
-export const TRAY_MENU_CONFIG = {
-    /** 弹层与托盘图标之间的间距（像素） */
-    gap: 2,
-    /** 弹层与屏幕工作区边缘的最小间距 */
-    screenMargin: 4,
-    /** 窗口内围绕菜单卡片的透明留白，用于绘制 CSS 投影（渲染层上报尺寸时需加上） */
-    shadowPadding: 8,
-    /** 右键时若渲染层尺寸还没上报，等这么久就按占位尺寸先弹出，保证右键必有反馈 */
-    readyFallbackMs: 800,
-};
-
-/**
  * 应用图标，路径相对 public/ 目录。
  * 主进程拼 VITE_PUBLIC 得到文件路径，渲染层经 publicUrl() 得到 URL。
  * 旧版图标（icon_1）存档在仓库根目录的 archive/icon/ 下：不放 public/，免得被打进安装包。
@@ -178,11 +146,11 @@ export const APP_CONSTANTS = {
     get downloadPageUrl() { return getEnv('VITE_DOWNLOAD_PAGE_URL') || ''; },
 
     /** 最大图片宽度 */
-    maxImageWidth: 280,
+    maxImageWidth: FILE_CACHE_CONFIG.maxWidth,
     maxImageHeight: 380,
 
     /** 图片压缩质量 */
-    imageCompressQuality: 85,
+    imageCompressQuality: FILE_CACHE_CONFIG.quality,
 
     /** 下载取消错误信息 */
     ERR_DOWNLOAD_CANCELLED: 'Download cancelled by user',

@@ -8,7 +8,7 @@ import { setupRoutes } from './routes';
 import { tokenManager } from '@/electron/resource/tokenManager';
 import { ImTypes, LogoutType, IpcChannels, ConnectionState } from '@shared/types';
 import { windowManager } from '@/electron/windows/windowManager';
-import { Main_Config } from '@shared/config/constants';
+import { WS_CLOSE_CODE, WS_DEFAULT_CONFIG, getWsConfig } from '@shared/config/websocket';
 import { defaultSerializer } from './serializer/protoSerializer';
 
 /**
@@ -21,24 +21,12 @@ interface WsManagerConfig {
     heartbeatIntervalMs?: number;
     heartbeatTimeoutMs?: number;
     serializer?: IMessageSerializer;
-    msgTimeoutMs?: number, // 消息超时时间
 }
-
-/**
- * RFC 6455 关闭码 1012 Service Restart：服务端计划内重启。
- * 网关节点在关停（滚动更新/缩容）时会带这个码下发 Close 帧，
- * 用于和网络故障导致的异常断开（1006）区分开。
- */
-const WS_CLOSE_SERVICE_RESTART = 1012;
 
 const DEFAULT_CONFIG: Required<WsManagerConfig> = {
     url: '',
-    reconnectIntervalMs: 1000,
-    maxReconnectIntervalMs: 30000,
-    heartbeatIntervalMs: 30000,
-    heartbeatTimeoutMs: 10000,
+    ...WS_DEFAULT_CONFIG,
     serializer: defaultSerializer,
-    msgTimeoutMs: 10000,
 };
 
 /**
@@ -82,7 +70,7 @@ export class WebSocketManager extends EventEmitter {
         const overrides = Object.fromEntries(
             Object.entries(this.instanceConfig).filter(([, v]) => v !== undefined)
         );
-        this.config = { ...DEFAULT_CONFIG, ...Main_Config.wsConfig, ...overrides };
+        this.config = { ...DEFAULT_CONFIG, ...getWsConfig(), ...overrides };
 
         console.log('[WebSocketManager] Initialized');
     }
@@ -236,7 +224,7 @@ export class WebSocketManager extends EventEmitter {
             // 这类断开不是网络故障——集群里其他网关实例仍然可用，退避等待没有意义，
             // 因此重置退避计数，让下一次重连按基础间隔立即发起。
             // 未识别该码时会沿用上一轮的退避曲线，最坏情况下要空等到封顶间隔才重连。
-            if (code === WS_CLOSE_SERVICE_RESTART) {
+            if (code === WS_CLOSE_CODE.SERVICE_RESTART) {
                 this.reconnectAttempts = 0;
             }
             this.handleDisconnect();

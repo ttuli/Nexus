@@ -1,9 +1,8 @@
 import { ipcMain } from 'electron';
 import { IpcChannels, UpdatePromptAction } from '@shared/types';
+import { UPDATE_CONFIG } from '@shared/config/update';
 import type { UpdateManager } from './updateManager';
 import { getAppVersion } from './updateSignals';
-
-const PROMPT_ACTIONS: readonly UpdatePromptAction[] = ['update', 'later', 'skip'];
 
 /**
  * 更新相关 IPC。
@@ -14,7 +13,7 @@ export function setupUpdateIpcHandlers(manager: UpdateManager): void {
     ipcMain.handle(IpcChannels.UPDATE_GET_PROMPT, () => ({ success: true, data: manager.getPrompt() }));
 
     ipcMain.on(IpcChannels.UPDATE_PROMPT_RESPOND, (_event, action: UpdatePromptAction) => {
-        if (PROMPT_ACTIONS.includes(action)) {
+        if (UPDATE_CONFIG.promptActions.includes(action)) {
             manager.respondPrompt(action);
         }
     });

@@ -93,8 +93,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
-@use "@/src/style/_constant.scss" as *;
-
 .cus-dropdown {
   position: relative;
   display: inline-block;

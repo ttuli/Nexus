@@ -26,11 +26,6 @@ const icon = publicUrl(APP_ICON.normal)
     align-items: center;
     justify-content: center;
     background: linear-gradient(to bottom right, #e6eeff, #E0F2FE);
-
-    svg {
-      width: 28px;
-      height: 28px;
-    }
   }
 
   .logo-text {

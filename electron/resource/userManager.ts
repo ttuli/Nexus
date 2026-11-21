@@ -2,8 +2,9 @@ import { cacheManager } from './cacheManager';
 import { mainGet, decodeMainResponse } from './mainRequest';
 import { ResourceType, ImTypes, ApiTypes } from '@shared/types';
 type UserInfo = ImTypes.UserInfo;
-import { storage, StorageKeys } from '@/electron/utils/storage';
+import { storage } from '@/electron/utils/storage';
 import { APP_CONSTANTS as config } from '@shared/config/constants';
+import { CACHE_CONFIG, StorageKeys } from '@shared/config/storage';
 
 
 // 登录历史记录类型
@@ -126,7 +127,7 @@ class UserService {
      * @param limit 返回数量限制，默认 20
      * @param offset 偏移量，默认 0
      */
-    public async fetchUserByName(name: string, limit: number = 20, offset: number = 0): Promise<UserInfo[]> {
+    public async fetchUserByName(name: string, limit: number = CACHE_CONFIG.defaultSearchLimit, offset: number = 0): Promise<UserInfo[]> {
         if (!name) return [];
 
         const key = `${name}_${limit}_${offset}`;
@@ -239,8 +240,10 @@ class UserService {
             if (existingIndex !== -1) loginHistory.splice(existingIndex, 1);
             loginHistory.unshift(accountInfo);
 
-            // 5. 最多保留 5 个账号记录（不再需要手动删除本地文件，由 fileCacheManager LRU 统一管理）
-            if (loginHistory.length > 5) loginHistory.splice(5);
+            // 5. 最多保留 N 个账号记录（不再需要手动删除本地文件，由 fileCacheManager LRU 统一管理）
+            if (loginHistory.length > CACHE_CONFIG.maxLoginHistory) {
+                loginHistory.splice(CACHE_CONFIG.maxLoginHistory);
+            }
 
             // 6. 保存
             storage.set(StorageKeys.LOGIN_HISTORY, loginHistory);

@@ -1,6 +1,6 @@
 <template>
-    <ModalBackground :visible="visible" :zIndex="10000" @close="handleBackdropClick">
-        <div class="cus-dialog-card" @click.stop>
+    <ModalBackground :visible="visible" :zIndex="10000" :close-on-backdrop="false">
+        <div class="cus-dialog-card">
             <button v-if="showClose" class="close-btn" @click="handleClose">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
             </button>
@@ -35,7 +35,6 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import ModalBackground from '@/src/components/ModalBackground/ModalBackground.vue';
 import { DialogResult, DialogStatus } from './types';
 
 interface Props {
@@ -88,16 +87,10 @@ const handleExtra = () => {
     resolvePromise(DialogResult.Extra);
 };
 
-const handleBackdropClick = () => {
-    // Option: Close on backdrop click (optional behavior)
-    // handleCancel();
-};
-
 defineExpose({ open });
 </script>
 
 <style lang="scss" scoped>
-@use "@/src/style/_constant.scss" as *;
 @use "@/src/style/_mixins.scss" as *;
 
 .cus-dialog-card {
@@ -116,14 +109,6 @@ defineExpose({ open });
     box-sizing: border-box;
 
     transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-:deep(.fade-scale-enter-from),
-:deep(.fade-scale-leave-to) {
-    .cus-dialog-card {
-        transform: scale(0.95) translateY(10px);
-        opacity: 0;
-    }
 }
 
 .close-btn {

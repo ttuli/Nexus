@@ -7,6 +7,31 @@ import { APP_CONSTANTS } from '@shared/config/constants';
 import { settingService } from '@/src/services/settingService';
 
 /**
+ * 计算图片/视频消息气泡容器的显示尺寸：优先缩略图尺寸，其次原图等比缩放，缺省用方形占位
+ */
+export function calcMediaWrapperStyle(
+    size: { thumbnailWidth?: number; thumbnailHeight?: number; width?: number; height?: number },
+    fallbackPx = 120
+): { width: string; height: string } {
+    if (size.thumbnailWidth && size.thumbnailHeight && size.thumbnailWidth > 0 && size.thumbnailHeight > 0) {
+        return { width: `${size.thumbnailWidth}px`, height: `${size.thumbnailHeight}px` };
+    }
+
+    let width = size.width || 0;
+    let height = size.height || 0;
+    if (width > 0 && height > 0) {
+        if (width > APP_CONSTANTS.maxImageWidth || height > APP_CONSTANTS.maxImageHeight) {
+            const ratio = Math.min(APP_CONSTANTS.maxImageWidth / width, APP_CONSTANTS.maxImageHeight / height);
+            width *= ratio;
+            height *= ratio;
+        }
+        return { width: `${width}px`, height: `${height}px` };
+    }
+
+    return { width: `${fallbackPx}px`, height: `${fallbackPx}px` };
+}
+
+/**
  * 提取视频第一帧作为 JPEG 封面，并获取宽高和时长
  * @param file 视频文件对象
  * @returns 封面本地路径、视频宽高和时长

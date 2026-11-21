@@ -15,8 +15,6 @@ defineProps<{
 </script>
 
 <style lang="scss" scoped>
-@use "@/src/style/_constant.scss" as *;
-
 .heroui-spinner-container {
   display: inline-flex;
   flex-direction: column;

@@ -262,8 +262,6 @@ const getGroupInfo = (groupId: number) => {
 </script>
 
 <style scoped lang="scss">
-@use "@/src/style/_constant.scss" as *;
-
 .validation-messages {
     height: 100%;
     display: flex;

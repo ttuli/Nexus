@@ -38,7 +38,7 @@
                         </el-icon>
                     </div>
                     <div class="edit-wrapper" v-else>
-                        <el-input ref="nicknameInputRef" v-model.trim="editNicknameValue" size="small" :maxlength="20"
+                        <el-input :ref="setNicknameInputRef" v-model.trim="editNicknameValue" size="small" :maxlength="20"
                             placeholder="请输入本群昵称" @blur="handleSaveNickname" @keyup.enter="handleSaveNickname" />
                     </div>
                 </div>
@@ -84,10 +84,11 @@
             </div>
             <div class="form-group row-layout">
                 <label>需要验证</label>
-                <Toggle
+                <CusSwitch
                     v-model="editForm.join_type"
                     :active-value="ImTypes.JoinType.JOIN_TYPE_AFTER_APPROVAL"
                     :inactive-value="ImTypes.JoinType.JOIN_TYPE_DIRECT"
+                    :cooldown="0"
                 />
             </div>
             <div class="form-group">
@@ -120,14 +121,16 @@
         />
 
         <!-- 全部群成员弹窗 -->
-        <AllGroupMembersModal
+        <GroupMembersModal
+            mode="view"
             :visible="allMembersModalVisible"
             :members="groupMembers"
             @close="allMembersModalVisible = false"
         />
 
         <!-- 移除群成员弹窗 -->
-        <RemoveGroupMembersModal
+        <GroupMembersModal
+            mode="remove"
             :visible="removeDialogVisible"
             :members="groupMembers"
             :submit-loading="removeSubmitLoading"
@@ -144,9 +147,7 @@ import { useGroupActions } from '@/src/composables/useGroupActions';
 import { useGroupSessionSidebar } from '@/src/composables/useGroupSessionSidebar';
 import { clearSessionMessages } from '@/src/composables/sessionActions';
 import GroupMembersCard from './components/GroupMembersCard.vue';
-import AllGroupMembersModal from './components/AllGroupMembersModal.vue';
-import RemoveGroupMembersModal from './components/RemoveGroupMembersModal.vue';
-import UserSelectorModal from '@/src/components/UserSelectorModal.vue';
+import GroupMembersModal from './components/GroupMembersModal.vue';
 
 const props = defineProps<{
     chat: ImTypes.Session;
@@ -173,6 +174,7 @@ const {
     // 昵称编辑
     isEditingNickname,
     editNicknameValue,
+    setNicknameInputRef,
     startEditNickname,
     handleSaveNickname,
     // 群设置
@@ -209,9 +211,6 @@ const confirmQuitGroup = async () => {
 </script>
 
 <style scoped lang="scss">
-@use "sass:color";
-@use "@/src/style/constant.scss" as *;
-
 .group-sidebar {
     height: 100%;
     display: flex;

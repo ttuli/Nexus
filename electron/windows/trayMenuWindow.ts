@@ -1,7 +1,7 @@
 import { BrowserWindow, screen } from 'electron';
 import { WindowKey } from '@shared/config/windowKeys';
 import { IpcChannels, TrayMenuSize } from '@shared/types';
-import { TRAY_MENU_CONFIG } from '@shared/config/constants';
+import { TRAY_MENU_CONFIG } from '@shared/config/window';
 import { CreateWindowRequest } from './windowAttribute';
 
 /**

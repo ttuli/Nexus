@@ -59,13 +59,16 @@ export function useGroupSessionSidebar(
     // ---- 我的群昵称编辑 ----
     const isEditingNickname = ref(false);
     const editNicknameValue = ref('');
-    const nicknameInputRef = ref();
+    const nicknameInputRef = ref<{ focus?: () => void } | null>(null);
+    const setNicknameInputRef = (el: unknown) => {
+        nicknameInputRef.value = (el as { focus?: () => void } | null) ?? null;
+    };
 
     const startEditNickname = () => {
         editNicknameValue.value = currentUserMember.value?.nickname || '';
         isEditingNickname.value = true;
         nextTick(() => {
-            nicknameInputRef.value?.focus();
+            nicknameInputRef.value?.focus?.();
         });
     };
 
@@ -240,7 +243,7 @@ export function useGroupSessionSidebar(
         // 昵称编辑
         isEditingNickname,
         editNicknameValue,
-        nicknameInputRef,
+        setNicknameInputRef,
         startEditNickname,
         handleSaveNickname,
         // 群设置

@@ -237,7 +237,6 @@ onMounted(async () => {
 </script>
 
 <style scoped lang="scss">
-@use "@/src/style/_constant.scss" as *;
 @use "@/src/style/_mixins.scss" as *;
 
 .title {
@@ -315,10 +314,6 @@ onMounted(async () => {
       @include form-label;
     }
 
-    .check-box {
-      margin-left: 5px;
-    }
-
     .password-icon {
       margin-right: 6px;
       filter: var(--icon-filter);
@@ -331,7 +326,6 @@ onMounted(async () => {
   @include primary-button;
   width: 100%;
   height: 3rem;
-  // margin-top: 1rem;
 }
 
 .forgot-wrapper {
@@ -339,10 +333,6 @@ onMounted(async () => {
   justify-content: center;
   margin-top: 0.5rem;
   gap: 16px;
-
-  .divider {
-    color: $color-border-divider;
-  }
 
   .forgot-btn {
     @include link-button;

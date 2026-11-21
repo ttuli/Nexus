@@ -77,8 +77,8 @@ const router = createRouter({
         },
         {
             path: '/userInfo',
-            name: '用户信息',
-            component: () => import('@/src/views/infos/index.vue')
+            name: '个人资料',
+            component: () => import('@/src/views/profile/ProfileWindow.vue')
         },
         {
             path: '/settings',
@@ -109,6 +109,11 @@ const router = createRouter({
             path: '/update',
             name: '软件更新',
             component: () => import('@/src/views/update/UpdateWindow.vue')
+        },
+        {
+            path: '/history',
+            name: '历史消息',
+            component: () => import('@/src/views/history/HistoryWindow.vue')
         }
     ]
 })

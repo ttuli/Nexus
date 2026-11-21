@@ -100,7 +100,6 @@ const page = ref(1);
 const pageSize = 20;
 
 const lastKeyword = ref('');
-const lastSearchType = ref('');
 
 // Dialog State
 const showAddDialog = ref(false);
@@ -135,7 +134,6 @@ const startSearch = async () => {
     hasSearched.value = true;
 
     lastKeyword.value = currentKeyword;
-    lastSearchType.value = searchType.value;
 
     await onLoad();
 };
@@ -182,7 +180,6 @@ const onLoad = async () => {
                 if (page.value === 1) {
                     newItems = await groupService.fetchByIds([parseInt(currentKeyword)]);
                     finished.value = true;
-                    console.log(newItems);
                 }
             } else {
                 newItems = await groupService.fetchByName(currentKeyword, pageSize, offset);
@@ -203,7 +200,7 @@ const onLoad = async () => {
     }
 };
 // Handle Add Click
-const handleAddUser = async (user: ImTypes.UserInfo) => {
+const handleAddUser = (user: ImTypes.UserInfo) => {
     targetUser.value = user;
     targetGroup.value = null;
     showAddDialog.value = true;
@@ -248,8 +245,6 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
-@use "@/src/style/_constant.scss" as *;
-
 .add-friend-container {
     width: 100%;
     height: 100%;
@@ -321,13 +316,6 @@ onMounted(async () => {
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 
             -webkit-app-region: no-drag;
-
-            .search-icon {
-                width: 20px;
-                height: 20px;
-                opacity: 0.5;
-                margin-left: 8px;
-            }
 
             .search-btn {
                 border: none;

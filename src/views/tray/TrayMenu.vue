@@ -117,8 +117,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
-@use "@/src/style/_constant.scss" as *;
-
 .tray-menu {
     width: 100%;
     height: 100%;

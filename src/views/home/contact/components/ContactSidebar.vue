@@ -22,7 +22,7 @@
         <!-- List Content -->
         <div class="list-container">
             <KeepAlive>
-                <component :is="currentListComponent" />
+                <component :is="currentListComponent" :search-keyword="searchKeyword" />
             </KeepAlive>
         </div>
     </div>
@@ -40,8 +40,16 @@ import GroupList from './GroupList.vue';
 
 import { useUserStore } from '@/src/store/user';
 import { useGroupStore } from '@/src/store/group';
-import { windowService } from '@/src/services';
-import { NotifySoundType } from '@/src/services/windowService';
+
+withDefaults(defineProps<{
+    searchKeyword?: string;
+}>(), {
+    searchKeyword: ''
+});
+
+const emit = defineEmits<{
+    (e: 'clear-search'): void;
+}>();
 
 const router = useRouter();
 const route = useRoute();
@@ -50,11 +58,16 @@ const groupStore = useGroupStore();
 
 const currentTab = ref<'friend' | 'group'>('friend');
 
+// 切换「好友 / 群聊」Tab 时清空顶部搜索框
+watch(currentTab, () => {
+    emit('clear-search');
+});
+
 const pendingCount = computed(() => {
     return userStore.unreadPendingRequestCount + groupStore.unreadPendingRequestCount;
 });
 
-const isValidationActive = computed(() => route.path.includes('/contact/validation'));
+const isValidationActive = computed(() => route.path.includes('/contacts/validation'));
 
 const currentListComponent = computed(() => {
     return currentTab.value === 'friend' ? FriendList : GroupList;
@@ -63,20 +76,9 @@ const currentListComponent = computed(() => {
 const goToValidation = () => {
     router.push('/home/contacts/validation');
 };
-
-watch(pendingCount, (newVal, oldVal) => {
-    if (newVal > (oldVal || 0)) {
-        if (isValidationActive.value) {
-            return;
-        }
-        windowService.playNotificationSound(NotifySoundType.Request);
-    }
-});
 </script>
 
 <style scoped lang="scss">
-@use "@/src/style/_constant.scss" as *;
-
 .contact-sidebar {
     height: 100%;
     display: flex;
@@ -88,10 +90,11 @@ watch(pendingCount, (newVal, oldVal) => {
 .validation-entry {
     display: flex;
     align-items: center;
-    padding: 16px;
+    margin: 4px 8px 8px;
+    padding: 8px 10px;
+    border-radius: 8px;
     cursor: pointer;
-    transition: background-color 0.2s;
-    border-bottom: 1px solid $color-border;
+    transition: background-color 0.15s ease;
     position: relative;
 
     &:hover {
@@ -108,10 +111,6 @@ watch(pendingCount, (newVal, oldVal) => {
 
         .icon-box {
             background-color: $color-primary;
-
-            .icon {
-                filter: brightness(0) invert(1);
-            }
         }
     }
 
@@ -125,25 +124,22 @@ watch(pendingCount, (newVal, oldVal) => {
         justify-content: center;
         margin-right: 12px;
         position: relative;
-        transition: all 0.2s;
-
-        .icon {
-            width: 24px;
-            height: 24px;
-            filter: brightness(0) invert(1); // Make it white usually
-        }
+        color: #ffffff;
+        transition: background-color 0.2s ease;
     }
 
     .text {
-        font-size: 15px;
+        font-size: 14px;
         color: $color-text-primary;
-        font-weight: 400;
+        font-weight: 500;
+        transition: color 0.15s ease;
     }
+
     .badge {
         position: absolute;
         top: 0;
         bottom: 0;
-        right: 16px;
+        right: 12px;
         margin: auto 0;
         width: 25px;
         height: 25px;
@@ -152,8 +148,9 @@ watch(pendingCount, (newVal, oldVal) => {
 
 .tabs {
     display: flex;
-    padding: 12px 16px 0;
-    gap: 20px;
+    padding: 8px 16px 0;
+    gap: 24px;
+    border-top: 1px solid $color-border;
     border-bottom: 1px solid $color-border;
 
     .tab-item {

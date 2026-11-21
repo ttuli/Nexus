@@ -13,10 +13,11 @@ export enum NotifySoundType {
     Request = 'request',
 }
 
-import { CallWindowConfig } from '@shared/types/window'
+import { CallWindowConfig, HistoryWindowConfig, MessageJumpTarget } from '@shared/types/window'
 
 type WindowConfigMap = {
     [WindowKey.Call]: CallWindowConfig;
+    [WindowKey.History]: HistoryWindowConfig;
 };
 
 class WindowService {
@@ -88,6 +89,18 @@ class WindowService {
     }
 
     /**
+     * 让主窗口定位到某条消息（历史消息窗口双击用）：先把主窗口唤到前台（含隐藏到托盘的），再经主进程转发跳转请求
+     */
+    jumpToMessage(target: MessageJumpTarget): void {
+        ipcService.send(IpcChannels.WINDOW_SHOW, WindowKey.Home)
+        ipcService.send(IpcChannels.WINDOW_SEND_TO, {
+            key: WindowKey.Home,
+            channel: IpcChannels.CHAT_JUMP_TO_MESSAGE,
+            data: { ...target },
+        })
+    }
+
+    /**
      * 发送登出通知到主进程
      */
     sendLogout(): void {
@@ -107,6 +120,17 @@ class WindowService {
      */
     onWindowState(callback: (state: 'maximized' | 'normal') => void): void {
         ipcService.on(IpcChannels.WINDOW_STATE, (_event, state) => callback(state))
+    }
+
+    /**
+     * 监听本窗口再次被打开时推来的新参数（updateOnReopen 的窗口，字段同首次打开时的 URL query）
+     */
+    onWindowData<T = Record<string, any>>(callback: (data: T) => void): void {
+        ipcService.on(IpcChannels.WINDOW_DATA, (_event, data) => callback(data))
+    }
+
+    offWindowData(): void {
+        ipcService.off(IpcChannels.WINDOW_DATA)
     }
 
     /**

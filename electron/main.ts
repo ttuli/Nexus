@@ -5,14 +5,14 @@ if (process.env.VITE_DEV_SERVER_URL) {
   dotenv.config();
 }
 
-import { app, ipcMain, Menu } from 'electron'
+import { app, ipcMain, Menu, protocol } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { resourceManager } from './resource'
 import { updateManager } from './update/updateManager'
 import { setupMediaPermission } from './windows/mediaPermission'
 import { IpcChannels } from '@shared/types/ipc'
-import { APP_CONSTANTS } from '@shared/config/constants'
+import { APP_CONSTANTS, LOCAL_CACHE_SCHEME } from '@shared/config/constants'
 
 export const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -36,6 +36,12 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 
 
 // 设置全局应用名，影响窗口默认标题、任务栏和托盘等展示
 app.setName(APP_CONSTANTS.ApplicationName)
+
+// 必须在 app ready 之前声明自定义协议权限：允许渲染层（开发 http:// 与生产 file://）通过 fetch() 读取 localcache:// 本地资源（如重发媒体消息）。
+// corsEnabled: true 将协议加入 Chromium CORS 白名单；不开启 standard: true，避免 Chromium 把大小写敏感的 Base64 路径当成 host 强制转小写。
+protocol.registerSchemesAsPrivileged([
+  { scheme: LOCAL_CACHE_SCHEME, privileges: { supportFetchAPI: true, corsEnabled: true, bypassCSP: true } }
+])
 
 // 单实例：主窗口关闭只是隐藏到托盘，再次双击快捷方式若另起实例，会多出登录窗和托盘图标，
 // 还会与已有实例共用 userData、本地库和设备 id。抢不到锁就退出，由已有实例在 second-instance 里唤起界面。

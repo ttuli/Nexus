@@ -3,9 +3,8 @@ import { tokenManager } from './tokenManager';
 import { ImTypes, IpcChannels, LogoutType } from '@shared/types';
 import { windowManager } from '@/electron/windows/windowManager';
 import { APP_CONSTANTS } from '@shared/config/constants';
+import { UPDATE_CONFIG } from '@shared/config/update';
 import {
-    APP_VERSION_HEADER,
-    HTTP_UPGRADE_REQUIRED,
     getAppVersion,
     parseUpgradeRequired,
     reportUpgradeRequired,
@@ -99,7 +98,7 @@ function executeRequest<T>(options: MainRequestOptions, token?: string): Promise
         }
         request.setHeader('Accept', 'application/x-protobuf');
         // 版本号供 Auth 的版本中间件判断是否强制更新；主进程请求不经浏览器 CORS，自定义头无需网关放行
-        request.setHeader(APP_VERSION_HEADER, getAppVersion());
+        request.setHeader(UPDATE_CONFIG.appVersionHeader, getAppVersion());
 
         if (token && !options.skipAuth) {
             request.setHeader('Authorization', `Bearer ${token}`);
@@ -129,10 +128,10 @@ function executeRequest<T>(options: MainRequestOptions, token?: string): Promise
                 const buffer = Buffer.concat(chunks);
 
                 // 版本过低：交给更新模块接管（关窗、打开更新窗口），请求本身按失败处理
-                if (statusCode === HTTP_UPGRADE_REQUIRED) {
+                if (statusCode === UPDATE_CONFIG.httpUpgradeRequired) {
                     const info = parseUpgradeRequired(buffer, contentType);
                     reportUpgradeRequired(info);
-                    reject(new MainRequestError(info.message, HTTP_UPGRADE_REQUIRED, statusCode));
+                    reject(new MainRequestError(info.message, UPDATE_CONFIG.httpUpgradeRequired, statusCode));
                     return;
                 }
 
@@ -238,7 +237,7 @@ export async function mainRequest<T = any>(options: MainRequestOptions): Promise
                 console.error('[MainRequest] Token refresh failed:', refreshResult.error);
                 throw new MainRequestError(
                     refreshResult.error || 'Token refresh failed',
-                    refreshResult.upgradeRequired ? HTTP_UPGRADE_REQUIRED : ImTypes.ErrorCode.ERR_UNAUTHORIZED
+                    refreshResult.upgradeRequired ? UPDATE_CONFIG.httpUpgradeRequired : ImTypes.ErrorCode.ERR_UNAUTHORIZED
                 );
             }
         } else if (response.code === ImTypes.ErrorCode.ERR_KICKED_OUT) {

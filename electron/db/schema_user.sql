@@ -68,6 +68,11 @@ CREATE INDEX IF NOT EXISTS idx_messages_sessionkey_clientid
     ON chat_messages (session_key, client_id)
     WHERE client_id != '';
 
+-- 按会话 + seq 分页：历史消息窗口的检索（可带类型 / 关键词筛选）顺着索引倒着扫，凑满一页即停。
+-- 不加 WHERE：查询写的是 session_key = ?，部分索引的条件 session_key != '' 推不出来，用不上
+CREATE INDEX IF NOT EXISTS idx_messages_sessionkey_seq
+    ON chat_messages (session_key, seq);
+
 
 
 

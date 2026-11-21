@@ -23,10 +23,12 @@ import electronUpdater from 'electron-updater';
 import type { ProgressInfo, UpdateDownloadedEvent, UpdateInfo } from 'electron-updater';
 import { windowManager } from '@/electron/windows/windowManager';
 import { wsManager } from '@/electron/websocket';
-import { storage, StorageKeys } from '@/electron/utils/storage';
+import { storage } from '@/electron/utils/storage';
+import { StorageKeys } from '@shared/config/storage';
 import { mainGet, MainRequestError } from '@/electron/resource/mainRequest';
 import { WindowKey } from '@shared/config/windowKeys';
 import { APP_CONSTANTS as config } from '@shared/config/constants';
+import { UPDATE_CONFIG } from '@shared/config/update';
 import {
     IpcChannels,
     UpdateCheckResult,
@@ -36,7 +38,6 @@ import {
     UpdateState,
 } from '@shared/types';
 import {
-    HTTP_UPGRADE_REQUIRED,
     UpgradeRequiredInfo,
     getAppVersion,
     isUpgradeRequired,
@@ -48,19 +49,6 @@ import { setupUpdateIpcHandlers } from './ipcHandlers';
 // electron-updater 是 CommonJS 包，导出挂在 getter 上，ESM 下具名导入会被 Node 拒绝，只能取默认导出再解构
 const { autoUpdater, CancellationToken } = electronUpdater;
 type CancellationTokenInstance = InstanceType<typeof CancellationToken>;
-
-/** 启动探测超时。探测排在登录窗之前，不能拖慢启动太久；超时按探测失败处理，交给登录时兜底 */
-const PROBE_TIMEOUT_MS = 2500;
-/** 强制更新下载完后停留片刻再重启，让用户看清「即将重启安装」 */
-const INSTALL_DELAY_MS = 1500;
-/**
- * 同一版本自动安装的次数上限，强制更新的自动安装和退出时的静默安装都计入。
- * 装完再启动仍是旧版本，说明安装被拦（安全软件、文件占用等）；不设上限会陷入
- * 「装失败 → 旧版启动 → 426 → 再装再失败」或「每次退出都偷偷装一次、次次失败」的死循环。
- */
-const MAX_AUTO_INSTALL_ATTEMPTS = 2;
-/** 退出时最多等后台下载这么久：网络太慢就不等了，直接退出，下次启动重新下载 */
-const QUIT_DOWNLOAD_WAIT_MS = 10 * 60 * 1000;
 
 /**
  * 发版时指定的更新方式，取自 latest.yml 的 vendor.updateMode，缺省或不认识的值按 prompt 处理。
@@ -185,9 +173,9 @@ export class UpdateManager {
     public async checkOnStartup(): Promise<boolean> {
         try {
             // 接口本身什么都不做，由 Auth 的版本中间件回答：够新 200，过低 426
-            await mainGet(`${config.authServer}/auth/version`, { skipAuth: true, timeout: PROBE_TIMEOUT_MS });
+            await mainGet(`${config.authServer}/auth/version`, { skipAuth: true, timeout: UPDATE_CONFIG.probeTimeoutMs });
         } catch (error) {
-            if (error instanceof MainRequestError && error.statusCode === HTTP_UPGRADE_REQUIRED) {
+            if (error instanceof MainRequestError && error.statusCode === UPDATE_CONFIG.httpUpgradeRequired) {
                 // 426 已由请求层上报，enterForcedMode 正在接管
                 return true;
             }
@@ -459,7 +447,7 @@ export class UpdateManager {
         }
 
         this.patch({ phase: 'installing', hasInstaller });
-        setTimeout(() => this.install(), INSTALL_DELAY_MS);
+        setTimeout(() => this.install(), UPDATE_CONFIG.installDelayMs);
     }
 
     /**
@@ -495,7 +483,7 @@ export class UpdateManager {
         console.info('[UpdateManager] 后台下载还没完成，下完再退出并安装');
         let timer: ReturnType<typeof setTimeout> | undefined;
         const timeout = new Promise<void>((resolve) => {
-            timer = setTimeout(resolve, QUIT_DOWNLOAD_WAIT_MS);
+            timer = setTimeout(resolve, UPDATE_CONFIG.quitDownloadWaitMs);
         });
         void Promise.race([task.catch(() => undefined), timeout]).finally(() => {
             clearTimeout(timer);
@@ -646,7 +634,7 @@ export class UpdateManager {
 
     private isAutoInstallBlocked(version?: string): boolean {
         const record = storage.get<InstallRecord>(StorageKeys.UPDATE_INSTALL_RECORD);
-        return !!version && record?.version === version && record.attempts >= MAX_AUTO_INSTALL_ATTEMPTS;
+        return !!version && record?.version === version && record.attempts >= UPDATE_CONFIG.maxAutoInstallAttempts;
     }
 
     private recordInstallAttempt(version: string): void {

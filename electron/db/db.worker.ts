@@ -26,6 +26,7 @@ import { parentPort } from 'worker_threads';
 import Database from 'better-sqlite3-multiple-ciphers';
 import path from 'path';
 import fs from 'fs';
+import { DB_CONFIG } from '@shared/config/storage';
 
 if (!parentPort) {
     throw new Error('[db.worker] Must be run as a Worker Thread');
@@ -144,8 +145,8 @@ parentPort.on('message', (msg: WorkerMessage) => {
                 if (sharedDb) { reply(id, null); break; }
                 const { dbDir, sharedSql, key } = msg as OpenSharedMsg;
                 if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
-                const dbPath = path.join(dbDir, 'shared.db');
-                sharedDb = openEncryptedDb(dbPath, key, 'shared.db');
+                const dbPath = path.join(dbDir, DB_CONFIG.sharedDbFileName);
+                sharedDb = openEncryptedDb(dbPath, key, DB_CONFIG.sharedDbFileName);
                 sharedDb.exec(sharedSql);
                 console.log(`[db.worker] Opened shared database: ${dbPath}`);
                 reply(id, null);

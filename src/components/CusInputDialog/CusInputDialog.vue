@@ -1,9 +1,9 @@
 <template>
-    <ModalBackground :visible="visible" :zIndex="10" @close="handleBackdropClick">
-        <div class="cus-input-dialog-card" @click.stop>
+    <ModalBackground :visible="visible" :zIndex="10000" :close-on-backdrop="false">
+        <div class="cus-input-dialog-card">
             <div class="dialog-header">
                 <h3 class="title">{{ title }}</h3>
-                <button v-if="showClose" class="close-btn" @click="handleClose">×</button>
+                <button v-if="showClose" class="close-btn" @click="handleCancel">×</button>
             </div>
             <div class="dialog-body">
                 <input ref="inputRef" v-model="inputValue" type="text" class="input-field" :placeholder="placeholder"
@@ -25,7 +25,6 @@
 
 <script setup lang="ts">
 import { ref, nextTick } from 'vue';
-import ModalBackground from '@/src/components/ModalBackground/ModalBackground.vue';
 import { ElMessage } from 'element-plus';
 
 interface Props {
@@ -36,6 +35,7 @@ interface Props {
     initialValue?: string;
     maxLength?: number;
     showClose?: boolean;
+    allowEmpty?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -44,7 +44,8 @@ const props = withDefaults(defineProps<Props>(), {
     confirmText: '确定',
     cancelText: '取消',
     initialValue: '',
-    showClose: true
+    showClose: true,
+    allowEmpty: false,
 });
 
 const visible = ref(false);
@@ -65,12 +66,13 @@ const open = () => {
 };
 
 const handleConfirm = () => {
-    if (!inputValue.value.trim()) {
+    const trimmed = inputValue.value.trim();
+    if (!props.allowEmpty && !trimmed) {
         ElMessage.error('内容不能为空');
         return;
     }
     visible.value = false;
-    resolvePromise(inputValue.value.trim());
+    resolvePromise(trimmed);
 };
 
 const handleCancel = () => {
@@ -78,22 +80,10 @@ const handleCancel = () => {
     resolvePromise(undefined);
 };
 
-const handleClose = () => {
-    visible.value = false;
-    resolvePromise(undefined);
-};
-
-const handleBackdropClick = () => {
-    // Optional: close on backdrop click
-    // handleCancel();
-};
-
 defineExpose({ open });
 </script>
 
 <style lang="scss" scoped>
-@use "@/src/style/_constant.scss" as *;
-
 .cus-input-dialog-card {
     background: $bg-card;
     width: 400px;

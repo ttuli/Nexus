@@ -66,10 +66,6 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import CusModal from '@/src/components/CusModal.vue';
-import CusSpinner from '@/src/components/CusSpinner.vue';
-import CusButton from '@/src/components/CusButton.vue';
-import CusInput from '@/src/components/CusInput.vue';
 import { useSessionStore } from '@/src/store/session';
 import { useUserStore } from '@/src/store/user';
 import { userService } from '@/src/services';
@@ -77,7 +73,6 @@ import { extractTargetIdFromSessionId } from '@/src/utils/sessionUtils';
 import { ImTypes } from '@shared/types';
 import DefaultAvatar from '@/src/assets/avatar/default.png?url';
 import { Check, Search4 } from 'reicon-vue';
-// import SearchIcon from '@/src/assets/input/search.svg?url';
 
 const props = withDefaults(defineProps<{
     visible: boolean;
@@ -217,8 +212,6 @@ watch(() => props.visible, (val) => {
 </script>
 
 <style lang="scss" scoped>
-@use "@/src/style/constant.scss" as *;
-
 $primary-color: var(--color-primary, #3370ff);
 $text-color: var(--text-primary, #1d2129);
 $border-color: var(--border-divider, #e5e6eb);

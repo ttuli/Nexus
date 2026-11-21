@@ -3,6 +3,7 @@ import { Tray, nativeImage, app, screen } from 'electron';
 import path from 'path';
 import { TrayMenuAction } from '@shared/types';
 import { APP_ICON } from '@shared/config/constants';
+import { TRAY_CONFIG } from '@shared/config/window';
 
 /**
  * 托盘操作的回调接口
@@ -77,7 +78,7 @@ export class TrayManager {
             }
 
             // 调整图标大小 (Windows 推荐 16x16 或 24x24)
-            icon = icon.resize({ width: 24, height: 24, quality: 'best' });
+            icon = icon.resize({ ...TRAY_CONFIG.iconSize, quality: 'best' });
 
             this.tray = new Tray(icon);
 

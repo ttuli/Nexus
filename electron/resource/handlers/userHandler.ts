@@ -2,6 +2,7 @@ import { ipcMain } from 'electron';
 import { userService } from '@/electron/resource/userManager';
 import { friendService } from '@/electron/resource/friendManager';
 import { IpcChannels } from '@shared/types/ipc';
+import { CACHE_CONFIG } from '@shared/config/storage';
 
 /**
  * User + Friend IPC 处理器
@@ -19,7 +20,7 @@ export function setupUserHandlers(): void {
         }
     });
 
-    ipcMain.handle(IpcChannels.USER_FETCH_BY_NAME, async (_event, name: string, limit: number = 20, offset: number = 0) => {
+    ipcMain.handle(IpcChannels.USER_FETCH_BY_NAME, async (_event, name: string, limit: number = CACHE_CONFIG.defaultSearchLimit, offset: number = 0) => {
         try {
             const users = await userService.fetchUserByName(name, limit, offset);
             return { success: true, data: users };

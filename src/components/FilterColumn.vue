@@ -3,9 +3,13 @@
         <div class="search-wrapper">
             <div class="search-input-box">
                 <Search class="app-icon app-icon--sm search-icon" />
-                <input class="search-input" placeholder="搜索" />
+                <input :value="modelValue" class="search-input" placeholder="搜索" spellcheck="false"
+                    @input="handleInput" @keydown.esc="clearSearch" />
+                <span v-show="modelValue" class="clear-btn" title="清空" @click="clearSearch">
+                    <CloseCircle class="app-icon app-icon--sm" />
+                </span>
             </div>
-            <button class="add-btn" @click="toggleMenu" ref="addBtnRef">
+            <button class="add-btn" @click="toggleMenu">
                 <Add class="app-icon app-icon--sm add-icon" />
             </button>
         </div>
@@ -17,12 +21,27 @@
 
 <script lang="ts" setup>
 import { ref } from 'vue';
-import { Search, Add, UserAdd, Messages } from 'reicon-vue';
-import ContextMenu, { MenuOption } from '@/src/components/ContextMenu.vue';
+import { Search, Add, UserAdd, Messages, CloseCircle } from 'reicon-vue';
+import type { MenuOption } from '@/src/components/ContextMenu.vue';
+
+withDefaults(defineProps<{
+    modelValue?: string;
+}>(), {
+    modelValue: ''
+});
 
 const emit = defineEmits<{
+    (e: 'update:modelValue', value: string): void;
     (e: 'menu-select', key: string): void;
 }>();
+
+const handleInput = (event: Event) => {
+    emit('update:modelValue', (event.target as HTMLInputElement).value);
+};
+
+const clearSearch = () => {
+    emit('update:modelValue', '');
+};
 
 const menuVisible = ref(false);
 
@@ -53,8 +72,6 @@ const handleMenuSelect = (option: MenuOption) => {
 </script>
 
 <style lang="scss" scoped>
-@use "@/src/style/_constant.scss" as *;
-
 .filter-column {
     width: 100%;
     height: 65px;
@@ -64,7 +81,6 @@ const handleMenuSelect = (option: MenuOption) => {
     box-sizing: border-box;
     background-color: $bg-card; // Ensure background matches the theme
     z-index: 3;
-    // border-bottom: 1px solid $color-border; // Optional: separate from list
 
     .search-wrapper {
         width: 100%;
@@ -122,6 +138,20 @@ const handleMenuSelect = (option: MenuOption) => {
 
                 &::placeholder {
                     color: $color-text-placeholder;
+                }
+            }
+
+            .clear-btn {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin-left: $spacing-xs;
+                color: $color-text-placeholder;
+                cursor: pointer;
+                flex-shrink: 0;
+
+                &:hover {
+                    color: $color-text-secondary;
                 }
             }
         }

@@ -142,6 +142,27 @@ export type IChatMessage =
 // 未来可扩展其他类型
 
 /**
+ * 历史消息窗口的类型筛选：文本 / 语音 / 图片 / 文件 / 视频，单聊和群聊的同类消息归为一类
+ */
+export type HistoryMessageCategory = 'text' | 'audio' | 'image' | 'file' | 'video';
+
+/**
+ * 本地历史消息检索条件（历史消息窗口用，只查本地 SQLite）
+ */
+export interface LocalHistoryQuery {
+    /** 排他上界：返回 seq < beforeSeq 中最新的 limit 条（往更早翻）；与 afterSeq 都为空时取最新一页 */
+    beforeSeq?: string;
+    /** 排他下界：返回 seq > afterSeq 中最早的 limit 条（往更新翻）；与 beforeSeq 同时给出时以 afterSeq 为准 */
+    afterSeq?: string;
+    /** 最多返回条数 */
+    limit: number;
+    /** 只看这一类消息；为空不限类型 */
+    category?: HistoryMessageCategory;
+    /** 关键词：匹配文本消息的内容，以及文件、图片、视频的文件名（英文不区分大小写） */
+    keyword?: string;
+}
+
+/**
  * 辅助函数：将 Proto 消息转为本地结构
  */
 // (具体转换逻辑可以在 Service 中实现，这里只定义类型)

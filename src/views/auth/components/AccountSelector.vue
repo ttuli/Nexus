@@ -28,7 +28,6 @@
                         <span class="item-name">{{ item.name }}</span>
                         <span class="item-account">{{ item.account }}</span>
                     </div>
-                    <!-- Delete button could go here -->
                 </div>
             </div>
         </transition>
@@ -39,9 +38,7 @@
 import { ref, computed } from 'vue';
 import { ArrowUp2 } from 'reicon-vue'
 import { ClickOutside as vClickOutside } from 'element-plus';
-// Use a generic default avatar if specific one is missing
 import DefaultAvatar from '@/src/assets/avatar/default.png?url';
-// We might need an arrow icon
 
 export interface AccountOption {
     account: string;
@@ -63,11 +60,9 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
     (e: 'update:modelValue', value: string): void;
-    (e: 'change', value: string): void;
 }>();
 
 const visible = ref(false);
-const isFocused = ref(false);
 const inputRef = ref<any>();
 const isExpandedAll = ref(false);
 
@@ -88,13 +83,11 @@ const filteredOptions = computed(() => {
 
 const handleCusInputUpdate = (val: string) => {
     emit('update:modelValue', val);
-    emit('change', val);
     isExpandedAll.value = false; // Reset to allow filtering
     visible.value = true;
 };
 
 const handleFocus = () => {
-    isFocused.value = true;
     if (!visible.value) {
         isExpandedAll.value = false; // Focus implies typing/filtering usually, unless already open
         visible.value = true;
@@ -108,7 +101,6 @@ const openDropdown = () => {
 
 const closeDropdown = () => {
     visible.value = false;
-    isFocused.value = false;
     isExpandedAll.value = false;
 };
 
@@ -125,7 +117,6 @@ const toggleDropdown = () => {
 
 const selectOption = (item: AccountOption) => {
     emit('update:modelValue', item.account);
-    emit('change', item.account);
     visible.value = false;
 };
 

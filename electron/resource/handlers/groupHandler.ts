@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron';
 import { groupService } from '@/electron/resource/groupManager';
 import { IpcChannels } from '@shared/types/ipc';
+import { CACHE_CONFIG } from '@shared/config/storage';
 
 /**
  * Group IPC 处理器
@@ -16,7 +17,7 @@ export function setupGroupHandlers(): void {
         }
     });
 
-    ipcMain.handle(IpcChannels.GROUP_FETCH_BY_NAME, async (_event, name: string, limit: number = 20, offset: number = 0) => {
+    ipcMain.handle(IpcChannels.GROUP_FETCH_BY_NAME, async (_event, name: string, limit: number = CACHE_CONFIG.defaultSearchLimit, offset: number = 0) => {
         try {
             const data = await groupService.fetchGroupsByName(name, limit, offset);
             return { success: true, data };

@@ -1,11 +1,13 @@
 <template>
     <div class="contact-item" :class="{ active }" @click.capture.stop="handleClick">
         <div class="avatar-wrapper">
-            <Avatar :uid="id" :type="type" :width="'40px'" :height="'40px'" class="avatar"/>
-            <div v-if="badge" class="badge">{{ badge }}</div>
+            <Avatar :uid="id" :type="type" :width="'40px'" :height="'40px'" disable-click class="avatar" />
         </div>
         <div class="info">
-            <div class="name">{{ name }}</div>
+            <div class="name-row">
+                <span class="name">{{ name }}</span>
+                <span v-if="subName" class="sub-name">({{ subName }})</span>
+            </div>
             <div v-if="desc" class="desc">{{ desc }}</div>
         </div>
     </div>
@@ -17,15 +19,14 @@ interface Props {
     id: number;
     type?: 'user' | 'group';
     name: string;
+    subName?: string;
     desc?: string;
     active?: boolean;
-    badge?: number | string;
 }
 
 withDefaults(defineProps<Props>(), {
     type: 'user',
     active: false,
-    badge: 0
 });
 
 const emit = defineEmits<{
@@ -38,18 +39,18 @@ const handleClick = () => {
 </script>
 
 <style scoped lang="scss">
-@use "@/src/style/_constant.scss" as *;
-
 .contact-item {
     display: flex;
     align-items: center;
-    padding: 12px;
+    padding: 8px 10px;
     gap: 12px;
+    border-radius: 8px;
     cursor: pointer;
     user-select: none;
     background-color: transparent;
     width: 100%;
     box-sizing: border-box;
+    transition: background-color 0.15s ease;
 
     &:hover {
         background-color: var(--bg-hover);
@@ -58,7 +59,7 @@ const handleClick = () => {
     &.active {
         background-color: var(--bg-active);
 
-        .name {
+        .info .name-row .name {
             color: $color-primary;
         }
     }
@@ -66,27 +67,13 @@ const handleClick = () => {
     .avatar-wrapper {
         position: relative;
         flex-shrink: 0;
+        width: 40px;
+        height: 40px;
+        pointer-events: none;
 
         .avatar {
-            width: 48px;
-            height: 48px;
-            object-fit: cover;
-        }
-
-        .badge {
-            position: absolute;
-            top: -6px;
-            right: -6px;
-            background-color: $color-error;
-            color: white;
-            font-size: 10px;
-            padding: 0 4px;
-            height: 16px;
-            min-width: 16px;
-            line-height: 16px;
-            border-radius: 8px;
-            text-align: center;
-            border: 2px solid var(--bg-list);
+            width: 40px;
+            height: 40px;
         }
     }
 
@@ -96,23 +83,38 @@ const handleClick = () => {
         display: flex;
         flex-direction: column;
         justify-content: center;
+        gap: 2px;
 
-        .name {
-            font-size: 14px;
-            font-weight: 500;
-            color: $color-text-primary;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            margin-bottom: 2px;
+        .name-row {
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+            min-width: 0;
+
+            .name {
+                font-size: 14px;
+                font-weight: 500;
+                line-height: 20px;
+                color: $color-text-primary;
+                @include ellipsis;
+                transition: color 0.15s ease;
+            }
+
+            .sub-name {
+                flex-shrink: 1;
+                min-width: 0;
+                font-size: 12px;
+                line-height: 18px;
+                color: $color-text-placeholder;
+                @include ellipsis;
+            }
         }
 
         .desc {
             font-size: 12px;
+            line-height: 18px;
             color: $color-text-secondary;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            @include ellipsis;
         }
     }
 }

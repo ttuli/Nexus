@@ -147,7 +147,9 @@ const handleSelect = (option: MenuOption) => {
 };
 
 const close = () => {
-    removeOutsideListeners();
+    // 外部监听不在这里摘：交给 visible 的 watch 在真正变为 false 时摘。
+    // 菜单开着时右键另一项，会在同一 tick 里先关后开，visible 前后都是 true、watch 不触发，
+    // 在这里摘掉的话就没人再挂回去，之后点外部关不掉菜单
     emit('close');
     emit('update:visible', false);
 };
@@ -156,15 +158,14 @@ const close = () => {
 </script>
 
 <style scoped lang="scss">
-@use "@/src/style/_constant.scss" as *;
-
 .context-menu {
     position: fixed;
     z-index: 9999;
+    // 菜单经 Teleport 挂到 body，不显式声明 no-drag 时会被底层 drag 区域（如顶部搜索栏留白）吞掉鼠标事件
+    -webkit-app-region: no-drag;
     background: var(--bg-card);
     border-radius: var(--radius-md, 8px);
     box-shadow: var(--shadow-md);
-    // padding: 4px;
     min-width: 120px;
     border: 1px solid var(--border-color);
     display: flex;

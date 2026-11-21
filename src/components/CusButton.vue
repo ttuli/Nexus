@@ -1,5 +1,5 @@
 <template>
-  <button class="custom-button" :class="[type, { 'has-icon': showIcon, 'loading': loading, 'disabled': disabled }]"
+  <button class="custom-button" :class="[type, { 'loading': loading, 'disabled': disabled }]"
     :type="htmlType" :disabled="disabled || loading" @click="handleClick">
     <span v-if="loading" class="loading-spinner">
       <span></span>
@@ -40,7 +40,6 @@ const handleClick = () => {
 </script>
 
 <style lang="scss" scoped>
-@use "@/src/style/_constant.scss" as *;
 @use "@/src/style/_mixins.scss" as *;
 
 .custom-button {
@@ -85,41 +84,8 @@ const handleClick = () => {
     @include primary-button;
     // Overriding height to inherit from .custom-button
     height: 38px;
-    
-    // Gradient lines for extra flair
     position: relative;
     overflow: hidden;
-
-    .bottom-gradient-line {
-      display: block;
-      position: absolute;
-      height: 2px;
-      width: 100%;
-      bottom: 0;
-      left: 0;
-      background: linear-gradient(90deg, transparent, #00f2fe, transparent);
-      opacity: 0;
-      transition: opacity 0.5s ease;
-    }
-
-    .bottom-gradient-blur {
-      display: block;
-      position: absolute;
-      height: 4px;
-      width: 50%;
-      left: 25%;
-      bottom: 0;
-      background: linear-gradient(90deg, transparent, #4facfe, transparent);
-      filter: blur(4px);
-      opacity: 0;
-      transition: opacity 0.5s ease;
-    }
-
-    &:hover:not(:disabled) {
-      .bottom-gradient-line, .bottom-gradient-blur {
-        opacity: 1;
-      }
-    }
   }
 
   // --- Normal 风格 ---

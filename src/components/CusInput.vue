@@ -82,8 +82,6 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
-@use "@/src/style/_constant.scss" as *;
-
 .chat-input-wrapper {
   position: relative;
   -webkit-app-region: no-drag;
@@ -105,7 +103,6 @@ defineExpose({
 
   &:focus-within {
     border-color: $color-primary;
-    // box-shadow: 0 0 0 3px rgba(24, 144, 255, 0.1);
     background-color: var(--surface-default, #ffffff);
   }
 
@@ -131,16 +128,6 @@ defineExpose({
     height: 100%;
     display: flex;
     align-items: center;
-
-    // 左侧 slot
-    &:first-child {
-      padding-right: 0;
-    }
-
-    // 右侧 slot 不需要额外内边距，让内容可以贴右边
-    &:last-child {
-      padding-right: 0;
-    }
   }
 }
 </style>

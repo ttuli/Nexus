@@ -1,5 +1,5 @@
 <template>
-    <div class="cus-switch" :class="{ 'is-checked': isChecked, 'is-loading': loading || isCooldown }" @click="toggle">
+    <div class="cus-switch" :class="{ 'is-checked': isChecked, 'is-disabled': disabled, 'is-loading': loading || isCooldown }" @click="toggle">
         <div class="cus-switch__core" :style="{ backgroundColor: isChecked ? activeColor : inactiveColor }">
             <span class="cus-switch__action">
                 <span v-if="loading" class="loading-icon"></span>
@@ -14,6 +14,8 @@ import { computed, ref } from 'vue';
 const props = withDefaults(defineProps<{
     modelValue?: boolean | number | string;
     loading?: boolean;
+    disabled?: boolean;
+    cooldown?: number;
     activeValue?: boolean | number | string;
     inactiveValue?: boolean | number | string;
     activeColor?: string;
@@ -21,6 +23,8 @@ const props = withDefaults(defineProps<{
 }>(), {
     modelValue: false,
     loading: false,
+    disabled: false,
+    cooldown: 2000,
     activeValue: true,
     inactiveValue: false,
 });
@@ -34,21 +38,21 @@ const isChecked = computed(() => {
 const isCooldown = ref(false);
 
 const toggle = () => {
-    if (props.loading || isCooldown.value) return;
+    if (props.disabled || props.loading || isCooldown.value) return;
     const newValue = isChecked.value ? props.inactiveValue : props.activeValue;
     emit('update:modelValue', newValue);
     emit('change', newValue);
-    
-    isCooldown.value = true;
-    setTimeout(() => {
-        isCooldown.value = false;
-    }, 2000);
+
+    if (props.cooldown > 0) {
+        isCooldown.value = true;
+        setTimeout(() => {
+            isCooldown.value = false;
+        }, props.cooldown);
+    }
 };
 </script>
 
 <style scoped lang="scss">
-@use "@/src/style/constant.scss" as *;
-
 .cus-switch {
     display: inline-flex;
     align-items: center;
@@ -59,9 +63,10 @@ const toggle = () => {
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
 
-    &.is-loading {
+    &.is-loading,
+    &.is-disabled {
         cursor: not-allowed;
-        opacity: 0.8;
+        opacity: 0.7;
     }
 
     &__core {

@@ -1,6 +1,5 @@
 <template>
     <div class="image-message-bubble">
-        <!-- eslint-disable-next-line vue/valid-v-else-if -->
         <div class="image-wrapper" :style="wrapperStyle" @click="handleClick">
             <!-- 图片主体 -->
             <img v-show="imageLoaded" v-if="displayUrl" :src="displayUrl" class="image-content" @error="handleImageError"
@@ -14,32 +13,21 @@
             </div>
 
             <!-- 上传进度蒙层（复用于自己发送的上传和对方发送的下载） -->
-            <transition name="fade-reveal">
-                <div class="upload-mask" :class="{ 'is-finishing': isFinishing }" v-show="!isFinishing">
-                    <div class="custom-progress">
-                        <svg class="progress-ring" :class="{ 'is-spinning': !isSelf }" width="44" height="44">
-                            <!-- 背景环 -->
-                            <circle class="ring-bg" stroke="rgba(255,255,255,0.3)" stroke-width="3" fill="transparent"
-                                r="18" cx="22" cy="22" />
-                            <!-- 进度环 -->
-                            <circle class="ring-progress" stroke="#fff" stroke-width="3" fill="transparent"
-                                :stroke-dasharray="113"
-                                :stroke-dashoffset="isSelf ? (113 - ((props.message.uploadProgress || 0) / 100) * 113) : 85"
-                                stroke-linecap="round" r="18" cx="22" cy="22" />
-                        </svg>
-                        <span class="progress-text" v-if="isSelf">{{ props.message.uploadProgress || 0 }}%</span>
-                    </div>
-                </div>
-            </transition>
+            <MediaProgressMask
+                :finished="isFinishing"
+                :progress="props.message.uploadProgress || 0"
+                :indeterminate="!isSelf"
+            />
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
+import MediaProgressMask from './MediaProgressMask.vue';
 import { ILocalImageMessage } from '@shared/types/chatMessage';
-import { APP_CONSTANTS as config } from '@shared/config/constants';
 import { toResourceUrl } from '@/src/utils/resourceUrl';
+import { calcMediaWrapperStyle } from '@/src/utils/mediaUtils';
 import { CacheOptionType, ImTypes } from '@shared/types';
 import { fileService } from '@/src/services/fileService';
 import { openPhotoViewer } from '@/src/utils/window';
@@ -98,38 +86,7 @@ watch(() => props.message, (msg) => {
     }
 }, { immediate: true });
 
-const wrapperStyle = computed(() => {
-    // 优先使用明确提供的缩略图尺寸
-    if (props.message.thumbnailWidth && props.message.thumbnailHeight && props.message.thumbnailWidth > 0 && props.message.thumbnailHeight > 0) {
-        return {
-            width: `${props.message.thumbnailWidth}px`,
-            height: `${props.message.thumbnailHeight}px`
-        };
-    }
-
-    let width = props.message.width || 0;
-    let height = props.message.height || 0;
-
-    if (width > 0 && height > 0) {
-        // 限制最大宽高，保持比例
-        if (width > config.maxImageWidth || height > config.maxImageHeight) {
-            const ratio = Math.min(config.maxImageWidth / width, config.maxImageHeight / height);
-            width = width * ratio;
-            height = height * ratio;
-        }
-
-        return {
-            width: `${width}px`,
-            height: `${height}px`
-        };
-    }
-
-    // 没有尺寸信息时给个默认方形占位
-    return {
-        width: '120px',
-        height: '120px'
-    };
-});
+const wrapperStyle = computed(() => calcMediaWrapperStyle(props.message, 120));
 
 const handleImageError = async () => {
     // 重试一次
@@ -164,8 +121,6 @@ const handleClick = async () => {
 </script>
 
 <style scoped lang="scss">
-@use "@/src/style/_constant.scss" as *;
-
 .image-message-bubble {
     width: 100%;
     height: 100%;
@@ -254,80 +209,6 @@ const handleClick = async () => {
                     stroke-dashoffset: -124px;
                 }
             }
-        }
-
-        .upload-mask {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(0, 0, 0, 0.282);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            // 使用 clip-path 替代 mask-image，因为 clip-path 完美支持 circle 半径的 transition 过渡
-            clip-path: circle(100% at center);
-            transition: clip-path 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease;
-            z-index: 10; // 确保加载条在悬浮层之上
-
-            .custom-progress {
-                position: relative;
-                width: 44px;
-                height: 44px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-                .progress-ring {
-                    transform: rotate(-90deg); // 从顶部开始
-                    
-                    &.is-spinning {
-                        animation: spin 1s linear infinite;
-                    }
-                    @keyframes spin {
-                        from { transform: rotate(-90deg); }
-                        to { transform: rotate(270deg); }
-                    }
-
-                    circle {
-                        transition: stroke-dashoffset 0.2s linear;
-                    }
-                }
-
-                .progress-text {
-                    position: absolute;
-                    font-size: 11px;
-                    color: #fff;
-                    font-weight: 500;
-                    font-family: monospace;
-                }
-            }
-
-            // 当进度完成（或状态终止）时，加入此类
-            &.is-finishing {
-                opacity: 0;
-                // 中心掏空效果通过让 clip-path 缩减为 0 来反向实现（其实圆往外扩散消失直接用 opacity 或者 scale 反转更好）
-                // 真正的中心镂空放大非常难用单层 css 实现。这里我们可以通过缩放一个假的背景圆，或者最稳定的就是直接淡出 + 缩放子元素
-
-                .custom-progress {
-                    opacity: 0;
-                    transform: scale(1.5); // 进度圈变大变淡消失（更有完成感）
-                }
-            }
-        }
-
-        // Vue 过渡动画兜底（防止一上来渲染出问题或非正常消失）
-        .fade-reveal-enter-active,
-        .fade-reveal-leave-active {
-            transition: opacity 0.4s;
-        }
-
-        .fade-reveal-enter-from,
-        .fade-reveal-leave-to {
-            opacity: 0;
         }
     }
 }

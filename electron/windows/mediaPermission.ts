@@ -1,4 +1,5 @@
 import { session } from 'electron'
+import { ALLOWED_MEDIA_PERMISSIONS } from '@shared/config/window'
 
 /**
  * 显式放行麦克风 / 摄像头权限。
@@ -13,7 +14,7 @@ import { session } from 'electron'
  * 也要过这里，不放行则全应用的「复制」都报 `Write permission denied`。
  * 其余（通知、地理位置、剪贴板读取等）一律拒绝，不做无条件 `callback(true)`。
  */
-const ALLOWED_PERMISSIONS = new Set(['media', 'audioCapture', 'videoCapture', 'clipboard-sanitized-write'])
+const ALLOWED_PERMISSIONS = new Set(ALLOWED_MEDIA_PERMISSIONS)
 
 /** 仅信任应用自身页面：dev 为 vite server，生产为 file:// 加载的本地页面 */
 function isAppOrigin(url: string): boolean {

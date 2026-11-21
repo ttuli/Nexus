@@ -3,15 +3,13 @@
         <div class="header">
             <span class="title">群成员 ({{ members.length }})</span>
             <span class="view-all" v-if="members.length > displayMembers.length" @click="$emit('view-all')">
-                查看全部 > <el-icon><i class="el-icon-arrow-right"></i></el-icon>
+                查看全部 &gt;
             </span>
         </div>
         <div class="members-grid">
             <div class="member-item" v-for="member in displayMembers" :key="member.user_id">
                 <div class="avatar-wrapper">
-                    <img :src="getAvatarUrl(userStore.getUser(member.user_id)?.avatar) || DeFaultImage" 
-                    alt="" 
-                    class="avatar"/>
+                    <Avatar :uid="member.user_id" type="user" width="32px" height="32px" disable-click class="avatar" />
                     <div class="role-badge owner" v-if="member.role === ImTypes.GroupRole.GROUP_ROLE_OWNER">群主</div>
                     <div class="role-badge admin" v-else-if="member.role === ImTypes.GroupRole.GROUP_ROLE_ADMIN">管理
                     </div>
@@ -35,9 +33,8 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { ImTypes } from '@shared/types';
-import { APP_CONSTANTS as config } from '@shared/config/constants';
 import { useUserStore } from '@/src/store/user';
-import DeFaultImage from '@/src/assets/avatar/default.png'
+import { sortGroupMembersByRole } from '@/src/utils/displayName';
 
 const userStore = useUserStore();
 
@@ -51,12 +48,7 @@ const props = withDefaults(defineProps<{
     canInvite: true
 });
 
-defineEmits(['view-all', 'invite', 'remove', 'click-member']);
-
-const getAvatarUrl = (url?: string) => {
-    if (!url) return '';
-    return url.startsWith('http') ? url : config.fileServer + url;
-};
+defineEmits(['view-all', 'invite', 'remove']);
 
 const currentUserMember = computed(() => {
     return props.members.find(member => member.user_id === userStore.getUserID());
@@ -68,16 +60,7 @@ const canRemove = computed(() => {
            currentUserMember.value.role === ImTypes.GroupRole.GROUP_ROLE_ADMIN;
 });
 
-const sortedMembers = computed(() => {
-    return [...props.members].sort((a, b) => {
-        const getWeight = (role: ImTypes.GroupRole) => {
-            if (role === ImTypes.GroupRole.GROUP_ROLE_OWNER) return 0;
-            if (role === ImTypes.GroupRole.GROUP_ROLE_ADMIN) return 1;
-            return 2;
-        };
-        return getWeight(a.role) - getWeight(b.role);
-    });
-});
+const sortedMembers = computed(() => sortGroupMembersByRole(props.members));
 
 const displayMembers = computed(() => {
     const buttonCount = (props.canInvite ? 1 : 0) + (canRemove.value ? 1 : 0);
@@ -87,8 +70,6 @@ const displayMembers = computed(() => {
 </script>
 
 <style scoped lang="scss">
-@use "@/src/style/constant.scss" as *;
-
 .group-members-card {
     background-color: var(--surface-subtle, #f8fafc);
     border: 1px solid var(--border-color, #e2e8f0);
@@ -144,7 +125,6 @@ const displayMembers = computed(() => {
                 position: relative;
                 width: 32px;
                 height: 32px;
-                // margin-bottom: 5px;
 
                 .avatar {
                     width: 100%;

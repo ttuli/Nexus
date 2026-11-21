@@ -1,5 +1,5 @@
 <template>
-    <div class="file-message-bubble" :class="{ 'is-self': props.isSelf, 'is-downloaded': isDownloaded, 'is-in-progress': showProgress }" @click="handleClick">
+    <div class="file-message-bubble" :class="{ 'is-self': props.isSelf, 'is-in-progress': showProgress }" @click="handleClick">
         <!-- 主体信息区域 -->
         <div class="file-content-main">
             <!-- 左侧精致矢量折角文档图标 -->
@@ -112,6 +112,7 @@ import { computed, ref } from 'vue';
 import { ILocalFileMessage } from '@shared/types/chatMessage';
 import { fileService } from '@/src/services/fileService';
 import { settingService } from '@/src/services/settingService';
+import { formatFileSize as formatSize, getFileExtension, getFileTheme } from '@/src/utils/fileFormat';
 import { ElMessage } from 'element-plus';
 import { ImTypes } from '@shared/types';
 import { messageService } from '@/src/services';
@@ -187,114 +188,8 @@ const actionIcon = computed(() => {
 });
 
 // --- 文件类型解析与配色系统 ---
-const fileExtension = computed(() => {
-    const name = props.message.fileName || '';
-    const lastDotIndex = name.lastIndexOf('.');
-    if (lastDotIndex !== -1 && lastDotIndex < name.length - 1) {
-        return name.slice(lastDotIndex + 1).toUpperCase().substring(0, 4);
-    }
-    // 没有扩展名时（如 Dockerfile, LICENSE），取前4个字符或 FILE
-    return name.slice(0, 4).toUpperCase() || 'FILE';
-});
-
-const fileTheme = computed(() => {
-    const ext = fileExtension.value.toLowerCase();
-    const map: Record<string, { color1: string; color2: string }> = {
-        // PDF 文档 - 鲜红
-        pdf: { color1: '#f87171', color2: '#ef4444' },
-
-        // Word 文档 - 经典蓝
-        doc: { color1: '#60a5fa', color2: '#2563eb' },
-        docx: { color1: '#60a5fa', color2: '#2563eb' },
-        wps: { color1: '#60a5fa', color2: '#2563eb' },
-
-        // Excel 表格 - 翡翠绿
-        xls: { color1: '#4ade80', color2: '#16a34a' },
-        xlsx: { color1: '#4ade80', color2: '#16a34a' },
-        csv: { color1: '#4ade80', color2: '#16a34a' },
-        et: { color1: '#4ade80', color2: '#16a34a' },
-
-        // PPT 演示文稿 - 活力橙
-        ppt: { color1: '#fb923c', color2: '#ea580c' },
-        pptx: { color1: '#fb923c', color2: '#ea580c' },
-        dps: { color1: '#fb923c', color2: '#ea580c' },
-        key: { color1: '#fb923c', color2: '#ea580c' },
-
-        // 压缩文件 - 典雅紫
-        zip: { color1: '#a78bfa', color2: '#7c3aed' },
-        rar: { color1: '#a78bfa', color2: '#7c3aed' },
-        '7z': { color1: '#a78bfa', color2: '#7c3aed' },
-        tar: { color1: '#a78bfa', color2: '#7c3aed' },
-        gz: { color1: '#a78bfa', color2: '#7c3aed' },
-        bz2: { color1: '#a78bfa', color2: '#7c3aed' },
-        xz: { color1: '#a78bfa', color2: '#7c3aed' },
-        iso: { color1: '#a78bfa', color2: '#7c3aed' },
-        dmg: { color1: '#a78bfa', color2: '#7c3aed' },
-
-        // 纯文本 / 日志 / Markdown - 石板灰
-        txt: { color1: '#94a3b8', color2: '#64748b' },
-        md: { color1: '#94a3b8', color2: '#64748b' },
-        log: { color1: '#94a3b8', color2: '#64748b' },
-        rtf: { color1: '#94a3b8', color2: '#64748b' },
-
-        // 代码与配置 - 丰富区分
-        js: { color1: '#facc15', color2: '#ca8a04' },
-        json: { color1: '#facc15', color2: '#d97706' },
-        yaml: { color1: '#facc15', color2: '#d97706' },
-        yml: { color1: '#facc15', color2: '#d97706' },
-        xml: { color1: '#facc15', color2: '#d97706' },
-        ts: { color1: '#38bdf8', color2: '#0284c7' },
-        env: { color1: '#38bdf8', color2: '#0284c7' },
-        conf: { color1: '#38bdf8', color2: '#0284c7' },
-        ini: { color1: '#38bdf8', color2: '#0284c7' },
-        vue: { color1: '#34d399', color2: '#059669' },
-        py: { color1: '#34d399', color2: '#0d9488' },
-        java: { color1: '#f87171', color2: '#dc2626' },
-        c: { color1: '#60a5fa', color2: '#1d4ed8' },
-        cpp: { color1: '#60a5fa', color2: '#1d4ed8' },
-        go: { color1: '#38bdf8', color2: '#0891b2' },
-        rs: { color1: '#fb923c', color2: '#c2410c' },
-        sql: { color1: '#06b6d4', color2: '#0e7490' },
-        sh: { color1: '#818cf8', color2: '#4f46e5' },
-        bat: { color1: '#818cf8', color2: '#4f46e5' },
-        html: { color1: '#fb7185', color2: '#e11d48' },
-        css: { color1: '#38bdf8', color2: '#4f46e5' },
-        scss: { color1: '#f472b6', color2: '#db2777' },
-
-        // 音频媒体 - 霓虹粉
-        mp3: { color1: '#f472b6', color2: '#db2777' },
-        wav: { color1: '#f472b6', color2: '#db2777' },
-        flac: { color1: '#f472b6', color2: '#db2777' },
-        aac: { color1: '#f472b6', color2: '#db2777' },
-        m4a: { color1: '#f472b6', color2: '#db2777' },
-
-        // 视频媒体 - 玫瑰红
-        mp4: { color1: '#fb7185', color2: '#e11d48' },
-        mov: { color1: '#fb7185', color2: '#e11d48' },
-        avi: { color1: '#fb7185', color2: '#e11d48' },
-        mkv: { color1: '#fb7185', color2: '#e11d48' },
-
-        // 图片源文件
-        psd: { color1: '#38bdf8', color2: '#1d4ed8' },
-        ai: { color1: '#fb923c', color2: '#b45309' },
-
-        // 可执行文件 / 安装包 - 深灰石板
-        exe: { color1: '#64748b', color2: '#334155' },
-        msi: { color1: '#64748b', color2: '#334155' },
-        apk: { color1: '#4ade80', color2: '#15803d' },
-    };
-    return map[ext] || { color1: '#38bdf8', color2: '#2563eb' };
-});
-
-// --- 工具方法 ---
-const formatSize = (bytes: number) => {
-    if (!bytes || bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    const val = parseFloat((bytes / Math.pow(k, i)).toFixed(1));
-    return val + ' ' + sizes[i];
-};
+const fileExtension = computed(() => getFileExtension(props.message.fileName));
+const fileTheme = computed(() => getFileTheme(fileExtension.value));
 
 // --- 事件处理 ---
 const handleClick = async () => {
@@ -388,8 +283,6 @@ const openFile = async () => {
 </script>
 
 <style scoped lang="scss">
-@use "@/src/style/_constant.scss" as *;
-
 .file-message-bubble {
     display: flex;
     flex-direction: column;
@@ -422,14 +315,6 @@ const openFile = async () => {
         &:hover {
             border-color: var(--color-primary, #409eff);
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
-        }
-    }
-
-    &.is-self {
-        background: var(--surface-default, #ffffff);
-
-        [data-theme='dark'] & {
-            background: var(--surface-default, #1e293b);
         }
     }
 

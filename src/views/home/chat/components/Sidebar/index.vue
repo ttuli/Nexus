@@ -31,13 +31,13 @@ defineEmits(['close']);
 </script>
 
 <style scoped lang="scss">
-@use "@/src/style/constant.scss" as *;
-
 .chat-sidebar-wrapper {
     position: absolute;
-    top: 0;
+    // 上下各外扩 1px（由外层 content-wrapper 的 overflow: hidden 裁切），
+    // 消除 Windows 缩放（125%/150%）下 transform 合成层在顶部产生的 1 物理像素缝隙
+    top: -1px;
     right: 0;
-    bottom: 0;
+    bottom: -1px;
     width: 280px;
     background: $bg-card;
     border-left: 1px solid $color-border;

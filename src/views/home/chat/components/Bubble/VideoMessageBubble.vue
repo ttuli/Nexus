@@ -29,41 +29,25 @@
                 </span>
             </div>
 
-            <!-- 上传进度蒙层（仅对自己发送且处于上传状态的消息显示） -->
-            <transition name="fade-reveal">
-                <div class="upload-mask" :class="{ 'is-finishing': isFinishing }" v-show="!isFinishing">
-                    <div class="custom-progress" :class="{ 'can-cancel': isDownloading || isUploading }">
-                        <div class="progress-display">
-                            <svg class="progress-ring" width="44" height="44">
-                                <!-- 背景环 -->
-                                <circle class="ring-bg" stroke="rgba(255,255,255,0.3)" stroke-width="3" fill="transparent"
-                                    r="18" cx="22" cy="22" />
-                                <!-- 进度环 -->
-                                <circle class="ring-progress" stroke="#fff" stroke-width="3" fill="transparent"
-                                    :stroke-dasharray="113"
-                                    :stroke-dashoffset="113 - ((props.message.uploadProgress || 0) / 100) * 113"
-                                    stroke-linecap="round" r="18" cx="22" cy="22" />
-                            </svg>
-                            <span class="progress-text">{{ props.message.uploadProgress || 0 }}%</span>
-                        </div>
-                        <div class="cancel-btn" v-if="isDownloading || isUploading">
-                            <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
-                                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-            </transition>
+            <!-- 上传/下载进度蒙层 -->
+            <MediaProgressMask
+                :finished="isFinishing"
+                :progress="props.message.uploadProgress || 0"
+                :can-cancel="isDownloading || isUploading"
+            />
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
+import MediaProgressMask from './MediaProgressMask.vue';
 import { ILocalVideoMessage } from '@shared/types/chatMessage';
 import { APP_CONSTANTS as config } from '@shared/config/constants';
 import { CacheOptionType, ImTypes } from '@shared/types';
 import { openVideoViewer } from '@/src/utils/window';
+import { calcMediaWrapperStyle } from '@/src/utils/mediaUtils';
+import { formatCallDuration as formatDuration } from '@/src/utils/messageConverter';
 import { ElMessage } from 'element-plus';
 import { messageService } from '@/src/services/messageService';
 import { toResourceUrl } from '@/src/utils/resourceUrl';
@@ -123,38 +107,7 @@ watch(() => props.message, async (msg) => {
 }, { immediate: true });
 
 // 动态计算尺寸，如果有宽高信息按比例缩小，没有的话使用占位
-const wrapperStyle = computed(() => {
-    // 优先使用明确提供的缩略图尺寸
-    if (props.message.thumbnailWidth && props.message.thumbnailHeight && props.message.thumbnailWidth > 0 && props.message.thumbnailHeight > 0) {
-        return {
-            width: `${props.message.thumbnailWidth}px`,
-            height: `${props.message.thumbnailHeight}px`
-        };
-    }
-
-    let width = props.message.width || 0;
-    let height = props.message.height || 0;
-
-    if (width > 0 && height > 0) {
-        // 限制最大宽高，保持比例（复用图片的最大尺寸配置）
-        if (width > config.maxImageWidth || height > config.maxImageHeight) {
-            const ratio = Math.min(config.maxImageWidth / width, config.maxImageHeight / height);
-            width = width * ratio;
-            height = height * ratio;
-        }
-
-        return {
-            width: `${width}px`,
-            height: `${height}px`
-        };
-    }
-
-    // 没有尺寸信息时采用默认占位，16:9 接近的默认大小
-    return {
-        width: '160px',
-        height: '160px'
-    };
-});
+const wrapperStyle = computed(() => calcMediaWrapperStyle(props.message, 160));
 
 const handlePlay = async () => {
     if (!(await fileService.checkLocalFileExists(props.message.localPath || ''))) {
@@ -193,14 +146,7 @@ const handleDownload = async () => {
         const localPath = await promise;
         props.message.localPath = localPath;
         messageService.saveMessage(props.message);
-        
-        currentDownloadAbort.value = null;
-        isDownloading.value = false;
     } catch (e: any) {
-        currentDownloadAbort.value = null;
-        props.message.uploadProgress = undefined;
-        isDownloading.value = false;
-        
         if (e?.message !== config.ERR_DOWNLOAD_CANCELLED) {
             console.error('[VideoBubble] 下载失败:', e);
             ElMessage.error('视频下载失败');
@@ -229,18 +175,9 @@ const handleClick = async () => {
         await handleDownload();
     }
 };
-
-const formatDuration = (seconds: number) => {
-    if (!seconds) return '0:00';
-    const m = Math.floor(seconds / 60);
-    const s = Math.floor(seconds % 60);
-    return `${m}:${s.toString().padStart(2, '0')}`;
-};
 </script>
 
 <style scoped lang="scss">
-@use "@/src/style/_constant.scss" as *;
-
 .video-message-bubble {
     width: 100%;
     height: 100%;
@@ -276,7 +213,6 @@ const formatDuration = (seconds: number) => {
         .video-content {
             width: 100%;
             height: 100%;
-            padding: -5px;
             transition: opacity 0.3s ease;
             pointer-events: none; // 禁止用户在气泡中交互原生的视频控件
         }
@@ -349,94 +285,6 @@ const formatDuration = (seconds: number) => {
 
         &:hover .video-info-bar {
             opacity: 1;
-        }
-
-        .upload-mask {
-            position: absolute;
-            inset: 0;
-            background-color: rgba(0, 0, 0, 0.282);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            clip-path: circle(100% at center);
-            transition: clip-path 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease;
-            z-index: 10;
-
-            .custom-progress {
-                position: relative;
-                width: 44px;
-                height: 44px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-                .progress-display {
-                    position: absolute;
-                    inset: 0;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    transition: opacity 0.2s ease;
-
-                    .progress-ring {
-                        transform: rotate(-90deg);
-
-                        circle {
-                            transition: stroke-dashoffset 0.2s linear;
-                        }
-                    }
-
-                    .progress-text {
-                        position: absolute;
-                        font-size: 11px;
-                        color: #fff;
-                        font-weight: 500;
-                        font-family: monospace;
-                    }
-                }
-
-                .cancel-btn {
-                    position: absolute;
-                    inset: 0;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: #fff;
-                    opacity: 0;
-                    transition: opacity 0.2s ease;
-                    border-radius: 50%;
-                    background-color: rgba(255, 255, 255, 0.2); // 同色系半透明背景
-                }
-
-                &.can-cancel:hover {
-                    .progress-display {
-                        opacity: 0;
-                    }
-                    .cancel-btn {
-                        opacity: 1;
-                    }
-                }
-            }
-
-            &.is-finishing {
-                opacity: 0;
-
-                .custom-progress {
-                    opacity: 0;
-                    transform: scale(1.5);
-                }
-            }
-        }
-
-        .fade-reveal-enter-active,
-        .fade-reveal-leave-active {
-            transition: opacity 0.4s;
-        }
-
-        .fade-reveal-enter-from,
-        .fade-reveal-leave-to {
-            opacity: 0;
         }
     }
 }

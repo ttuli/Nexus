@@ -37,7 +37,7 @@
         </div>
         
         <!-- Blue Arrow Circle -->
-         <img :src="icon" class="left-icon"></img>
+         <img :src="icon" class="left-icon" />
 
         <h1 class="brand-title">{{ APP_CONSTANTS.ApplicationName }} 悦联</h1>
         <p class="brand-subtitle">
@@ -70,8 +70,6 @@ const isProcessing = ref(false)
 </script>
 
 <style scoped lang="scss">
-@use "@/src/style/_constant.scss" as *;
-
 .titlebar {
   position: fixed;
   z-index: 100;
@@ -213,164 +211,6 @@ const isProcessing = ref(false)
       width: 100%;
       max-width: 380px;
       padding: 2rem;
-
-      .title {
-        font-size: 2.2rem;
-        font-weight: 800;
-        color: #0f172a;
-        margin: 0 0 0.5rem 0;
-      }
-
-      .subtitle {
-        font-size: 0.95rem;
-        color: #64748b;
-        margin: 0 0 2.5rem 0;
-      }
-
-      .auto-login-panel {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 1rem 0;
-        gap: 1.5rem;
-        width: 100%;
-
-        .avatar-wrapper {
-          padding: 4px;
-          background: #fff;
-          border-radius: 50%;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-
-          .avatar {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            object-fit: cover;
-            display: block;
-          }
-        }
-
-        .name {
-          margin-top: -10px;
-          font-weight: 600;
-          font-size: 1.2rem;
-          color: #0f172a;
-        }
-
-        .user-info {
-          text-align: center;
-          margin-bottom: 0.5rem;
-
-          h3 {
-            font-size: 1.5rem;
-            font-weight: 800;
-            color: #0f172a;
-            margin: 0 0 4px 0;
-          }
-
-          p {
-            font-size: 0.95rem;
-            color: #64748b;
-            margin: 0;
-          }
-        }
-      }
-
-      .login-form {
-        display: flex;
-        flex-direction: column;
-        gap: 1.25rem;
-
-        .input-group {
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-
-          label {
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: #1e293b;
-
-            .required {
-              color: #1890ff;
-            }
-          }
-
-          .check-box {
-            margin-left: 5px;
-          }
-
-
-          .password-toggle {
-            background: none;
-            border: none;
-            cursor: pointer;
-            padding: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #94a3b8;
-            transition: color 0.3s ease;
-
-            &:hover {
-                color: #1890ff;
-            }
-
-            .icon {
-                width: 18px;
-                height: 18px;
-            }
-          }
-        }
-
-        .submit-btn-new, .auto-login-btn {
-          width: 100%;
-          height: 3rem;
-          background: linear-gradient(90deg, #40a9ff, #1890ff);
-          color: #fff;
-          border: none;
-          border-radius: 0.5rem;
-          font-size: 1rem;
-          font-weight: 600;
-          cursor: pointer;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          margin-top: 1rem;
-          box-shadow: 0 4px 12px rgba(24, 144, 255, 0.2);
-
-          &:hover {
-            opacity: 0.9;
-            box-shadow: 0 6px 16px rgba(24, 144, 255, 0.3);
-          }
-        }
-      }
-
-      .forgot-wrapper {
-        display: flex;
-        justify-content: center;
-        margin-top: 0.5rem;
-        gap: 16px;
-
-        .divider {
-          color: #e5e7eb;
-        }
-
-        .forgot-btn {
-          background: none;
-          border: none;
-          color: #1890ff;
-          font-size: 0.95rem;
-          font-weight: 500;
-          cursor: pointer;
-          -webkit-app-region: no-drag;
-
-          &:hover {
-            text-decoration: underline;
-          }
-        }
-      }
     }
   }
 }

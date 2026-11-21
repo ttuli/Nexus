@@ -1,5 +1,6 @@
 import * as os from 'os';
-import { storage, StorageKeys } from '@/electron/utils/storage';
+import { storage } from '@/electron/utils/storage';
+import { StorageKeys } from '@shared/config/storage';
 import { ApiTypes } from '@shared/types';
 import { v4 as uuidv4 } from 'uuid';
 import { APP_CONSTANTS as config } from '@shared/config/constants';
@@ -77,9 +78,11 @@ class AuthManager {
                     tokenManager.setRefreshToken(decoded.data.refresh_token);
                     tokenManager.setStoreRefreshToken(remember);
                     return { success: true, userId: tokenManager.getCurrentUserID() };
+                } else {
+                    console.log(decoded)
                 }
             }
-
+            console.log("login fail:",res.code);
             return { success: false, error: res.message || 'Login failed' };
         } catch (error: any) {
             console.error('[AuthManager] Login request error:', error);

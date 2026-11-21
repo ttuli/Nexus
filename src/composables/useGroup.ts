@@ -7,7 +7,7 @@ import { groupService } from '@/src/services';
 /**
  * 单个群的响应式派生状态 + 常用操作。
  *
- * 定位：把原先散落在 GroupDetail / GroupSessionSidebar / GroupInfoDisplay 等
+ * 定位：把原先散落在 GroupDetail / GroupSessionSidebar 等
  * 组件里的"同一个群"派生计算和服务编排统一到一处。
  * - 状态：全部从 store 派生（响应式），随缓存更新自动刷新；
  * - I/O：委托给 useGroupActions / groupService；

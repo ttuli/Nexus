@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { app } from 'electron';
+import { STORAGE_FILE_NAME } from '@shared/config/storage';
 
 /**
  * 持久化存储管理器
@@ -15,7 +16,7 @@ class Storage {
     constructor() {
         // 使用 app.getPath('userData') 获取用户数据目录
         this.storageDir = app.getPath('userData');
-        this.storagePath = path.join(this.storageDir, 'storage.json');
+        this.storagePath = path.join(this.storageDir, STORAGE_FILE_NAME);
     }
 
     /**
@@ -137,22 +138,6 @@ class Storage {
             this.init();
         }
     }
-}
-
-// 存储键常量
-export const StorageKeys = {
-    REFRESH_TOKEN: 'refreshToken',
-    LOGIN_HISTORY: 'loginHistory',  // 登录历史记录
-    MACHINE_UID: 'machineUid',
-    CUSTOM_RESOURCE_PATH: 'customResourcePath', // 用户自定义的大文件存储根目录
-    DB_KEY_SHARED: 'dbKey.shared',  // shared.db 的加密密钥（设备级，跨账号共享）
-    UPDATE_SKIPPED_VERSION: 'update.skippedVersion', // 用户选择「跳过此版本」的版本号
-    UPDATE_INSTALL_RECORD: 'update.installRecord',   // 自动安装尝试记录，用于识别「装了没生效」的死循环
-} as const;
-
-/** 用户私有库 {userId}.db 的密钥存储键（每个账号一把独立密钥） */
-export function dbKeyForUser(userId: number): string {
-    return `dbKey.user.${userId}`;
 }
 
 export const storage = new Storage();

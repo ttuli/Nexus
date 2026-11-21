@@ -77,7 +77,7 @@
       <div class="input-group">
         <label>确认密码 <span class="required">*</span></label>
         <CusInput ref="confirmPasswordInput" v-model="form.confirmPassword" type="password"
-          :visible="confirmPasswordVisible" placeholder="请再次输入密码" @keydown.enter.prevent="handleRegister">
+          :visible="false" placeholder="请再次输入密码" @keydown.enter.prevent="handleRegister">
           <template #left-area>
             <Lock class="app-icon app-icon--md" />
           </template>
@@ -171,7 +171,6 @@ const form = ref<RegisterForm>({
 })
 
 const passwordVisible = ref(false)
-const confirmPasswordVisible = ref(false)
 const isLoading = ref(false)
 const codeCD = ref(0)
 const phoneInput = ref<any>()
@@ -275,7 +274,6 @@ const handleRegister = async (): Promise<void> => {
       password: form.value.password,
       auth_code: form.value.code
     })
-    res.data.id
 
     finish = true
 
@@ -321,7 +319,6 @@ const showPrivacy = (e: Event): void => {
 </script>
 
 <style scoped lang="scss">
-@use "@/src/style/_constant.scss" as *;
 @use "@/src/style/_mixins.scss" as *;
 
 .register-form {

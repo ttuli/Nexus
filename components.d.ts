@@ -30,15 +30,14 @@ declare module 'vue' {
     CusSwitch: typeof import('./src/components/CusSwitch.vue')['default']
     FilterColumn: typeof import('./src/components/FilterColumn.vue')['default']
     GlobalLoading: typeof import('./src/components/GlobalLoading/GlobalLoading.vue')['default']
+    HighlightText: typeof import('./src/components/HighlightText.vue')['default']
     Logo: typeof import('./src/components/Logo.vue')['default']
     ModalBackground: typeof import('./src/components/ModalBackground/ModalBackground.vue')['default']
     PasswordStrength: typeof import('./src/components/PasswordStrength.vue')['default']
     ReleaseNotes: typeof import('./src/components/ReleaseNotes.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
-    ThemeToggle: typeof import('./src/components/ThemeToggle.vue')['default']
     TitleBar: typeof import('./src/components/TitleBar.vue')['default']
-    Toggle: typeof import('./src/components/Toggle.vue')['default']
     UserSelectorModal: typeof import('./src/components/UserSelectorModal.vue')['default']
   }
 }

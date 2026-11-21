@@ -6,4 +6,5 @@ export interface InputDialogOptions {
     initialValue?: string;
     maxLength?: number;
     showClose?: boolean;
+    allowEmpty?: boolean;
 }

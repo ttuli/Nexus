@@ -78,8 +78,6 @@ const handleSubmit = () => {
 </script>
 
 <style scoped lang="scss">
-@use "@/src/style/_constant.scss" as *;
-
 .dialog-content {
   display: flex;
   flex-direction: column;

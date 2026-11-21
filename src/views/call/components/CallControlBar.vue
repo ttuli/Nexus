@@ -9,13 +9,6 @@
       <span class="label">{{ isMuted ? '麦克风已关' : '麦克风已开' }}</span>
     </div>
 
-    <div v-if="showScreenShare" class="action">
-      <button class="action-btn" @click="emit('toggle-screen-share')">
-        <Monitor class="app-icon app-icon--md" />
-      </button>
-      <span class="label">共享屏幕</span>
-    </div>
-
     <div class="action">
       <button class="action-btn hangup-btn" @click="emit('hangup')">
         <Phone class="app-icon app-icon--md" />
@@ -33,7 +26,7 @@
 </template>
 
 <script setup lang="ts">
-import { Microphone, MicrophoneSlash, Phone, Monitor } from 'reicon-vue';
+import { Microphone, MicrophoneSlash, Phone } from 'reicon-vue';
 
 withDefaults(defineProps<{
   isMuted: boolean;
@@ -43,17 +36,14 @@ withDefaults(defineProps<{
   showAccept: boolean;
   /** 挂断按钮文案：振铃中是「拒绝」/「取消」，接听后是「挂断」 */
   hangupLabel?: string;
-  showScreenShare?: boolean;
 }>(), {
   hangupLabel: '挂断',
-  showScreenShare: false,
 });
 
 const emit = defineEmits<{
   (e: 'toggle-mute'): void;
   (e: 'hangup'): void;
   (e: 'accept'): void;
-  (e: 'toggle-screen-share'): void;
 }>();
 </script>
 

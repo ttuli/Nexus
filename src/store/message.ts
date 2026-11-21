@@ -2,7 +2,15 @@ import { defineStore } from 'pinia';
 import { useSessionStore } from './session';
 import { IChatMessage } from '@shared/types/chatMessage';
 import { Renderer_Config } from '@shared/config/constants';
-import { seqPositive, toSeq, seqCompare } from '@shared/utils/seq';
+import { seqPositive, toSeq, seqCompare, seqGt } from '@shared/utils/seq';
+
+/** 列表里最新的已确认 seq（未确认的乐观消息 seq 为 0，跳过） */
+export function newestConfirmedSeq(list: IChatMessage[]): string | undefined {
+    for (let i = list.length - 1; i >= 0; i--) {
+        if (seqPositive(list[i].seq)) return toSeq(list[i].seq);
+    }
+    return undefined;
+}
 
 // ─── Dependency Injection Interfaces ─────────────────────────────────────────
 // Store 不直接依赖任何 Service；历史拉取能力通过接口在调用方（composable）注入。
@@ -32,6 +40,13 @@ export const useMessageStore = defineStore('message', {
         messages: [] as IChatMessage[],
         isLoading: false,
         hasMore: true,
+        /**
+         * 列表不是会话最新的一段：从历史消息窗口跳转定位进来、以目标为锚点加载的「跳转窗口」，更新的消息还没加载。
+         * 此时新到的消息只落库不追加（否则与窗口末尾之间断档），往下翻到最新或点「回到最新」后恢复
+         */
+        hasNewer: false,
+        /** 待执行的定位请求：SessionContent 滚到这条消息并闪烁，执行后清掉 */
+        jumpRequest: null as { msgId: string } | null,
         pageSize: 20,
         /**
          * 会话消息内存缓存：切换会话时暂存当前列表，切回时直接恢复免于重新查库。
@@ -45,7 +60,8 @@ export const useMessageStore = defineStore('message', {
          */
         stashCurrentMessages(sessionKey: string) {
             if (!sessionKey) return;
-            if (this.messages.length === 0) {
+            // 跳转窗口不是最新的一段，缓存后切回会被当成最新列表继续追加新消息：不缓存，切回时重新加载最新一页
+            if (this.messages.length === 0 || this.hasNewer) {
                 this.sessionMessageCache.delete(sessionKey);
                 return;
             }
@@ -69,6 +85,7 @@ export const useMessageStore = defineStore('message', {
             this.sessionMessageCache.set(sessionKey, cached);
             this.messages = cached.messages;
             this.hasMore = cached.hasMore;
+            this.hasNewer = false;
             this.isLoading = false;
             return true;
         },
@@ -121,6 +138,54 @@ export const useMessageStore = defineStore('message', {
             this.messages = [];
             this.isLoading = false;
             this.hasMore = true;
+            this.hasNewer = false;
+        },
+
+        /** 设置加载状态（由 composable 编排的加载用：跳转定位、往更新翻、回到最新），与 loadMore 共用同一把锁 */
+        setLoading(loading: boolean) {
+            this.isLoading = loading;
+        },
+
+        /**
+         * 进入跳转窗口：以目标消息为锚点加载的前后两页整体替换当前列表
+         * @param hasNewer 窗口末尾之后还有更新的消息（往下那一页是满的）
+         */
+        enterJumpWindow(messages: IChatMessage[], hasNewer: boolean) {
+            this.messages = messages;
+            this.hasMore = true;
+            this.hasNewer = hasNewer;
+            this.isLoading = false;
+        },
+
+        /** 回到最新：用最新一页整体替换当前列表，退出跳转窗口 */
+        enterLatestWindow(messages: IChatMessage[]) {
+            this.messages = messages;
+            this.hasMore = true;
+            this.hasNewer = false;
+            this.isLoading = false;
+        },
+
+        /**
+         * 跳转窗口往更新的方向翻了一页：接到尾部（按消息 ID 去重）
+         * @param full 这一页是满的，之后可能还有；不满说明已经到最新，退出跳转窗口
+         * @returns 新增的条数
+         */
+        appendNewer(page: IChatMessage[], full: boolean): number {
+            const known = new Set(this.messages.map(m => m.msgId || m.clientId));
+            const newer = page.filter(m => !known.has(m.msgId || m.clientId));
+            if (newer.length > 0) this.messages.push(...newer);
+            this.hasNewer = full;
+            return newer.length;
+        },
+
+        /** 请求视图定位到某条消息并闪烁（每次都是新对象，同一条消息再次定位也会触发） */
+        requestJump(msgId: string) {
+            this.jumpRequest = { msgId };
+        },
+
+        /** 视图执行完定位后清掉请求 */
+        clearJumpRequest() {
+            this.jumpRequest = null;
         },
 
         /**
@@ -215,6 +280,9 @@ export const useMessageStore = defineStore('message', {
                     }
                     return message;
                 }
+                // 跳转窗口的末尾不是最新：新消息只落库（由调用方负责）不追加，否则与窗口末尾之间断档；
+                // 翻到最新或回到最新时从库里加载。自己发消息前由 useChatPage 先回到最新，不会走到这里
+                if (this.hasNewer) return message;
                 this.messages.push(message);
                 return this.messages[this.messages.length - 1];
             } else {
@@ -238,8 +306,12 @@ export const useMessageStore = defineStore('message', {
                 : this.sessionMessageCache.get(sessionKey)?.messages;
             if (!target) return;
 
+            // 跳转窗口：比窗口末尾更新的不并入（例如进会话时首屏的后台补齐晚到），否则与末尾之间断档
+            const newest = target === this.messages && this.hasNewer ? newestConfirmedSeq(target) : undefined;
+
             let changed = false;
             for (const msg of incoming) {
+                if (newest && seqPositive(msg.seq) && seqGt(msg.seq, newest)) continue;
                 const exists = target.some(m =>
                     (msg.clientId && m.clientId === msg.clientId) ||
                     (msg.msgId && m.msgId === msg.msgId)

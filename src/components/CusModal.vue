@@ -24,8 +24,6 @@
 </template>
 
 <script setup lang="ts">
-import ModalBackground from '@/src/components/ModalBackground/ModalBackground.vue';
-
 interface Props {
     visible: boolean;
     title?: string;
@@ -49,8 +47,6 @@ const handleClose = () => {
 </script>
 
 <style lang="scss" scoped>
-@use "@/src/style/_constant.scss" as *;
-
 .cus-modal-card {
     background: var(--surface-default, #ffffff);
     border-radius: var(--radius-lg, 12px);

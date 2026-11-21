@@ -59,7 +59,7 @@ const openUserInfo = () => {
 }
 
 watch(contactBadge, (newVal, oldVal) => {
-    if (newVal > (oldVal || 0)) {
+    if (newVal > (oldVal || 0) && !route.path.includes('/contacts/validation')) {
         windowService.playNotificationSound(NotifySoundType.Request);
     }
 })
@@ -127,27 +127,6 @@ watch(contactBadge, (newVal, oldVal) => {
             position: absolute;
             top: -4px;
             right: -4px;
-        }
-    }
-
-    .setting-btn {
-        border-radius: 12px;
-        overflow: hidden;
-
-        &.active {
-            border: 2px solid #007bff;
-            background-color: transparent;
-        }
-
-        .avatar-img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            opacity: 1;
-        }
-
-        &:hover .avatar-img {
-            opacity: 1;
         }
     }
 }

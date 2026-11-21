@@ -31,7 +31,11 @@ export function setupProtocolHandler() {
 
             // 3. 将核心处理逻辑委托给 fileCacheManager
             const response = await fileCacheManager.handleLocalCacheRequest(pathOrUrl, opts);
-            if (response) return response;
+            if (response) {
+                // 配合 registerSchemesAsPrivileged({ corsEnabled: true })，允许开发(http://)与生产(file://)跨源 fetch 读取响应体
+                response.headers.set('Access-Control-Allow-Origin', '*');
+                return response;
+            }
         } catch (e) {
             console.error('[Protocol] localcache handler error:', e);
             return new Response(null, { status: 500 });

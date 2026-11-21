@@ -1,6 +1,7 @@
 import { ResourceType, ResourceIdKeyMap, IpcChannels, GroupMembersWrapper } from '@shared/types';
 import { windowManager } from '@/electron/windows/windowManager';
 import { Main_Config as config } from '@shared/config/constants';
+import { CACHE_CONFIG } from '@shared/config/storage';
 import { LRUCache } from 'lru-cache';
 import {
     userStore,
@@ -12,13 +13,7 @@ import {
 } from '@/electron/db';
 
 // ─── 需要持久化到磁盘的资源类型 ─────────────────────────────────
-const PERSIST_TYPES = new Set<ResourceType>([
-    ResourceType.USER,
-    ResourceType.GROUP,
-    ResourceType.FRIEND,
-    ResourceType.GROUP_JOINED,
-    ResourceType.GROUP_MEMBER,
-]);
+const PERSIST_TYPES = new Set<ResourceType>(CACHE_CONFIG.persistTypes);
 
 /**
  * 缓存管理器

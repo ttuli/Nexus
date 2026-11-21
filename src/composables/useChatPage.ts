@@ -1,6 +1,7 @@
 import { ref, toRaw, reactive } from 'vue';
+import { ulid } from 'ulid';
 import { ImTypes, ApiTypes, CacheOptionType } from '@shared/types';
-import type { IChatMessage } from '@shared/types/chatMessage';
+import type { IChatMessage, ILocalImageMessage, ILocalVideoMessage, ILocalFileMessage } from '@shared/types/chatMessage';
 import { APP_CONSTANTS } from '@shared/config/constants';
 import { ElMessage } from 'element-plus';
 import { useSessionStore } from '@/src/store/session';
@@ -10,13 +11,15 @@ import type { IHistoryFetcher } from '@/src/store/message';
 import { getLastContent } from '@/src/utils/messageConverter';
 import {
     buildTextWsMessage,
-    buildImageLocalMsg, buildImageWsPayload,
-    buildFileLocalMsg, buildFileWsPayload,
-    buildVideoLocalMsg, buildVideoWsPayload,
+    buildImageLocalMsg,
+    buildFileLocalMsg,
+    buildVideoLocalMsg,
+    buildWsPayloadFromLocalMsg,
 } from '@/src/utils/messageBuilder';
 import { toResourceUrl } from '@/src/utils/resourceUrl';
 import { extractVideoFrame } from '@/src/utils/mediaUtils';
 import { seqGt, seqPositive } from '@shared/utils/seq';
+import { returnToLatest } from '@/src/composables/messageJump';
 
 // ─── Service Imports（仅在 Composable 层引入，直接编排 I/O）─────────────────────
 import { chatService } from '@/src/services/chatService';
@@ -67,16 +70,6 @@ interface MediaMessageSpec {
         chatType: ImTypes.SessionType,
         userId: number
     ): { clientId: string; localMsg: IChatMessage };
-    /** 上传完成后，利用 ossUrl 构建发送给服务端的 WS 消息 */
-    buildWsPayload(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        localMsg: any,
-        ossUrl: string,
-        sessionId: string,
-        sessionKey: string,
-        chatType: ImTypes.SessionType,
-        userId: number
-    ): ImTypes.WSMessage;
 }
 
 export function useChatPage() {
@@ -101,6 +94,57 @@ export function useChatPage() {
     }
 
     /**
+     * 统一的消息传输与落库流水线：可选媒体上传（带进度）→ 构建 WS 载荷并发送 → 错误兜底 → SQLite 持久化。
+     * 首次发送（文本/媒体）与失败重发（断点续发）均复用此函数。
+     */
+    async function deliverMessage(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        storedMsg: any,
+        sessionId: string,
+        sessionKey: string,
+        chatType: ImTypes.SessionType,
+        userId: number,
+        uploadTask?: { file: File; fileType: ApiTypes.file.FileType },
+        logTag: string = 'deliverMessage',
+    ): Promise<void> {
+        const clientId: string = storedMsg.clientId || '';
+        try {
+            if (uploadTask) {
+                const { promise, abort } = fileService.uploadFile(
+                    uploadTask.file,
+                    uploadTask.fileType,
+                    (progress) => { storedMsg.uploadProgress = progress; }
+                );
+                uploadAbortControllers.set(clientId, abort);
+
+                const ossUrl = await promise;
+                uploadAbortControllers.delete(clientId);
+                storedMsg.url = ossUrl;
+                storedMsg.uploadProgress = 100;
+            }
+
+            const finalMsg = buildWsPayloadFromLocalMsg(storedMsg, sessionId, sessionKey, chatType, userId);
+            if (!finalMsg) {
+                storedMsg.status = ImTypes.MessageStatus.MESSAGE_STATUS_FAILED;
+                return;
+            }
+            const result = await websocketService.send(finalMsg, clientId, sessionId);
+            if (!result.success || !result.data?.sent) {
+                storedMsg.status = ImTypes.MessageStatus.MESSAGE_STATUS_FAILED;
+            }
+        } catch (e) {
+            console.error(`[useChatPage] ${logTag} failed:`, e);
+            storedMsg.status = ImTypes.MessageStatus.MESSAGE_STATUS_FAILED;
+            if (uploadTask && !storedMsg.url) {
+                storedMsg.uploadProgress = 0;
+            }
+            uploadAbortControllers.delete(clientId);
+        } finally {
+            await messageService.saveMessage(toRaw(storedMsg) as IChatMessage);
+        }
+    }
+
+    /**
      * 发送文本消息：本地乐观入列 → WS 发送 → 落库 → 更新会话摘要。
      * store 仅负责 upsert / 状态 mutation，I/O 与编排均在本层。
      */
@@ -110,25 +154,18 @@ export function useChatPage() {
 
         isSending.value = true;
         try {
+            // 跳转窗口里发消息：先回到最新，消息才能接在最新一条后面（跳转窗口不追加新消息）
+            if (messageStore.hasNewer) await returnToLatest();
             const sessionKey = sessionStore.currentSessionKey;
             const chatType = sessionStore.currentSessionType;
             const session = sessionStore.getSession(sessionKey);
             const sessionId = session?.session_id || '';
+            const userId = userStore.getUserID();
 
-            const { msg, clientId, localMsg } = buildTextWsMessage(text, sessionId, sessionKey, chatType, userStore.getUserID());
+            const { localMsg } = buildTextWsMessage(text, sessionId, sessionKey, chatType, userId);
             const storedMsg = messageStore.upsertMessage(localMsg);
 
-            try {
-                const result = await websocketService.send(msg, clientId, sessionId);
-                if (!result.success || !result.data?.sent) {
-                    storedMsg.status = ImTypes.MessageStatus.MESSAGE_STATUS_FAILED;
-                }
-            } catch (e) {
-                console.error('[useChatPage] sendTextMessage send failed:', e);
-                storedMsg.status = ImTypes.MessageStatus.MESSAGE_STATUS_FAILED;
-            } finally {
-                await messageService.saveMessage(toRaw(storedMsg) as IChatMessage);
-            }
+            await deliverMessage(storedMsg, sessionId, sessionKey, chatType, userId, undefined, 'sendTextMessage');
 
             refreshSessionSummary(sessionKey, storedMsg);
             if (content === undefined) {
@@ -160,35 +197,86 @@ export function useChatPage() {
         const chatType = session.type;
         const userId = userStore.getUserID();
 
-        const { clientId, localMsg } = spec.buildLocalMsg(sessionId, sessionKey, chatType, userId);
-        const storedMsg = messageStore.upsertMessage(localMsg) as any;
+        // 跳转窗口里发消息：先回到最新（同 sendTextMessage）
+        if (messageStore.hasNewer) await returnToLatest();
+        const { localMsg } = spec.buildLocalMsg(sessionId, sessionKey, chatType, userId);
+        const storedMsg = messageStore.upsertMessage(localMsg);
 
-        try {
-            const { promise, abort } = fileService.uploadFile(
-                spec.file,
-                spec.fileType,
-                (progress) => { storedMsg.uploadProgress = progress; }
-            );
-            uploadAbortControllers.set(clientId, abort);
-
-            const ossUrl = await promise;
-            uploadAbortControllers.delete(clientId);
-            storedMsg.url = ossUrl;
-
-            const finalMsg = spec.buildWsPayload(localMsg, ossUrl, sessionId, sessionKey, chatType, userId);
-            const result = await websocketService.send(finalMsg, clientId, sessionId);
-            if (!result.success || !result.data?.sent) {
-                storedMsg.status = ImTypes.MessageStatus.MESSAGE_STATUS_FAILED;
-            }
-        } catch (e) {
-            console.error(`[useChatPage] ${logTag} failed:`, e);
-            storedMsg.status = ImTypes.MessageStatus.MESSAGE_STATUS_FAILED;
-            storedMsg.uploadProgress = 0;
-            uploadAbortControllers.delete(clientId);
-        } finally {
-            await messageService.saveMessage(toRaw(storedMsg) as IChatMessage);
-        }
+        await deliverMessage(
+            storedMsg,
+            sessionId,
+            sessionKey,
+            chatType,
+            userId,
+            { file: spec.file, fileType: spec.fileType },
+            logTag,
+        );
         return storedMsg;
+    }
+
+    /**
+     * 原位重发失败消息（支持断点续发：媒体已上传成功则仅重发 WS，未上传则从 localPath 恢复 File 重传）
+     */
+    async function resendMessage(msg: IChatMessage): Promise<void> {
+        const storedMsg = messageStore.upsertMessage(msg) as any;
+        if (storedMsg.status !== ImTypes.MessageStatus.MESSAGE_STATUS_FAILED) return;
+
+        const sessionKey = storedMsg.sessionKey || sessionStore.currentSessionKey;
+        const session = sessionStore.getSession(sessionKey);
+        if (!session) {
+            ElMessage.error('获取会话失败');
+            return;
+        }
+        const sessionId = session.session_id || '';
+        const chatType = session.type;
+        const userId = userStore.getUserID();
+
+        const isImage = storedMsg.type === ImTypes.MessageType.CHAT_IMAGE || storedMsg.type === ImTypes.MessageType.GROUP_IMAGE;
+        const isVideo = storedMsg.type === ImTypes.MessageType.CHAT_VIDEO || storedMsg.type === ImTypes.MessageType.GROUP_VIDEO;
+        const isFile = storedMsg.type === ImTypes.MessageType.CHAT_FILE || storedMsg.type === ImTypes.MessageType.GROUP_FILE;
+        const isMedia = isImage || isVideo || isFile;
+
+        storedMsg.status = ImTypes.MessageStatus.MESSAGE_STATUS_SENDING;
+
+        let uploadTask: { file: File; fileType: ApiTypes.file.FileType } | undefined;
+        if (isMedia) {
+            const mediaMsg = storedMsg as ILocalImageMessage | ILocalVideoMessage | ILocalFileMessage;
+            if (!mediaMsg.url) {
+                if (!mediaMsg.localPath || !(await fileService.checkLocalFileExists(mediaMsg.localPath))) {
+                    storedMsg.status = ImTypes.MessageStatus.MESSAGE_STATUS_FAILED;
+                    ElMessage.error('原文件不存在或已被移除，无法重发');
+                    return;
+                }
+                try {
+                    const res = await fetch(toResourceUrl(mediaMsg.localPath, {} as any));
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    const blob = await res.blob();
+                    const file = new File([blob], mediaMsg.fileName || 'file', { type: mediaMsg.format || blob.type });
+                    const fileType = isImage
+                        ? ApiTypes.file.FileType.FileTypeChatImage
+                        : ApiTypes.file.FileType.FileTypeChatFile;
+                    uploadTask = { file, fileType };
+                    storedMsg.uploadProgress = 0;
+                } catch (e) {
+                    console.error('[useChatPage] resendMessage read local file failed:', e);
+                    storedMsg.status = ImTypes.MessageStatus.MESSAGE_STATUS_FAILED;
+                    ElMessage.error('读取本地文件失败，无法重发');
+                    return;
+                }
+            } else {
+                storedMsg.uploadProgress = 100;
+            }
+        }
+
+        // 手动重发换新 clientId 并清理旧 clientId 的未确认本地行，
+        // 避免前次已进网关但落库/ACK 失败的消息在 10 分钟内被服务端 JetStream 去重窗口静默吞掉
+        const oldClientId: string = storedMsg.clientId || '';
+        storedMsg.clientId = ulid();
+        if (oldClientId) {
+            await messageService.deleteMessage(sessionKey, '', oldClientId);
+        }
+
+        await deliverMessage(storedMsg, sessionId, sessionKey, chatType, userId, uploadTask, 'resendMessage');
     }
 
     /**
@@ -232,11 +320,6 @@ export function useChatPage() {
                         }),
                         fileName: file.name
                     }, sessionId, sessionKey, chatType, userId),
-                buildWsPayload: (localMsg, ossUrl, sessionId, sessionKey, chatType, userId) =>
-                    buildImageWsPayload(
-                        { ...localMsg, localPath: undefined, thumbnailUrl: undefined },
-                        ossUrl, sessionId, sessionKey, chatType, userId
-                    ),
             }, 'sendImageMessage');
 
             if (sentMsg) refreshSessionSummary(currentKey, sentMsg);
@@ -265,8 +348,6 @@ export function useChatPage() {
                         size: file.size,
                         format: file.type,
                     }, sessionId, sessionKey, chatType, userId),
-                buildWsPayload: (localMsg, ossUrl, sessionId, sessionKey, chatType, userId) =>
-                    buildFileWsPayload(localMsg, ossUrl, sessionId, sessionKey, chatType, userId),
             }, 'sendFileMessage');
 
             if (sentMsg) refreshSessionSummary(currentKey, sentMsg);
@@ -315,11 +396,6 @@ export function useChatPage() {
                         format: file.type,
                         fileName: file.name
                     }, sessionId, sessionKey, chatType, userId),
-                buildWsPayload: (localMsg, ossUrl, sessionId, sessionKey, chatType, userId) =>
-                    buildVideoWsPayload(
-                        { ...localMsg, localPath: undefined, thumbnailUrl: undefined },
-                        ossUrl, sessionId, sessionKey, chatType, userId
-                    ),
             }, 'sendVideoMessage');
 
             if (sentMsg) refreshSessionSummary(currentKey, sentMsg);
@@ -442,6 +518,7 @@ export function useChatPage() {
         sendImageMessage,
         sendFileMessage,
         sendVideoMessage,
+        resendMessage,
         loadMore,
         recallMessage,
         deleteMessage,

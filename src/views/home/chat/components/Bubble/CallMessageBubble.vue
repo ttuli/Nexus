@@ -4,14 +4,13 @@
     :class="{
       'is-self': isSelf,
       'is-missed': isMissed,
-      'is-video': isVideo,
     }"
     @click="redial"
     :title="redialTitle"
   >
     <!-- 左侧状态图标徽章 -->
     <div class="call-badge">
-      <component :is="badgeIcon" class="app-icon app-icon--md badge-icon" />
+      <component :is="badgeIcon" class="app-icon app-icon--md" />
     </div>
 
     <!-- 通话类型与状态信息 -->
@@ -30,8 +29,7 @@ import type { ILocalCallMessage } from '@shared/types';
 import { formatCallDuration } from '@/src/utils/messageConverter';
 import { useUserStore } from '@/src/store/user';
 import { useSessionStore } from '@/src/store/session';
-import { windowService } from '@/src/services';
-import { WindowKey } from '@shared/config/windowKeys';
+import { openAudioCallWindow } from '@/src/utils/window';
 import { extractTargetIdFromSessionId } from '@/src/utils/sessionUtils';
 
 interface Props {
@@ -106,22 +104,11 @@ const redial = () => {
   const peerId = extractTargetIdFromSessionId(sessionKey, userStore.getUserID());
   if (!peerId) return;
 
-  windowService.createWindow(
-    WindowKey.Call,
-    {
-      peerId,
-      sessionKey,
-      mediaType: ImTypes.CallMediaType.CALL_MEDIA_TYPE_AUDIO,
-      isIncoming: 0,
-      targetType: 'private',
-    },
-  );
+  openAudioCallWindow(peerId, sessionKey);
 };
 </script>
 
 <style scoped lang="scss">
-@use "@/src/style/_constant.scss" as *;
-
 .call-bubble {
   display: inline-flex;
   align-items: center;

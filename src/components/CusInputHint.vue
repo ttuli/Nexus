@@ -17,15 +17,11 @@ import { ref, computed, watch, nextTick } from 'vue';
 interface Props {
   visible?: boolean;
   targetRef?: { $el: HTMLElement } | null;
-  offsetX?: number;
-  offsetY?: number;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   visible: false,
-  targetRef: null,
-  offsetX: 0,
-  offsetY: 0
+  targetRef: null
 });
 
 const hintRef = ref<HTMLElement | null>(null);

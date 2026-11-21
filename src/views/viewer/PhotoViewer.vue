@@ -47,7 +47,6 @@ const scale = ref(1);
 const rotation = ref(0);
 const position = ref({ x: 0, y: 0 });
 const isDragging = ref(false);
-const isWheeling = ref(false);
 const lastMousePos = ref({ x: 0, y: 0 });
 
 // Refs
@@ -98,6 +97,8 @@ onMounted(() => {
 
 onUnmounted(() => {
     window.removeEventListener('resize', debouncedFitToWindow);
+    window.removeEventListener('mousemove', handleMouseMove);
+    window.removeEventListener('mouseup', handleMouseUp);
     if (resizeTimer) clearTimeout(resizeTimer);
 });
 
@@ -127,8 +128,6 @@ const fitToWindow = () => {
 
 const rotate = (deg: number) => {
     rotation.value = (rotation.value + deg) % 360;
-    // Reset position on rotate to avoid confusion
-    // position.value = { x: 0, y: 0 }; 
 };
 
 const zoom = (delta: number) => {
@@ -146,7 +145,6 @@ const handleWheel = (e: WheelEvent) => {
     pendingDelta += e.deltaY;
     if (rafPending) return;
     rafPending = true;
-    isWheeling.value = true;
 
     requestAnimationFrame(() => {
         const zoomFactor = -0.001 * pendingDelta;
@@ -155,12 +153,8 @@ const handleWheel = (e: WheelEvent) => {
         pendingDelta = 0;
         rafPending = false;
         checkBoundary();
-        // Re-enable transition after wheel stops (300ms idle)
-        clearTimeout(wheelEndTimer);
-        wheelEndTimer = setTimeout(() => { isWheeling.value = false; }, 300);
     });
 };
-let wheelEndTimer: ReturnType<typeof setTimeout>;
 
 const checkBoundary = () => {
     if (!imgRef.value || !containerRef.value) return;
@@ -255,7 +249,6 @@ const downloadImage = () => {
 
     .image-container {
         -webkit-app-region: no-drag;
-        // margin-top: 35px;
         width: 100%;
         height: 100%;
         display: flex;
@@ -288,6 +281,7 @@ const downloadImage = () => {
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
         z-index: 100;
         border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #ffffff;
 
         .tool-btn {
             width: 30px;
@@ -306,13 +300,6 @@ const downloadImage = () => {
             &:hover {
                 background: rgba(255, 255, 255, 0.2);
                 transform: scale(1.1);
-            }
-
-            img {
-                width: 18px;
-                height: 18px;
-                filter: invert(1); // White icons
-                opacity: 0.8;
             }
         }
 

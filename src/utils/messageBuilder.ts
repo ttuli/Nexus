@@ -141,6 +141,28 @@ function buildBase(type: ImTypes.MessageType, sessionKey: string, sessionId: str
 // ─── Per-type builders ────────────────────────────────────────────────────────
 
 /**
+ * 根据已有的文本本地消息构建 WS 发送载荷
+ */
+export function buildTextWsPayload(
+    localMsg: ILocalTextMessage,
+    sessionId: string,
+    sessionKey: string,
+    sessionType: ImTypes.SessionType,
+    meId: number
+): ImTypes.WSMessage {
+    const isGroup = sessionType === ImTypes.SessionType.SESSION_TYPE_GROUP;
+    const type = isGroup ? ImTypes.MessageType.GROUP_TEXT : ImTypes.MessageType.CHAT_TEXT;
+    const { baseMsg, wsMsg } = buildBase(type, sessionKey, sessionId, meId, localMsg.clientId);
+
+    wsMsg.payload = ImTypes.TextMessage.encode({
+        base: baseMsg,
+        content: localMsg.content,
+        at_list: localMsg.atList || [],
+    }).finish();
+    return wsMsg;
+}
+
+/**
  * 构建文本消息的 WS 包和占位本地消息
  */
 export function buildTextWsMessage(
@@ -152,11 +174,11 @@ export function buildTextWsMessage(
 ): WsMessageResult<ILocalTextMessage> {
     const isGroup = sessionType === ImTypes.SessionType.SESSION_TYPE_GROUP;
     const type = isGroup ? ImTypes.MessageType.GROUP_TEXT : ImTypes.MessageType.CHAT_TEXT;
-    const { clientId, baseMsg, wsMsg, commonFields } = buildBase(type, sessionKey, sessionId, meId);
+    const { clientId, commonFields } = buildBase(type, sessionKey, sessionId, meId);
 
-    wsMsg.payload = ImTypes.TextMessage.encode({ base: baseMsg, content, at_list: [] }).finish();
     const localMsg: ILocalTextMessage = { ...commonFields, type, content, atList: [] };
-    return { msg: wsMsg, clientId, localMsg };
+    const msg = buildTextWsPayload(localMsg, sessionId, sessionKey, sessionType, meId);
+    return { msg, clientId, localMsg };
 }
 
 /**
@@ -210,7 +232,7 @@ export function buildImageWsPayload(
     wsMsg.payload = ImTypes.ImageMessage.encode({
         base: baseMsg,
         url: ossUrl,
-        thumbnail_url: localMsg.thumbnailUrl || '',
+        thumbnail_url: '',
         width: localMsg.width || 0,
         height: localMsg.height || 0,
         thumbnail_width: localMsg.thumbnailWidth || 0,
@@ -379,4 +401,32 @@ export function buildVideoWsPayload(
     }).finish();
 
     return wsMsg;
+}
+
+/**
+ * 根据任意已有的本地消息对象构建对应的 WS 发送载荷（供发送/重发统一调用）
+ */
+export function buildWsPayloadFromLocalMsg(
+    localMsg: IChatMessage,
+    sessionId: string,
+    sessionKey: string,
+    sessionType: ImTypes.SessionType,
+    meId: number
+): ImTypes.WSMessage | null {
+    switch (localMsg.type) {
+        case ImTypes.MessageType.CHAT_TEXT:
+        case ImTypes.MessageType.GROUP_TEXT:
+            return buildTextWsPayload(localMsg, sessionId, sessionKey, sessionType, meId);
+        case ImTypes.MessageType.CHAT_IMAGE:
+        case ImTypes.MessageType.GROUP_IMAGE:
+            return buildImageWsPayload(localMsg, localMsg.url, sessionId, sessionKey, sessionType, meId);
+        case ImTypes.MessageType.CHAT_FILE:
+        case ImTypes.MessageType.GROUP_FILE:
+            return buildFileWsPayload(localMsg, localMsg.url, sessionId, sessionKey, sessionType, meId);
+        case ImTypes.MessageType.CHAT_VIDEO:
+        case ImTypes.MessageType.GROUP_VIDEO:
+            return buildVideoWsPayload(localMsg, localMsg.url, sessionId, sessionKey, sessionType, meId);
+        default:
+            return null;
+    }
 }

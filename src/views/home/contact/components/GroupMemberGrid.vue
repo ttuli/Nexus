@@ -64,8 +64,6 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-@use "@/src/style/_constant.scss" as *;
-
 .section-card {
     background: $bg-card;
     border-radius: 12px;
@@ -82,17 +80,6 @@ onMounted(() => {
             font-size: 16px;
             font-weight: 600;
             color: $color-text-primary;
-        }
-
-        .more {
-            font-size: 13px;
-            color: $color-text-secondary;
-            cursor: pointer;
-            -webkit-app-region: no-drag;
-
-            &:hover {
-                color: $color-primary;
-            }
         }
     }
 }

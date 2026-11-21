@@ -32,6 +32,7 @@
 
 <script setup lang="ts">
 import { ref, onBeforeUnmount, nextTick } from 'vue';
+import { ALLOWED_IMAGE_EXTS, formatFileSize as formatSize } from '@/src/utils/fileFormat';
 
 type MessageSegment =
     | { type: 'text'; content: string }
@@ -40,7 +41,6 @@ type MessageSegment =
 
 withDefaults(defineProps<{
     placeholder?: string;
-    disabled?: boolean;
 }>(), {
     placeholder: '发送消息...'
 });
@@ -58,21 +58,10 @@ const imageFileMap = new Map<string, { file: File; url: string }>();
 const fileMap = new Map<string, { file: File }>();
 let lastRange: Range | null = null;
 
-const ALLOWED_IMAGE_EXTS = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'];
-
 const escapeHtml = (str: string): string => {
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
-};
-
-const formatSize = (bytes: number): string => {
-    if (!bytes || bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    const val = parseFloat((bytes / Math.pow(k, i)).toFixed(1));
-    return val + ' ' + sizes[i];
 };
 
 // 1. 光标选区管理
@@ -380,8 +369,6 @@ defineExpose({
 </script>
 
 <style scoped lang="scss">
-@use "@/src/style/_constant.scss" as *;
-
 .rich-editor-container {
     width: 100%;
     height: 100%;

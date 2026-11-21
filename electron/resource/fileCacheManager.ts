@@ -5,7 +5,8 @@ import { nativeImage, net, app } from 'electron';
 
 import { tokenManager } from './tokenManager';
 import { settingManager } from './settingManager';
-import { APP_CONSTANTS, Main_Config as config } from '@shared/config/constants';
+import { APP_CONSTANTS } from '@shared/config/constants';
+import { FILE_CACHE_CONFIG } from '@shared/config/storage';
 import { CacheOptionType, CacheOption } from '@shared/types/resourceCache';
 import { fileManager } from './fileManager';
 import { ApiTypes } from '@shared/types';
@@ -99,15 +100,7 @@ class FileCacheManager {
                 // 必须使用 fs.readFileSync！因为在 protocol.handle 内部，Electron 出于安全限制，
                 // 拦截并拒绝了对 file:// 协议的 net.fetch 请求，会直接返回 403 Forbidden！
                 const buffer = fs.readFileSync(localPath);
-                let contentType = 'application/octet-stream';
-                if (opts.cacheType === CacheOptionType.IMAGE_THUMB ||
-                    opts.cacheType === CacheOptionType.IMAGE ||
-                    opts.cacheType === CacheOptionType.AVATAR) {
-                    contentType = 'image/jpeg';
-                } else if (opts.cacheType === CacheOptionType.VIDEO ||
-                    opts.cacheType === CacheOptionType.VIDEO_THUMB) {
-                    contentType = 'video/mp4';
-                }
+                const contentType = FILE_CACHE_CONFIG.cacheTypeMimeMap[opts.cacheType] || 'application/octet-stream';
                 return new Response(buffer, {
                     status: 200,
                     headers: { 'Content-Type': contentType }
@@ -119,15 +112,7 @@ class FileCacheManager {
 
             if (fs.existsSync(localPath)) {
                 const buffer = fs.readFileSync(localPath);
-                let contentType = 'application/octet-stream';
-                if (opts.cacheType === CacheOptionType.IMAGE_THUMB ||
-                    opts.cacheType === CacheOptionType.IMAGE ||
-                    opts.cacheType === CacheOptionType.AVATAR) {
-                    contentType = 'image/jpeg';
-                } else if (opts.cacheType === CacheOptionType.VIDEO ||
-                    opts.cacheType === CacheOptionType.VIDEO_THUMB) {
-                    contentType = 'video/mp4';
-                }
+                const contentType = FILE_CACHE_CONFIG.cacheTypeMimeMap[opts.cacheType] || 'application/octet-stream';
                 return new Response(buffer, {
                     status: 200,
                     headers: { 'Content-Type': contentType }
@@ -235,67 +220,17 @@ class FileCacheManager {
     private getFileResponse(filePath: string, cacheType?: CacheOptionType): Response {
         try {
             const buffer = fs.readFileSync(filePath);
-            let contentType = 'application/octet-stream';
-
-            if (cacheType) {
-                if (cacheType === CacheOptionType.IMAGE_THUMB ||
-                    cacheType === CacheOptionType.IMAGE ||
-                    cacheType === CacheOptionType.AVATAR) {
-                    contentType = 'image/jpeg';
-                } else if (cacheType === CacheOptionType.VIDEO ||
-                           cacheType === CacheOptionType.VIDEO_THUMB) {
-                    contentType = 'video/mp4';
-                } else if (cacheType === CacheOptionType.AUDIO) {
-                    contentType = 'audio/mpeg';
-                }
-            }
-
-            // 如果 cacheType 推断不出，则通过后缀进行一次兜底
-            if (contentType === 'application/octet-stream') {
-                const ext = path.extname(filePath).toLowerCase();
-                switch (ext) {
-                    case '.jpg':
-                    case '.jpeg':
-                        contentType = 'image/jpeg';
-                        break;
-                    case '.png':
-                        contentType = 'image/png';
-                        break;
-                    case '.gif':
-                        contentType = 'image/gif';
-                        break;
-                    case '.webp':
-                        contentType = 'image/webp';
-                        break;
-                    case '.bmp':
-                        contentType = 'image/bmp';
-                        break;
-                    case '.mp4':
-                        contentType = 'video/mp4';
-                        break;
-                    case '.webm':
-                        contentType = 'video/webm';
-                        break;
-                    case '.ogg':
-                        contentType = 'video/ogg';
-                        break;
-                    case '.mp3':
-                        contentType = 'audio/mpeg';
-                        break;
-                    case '.wav':
-                        contentType = 'audio/wav';
-                        break;
-                    case '.m4a':
-                        contentType = 'audio/mp4';
-                        break;
-                }
-            }
+            // 优先按 cacheType 推断，推断不出则按文件扩展名兜底
+            const contentType =
+                (cacheType && FILE_CACHE_CONFIG.cacheTypeMimeMap[cacheType])
+                || FILE_CACHE_CONFIG.extensionMimeMap[path.extname(filePath).toLowerCase()]
+                || 'application/octet-stream';
 
             return new Response(buffer, {
                 status: 200,
                 headers: {
                     'Content-Type': contentType,
-                    'Cache-Control': 'max-age=31536000',
+                    'Cache-Control': FILE_CACHE_CONFIG.httpCacheControl,
                 }
             });
         } catch (e) {
@@ -367,7 +302,7 @@ class FileCacheManager {
             const qMatch = paramsStr.match(/q_(\d+)/);
             const width = wMatch ? parseInt(wMatch[1], 10) : 0;
             const height = hMatch ? parseInt(hMatch[1], 10) : 0;
-            const quality = qMatch ? parseInt(qMatch[1], 10) : config.FileCacheManagerConfig.quality;
+            const quality = qMatch ? parseInt(qMatch[1], 10) : FILE_CACHE_CONFIG.quality;
 
             // 命中缓存则直接返回
             const cachePath = this.getLocalPath(cacheKey);
@@ -396,7 +331,7 @@ class FileCacheManager {
                 return new Response(Buffer.from(buffer), {
                     headers: {
                         'Content-Type': 'image/jpeg',
-                        'Cache-Control': 'max-age=31536000',
+                        'Cache-Control': FILE_CACHE_CONFIG.httpCacheControl,
                     }
                 });
             } catch (e) {

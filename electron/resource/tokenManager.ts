@@ -1,13 +1,12 @@
 import { net } from 'electron';
 import jwt from 'jsonwebtoken';
-import { StorageKeys } from '@/electron/utils/storage';
 import { secureStore } from '@/electron/utils/secureStore';
 import { RefreshTokenPayload, TokenPayload, ResourceType, ImTypes, ApiTypes } from '@shared/types';
 import { cacheManager } from './cacheManager';
 import { APP_CONSTANTS as config } from '@shared/config/constants';
+import { StorageKeys } from '@shared/config/storage';
+import { UPDATE_CONFIG } from '@shared/config/update';
 import {
-    APP_VERSION_HEADER,
-    HTTP_UPGRADE_REQUIRED,
     getAppVersion,
     parseUpgradeRequired,
     reportUpgradeRequired,
@@ -172,7 +171,7 @@ class TokenManager {
             request.setHeader('Content-Type', 'application/x-protobuf');
             request.setHeader('Accept', 'application/x-protobuf');
             request.setHeader('Authorization', `Bearer ${this.refreshToken}`);
-            request.setHeader(APP_VERSION_HEADER, getAppVersion());
+            request.setHeader(UPDATE_CONFIG.appVersionHeader, getAppVersion());
 
             const chunks: Buffer[] = [];
             let contentType = '';
@@ -188,7 +187,7 @@ class TokenManager {
 
                 response.on('end', () => {
                     // 版本过低：交给更新模块接管，refresh token 原样保留
-                    if (statusCode === HTTP_UPGRADE_REQUIRED) {
+                    if (statusCode === UPDATE_CONFIG.httpUpgradeRequired) {
                         const info = parseUpgradeRequired(Buffer.concat(chunks), contentType);
                         reportUpgradeRequired(info);
                         resolve({ success: false, error: info.message, upgradeRequired: true });

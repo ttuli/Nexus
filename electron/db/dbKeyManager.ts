@@ -1,6 +1,6 @@
 import * as crypto from 'crypto';
 import { secureStore } from '@/electron/utils/secureStore';
-import { StorageKeys, dbKeyForUser } from '@/electron/utils/storage';
+import { DB_CONFIG, StorageKeys, dbKeyForUser } from '@shared/config/storage';
 
 /**
  * dbKeyManager.ts
@@ -20,8 +20,6 @@ import { StorageKeys, dbKeyForUser } from '@/electron/utils/storage';
  *
  * 必须在 app.whenReady() 之后使用。
  */
-
-const KEY_BYTES = 32;
 
 class DbKeyManager {
     /** 进程内缓存，避免每次开库都走一次 DPAPI 解密 */
@@ -45,7 +43,7 @@ class DbKeyManager {
             console.error(`[DbKeyManager] ${label} 密钥格式非法，将重新生成（原数据库将无法解密，会被 worker 归档）。`);
         }
 
-        const key = crypto.randomBytes(KEY_BYTES).toString('hex');
+        const key = crypto.randomBytes(DB_CONFIG.keyBytes).toString('hex');
         secureStore.set(storageKey, key);
         this.cache.set(storageKey, key);
         console.log(`[DbKeyManager] Generated new database key for ${label}.`);

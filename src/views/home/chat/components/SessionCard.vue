@@ -25,8 +25,9 @@
 import { computed } from 'vue';
 import { ImTypes } from '@shared/types';
 import { useUserStore } from '@/src/store/user';
-import { useGroupStore } from '@/src/store/group';
 import { extractTargetIdFromSessionId } from '@/src/utils/sessionUtils';
+import { getSessionTitle } from '@/src/utils/displayName';
+import { formatSessionTime as formatTime } from '@/src/utils/messageTime';
 import { BellOff } from 'reicon-vue';
 
 // Props
@@ -42,26 +43,13 @@ const emit = defineEmits<{
 }>();
 
 const userStore = useUserStore();
-const groupStore = useGroupStore();
 
 const getTargetId = (chat: ImTypes.Session) => {
     return extractTargetIdFromSessionId(chat.session_key || '', userStore.getUserID());
 }
 
 // 动态获取名称
-const displayName = computed(() => {
-    const targetId = getTargetId(props.data);
-    if (!targetId) return '';
-
-    if (props.data.type === ImTypes.SessionType.SESSION_TYPE_PRIVATE) {
-        const user = userStore.getUser(targetId);
-        const friend = userStore.getFriend(targetId);
-        return friend?.remark || user?.user_name || `用户${targetId}`;
-    } else {
-        const group = groupStore.getGroup(targetId);
-        return group?.name || `群组${targetId}`;
-    }
-});
+const displayName = computed(() => getSessionTitle(props.data));
 
 const displayContent = computed(() => {
     if (props.data.type === ImTypes.SessionType.SESSION_TYPE_GROUP) {
@@ -78,34 +66,9 @@ const displayContent = computed(() => {
 const handleClick = () => {
     emit('click', props.data.session_key || '');
 };
-
-// Utils
-const formatTime = (timestamp: number | null) => {
-    if (!timestamp) return '';
-    const date = new Date(timestamp);
-    const now = new Date();
-
-    const isSameDay = (d1: Date, d2: Date) =>
-        d1.getFullYear() === d2.getFullYear() &&
-        d1.getMonth() === d2.getMonth() &&
-        d1.getDate() === d2.getDate();
-
-    const yesterday = new Date(now);
-    yesterday.setDate(now.getDate() - 1);
-
-    if (isSameDay(date, now)) {
-        return date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
-    } else if (isSameDay(date, yesterday)) {
-        return '昨天';
-    } else {
-        return (date.getMonth() + 1).toString().padStart(2, '0') + '-' + date.getDate().toString().padStart(2, '0');
-    }
-};
 </script>
 
 <style scoped lang="scss">
-@use "@/src/style/_constant.scss" as *;
-
 .chat-card {
     display: flex;
     align-items: center;

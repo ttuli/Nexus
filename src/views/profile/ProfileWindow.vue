@@ -1,127 +1,131 @@
 <template>
-    <div class="base-user-info">
-        <!-- Avatar Section -->
-        <div class="avatar-section">
-            <AvatarUpload :uid="userStore.getUserID()" @success="handleAvatarSuccess" />
-            <div class="user-name">{{ userInfo?.user_name || '加载中...' }}</div>
-            <div class="user-signature" v-if="userInfo?.personal_signature">
-                {{ userInfo.personal_signature }}
-            </div>
-        </div>
+    <div class="profile-window">
+        <TitleBar :needMax="false" />
+        <div class="scroll-container scroll-bar-normal">
+            <div class="profile-content">
+                <!-- Avatar Section -->
+                <div class="avatar-section">
+                    <AvatarUpload :uid="userStore.getUserID()" @success="handleAvatarSuccess" />
+                    <div class="user-name">{{ userInfo?.user_name || '加载中...' }}</div>
+                    <div class="user-signature" v-if="userInfo?.personal_signature">
+                        {{ userInfo.personal_signature }}
+                    </div>
+                </div>
 
-        <!-- Info Cards -->
-        <div class="info-cards">
-            <div class="info-card">
-                <div class="card-title">基本信息</div>
-                <div class="info-row">
-                    <span class="label">用户ID</span>
-                    <span class="value">{{ userInfo?.user_id }}</span>
-                </div>
-                <div class="info-row">
-                    <span class="label">用户名</span>
-                    <span class="value">{{ userInfo?.user_name }}</span>
-                </div>
-                <div class="info-row">
-                    <span class="label">性别</span>
-                    <span class="value">{{ genderText }}</span>
-                </div>
-                <div class="info-row">
-                    <span class="label">手机号</span>
-                    <span class="value">{{ maskPhone(userInfo?.phone) }}</span>
-                </div>
-            </div>
-
-            <div class="info-card">
-                <div class="card-title">账号设置</div>
-                <div class="info-row">
-                    <span class="label">加好友方式</span>
-                    <span class="value">{{ joinTypeText }}</span>
-                </div>
-                <div class="info-row">
-                    <span class="label">个性签名</span>
-                    <span class="value signature">{{ userInfo?.personal_signature || '未设置' }}</span>
-                </div>
-            </div>
-            <!-- Edit Button -->
-            <div class="action-buttons">
-                <CusButton type="primary" @click="openEditDialog" :show-icon="false">
-                    编辑资料
-                </CusButton>
-            </div>
-
-            <!-- Edit Dialog -->
-            <Teleport to="body">
-                <ModalBackground :visible="showEditDialog" @close="showEditDialog = false">
-                    <div class="modal-card">
-                        <div class="modal-header">
-                            <span>编辑资料</span>
-                            <button class="close-btn" @click="showEditDialog = false">×</button>
+                <!-- Info Cards -->
+                <div class="info-cards">
+                    <div class="info-card">
+                        <div class="card-title">基本信息</div>
+                        <div class="info-row">
+                            <span class="label">用户ID</span>
+                            <span class="value">{{ userInfo?.user_id }}</span>
                         </div>
-                        <div class="modal-body">
-                            <div class="form-item">
-                                <label>用户名</label>
-                                <input v-model="editForm.user_name" type="text" placeholder="请输入用户名" />
-                            </div>
-                            <div class="form-item">
-                                <label>性别</label>
-                                <CusDropdown
-                                    v-model="editForm.gender"
-                                    :options="genderOptions"
-                                    placeholder="选择性别"
-                                />
-                            </div>
-                            <div class="form-item row-layout">
-                                <label>加好友需要验证</label>
-                                <Toggle
-                                    v-model="editForm.join_type"
-                                    :active-value="ImTypes.JoinType.JOIN_TYPE_AFTER_APPROVAL"
-                                    :inactive-value="ImTypes.JoinType.JOIN_TYPE_DIRECT"
-                                />
-                            </div>
-                            <div class="form-item">
-                                <label>个性签名</label>
-                                <textarea v-model="editForm.personal_signature" placeholder="请输入个性签名" rows="3"></textarea>
-                            </div>
+                        <div class="info-row">
+                            <span class="label">用户名</span>
+                            <span class="value">{{ userInfo?.user_name }}</span>
                         </div>
-                        <div class="modal-footer">
-                            <CusButton type="normal" @click="showEditDialog = false" :disabled="updating"
-                                :show-icon="false">
-                                取消
-                            </CusButton>
-                            <CusButton type="primary" @click="handleUpdateProfile" :loading="updating"
-                                :show-icon="false">
-                                保存
-                            </CusButton>
+                        <div class="info-row">
+                            <span class="label">性别</span>
+                            <span class="value">{{ genderText }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="label">手机号</span>
+                            <span class="value">{{ maskPhone(userInfo?.phone) }}</span>
                         </div>
                     </div>
-                </ModalBackground>
-            </Teleport>
+
+                    <div class="info-card">
+                        <div class="card-title">账号设置</div>
+                        <div class="info-row">
+                            <span class="label">加好友方式</span>
+                            <span class="value">{{ joinTypeText }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="label">个性签名</span>
+                            <span class="value signature">{{ userInfo?.personal_signature || '未设置' }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Edit Button -->
+                    <div class="action-buttons">
+                        <CusButton type="primary" @click="openEditDialog" :show-icon="false">
+                            编辑资料
+                        </CusButton>
+                    </div>
+
+                    <!-- Edit Dialog -->
+                    <Teleport to="body">
+                        <ModalBackground :visible="showEditDialog" @close="showEditDialog = false">
+                            <div class="modal-card">
+                                <div class="modal-header">
+                                    <span>编辑资料</span>
+                                    <button class="close-btn" @click="showEditDialog = false">×</button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="form-item">
+                                        <label>用户名</label>
+                                        <input v-model="editForm.user_name" type="text" placeholder="请输入用户名" />
+                                    </div>
+                                    <div class="form-item">
+                                        <label>性别</label>
+                                        <CusDropdown
+                                            v-model="editForm.gender"
+                                            :options="genderOptions"
+                                            placeholder="选择性别"
+                                        />
+                                    </div>
+                                    <div class="form-item row-layout">
+                                        <label>加好友需要验证</label>
+                                        <CusSwitch
+                                            v-model="editForm.join_type"
+                                            :active-value="ImTypes.JoinType.JOIN_TYPE_AFTER_APPROVAL"
+                                            :inactive-value="ImTypes.JoinType.JOIN_TYPE_DIRECT"
+                                            :cooldown="0"
+                                        />
+                                    </div>
+                                    <div class="form-item">
+                                        <label>个性签名</label>
+                                        <textarea v-model="editForm.personal_signature" placeholder="请输入个性签名" rows="3"></textarea>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <CusButton type="normal" @click="showEditDialog = false" :disabled="updating"
+                                        :show-icon="false">
+                                        取消
+                                    </CusButton>
+                                    <CusButton type="primary" @click="handleUpdateProfile" :loading="updating"
+                                        :show-icon="false">
+                                        保存
+                                    </CusButton>
+                                </div>
+                            </div>
+                        </ModalBackground>
+                    </Teleport>
+                </div>
+            </div>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { ElMessage } from 'element-plus';
+import { ImTypes, ResourceType, UpdateAction } from '@shared/types';
 import { useUserStore } from '@/src/store/user';
-import ModalBackground from '@/src/components/ModalBackground/ModalBackground.vue';
+import { useFriendActions } from '@/src/composables/useFriendActions';
+import { signalWindowReady } from '@/src/utils/window';
+import { cacheService, userService } from '@/src/services';
 
 const genderOptions = [
     { value: ImTypes.Gender.GENDER_MALE, label: '男', icon: '👨' },
     { value: ImTypes.Gender.GENDER_FEMALE, label: '女', icon: '👩' }
 ];
 
-import { ImTypes, ResourceType, UpdateAction } from '@shared/types';
-import { ElMessage } from 'element-plus';
-import { useFriendActions } from '@/src/composables/useFriendActions';
-import { signalWindowReady } from '@/src/utils/window';
-import { cacheService, userService } from '@/src/services';
-
 const userStore = useUserStore();
 const { updateMyUserInfo, loadUserInfo } = useFriendActions();
 
 const userInfo = computed(() => userStore.getUser(userStore.getUserID()));
 
-// Computed displays
 const genderText = computed(() => {
     if (!userInfo.value) return '-';
     switch (userInfo.value.gender) {
@@ -140,7 +144,6 @@ const joinTypeText = computed(() => {
     }
 });
 
-// Mask phone number
 const maskPhone = (phone?: string) => {
     if (!phone) return '-';
     if (phone.length >= 7) {
@@ -197,7 +200,7 @@ const handleUpdateProfile = async () => {
 
     updating.value = true;
     try {
-        let changes: ImTypes.UserInfo = {
+        const changes: ImTypes.UserInfo = {
             user_id: userInfo.value.user_id,
             user_name: '',
             avatar: userInfo.value.avatar,
@@ -233,21 +236,34 @@ const handleUpdateProfile = async () => {
         updating.value = false;
     }
 };
+
 onMounted(async () => {
     await loadUserInfo(userStore.getUserID());
     signalWindowReady();
-    console.log(userInfo.value)
 });
 </script>
 
 <style scoped lang="scss">
-@use "@/src/style/_constant.scss" as *;
+.profile-window {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: $bg-body;
 
-.base-user-info {
+    .scroll-container {
+        flex: 1;
+        -webkit-app-region: no-drag;
+        overflow: auto;
+        position: relative;
+    }
+}
+
+.profile-content {
     display: flex;
     flex-direction: column;
     align-items: center;
-    // padding: $spacing-xl;
     min-height: 100%;
     box-sizing: border-box;
 
@@ -409,7 +425,6 @@ onMounted(async () => {
         }
 
         input[type="text"],
-        select,
         textarea {
             padding: 8px 12px;
             border-radius: 8px;
@@ -427,24 +442,6 @@ onMounted(async () => {
 
         textarea {
             resize: none;
-        }
-
-        .radio-group {
-            display: flex;
-            gap: $spacing-lg;
-
-            .radio-label {
-                display: flex;
-                align-items: center;
-                gap: 6px;
-                cursor: pointer;
-                font-size: $font-size-base;
-                color: $color-text-primary;
-
-                input[type="radio"] {
-                    accent-color: $color-primary;
-                }
-            }
         }
     }
 }

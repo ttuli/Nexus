@@ -1,6 +1,6 @@
 import { WsMessage } from './serializer/MessageSerializer';
 import { ImTypes } from '@shared/types';
-import { Main_Config as config } from '@shared/config/constants';
+import { MESSAGE_QUEUE_CONFIG } from '@shared/config/websocket';
 import { EventEmitter } from 'events';
 import { LRUCache } from 'lru-cache';
 
@@ -29,16 +29,16 @@ export class MessageQueue extends EventEmitter {
     // LRU + TTL 双重界限：条目数受 max 约束，过期条目由 ttl 惰性失效，
     // 避免此前 Set + setTimeout 方案在高频消息下条目和定时器不受控增长。
     private receivedMessageIds = new LRUCache<string, true>({
-        max: config.messageQueue.dedupMaxEntries,
-        ttl: config.messageQueue.dedupWindowMs,
+        max: MESSAGE_QUEUE_CONFIG.dedupMaxEntries,
+        ttl: MESSAGE_QUEUE_CONFIG.dedupWindowMs,
     });
 
     // Max retries
-    private readonly MAX_RETRIES = config.messageQueue.maxRetries;
+    private readonly MAX_RETRIES = MESSAGE_QUEUE_CONFIG.maxRetries;
 
     // Polling interval
     private checkInterval: NodeJS.Timeout | null = null;
-    private readonly CHECK_INTERVAL_MS = config.messageQueue.checkIntervalMs;
+    private readonly CHECK_INTERVAL_MS = MESSAGE_QUEUE_CONFIG.checkIntervalMs;
 
     constructor() {
         super();
@@ -70,7 +70,7 @@ export class MessageQueue extends EventEmitter {
      */
     private checkTimeouts() {
         const now = Date.now();
-        const timeoutMs = config.messageQueue.msgTimeoutMs;
+        const timeoutMs = MESSAGE_QUEUE_CONFIG.msgTimeoutMs;
 
         for (const [id, pending] of this.unacknowledgedMessages) {
             if (now - pending.timestamp > timeoutMs) {

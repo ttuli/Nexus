@@ -24,9 +24,9 @@
                 </div>
             </el-tooltip>
 
-            <el-tooltip content="AI建议" placement="top" :show-after="500">
-                <div class="icon-wrapper" @click="emit('triggerAi')">
-                    <Lightbulb class="app-icon app-icon--md app-icon--btn bulb" />
+            <el-tooltip content="历史消息" placement="top" :show-after="500">
+                <div class="icon-wrapper history-btn" @click="emit('openHistory')">
+                    <History class="app-icon app-icon--md app-icon--btn" />
                 </div>
             </el-tooltip>
 
@@ -63,7 +63,8 @@ import { ref } from 'vue';
 import EmojiPicker from './components/EmojiPicker.vue';
 import RichEditor from './components/RichEditor.vue';
 import { ElMessage } from 'element-plus';
-import { Smileys, Image, Document, Lightbulb } from 'reicon-vue';
+import { Smileys, Image, Document, History } from 'reicon-vue';
+import { ALLOWED_IMAGE_EXTS } from '@/src/utils/fileFormat';
 
 withDefaults(defineProps<{
     disableReason?: string;
@@ -75,7 +76,7 @@ const emit = defineEmits<{
     (e: 'send', content: string): void;
     (e: 'sendImage', file: File): void;
     (e: 'sendFile', file: File): void;
-    (e: 'triggerAi'): void;
+    (e: 'openHistory'): void;
 }>();
 
 const richEditorRef = ref<InstanceType<typeof RichEditor> | null>(null);
@@ -100,7 +101,6 @@ const onEmojiSelect = (emoji: string) => {
 // 文件/图片选择
 const imageInputRef = ref<HTMLInputElement | null>(null);
 const fileInputRef = ref<HTMLInputElement | null>(null);
-const ALLOWED_IMAGE_EXTS = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'];
 
 const triggerImageSelect = () => {
     imageInputRef.value?.click();
@@ -143,8 +143,6 @@ defineExpose({
 </script>
 
 <style scoped lang="scss">
-@use "@/src/style/_constant.scss" as *;
-
 .chat-input-area {
     width: 100%;
     height: 100%;
@@ -195,8 +193,13 @@ defineExpose({
             }
         }
 
-        .bulb {
-            margin-top: -4px;
+        // 历史消息是查看类入口：靠右，与左侧的编辑类按钮分开；
+        // 层级高于「无法发送消息」的遮罩，不能发消息时也能翻看历史
+        .history-btn {
+            margin-left: auto;
+            margin-right: 4px;
+            position: relative;
+            z-index: 11;
         }
     }
 

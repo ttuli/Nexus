@@ -4,7 +4,8 @@ import path from 'path';
 import { APP_CONSTANTS } from '@shared/config/constants';
 import * as https from 'https';
 import * as http from 'http';
-import { storage, StorageKeys } from '@/electron/utils/storage';
+import { storage } from '@/electron/utils/storage';
+import { StorageKeys } from '@shared/config/storage';
 import { tokenManager } from './tokenManager';
 
 /**

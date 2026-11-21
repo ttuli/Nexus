@@ -1,6 +1,8 @@
 import { dbBridge } from './dbWorkerBridge';
-import type { IChatMessage } from '@shared/types/chatMessage';
+import type { IChatMessage, LocalHistoryQuery } from '@shared/types/chatMessage';
 import { MessageStatus } from '@shared/types/proto';
+import { DB_CONFIG } from '@shared/config/storage';
+import { MESSAGE_FILTER_CONFIG } from '@shared/config/message';
 import { toSeq, seqToBigInt, seqPositive } from '@shared/utils/seq';
 
 // ── 表行类型 ──────────────────────────────────────────────────────────────────
@@ -37,6 +39,11 @@ function rowToMessage(row: MessageRow): IChatMessage {
     msg.seq = toSeq(msg.seq);
     return msg;
 }
+
+const placeholders = (count: number) => Array(count).fill('?').join(', ');
+
+/** 转义 LIKE 的通配符（配合 ESCAPE '\'），关键词里的 % 和 _ 按字面匹配 */
+const escapeLike = (text: string) => text.replace(/[\\%_]/g, ch => `\\${ch}`);
 
 class MessageStore {
     // ── 私有辅助 ─────────────────────────────────────────────────────────────
@@ -77,7 +84,7 @@ class MessageStore {
         if (!withMsgId.length) return items;
 
         const tombstoned = new Set<string>();
-        const chunkSize = 900; // SQLite 一次 IN 查询变量安全上限
+        const chunkSize = DB_CONFIG.sqliteInChunkSize;
         const msgIds = Array.from(new Set(withMsgId.map(m => m.msgId as string)));
 
         for (let i = 0; i < msgIds.length; i += chunkSize) {
@@ -164,7 +171,7 @@ class MessageStore {
         const clientIds = Array.from(new Set(validList.map(m => m.message.clientId).filter(Boolean))) as string[];
 
         const existingPkMap = new Map<string, string>();
-        const chunkSize = 900; // SQLite 一次 IN 查询变量安全上限
+        const chunkSize = DB_CONFIG.sqliteInChunkSize;
 
         // 批量查询存在的 msgId。
         // 注意：map 键必须与下方查找侧同域——统一用本地 session_key（convKey）。
@@ -354,7 +361,7 @@ class MessageStore {
 
         if (toFail.length > 0) {
             const now = Date.now();
-            const chunkSize = 900; // SQLite IN 子句变量安全上限
+            const chunkSize = DB_CONFIG.sqliteInChunkSize;
             for (let i = 0; i < toFail.length; i += chunkSize) {
                 const chunk = toFail.slice(i, i + chunkSize);
                 const placeholders = chunk.map(() => '?').join(',');
@@ -383,6 +390,92 @@ class MessageStore {
 
         // DESC 查出最新→最旧，翻转为升序返回给前端
         return rows.reverse().map(rowToMessage);
+    }
+
+    /**
+     * 往更新的方向取一页（主窗口跳转定位后往下翻）：seq > afterSeq 中最早的 pageSize 条
+     *
+     * 与 getLocalHistoryMessages 同口径，不过滤类型与状态（聊天窗口要显示撤回提示、群通知）；
+     * 未确认的消息（seq = 0）天然不在范围内。只读。
+     *
+     * @returns 按 seq 升序
+     */
+    async getLocalMessagesAfter(sessionKey: string, afterSeq: string, pageSize: number): Promise<IChatMessage[]> {
+        if (!sessionKey || !seqPositive(afterSeq) || pageSize <= 0) return [];
+        const rows = await dbBridge.query<MessageRow>(
+            'user',
+            `SELECT * FROM chat_messages
+             WHERE session_key = ? AND seq > ?
+             ORDER BY seq ASC
+             LIMIT ?`,
+            [sessionKey, seqToBigInt(afterSeq), Math.floor(pageSize)]
+        );
+        return rows.map(rowToMessage);
+    }
+
+    /**
+     * 历史消息窗口检索本地消息：按 seq 从新到旧分页，可按类型、关键词筛选
+     *
+     * 与 getLocalHistoryMessages 的区别：
+     * - 只返回服务端已确认（seq > 0）的聊天消息：不含被撤回的原消息，也不含通知类消息（撤回通知、群操作通知）；
+     * - 筛选都在 SQL 里做，每页都是凑满的可显示消息，不足 limit 条即说明没有更早的了；
+     * - 只读，不会顺带把未确认的消息标成发送失败。
+     *
+     * 两个方向都能翻：给 beforeSeq 取它之前最新的一页，给 afterSeq 取它之后最早的一页（历史窗口滑动窗口往回滚时用）。
+     *
+     * @returns 按 seq 升序（末条最新）
+     */
+    async searchHistoryMessages(sessionKey: string, query: LocalHistoryQuery): Promise<IChatMessage[]> {
+        const { beforeSeq, afterSeq, limit, category, keyword } = query;
+        if (!sessionKey || !(limit > 0)) return [];
+        const newer = !!afterSeq && seqPositive(afterSeq);
+
+        const { historyCategoryTypes, keywordContentTypes, keywordFileNameTypes, notificationTypes } = MESSAGE_FILTER_CONFIG;
+
+        const conditions = [
+            'session_key = ?',
+            'seq > 0',
+            'status != ?',
+            `type NOT IN (${placeholders(notificationTypes.length)})`,
+        ];
+        const params: unknown[] = [sessionKey, MessageStatus.MESSAGE_STATUS_RECALLED, ...notificationTypes];
+
+        // seq 比较在 SQLite 内以 int64 精确进行（参数绑定 BigInt）
+        if (newer) {
+            conditions.push('seq > ?');
+            params.push(seqToBigInt(afterSeq));
+        } else if (beforeSeq && seqPositive(beforeSeq)) {
+            conditions.push('seq < ?');
+            params.push(seqToBigInt(beforeSeq));
+        }
+
+        const types = category ? historyCategoryTypes[category] : undefined;
+        if (types) {
+            conditions.push(`type IN (${placeholders(types.length)})`);
+            params.push(...types);
+        }
+
+        const word = keyword?.trim();
+        if (word) {
+            const pattern = `%${escapeLike(word)}%`;
+            conditions.push(
+                `((type IN (${placeholders(keywordContentTypes.length)}) AND json_extract(data, '$.content') LIKE ? ESCAPE '\\')`
+                + ` OR (type IN (${placeholders(keywordFileNameTypes.length)}) AND json_extract(data, '$.fileName') LIKE ? ESCAPE '\\'))`
+            );
+            params.push(...keywordContentTypes, pattern, ...keywordFileNameTypes, pattern);
+        }
+
+        // 走 (session_key, seq) 索引顺着翻页方向扫，凑满一页就停
+        const rows = await dbBridge.query<MessageRow>(
+            'user',
+            `SELECT * FROM chat_messages
+             WHERE ${conditions.join(' AND ')}
+             ORDER BY seq ${newer ? 'ASC' : 'DESC'}
+             LIMIT ?`,
+            [...params, Math.floor(limit)]
+        );
+        if (!newer) rows.reverse();
+        return rows.map(rowToMessage);
     }
 
     /**

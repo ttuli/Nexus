@@ -72,12 +72,10 @@
  * 检查、下载、安装全在主进程 updateManager，这里只展示状态、转发用户操作。
  */
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import TitleBar from '@/src/components/TitleBar.vue'
-import CusButton from '@/src/components/CusButton.vue'
-import ReleaseNotes from '@/src/components/ReleaseNotes.vue'
 import { updateService } from '@/src/services'
 import { signalWindowReady } from '@/src/utils/window'
 import { publicUrl } from '@/src/utils/resourceUrl'
+import { formatFileSize } from '@/src/utils/fileFormat'
 import { APP_CONSTANTS, APP_ICON } from '@shared/config/constants'
 import type { UpdatePhase, UpdateState } from '@shared/types'
 
@@ -106,20 +104,11 @@ const headline = computed(() => HEADLINES[phase.value])
 
 const percent = computed(() => Math.min(100, Math.floor(state.value?.progress?.percent ?? 0)))
 
-const formatSize = (bytes: number) => {
-    if (!bytes || bytes === 0) return '0 B'
-    const k = 1024
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    const val = parseFloat((bytes / Math.pow(k, i)).toFixed(1))
-    return val + ' ' + sizes[i]
-}
-
 const progressDetail = computed(() => {
     const p = state.value?.progress
     // 下载刚开始、还没拿到总大小
     if (!p || !p.total) return '正在连接更新服务器…'
-    return `${formatSize(p.transferred)} / ${formatSize(p.total)} · ${formatSize(p.bytesPerSecond)}/s`
+    return `${formatFileSize(p.transferred)} / ${formatFileSize(p.total)} · ${formatFileSize(p.bytesPerSecond)}/s`
 })
 
 const openDownloadPage = () => updateService.openDownloadPage()
@@ -183,8 +172,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
-@use "@/src/style/_constant.scss" as *;
-
 .titlebar {
     position: fixed;
     z-index: 100;

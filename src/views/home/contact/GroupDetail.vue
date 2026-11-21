@@ -25,7 +25,6 @@
                                     <CopyDocument />
                                 </el-icon>
                             </div>
-                            <!-- <div class="desc" v-if="groupInfo.notice">公告: {{ groupInfo.notice || '暂无公告' }}</div> -->
                         </div>
                     </div>
                 </div>
@@ -181,8 +180,6 @@ const handleJoin = async () => {
 </script>
 
 <style scoped lang="scss">
-@use "@/src/style/_constant.scss" as *;
-
 .group-detail {
     width: 100%;
     height: 100%;
@@ -255,11 +252,6 @@ const handleJoin = async () => {
                                 font-weight: 600;
                                 color: $color-text-primary;
                             }
-
-                            .member-count {
-                                font-size: 14px;
-                                color: $color-text-secondary;
-                            }
                         }
 
                         .group-id {
@@ -275,13 +267,6 @@ const handleJoin = async () => {
                             &:hover {
                                 color: $color-primary;
                             }
-                        }
-
-                        .desc {
-                            font-size: 14px;
-                            color: $color-text-secondary;
-                            margin-top: 4px;
-                            line-height: 1.5;
                         }
                     }
                 }
@@ -357,11 +342,6 @@ const handleJoin = async () => {
                         font-size: 14px;
                         color: $color-text-secondary;
                         margin-right: 8px;
-                    }
-
-                    .arrow {
-                        color: var(--text-disabled);
-                        font-size: 18px;
                     }
                 }
             }

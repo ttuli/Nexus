@@ -1,4 +1,4 @@
-import { IpcChannels } from '@shared/types'
+import { IpcChannels, ImTypes } from '@shared/types'
 import { WindowKey } from '@shared/config/windowKeys'
 
 /** 计算适合屏幕和媒体原始尺寸的窗口大小 */
@@ -79,16 +79,35 @@ export function openVideoViewer(url: string, width?: number, height?: number): v
     });
 }
 
+/**
+ * 发起私聊语音通话窗口（呼出方）
+ */
+export function openAudioCallWindow(peerId: number, sessionKey: string): void {
+    window.ipcRenderer.send(IpcChannels.WINDOW_NEW, {
+        key: WindowKey.Call,
+        data: {
+            peerId,
+            sessionKey,
+            mediaType: ImTypes.CallMediaType.CALL_MEDIA_TYPE_AUDIO,
+            isIncoming: 0,
+            targetType: 'private',
+        },
+    });
+}
+
+
+const WINDOW_KEYS = new Set<string>(Object.values(WindowKey));
 
 /**
- * 当前渲染进程是否为主窗口（WindowKey.Home，固定加载 /home 路由）。
- *
- * 主进程把 WS 消息广播给所有窗口，而会话状态、未读、提示音、本地落库只该处理一次：
- * 其他窗口的会话 store 是空的，照跑同一套逻辑会重复响提示音，还会把默认值
- * （未置顶、未免打扰）写回 SQLite 覆盖真实会话。按窗口加载时的 hash 判断，setup 阶段即可用。
+ * 当前渲染进程是哪个窗口：取加载时 hash 路由的第一段。各窗口的路由就是 '/' + WindowKey
+ * （见 electron/windows/windowAttribute.ts），新增窗口时保持这个约定。
+ * 登录窗口的路由为空（随后才重定向到 /login），按 Login 处理。setup 阶段即可用。
+ * @returns 对不上任何窗口时返回 undefined
  */
-export function isMainWindow(): boolean {
-    return window.location.hash.startsWith('#/home');
+export function currentWindowKey(): WindowKey | undefined {
+    const segment = window.location.hash.replace(/^#\/?/, '').split(/[/?]/)[0];
+    if (!segment) return WindowKey.Login;
+    return WINDOW_KEYS.has(segment) ? (segment as WindowKey) : undefined;
 }
 
 let signalSent = false;

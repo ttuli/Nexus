@@ -7,7 +7,8 @@ import { TrayManager } from './trayManager';
 import { TrayMenuWindow } from './trayMenuWindow';
 import { setupWindowIpcHandlers } from './ipcHandlers';
 import { IpcChannels, TrayMenuAction, TrayMenuSize } from '@shared/types';
-import { APP_ICON, Main_Config as config } from '@shared/config/constants';
+import { APP_ICON } from '@shared/config/constants';
+import { WINDOW_DEFAULTS } from '@shared/config/window';
 import { WindowKey } from '@shared/config/windowKeys';
 import { closeAllDb } from '@/electron/db';
 
@@ -127,8 +128,8 @@ class WindowManager {
     }
 
     // 确保窗口在屏幕可见区域内
-    const maxX = screenX + screenWidth - Math.min(width, 200);
-    const maxY = screenY + screenHeight - Math.min(height, 200);
+    const maxX = screenX + screenWidth - Math.min(width, WINDOW_DEFAULTS.minVisibleMargin);
+    const maxY = screenY + screenHeight - Math.min(height, WINDOW_DEFAULTS.minVisibleMargin);
     x = Math.max(screenX, Math.min(x, maxX));
     y = Math.max(screenY, Math.min(y, maxY));
 
@@ -144,17 +145,17 @@ class WindowManager {
         key,
         url,
         data,
-        width: defaultWidth = 1200,
-        height: defaultHeight = 800,
-        minWidth = 400,
-        minHeight = 300,
+        width: defaultWidth = WINDOW_DEFAULTS.width,
+        height: defaultHeight = WINDOW_DEFAULTS.height,
+        minWidth = WINDOW_DEFAULTS.minWidth,
+        minHeight = WINDOW_DEFAULTS.minHeight,
         resizable = true,
         maximizable = true,
         modal = false,
         frame = true,
         parent,
         transparent = false,
-        backgroundColor = '#00000000',
+        backgroundColor = WINDOW_DEFAULTS.backgroundColor,
         backgroundMaterial,
         skipTaskbar = false,
         alwaysOnTop = false,
@@ -165,7 +166,11 @@ class WindowManager {
       // 检查是否已存在相同key的窗口
       const existingWindow = this.getWindow(key);
       if (this.isValidWindow(existingWindow)) {
-        existingWindow!.focus();
+        if (config.updateOnReopen) {
+          this.reopenWithData(existingWindow!, config);
+        } else {
+          existingWindow!.focus();
+        }
         return existingWindow;
       }
 
@@ -220,8 +225,8 @@ class WindowManager {
       // 如果是开发环境，以独立窗口打开调试工具（显式关掉 devTools 的窗口除外，如托盘菜单弹层）
       if (process.env['VITE_DEV_SERVER_URL'] && webPreferences.devTools !== false) {
         const devtools = new BrowserWindow({
-          width: 1000,
-          height: 800,
+          width: WINDOW_DEFAULTS.devToolsWindow.width,
+          height: WINDOW_DEFAULTS.devToolsWindow.height,
           show: true,
         });
         window.on('closed', () => {
@@ -239,6 +244,23 @@ class WindowManager {
       console.error(`Failed to create window "${config.key}":`, error);
       return null;
     }
+  }
+
+  /**
+   * 再次打开 updateOnReopen 的窗口：换成本次的 data 并唤到前台。
+   * 页面已就绪就推 WINDOW_DATA，由页面原地切换内容；还在加载的页面可能还没注册监听，推送会丢，
+   * 改为带新 query 重新加载（加载完由 ready 信号照常显示，这里不提前 show）
+   */
+  private reopenWithData(window: BrowserWindow, config: WindowConfig): void {
+    const managed = this.windows.get(config.key);
+    if (managed) managed.data = config.data;
+
+    if (this.pendingReadyWindows.has(window.webContents.id)) {
+      this.loadWindowContent(window, config.url, config.data);
+      return;
+    }
+    window.webContents.send(IpcChannels.WINDOW_DATA, config.data);
+    this.showWindow(config.key);
   }
 
   /**
@@ -289,7 +311,7 @@ class WindowManager {
         readyTimeout = setTimeout(() => {
           console.warn(`Window "${key}" ready timeout, forcing show`);
           showWindow();
-        }, config.windowConfig.showTimeoutMs);
+        }, WINDOW_DEFAULTS.showTimeoutMs);
       }
     };
 
@@ -516,7 +538,7 @@ class WindowManager {
           }
         });
         resolve();
-      }, 10000);
+      }, WINDOW_DEFAULTS.closeTimeoutMs);
 
       Promise.all(closePromises).then(() => {
         clearTimeout(timeout);

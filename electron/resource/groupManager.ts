@@ -2,6 +2,7 @@ import { cacheManager } from './cacheManager';
 import { mainGet, decodeMainResponse } from './mainRequest';
 import { ResourceType, ApiTypes, ImTypes, UpdateAction } from '@shared/types';
 import { APP_CONSTANTS as config } from '@shared/config/constants';
+import { CACHE_CONFIG } from '@shared/config/storage';
 
 type Group = ImTypes.GroupInfo;
 type GroupMember = ImTypes.GroupMember;
@@ -74,7 +75,7 @@ class GroupService {
     /**
      * 按群名获取群组信息
      */
-    public async fetchGroupsByName(name: string, limit: number = 20, offset: number = 0): Promise<Group[]> {
+    public async fetchGroupsByName(name: string, limit: number = CACHE_CONFIG.defaultSearchLimit, offset: number = 0): Promise<Group[]> {
         if (!name) return [];
 
         const key = `${name}_${limit}_${offset}`;

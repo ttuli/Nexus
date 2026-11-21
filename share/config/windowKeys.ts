@@ -15,4 +15,6 @@ export enum WindowKey {
     TrayMenu = 'trayMenu',
     /** 更新窗口：下载与安装新版本。强制更新时是唯一的窗口，可选更新时与主窗口并存 */
     Update = 'update',
+    /** 历史消息窗口：只开一个，按会话切换内容（已打开时从别的会话再打开，页面原地换会话，不重建窗口） */
+    History = 'history',
 }

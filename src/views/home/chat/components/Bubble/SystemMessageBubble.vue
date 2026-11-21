@@ -51,8 +51,6 @@ const systemMessageText = computed(() => {
 </script>
 
 <style scoped lang="scss">
-@use "@/src/style/_constant.scss" as *;
-
 .system-message-bubble {
     display: flex;
     justify-content: center;

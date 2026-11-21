@@ -100,6 +100,10 @@ export const IpcChannels = {
     WINDOW_LOAD_ERROR: 'window:load-error',
     WINDOW_IS_FOCUSED: 'window:is-focused',
     WINDOW_FLASH_FRAME: 'window:flash-frame',
+    /** 主进程 → 渲染层：只开一个的窗口已打开时再次被打开，推送本次的 data（字段同首次打开时的 URL query），由页面原地切换内容 */
+    WINDOW_DATA: 'window:data',
+    /** 历史消息窗口 →（经 WINDOW_SEND_TO 转发）→ 主窗口：定位到某条消息并闪烁，载荷为 MessageJumpTarget */
+    CHAT_JUMP_TO_MESSAGE: 'chat:jump-to-message',
 
     // 托盘相关
     /** 托盘菜单渲染层上报测量到的弹层尺寸，主进程据此定位窗口 */
@@ -142,6 +146,12 @@ export const IpcChannels = {
     MSG_UPDATE_STATUS: 'msg:update-status',
     MSG_UPDATE_LOCAL_PATH: 'msg:update-local-path',
     MSG_GET_HISTORY: 'msg:get-history',
+    /** 主窗口跳转定位后往更新的方向翻页：取某个 seq 之后最早的一页 */
+    MSG_GET_NEWER: 'msg:get-newer',
+    /** 历史消息窗口检索本地消息（按类型 / 关键词筛选，只读） */
+    MSG_SEARCH_HISTORY: 'msg:search-history',
+    /** 主进程 → 历史消息窗口：这些消息已撤回并落库（载荷为 msgId 数组），从列表里移除 */
+    MSG_RECALLED: 'msg:recalled',
     MSG_CLEAR_SESSION: 'msg:clear-session',
     MSG_DELETE: 'msg:delete',
     MSG_GET_LATEST: 'msg:get-latest',

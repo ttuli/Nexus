@@ -3,7 +3,7 @@
  * 封装所有与 SQLite（通过 IPC）的消息读写操作
  * 不涉及状态管理，不依赖 Pinia Store
  */
-import { IChatMessage } from '@shared/types/chatMessage';
+import { IChatMessage, LocalHistoryQuery } from '@shared/types/chatMessage';
 import { IpcChannels } from '@shared/types/ipc';
 import { ipcService } from './ipcService';
 import { toRaw } from 'vue';
@@ -58,6 +58,28 @@ class MessageService {
             return res.data;
         }
         return [];
+    }
+
+    /**
+     * 从本地 SQLite 取 afterSeq 之后最早的一页（主窗口跳转定位后往下翻）
+     * @returns 按 seq 升序；读库失败时返回空数组（与 getLocalHistoryMessages 一致）
+     */
+    async getLocalMessagesAfter(sessionKey: string, afterSeq: string, limit: number): Promise<IChatMessage[]> {
+        const res = await ipcService.invoke<IChatMessage[]>(IpcChannels.MSG_GET_NEWER, sessionKey, afterSeq, limit);
+        if (res.success && Array.isArray(res.data)) return res.data;
+        if (!res.success) console.error('[MessageService] getLocalMessagesAfter failed:', res.error);
+        return [];
+    }
+
+    /**
+     * 检索本地历史消息（历史消息窗口用）：只读本地 SQLite，可按类型、关键词筛选
+     * @returns 按 seq 升序（末条最新）；不足 limit 条说明没有更早的了
+     * @throws 读库失败时抛出，由调用方显示「加载失败」
+     */
+    async searchLocalHistory(sessionKey: string, query: LocalHistoryQuery): Promise<IChatMessage[]> {
+        const res = await ipcService.invoke<IChatMessage[]>(IpcChannels.MSG_SEARCH_HISTORY, sessionKey, { ...query });
+        if (!res.success) throw new Error(res.error ?? `IPC call failed: ${IpcChannels.MSG_SEARCH_HISTORY}`);
+        return Array.isArray(res.data) ? res.data : [];
     }
 
     /**

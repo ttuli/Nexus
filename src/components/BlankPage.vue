@@ -14,8 +14,6 @@ defineOptions({ name: 'BlankPage' })
 </script>
 
 <style scoped lang="scss">
-@use "@/src/style/_constant.scss" as *;
-
 .blank-page {
     display: flex;
     flex-direction: column;

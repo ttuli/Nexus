@@ -70,14 +70,12 @@
 
 <script setup lang="ts">
 import { computed, ref, nextTick } from 'vue';
-import CusDialog from '@/src/components/CusDialog';
-import { DialogResult } from '@/src/components/CusDialog/types';
 import { useUserStore } from '@/src/store/user';
 import { ImTypes } from '@shared/types';
-import { ElMessage } from 'element-plus';
 import { extractTargetIdFromSessionId } from '@/src/utils/sessionUtils';
+import { copyToClipboard } from '@/src/utils/clipboard';
 import { CopyDocument, Edit } from '@element-plus/icons-vue';
-import { friendService } from '@/src/services';
+import { useFriendActions } from '@/src/composables/useFriendActions';
 import { updateSessionOptions, clearSessionMessages } from '@/src/composables/sessionActions';
 
 const props = defineProps<{
@@ -87,19 +85,16 @@ const props = defineProps<{
 const emit = defineEmits(['close']);
 
 const userStore = useUserStore();
+const { updateFriendRemark, deleteFriend } = useFriendActions();
 
 const targetId = computed(() => extractTargetIdFromSessionId(props.chat.session_key, userStore.getUserID()) || 0);
 const friendInfo = computed(() => userStore.getFriend(targetId.value));
 const userInfo = computed(() => userStore.getUser(targetId.value));
 
-const copyAccount = async () => {
-    try {
-        await navigator.clipboard.writeText(String(targetId.value));
-        ElMessage.success('已复制');
-    } catch {
-        ElMessage.error('复制失败，请手动复制');
-    }
-};
+const copyAccount = () => copyToClipboard(String(targetId.value), {
+    successMsg: '已复制',
+    errorMsg: '复制失败，请手动复制',
+});
 
 // Remark Editing Logic
 const isEditingRemark = ref(false);
@@ -120,21 +115,12 @@ const handleSaveRemark = async () => {
 
     // Only save if changed
     if (editRemarkValue.value === (friendInfo.value?.remark || '')) return;
-
-    if (!targetId.value || !friendInfo.value) {
-        return;
-    }
+    if (!targetId.value || !friendInfo.value) return;
 
     try {
-        await friendService.updateFriend({
-            friend_id: targetId.value,
-            remark: editRemarkValue.value,
-            blocked: friendInfo.value.blocked || false,
-            starred: friendInfo.value.starred || false
-        });
-
-        ElMessage.success('备注修改成功');
-    } catch (error) {
+        await updateFriendRemark(targetId.value, editRemarkValue.value);
+    } catch {
+        // Error handled inside useFriendActions
     }
 };
 
@@ -169,33 +155,15 @@ const clearChatData = () => {
 };
 
 const confirmDeleteFriend = async () => {
-    const res = await CusDialog.open({
-        title: '提示',
-        content: `确定要删除好友 ${friendInfo.value?.remark || userInfo.value?.user_name || targetId.value} 吗？`,
-        showCancel: true,
-        confirmText: '确定',
-        cancelText: '取消',
+    if (!targetId.value || !friendInfo.value) return;
+    const ok = await deleteFriend(targetId.value, {
+        friendName: userStore.getDisplayName(targetId.value) || String(targetId.value),
     });
-
-    if (res === DialogResult.Confirm) {
-        if (!targetId.value || !friendInfo.value) {
-            ElMessage.error('好友不存在');
-            return;
-        }
-        try {
-            await friendService.deleteFriend(targetId.value);
-            emit('close');
-        } catch (e) {
-            ElMessage.error('删除请求失败');
-        }
-    }
+    if (ok) emit('close');
 };
 </script>
 
 <style scoped lang="scss">
-@use "sass:color";
-@use "@/src/style/constant.scss" as *;
-
 .private-sidebar {
     height: 100%;
     display: flex;

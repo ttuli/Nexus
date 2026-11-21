@@ -446,6 +446,37 @@ class ChatService {
     }
 
     /**
+     * 往更新的方向取一页（主窗口跳转定位后往下翻）：seq > afterSeq 中最早的 pageSize 条。
+     * 本地优先；本地不满一页、且本地最新一条还没到会话 max_seq（本地有缺口）时，同步回源补一页再从本地取。
+     * @param sessionMaxSeq 会话最新 seq（由调用方 store 读出传入，本服务不反向依赖 store）
+     * @returns 按 seq 升序；不足 pageSize 条说明已经到最新
+     */
+    async getNewerMessages(
+        sessionKey: string,
+        afterSeq: string,
+        pageSize: number = 20,
+        sessionMaxSeq?: string,
+    ): Promise<IChatMessage[]> {
+        if (!sessionKey || !seqPositive(afterSeq) || pageSize <= 0) return [];
+        const local = await messageService.getLocalMessagesAfter(sessionKey, afterSeq, pageSize);
+        if (local.length >= pageSize) return local;
+
+        // 不满一页：本地最新一条（一条都没有就是起点）已对齐会话 max_seq，说明确实到头了
+        const newestLocal = local.length > 0 ? local[local.length - 1].seq : afterSeq;
+        if (!seqPositive(sessionMaxSeq) || !seqLt(newestLocal, sessionMaxSeq)) return local;
+
+        try {
+            // startSeq 有界 + endSeq 无界 → 服务端按 seq ASC 返回；fetchHistoryFromApi 内已落库
+            const apiMessages = await this.fetchHistoryFromApi(sessionKey, pageSize, { startSeq: seqPlusOne(afterSeq) });
+            if (apiMessages.length === 0) return local;
+            return await messageService.getLocalMessagesAfter(sessionKey, afterSeq, pageSize);
+        } catch (e) {
+            console.error(`[ChatService] fetch newer messages for ${sessionKey} failed:`, e);
+            return local;
+        }
+    }
+
+    /**
      * 后台补齐历史缺口（纯 I/O）：拉取远端同一窗口 → 落库（fetchHistoryFromApi 内已写 SQLite）→
      * 返回补齐后的本地页。不触碰 store：并入由调用方（message store）负责。
      * best-effort，失败仅记日志，返回空数组。

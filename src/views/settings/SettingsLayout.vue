@@ -47,7 +47,7 @@
                                 </div>
                             </div>
                             <div class="card-right">
-                                <SkyToggle v-model="isDark" @change="handleThemeChange" size="13px" />
+                                <SkyToggle :model-value="isDark" @change="handleThemeChange" size="13px" />
                             </div>
                         </div>
 
@@ -188,8 +188,6 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-@use "@/src/style/_constant.scss" as *;
-
 .settings-layout {
     height: 100vh;
     width: 100vw;
